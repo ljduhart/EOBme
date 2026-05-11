@@ -42,10 +42,14 @@ object EobAnalyzer {
     }
 
     fun findInsuranceName(text: String): String {
-        val normalized = text.lowercase(Locale.US)
         return EobKnowledgeBase.insuranceNames
             .sortedByDescending { it.length }
-            .firstOrNull { normalized.contains(it.lowercase(Locale.US)) }
+            .firstOrNull { insurance ->
+                val escapedName = insurance
+                    .split(Regex("\\s+"))
+                    .joinToString("\\s+") { Regex.escape(it) }
+                Regex("(?i)(?<![A-Za-z0-9])$escapedName(?![A-Za-z0-9])").containsMatchIn(text)
+            }
             ?: "Insurance not recognized"
     }
 
