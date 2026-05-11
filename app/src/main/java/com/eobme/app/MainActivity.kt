@@ -118,7 +118,6 @@ fun EobMeApp() {
                 language = selectedLanguage,
                 profile = profile,
                 modifier = Modifier.padding(innerPadding),
-                firebaseRepository = firebaseRepository,
                 onProfileChanged = {
                     profile = it
                     lastActivityAt = System.currentTimeMillis()
@@ -135,6 +134,7 @@ fun EobMeApp() {
                 language = selectedLanguage,
                 profile = profile,
                 modifier = Modifier.padding(innerPadding),
+                firebaseRepository = firebaseRepository,
                 onProfileChanged = {
                     profile = it
                     lastActivityAt = System.currentTimeMillis()
