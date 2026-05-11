@@ -156,4 +156,71 @@ class ExampleUnitTest {
         assertEquals(record.serviceDateSortKey, restoredRecord.serviceDateSortKey)
         assertEquals(record.charges.first().cptCode, restoredRecord.charges.first().cptCode)
     }
+
+    @Test
+    fun duplicateEobsMatchSameInsuranceProviderDateAndCpts() {
+        val original = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00
+            """.trimIndent(),
+            "camera",
+            1
+        )
+        val replacement = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                99215 billed $310.00 insurance paid $130.00 contractual adjustment $105.00
+            """.trimIndent(),
+            "library",
+            2
+        )
+        val differentVisit = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/04/2025
+                99215 billed $310.00 insurance paid $130.00 contractual adjustment $105.00
+            """.trimIndent(),
+            "library",
+            3
+        )
+
+        assertTrue(EobAnalyzer.isSameEob(original, replacement))
+        assertFalse(EobAnalyzer.isSameEob(original, differentVisit))
+    }
+
+    @Test
+    fun compactDuplicateEobsKeepsOneReplacementCopy() {
+        val original = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00
+            """.trimIndent(),
+            "camera",
+            1
+        )
+        val replacement = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                99215 billed $310.00 insurance paid $130.00 contractual adjustment $105.00
+            """.trimIndent(),
+            "library",
+            2
+        )
+
+        val compacted = EobAnalyzer.compactDuplicateEobs(listOf(original, replacement))
+
+        assertEquals(1, compacted.size)
+        assertEquals(original.id, compacted.first().id)
+        assertEquals(310.0, compacted.first().totalBilledAmount, 0.001)
+    }
 }

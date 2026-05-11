@@ -87,3 +87,10 @@ data class CptUsage(
     val year: Int,
     val count: Int
 )
+
+data class DoctorAppointment(
+    val id: Int,
+    val date: String,
+    val providerName: String,
+    val notes: String
+)

@@ -87,6 +87,25 @@ object EobAnalyzer {
             .sortedWith(compareBy<CptUsage> { it.info.category.ordinal }.thenBy { it.info.code })
     }
 
+    fun isSameEob(first: EobRecord, second: EobRecord): Boolean {
+        return first.insuranceName.equals(second.insuranceName, ignoreCase = true) &&
+            first.providerName.equals(second.providerName, ignoreCase = true) &&
+            first.serviceDate == second.serviceDate &&
+            first.charges.map { it.cptCode }.sorted() == second.charges.map { it.cptCode }.sorted()
+    }
+
+    fun compactDuplicateEobs(records: List<EobRecord>): List<EobRecord> {
+        return records.sortedBy { it.serviceDateSortKey }.fold(mutableListOf()) { compacted, record ->
+            val duplicateIndex = compacted.indexOfFirst { existing -> isSameEob(existing, record) }
+            if (duplicateIndex >= 0) {
+                compacted[duplicateIndex] = record.copy(id = compacted[duplicateIndex].id)
+            } else {
+                compacted.add(record)
+            }
+            compacted
+        }
+    }
+
     private fun parseChargeLine(line: String, fallbackDate: String): EobCharge? {
         val cpt = cptRegex.find(line)?.groupValues?.getOrNull(1)?.uppercase(Locale.US) ?: return null
         val localDate = findServiceDate(line).takeUnless { it == "Date not recognized" } ?: fallbackDate
