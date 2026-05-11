@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -40,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.eobme.app.data.AppLanguage
@@ -48,6 +50,9 @@ import com.eobme.app.data.CptCategory
 import com.eobme.app.data.EobAnalyzer
 import com.eobme.app.data.EobKnowledgeBase
 import com.eobme.app.data.EobRecord
+import com.eobme.app.data.FirebaseEobRepository
+import com.eobme.app.data.FirebaseSyncStatus
+import com.eobme.app.data.NewsRelease
 import com.eobme.app.data.UserProfile
 import com.eobme.app.data.asCurrency
 import com.eobme.app.ui.theme.EOBmeTheme
@@ -67,6 +72,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun EobMeApp() {
+    val appContext = LocalContext.current.applicationContext
+    val firebaseRepository = remember { FirebaseEobRepository(appContext) }
     var language by remember { mutableStateOf<AppLanguage?>(null) }
     var introStep by remember { mutableStateOf(0) }
     var profile by remember { mutableStateOf(UserProfile()) }
@@ -111,6 +118,7 @@ fun EobMeApp() {
                 language = selectedLanguage,
                 profile = profile,
                 modifier = Modifier.padding(innerPadding),
+                firebaseRepository = firebaseRepository,
                 onProfileChanged = {
                     profile = it
                     lastActivityAt = System.currentTimeMillis()
@@ -231,6 +239,7 @@ private fun HomeScreen(
     language: AppLanguage,
     profile: UserProfile,
     modifier: Modifier = Modifier,
+    firebaseRepository: FirebaseEobRepository,
     onProfileChanged: (UserProfile) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onLogout: () -> Unit,
@@ -246,6 +255,8 @@ private fun HomeScreen(
     var uploadText by remember { mutableStateOf("") }
     var selectedCptCategory by remember { mutableStateOf(CptCategory.OfficeVisit) }
     var appealLetter by remember { mutableStateOf(AppealLetterGenerator.generate(profile, selectedRecord)) }
+    var firebaseStatus by remember { mutableStateOf(firebaseRepository.status()) }
+    var firebaseNews by remember { mutableStateOf<List<NewsRelease>>(emptyList()) }
     val tabs = listOf(
         t(language, "home"),
         t(language, "history"),
@@ -254,6 +265,48 @@ private fun HomeScreen(
         t(language, "profile"),
         t(language, "support")
     )
+
+    LaunchedEffect(profile.email, profile.password, profile.isComplete) {
+        if (profile.isComplete) {
+            firebaseRepository.signInOrCreate(profile) { status -> firebaseStatus = status }
+        }
+    }
+
+    DisposableEffect(firebaseStatus.userId) {
+        val userId = firebaseStatus.userId
+        val profileListener = firebaseRepository.observeProfile(
+            userId = userId,
+            currentPassword = profile.password,
+            onProfile = { remoteProfile ->
+                onProfileChanged(remoteProfile)
+                onActivity()
+            },
+            onError = { firebaseStatus = firebaseStatus.copy(message = it) }
+        )
+        val eobListener = firebaseRepository.observeEobs(
+            userId = userId,
+            onRecords = { remoteRecords ->
+                records.clear()
+                records.addAll(remoteRecords.sortedBy { it.serviceDateSortKey })
+                selectedRecord = records.firstOrNull()
+                appealLetter = AppealLetterGenerator.generate(profile, selectedRecord)
+                onActivity()
+            },
+            onError = { firebaseStatus = firebaseStatus.copy(message = it) }
+        )
+        val newsListener = firebaseRepository.observeInsuranceNews(
+            onNews = { news ->
+                firebaseNews = news
+                onActivity()
+            },
+            onError = { firebaseStatus = firebaseStatus.copy(message = it) }
+        )
+        onDispose {
+            profileListener?.remove()
+            eobListener?.remove()
+            newsListener?.remove()
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -283,6 +336,8 @@ private fun HomeScreen(
                 profile = profile,
                 records = records.sortedBy { it.serviceDateSortKey },
                 selectedRecord = selectedRecord,
+                firebaseStatus = firebaseStatus,
+                firebaseNews = firebaseNews,
                 uploadText = uploadText,
                 onUploadTextChanged = {
                     uploadText = it
@@ -296,6 +351,11 @@ private fun HomeScreen(
                     selectedRecord = record
                     appealLetter = AppealLetterGenerator.generate(profile, record)
                     uploadText = ""
+                    if (firebaseStatus.userId.isNotBlank()) {
+                        firebaseRepository.saveEob(firebaseStatus.userId, record) {
+                            firebaseStatus = firebaseStatus.copy(message = it)
+                        }
+                    }
                     onActivity()
                 }
             )
@@ -334,8 +394,18 @@ private fun HomeScreen(
                 profile = profile,
                 onProfileChanged = {
                     onProfileChanged(it)
+                    if (firebaseStatus.userId.isNotBlank()) {
+                        firebaseRepository.saveProfile(firebaseStatus.userId, it) { message ->
+                            firebaseStatus = firebaseStatus.copy(message = message)
+                        }
+                    }
                     onActivity()
                 },
+                firebaseStatus = firebaseStatus,
+                insuranceCardStoragePath = firebaseStatus.userId
+                    .takeIf { it.isNotBlank() }
+                    ?.let { firebaseRepository.insuranceCardStoragePath(it, "insurance-card.jpg") }
+                    .orEmpty(),
                 onLanguageChanged = onLanguageChanged
             )
 
@@ -350,6 +420,8 @@ private fun OverviewTab(
     profile: UserProfile,
     records: List<EobRecord>,
     selectedRecord: EobRecord?,
+    firebaseStatus: FirebaseSyncStatus,
+    firebaseNews: List<NewsRelease>,
     uploadText: String,
     onUploadTextChanged: (String) -> Unit,
     onUpload: (String) -> Unit
@@ -360,9 +432,10 @@ private fun OverviewTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { InsuranceCard(profile) }
+        item { FirebaseSyncCard(firebaseStatus) }
         item { UploadCard(language, uploadText, onUploadTextChanged, onUpload) }
         item { selectedRecord?.let { AnalysisResultsCard(it) } }
-        item { NewsCard() }
+        item { NewsCard(firebaseNews.ifEmpty { EobKnowledgeBase.newsReleases }) }
         item {
             Text("${t(language, "history")}: ${records.size} EOBs", style = MaterialTheme.typography.titleMedium)
         }
@@ -376,10 +449,28 @@ private fun InsuranceCard(profile: UserProfile) {
             Text("Insurance card", style = MaterialTheme.typography.titleMedium)
             if (profile.insuranceCardSummary.isNotBlank()) {
                 Text(profile.insuranceCardSummary)
+            } else if (profile.insuranceCardDownloadUrl.isNotBlank()) {
+                Text("Firebase card file: ${profile.insuranceCardDownloadUrl}")
             } else {
                 Text("Subscriber ID: ${profile.subscriberId.ifBlank { "Add subscriber ID in profile settings" }}")
             }
             Text("Member: ${profile.fullName.ifBlank { "Profile incomplete" }}")
+        }
+    }
+}
+
+@Composable
+private fun FirebaseSyncCard(firebaseStatus: FirebaseSyncStatus) {
+    ElevatedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Firebase data sync", style = MaterialTheme.typography.titleMedium)
+            Text(firebaseStatus.message)
+            if (firebaseStatus.userId.isNotBlank()) {
+                Text("Profile: users/${firebaseStatus.userId}")
+                Text("EOB history: users/${firebaseStatus.userId}/eobs")
+                Text("Insurance cards: users/${firebaseStatus.userId}/insurance-cards")
+                Text("News: insuranceNews")
+            }
         }
     }
 }
@@ -411,11 +502,11 @@ private fun UploadCard(
 }
 
 @Composable
-private fun NewsCard() {
+private fun NewsCard(newsItems: List<NewsRelease>) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Insurance news", style = MaterialTheme.typography.titleMedium)
-            EobKnowledgeBase.newsReleases.forEach { news ->
+            newsItems.forEach { news ->
                 Text("${news.company} • ${news.date}", style = MaterialTheme.typography.labelLarge)
                 Text(news.headline, style = MaterialTheme.typography.titleSmall)
                 Text(news.summary)
@@ -566,6 +657,8 @@ private fun ProfileTab(
     language: AppLanguage,
     profile: UserProfile,
     onProfileChanged: (UserProfile) -> Unit,
+    firebaseStatus: FirebaseSyncStatus,
+    insuranceCardStoragePath: String,
     onLanguageChanged: (AppLanguage) -> Unit
 ) {
     Column(
@@ -577,6 +670,10 @@ private fun ProfileTab(
     ) {
         Text("User profile", style = MaterialTheme.typography.titleLarge)
         Text("Edit saved details")
+        Text("Firebase: ${firebaseStatus.message}")
+        if (insuranceCardStoragePath.isNotBlank()) {
+            Text("Upload insurance card files to Firebase Storage path: $insuranceCardStoragePath")
+        }
         ProfileFields(profile = profile, onProfileChanged = onProfileChanged)
         Text("Language settings", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -643,6 +740,12 @@ private fun ProfileFields(profile: UserProfile, onProfileChanged: (UserProfile) 
         label = { Text("Insurance card details") },
         modifier = Modifier.fillMaxWidth(),
         minLines = 2
+    )
+    OutlinedTextField(
+        value = profile.insuranceCardDownloadUrl,
+        onValueChange = { onProfileChanged(profile.copy(insuranceCardDownloadUrl = it)) },
+        label = { Text("Firebase insurance card download URL") },
+        modifier = Modifier.fillMaxWidth()
     )
 }
 

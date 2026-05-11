@@ -3,6 +3,8 @@ package com.eobme.app
 import com.eobme.app.data.CptCategory
 import com.eobme.app.data.EobAnalyzer
 import com.eobme.app.data.EobKnowledgeBase
+import com.eobme.app.data.FirebaseEobMapper
+import com.eobme.app.data.UserProfile
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -119,5 +121,39 @@ class ExampleUnitTest {
     fun commonIcd10MemoryContainsDescriptions() {
         assertEquals("Essential hypertension.", EobKnowledgeBase.commonIcd10Codes["I10"])
         assertTrue(EobKnowledgeBase.commonIcd10Codes.containsKey("E11.9"))
+    }
+
+    @Test
+    fun firebaseMapperRoundTripsProfileAndEobData() {
+        val profile = UserProfile(
+            firstName = "Lester",
+            lastName = "Duhart",
+            email = "member@example.com",
+            password = "private",
+            city = "Atlanta",
+            state = "GA",
+            subscriberId = "SUB123",
+            insuranceCardSummary = "Aetna card on file",
+            insuranceCardDownloadUrl = "https://firebasestorage.example/card.jpg"
+        )
+        val profileMap = FirebaseEobMapper.profileToMap(profile)
+        val restoredProfile = FirebaseEobMapper.profileFromMap(profileMap, currentPassword = profile.password)
+        val record = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00
+            """.trimIndent(),
+            "library",
+            10
+        )
+        val restoredRecord = FirebaseEobMapper.eobFromMap(FirebaseEobMapper.eobToMap(record))
+
+        assertEquals(profile, restoredProfile)
+        assertEquals(record.insuranceName, restoredRecord.insuranceName)
+        assertEquals(record.providerName, restoredRecord.providerName)
+        assertEquals(record.serviceDateSortKey, restoredRecord.serviceDateSortKey)
+        assertEquals(record.charges.first().cptCode, restoredRecord.charges.first().cptCode)
     }
 }
