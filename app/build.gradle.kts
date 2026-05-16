@@ -3,8 +3,18 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val hasGoogleServicesConfig = listOf(
+    file("google-services.json"),
+    file("src/debug/google-services.json"),
+    file("src/release/google-services.json")
+).any { it.exists() }
+
+if (hasGoogleServicesConfig) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
-    namespace = "com.eobme.app"
+    namespace = "app.eob.me"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -12,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.eobme.app"
+        applicationId = "app.eob.me"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -41,6 +51,7 @@ android {
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
+    implementation(platform(libs.firebase.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
@@ -48,6 +59,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+    implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

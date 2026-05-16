@@ -1,4 +1,4 @@
-package com.eobme.app.ui.theme
+package app.eob.me.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
