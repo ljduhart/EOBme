@@ -1,4 +1,4 @@
-package com.eobme.app
+package app.eob.me
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -44,20 +44,21 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.eobme.app.data.AppLanguage
-import com.eobme.app.data.AppealLetterGenerator
-import com.eobme.app.data.CptCategory
-import com.eobme.app.data.DoctorAppointment
-import com.eobme.app.data.EobAnalyzer
-import com.eobme.app.data.EobKnowledgeBase
-import com.eobme.app.data.EobRecord
-import com.eobme.app.data.FirebaseEobRepository
-import com.eobme.app.data.FirebaseSyncStatus
-import com.eobme.app.data.NewsRelease
-import com.eobme.app.data.UserProfile
-import com.eobme.app.data.asCurrency
-import com.eobme.app.ui.theme.EOBmeTheme
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.AppealLetterGenerator
+import app.eob.me.data.CptCategory
+import app.eob.me.data.DoctorAppointment
+import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobKnowledgeBase
+import app.eob.me.data.EobRecord
+import app.eob.me.data.FirebaseEobRepository
+import app.eob.me.data.FirebaseSyncStatus
+import app.eob.me.data.NewsRelease
+import app.eob.me.data.UserProfile
+import app.eob.me.data.asCurrency
+import app.eob.me.ui.theme.EOBmeTheme
 import kotlinx.coroutines.delay
+import java.util.Calendar
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -733,7 +734,11 @@ private fun CptCountTab(
     selectedCategory: CptCategory,
     onCategoryChanged: (CptCategory) -> Unit
 ) {
-    val year = 2025
+    val year = records
+        .map { EobAnalyzer.serviceYear(it.serviceDate) }
+        .filter { it > 0 }
+        .maxOrNull()
+        ?: Calendar.getInstance().get(Calendar.YEAR)
     val usage = EobAnalyzer.cptUsage(records, year).filter { it.info.category == selectedCategory }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

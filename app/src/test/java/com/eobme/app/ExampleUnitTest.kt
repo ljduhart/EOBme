@@ -1,10 +1,10 @@
-package com.eobme.app
+package app.eob.me
 
-import com.eobme.app.data.CptCategory
-import com.eobme.app.data.EobAnalyzer
-import com.eobme.app.data.EobKnowledgeBase
-import com.eobme.app.data.FirebaseEobMapper
-import com.eobme.app.data.UserProfile
+import app.eob.me.data.CptCategory
+import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobKnowledgeBase
+import app.eob.me.data.FirebaseEobMapper
+import app.eob.me.data.UserProfile
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -155,6 +155,58 @@ class ExampleUnitTest {
         assertEquals(record.providerName, restoredRecord.providerName)
         assertEquals(record.serviceDateSortKey, restoredRecord.serviceDateSortKey)
         assertEquals(record.charges.first().cptCode, restoredRecord.charges.first().cptCode)
+    }
+
+    @Test
+    fun firebaseMapperReadsLegacyEobRecordsFieldsWithAmountsAndCpts() {
+        val legacyRecord = mapOf(
+            "provider_name" to "Downtown Medical Group",
+            "insurance_name" to "Aetna",
+            "date_of_service" to "2026-02-03",
+            "billed_amount" to 310.0,
+            "insurance_paid" to 130.0,
+            "contractual_adj" to 105.0,
+            "copay" to 25.0,
+            "deductible" to 40.0,
+            "coinsurance" to 10.0,
+            "cptCodes" to "99215,80053",
+            "rawText" to "Aetna Provider: Downtown Medical Group 99215 80053"
+        )
+
+        val record = FirebaseEobMapper.eobFromMap(legacyRecord, documentId = "firebase-doc-1")
+
+        assertEquals("Downtown Medical Group", record.providerName)
+        assertEquals("Aetna", record.insuranceName)
+        assertEquals("02/03/2026", record.serviceDate)
+        assertEquals(310.0, record.totalBilledAmount, 0.001)
+        assertEquals(130.0, record.totalInsurancePaidAmount, 0.001)
+        assertEquals(105.0, record.totalContractualAdjustmentAmount, 0.001)
+        assertEquals(25.0, record.totalCopayAmount, 0.001)
+        assertEquals(40.0, record.totalDeductibleAmount, 0.001)
+        assertEquals(10.0, record.totalCoinsuranceAmount, 0.001)
+        assertEquals(listOf("99215", "80053"), record.charges.map { it.cptCode })
+    }
+
+    @Test
+    fun cptUsageWorksForFirebaseSynthesizedCharges() {
+        val record = FirebaseEobMapper.eobFromMap(
+            mapOf(
+                "provider_name" to "Downtown Medical Group",
+                "insurance_name" to "Aetna",
+                "date_of_service" to "02/03/2026",
+                "billed_amount" to "$310.00",
+                "insurance_paid" to "$130.00",
+                "contractual_adj" to "$105.00",
+                "cptCodes" to listOf("99215", "J3301")
+            ),
+            documentId = "firebase-doc-2"
+        )
+
+        val usage = EobAnalyzer.cptUsage(listOf(record), 2026)
+
+        assertEquals(setOf("99215", "J3301"), usage.map { it.info.code }.toSet())
+        assertEquals(1, usage.first { it.info.code == "99215" }.count)
+        assertEquals(CptCategory.Injection, usage.first { it.info.code == "J3301" }.info.category)
     }
 
     @Test

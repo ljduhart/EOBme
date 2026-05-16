@@ -1,4 +1,4 @@
-package com.eobme.app.data
+package app.eob.me.data
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore

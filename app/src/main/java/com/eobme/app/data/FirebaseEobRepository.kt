@@ -1,11 +1,10 @@
-package com.eobme.app.data
+package app.eob.me.data
 
 import android.content.Context
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.Query
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 
@@ -92,18 +91,31 @@ class FirebaseEobRepository(private val context: Context) {
         onError: (String) -> Unit
     ): ListenerRegistration? {
         if (!configured || userId.isBlank()) return null
-        return firestore().collection(USERS).document(userId).collection(EOBS)
-            .orderBy("serviceDateSortKey", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, error ->
+        val recordsByCollection = mutableMapOf<String, List<EobRecord>>()
+        fun publishRecords() {
+            onRecords(
+                recordsByCollection.values
+                    .flatten()
+                    .distinctBy { "${it.insuranceName}|${it.providerName}|${it.serviceDate}|${it.charges.joinToString { charge -> charge.cptCode }}" }
+                    .sortedBy { it.serviceDateSortKey }
+            )
+        }
+
+        val listeners = listOf(EOBS, EOB_RECORDS).map { collectionName ->
+            firestore().collection(USERS).document(userId).collection(collectionName)
+                .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    onError("EOB sync failed: ${error.localizedMessage}")
+                    onError("$collectionName sync failed: ${error.localizedMessage}")
                     return@addSnapshotListener
                 }
                 val records = snapshot?.documents
-                    ?.mapNotNull { document -> document.data?.let(FirebaseEobMapper::eobFromMap) }
+                    ?.mapNotNull { document -> document.data?.let { data -> FirebaseEobMapper.eobFromMap(data, document.id) } }
                     .orEmpty()
-                onRecords(records)
-            }
+                recordsByCollection[collectionName] = records
+                publishRecords()
+                }
+        }
+        return CombinedListenerRegistration(listeners)
     }
 
     fun observeInsuranceNews(
@@ -136,9 +148,13 @@ class FirebaseEobRepository(private val context: Context) {
 
     fun saveEob(userId: String, record: EobRecord, onComplete: (String) -> Unit) {
         if (!configured || userId.isBlank()) return
+        val payload = FirebaseEobMapper.eobToMap(record)
         firestore().collection(USERS).document(userId).collection(EOBS)
             .document(record.id.toString())
-            .set(FirebaseEobMapper.eobToMap(record))
+            .set(payload)
+        firestore().collection(USERS).document(userId).collection(EOB_RECORDS)
+            .document(record.id.toString())
+            .set(payload)
             .addOnSuccessListener { onComplete("EOB saved to Firebase.") }
             .addOnFailureListener { onComplete("EOB save failed: ${it.localizedMessage}") }
     }
@@ -172,7 +188,16 @@ class FirebaseEobRepository(private val context: Context) {
     private companion object {
         const val USERS = "users"
         const val EOBS = "eobs"
+        const val EOB_RECORDS = "eob_records"
         const val DEVICES = "devices"
         const val NEWS = "insuranceNews"
+    }
+}
+
+private class CombinedListenerRegistration(
+    private val listeners: List<ListenerRegistration>
+) : ListenerRegistration {
+    override fun remove() {
+        listeners.forEach { it.remove() }
     }
 }

@@ -1,4 +1,4 @@
-package com.eobme.app.ui.theme
+package app.eob.me.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

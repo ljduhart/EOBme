@@ -1,4 +1,4 @@
-package com.eobme.app.ui.theme
+package app.eob.me.ui.theme
 
 import android.app.Activity
 import android.os.Build

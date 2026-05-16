@@ -1,4 +1,4 @@
-package com.eobme.app.data
+package app.eob.me.data
 
 object EobKnowledgeBase {
     val insuranceNames = listOf(

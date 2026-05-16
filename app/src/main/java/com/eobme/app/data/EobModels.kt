@@ -1,4 +1,4 @@
-package com.eobme.app.data
+package app.eob.me.data
 
 enum class AppLanguage(val displayName: String) {
     English("English"),

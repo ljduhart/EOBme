@@ -14,7 +14,7 @@ if (hasGoogleServicesConfig) {
 }
 
 android {
-    namespace = "com.eobme.app"
+    namespace = "app.eob.me"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.eobme.app"
+        applicationId = "app.eob.me"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
