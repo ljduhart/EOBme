@@ -1,0 +1,59 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    match /users/{userId} {
+      allow read, create, update, delete: if isOwner(userId) || isAdmin();
+
+      match /eobs/{eobId} {
+        allow read, create, update, delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /eob_records/{eobId} {
+        allow read, create, update, delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /devices/{deviceId} {
+        allow read, create, update, delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /appointments/{appointmentId} {
+        allow read, create, update, delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /appeal_letters/{letterId} {
+        allow read, create, update, delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    match /insuranceNews/{newsId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /appConfig/{configId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
