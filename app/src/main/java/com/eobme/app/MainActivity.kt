@@ -1,9 +1,13 @@
 package app.eob.me
 
+import android.Manifest
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +15,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,18 +25,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +48,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -52,13 +62,14 @@ import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
 import app.eob.me.data.FirebaseEobRepository
-import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.theme.EOBmeTheme
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,12 +91,13 @@ fun EobMeApp() {
     var introStep by remember { mutableStateOf(0) }
     var profile by remember { mutableStateOf(UserProfile()) }
     var signedIn by remember { mutableStateOf(false) }
+    var accountCreated by remember { mutableStateOf(false) }
     var lastActivityAt by remember { mutableStateOf(System.currentTimeMillis()) }
 
     LaunchedEffect(signedIn, lastActivityAt) {
         if (signedIn) {
-            delay(180_000)
-            if (System.currentTimeMillis() - lastActivityAt >= 180_000) {
+            delay(300_000)
+            if (System.currentTimeMillis() - lastActivityAt >= 300_000) {
                 signedIn = false
                 introStep = 0
             }
@@ -119,12 +131,19 @@ fun EobMeApp() {
             !signedIn -> RegistrationScreen(
                 language = selectedLanguage,
                 profile = profile,
+                accountCreated = accountCreated,
                 modifier = Modifier.padding(innerPadding),
                 onProfileChanged = {
                     profile = it
                     lastActivityAt = System.currentTimeMillis()
                 },
-                onContinue = {
+                onCreateAccount = {
+                    if (profile.isComplete) {
+                        accountCreated = true
+                        lastActivityAt = System.currentTimeMillis()
+                    }
+                },
+                onLogin = {
                     if (profile.isComplete) {
                         signedIn = true
                         lastActivityAt = System.currentTimeMillis()
@@ -148,6 +167,7 @@ fun EobMeApp() {
                 onLogout = {
                     signedIn = false
                     introStep = 0
+                    accountCreated = false
                 },
                 onActivity = { lastActivityAt = System.currentTimeMillis() }
             )
@@ -216,9 +236,11 @@ private fun IntroScreen(
 private fun RegistrationScreen(
     language: AppLanguage,
     profile: UserProfile,
+    accountCreated: Boolean,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
-    onContinue: () -> Unit
+    onCreateAccount: () -> Unit,
+    onLogin: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -230,8 +252,15 @@ private fun RegistrationScreen(
         Text(t(language, "profileRequired"), style = MaterialTheme.typography.headlineSmall)
         Text(t(language, "profileRequiredHelp"))
         ProfileFields(language = language, profile = profile, onProfileChanged = onProfileChanged)
-        Button(onClick = onContinue, enabled = profile.isComplete, modifier = Modifier.fillMaxWidth()) {
-            Text(t(language, "continueHome"))
+        if (accountCreated) {
+            Text(t(language, "accountCreated"))
+            Button(onClick = onLogin, enabled = profile.isComplete, modifier = Modifier.fillMaxWidth()) {
+                Text(t(language, "loginToContinue"))
+            }
+        } else {
+            Button(onClick = onCreateAccount, enabled = profile.isComplete, modifier = Modifier.fillMaxWidth()) {
+                Text(t(language, "createAccount"))
+            }
         }
     }
 }
@@ -247,6 +276,7 @@ private fun HomeScreen(
     onLogout: () -> Unit,
     onActivity: () -> Unit
 ) {
+    val context = LocalContext.current
     val records = remember {
         mutableStateListOf(
             EobAnalyzer.analyze(sampleEobText, "Sample camera scan", 1)
@@ -257,17 +287,64 @@ private fun HomeScreen(
     var uploadText by remember { mutableStateOf("") }
     var uploadNotice by remember { mutableStateOf("") }
     val appointments = remember { mutableStateListOf<DoctorAppointment>() }
-    var appointmentDate by remember { mutableStateOf("") }
-    var appointmentProvider by remember { mutableStateOf("") }
-    var appointmentNotes by remember { mutableStateOf("") }
     var selectedCptCategory by remember { mutableStateOf(CptCategory.OfficeVisit) }
     var appealLetter by remember { mutableStateOf(AppealLetterGenerator.generate(profile, selectedRecord)) }
     var firebaseStatus by remember { mutableStateOf(firebaseRepository.status()) }
     var firebaseNews by remember { mutableStateOf<List<NewsRelease>>(emptyList()) }
+
+    fun saveAnalyzedEob(source: String, rawText: String) {
+        val analyzedRecord = EobAnalyzer.analyze(rawText, source, (records.maxOfOrNull { it.id } ?: 0) + 1)
+        val duplicateIndex = records.indexOfFirst { existing -> EobAnalyzer.isSameEob(existing, analyzedRecord) }
+        val record = if (duplicateIndex >= 0) {
+            uploadNotice = t(language, "duplicateReplaced")
+            analyzedRecord.copy(id = records[duplicateIndex].id)
+        } else {
+            uploadNotice = t(language, "eobAdded")
+            analyzedRecord
+        }
+        if (duplicateIndex >= 0) {
+            records[duplicateIndex] = record
+        } else {
+            records.add(record)
+        }
+        val compactedRecords = EobAnalyzer.compactDuplicateEobs(records)
+        records.clear()
+        records.addAll(compactedRecords)
+        selectedRecord = record
+        appealLetter = AppealLetterGenerator.generate(profile, record)
+        uploadText = ""
+        if (firebaseStatus.userId.isNotBlank()) {
+            firebaseRepository.saveEob(firebaseStatus.userId, record) {
+                firebaseStatus = firebaseStatus.copy(message = it)
+            }
+        }
+        onActivity()
+    }
+
+    val libraryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            saveAnalyzedEob(t(language, "libraryUpload"), uploadText.ifBlank { sampleEobText })
+            Toast.makeText(context, t(language, "libraryUploadStarted"), Toast.LENGTH_SHORT).show()
+        }
+    }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) {
+            saveAnalyzedEob(t(language, "cameraScan"), uploadText.ifBlank { sampleEobText })
+            Toast.makeText(context, t(language, "cameraScanStarted"), Toast.LENGTH_SHORT).show()
+        }
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            cameraLauncher.launch(null)
+        } else {
+            Toast.makeText(context, t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
+        }
+    }
     val tabs = listOf(
         t(language, "home"),
         t(language, "history"),
         t(language, "cptCount"),
+        t(language, "news"),
         t(language, "appeal"),
         t(language, "profile"),
         t(language, "support")
@@ -315,71 +392,63 @@ private fun HomeScreen(
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("EOBme", style = MaterialTheme.typography.headlineMedium)
-            OutlinedButton(onClick = onLogout) { Text(t(language, "logout")) }
-        }
-        TabRow(selectedTabIndex = selectedTab) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = {
-                        selectedTab = index
-                        onActivity()
-                    },
-                    text = { Text(title) }
-                )
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            FloatingActionButton(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                Text(t(language, "scanBill"), modifier = Modifier.padding(horizontal = 12.dp))
             }
         }
-        when (selectedTab) {
-            0 -> OverviewTab(
+    ) { scaffoldPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("EOBme", style = MaterialTheme.typography.headlineMedium)
+                OutlinedButton(onClick = onLogout) { Text(t(language, "logout")) }
+            }
+            ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 8.dp) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = {
+                            selectedTab = index
+                            onActivity()
+                        },
+                        text = { Text(title) }
+                    )
+                }
+            }
+            when (selectedTab) {
+                0 -> OverviewTab(
                 language = language,
                 profile = profile,
                 records = records.sortedBy { it.serviceDateSortKey },
                 selectedRecord = selectedRecord,
-                firebaseStatus = firebaseStatus,
-                firebaseNews = firebaseNews,
                 appointments = appointments.sortedBy { it.date },
-                appointmentDate = appointmentDate,
-                appointmentProvider = appointmentProvider,
-                appointmentNotes = appointmentNotes,
                 uploadNotice = uploadNotice,
                 uploadText = uploadText,
                 onUploadTextChanged = {
                     uploadText = it
                     onActivity()
                 },
-                onAppointmentDateChanged = {
-                    appointmentDate = it
-                    onActivity()
-                },
-                onAppointmentProviderChanged = {
-                    appointmentProvider = it
-                    onActivity()
-                },
-                onAppointmentNotesChanged = {
-                    appointmentNotes = it
-                    onActivity()
-                },
-                onAddAppointment = {
-                    if (appointmentDate.isNotBlank() && appointmentProvider.isNotBlank()) {
+                onAddAppointment = { date, provider, notes ->
+                    if (date.isNotBlank() && provider.isNotBlank()) {
                         appointments.add(
                             DoctorAppointment(
                                 id = (appointments.maxOfOrNull { it.id } ?: 0) + 1,
-                                date = appointmentDate,
-                                providerName = appointmentProvider,
-                                notes = appointmentNotes
+                                date = date,
+                                providerName = provider,
+                                notes = notes
                             )
                         )
-                        appointmentDate = ""
-                        appointmentProvider = ""
-                        appointmentNotes = ""
                     }
                     onActivity()
                 },
@@ -387,44 +456,17 @@ private fun HomeScreen(
                     appointments.removeAll { it.id == appointment.id }
                     onActivity()
                 },
-                onUpload = { source ->
-                    val textToAnalyze = uploadText.ifBlank { sampleEobText }
-                    val analyzedRecord = EobAnalyzer.analyze(textToAnalyze, source, (records.maxOfOrNull { it.id } ?: 0) + 1)
-                    val duplicateIndex = records.indexOfFirst { existing -> EobAnalyzer.isSameEob(existing, analyzedRecord) }
-                    val record = if (duplicateIndex >= 0) {
-                        uploadNotice = t(language, "duplicateReplaced")
-                        analyzedRecord.copy(id = records[duplicateIndex].id)
-                    } else {
-                        uploadNotice = t(language, "eobAdded")
-                        analyzedRecord
-                    }
-                    if (duplicateIndex >= 0) {
-                        records[duplicateIndex] = record
-                    } else {
-                        records.add(record)
-                    }
-                    val compactedRecords = EobAnalyzer.compactDuplicateEobs(records)
-                    records.clear()
-                    records.addAll(compactedRecords)
-                    selectedRecord = record
-                    appealLetter = AppealLetterGenerator.generate(profile, record)
-                    uploadText = ""
-                    if (firebaseStatus.userId.isNotBlank()) {
-                        firebaseRepository.saveEob(firebaseStatus.userId, record) {
-                            firebaseStatus = firebaseStatus.copy(message = it)
-                        }
-                    }
-                    onActivity()
-                }
+                onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
+                onCameraScan = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
             )
 
-            1 -> HistoryTab(language = language, records = records.sortedBy { it.serviceDateSortKey }, onSelected = {
+                1 -> HistoryTab(language = language, records = records.sortedBy { it.serviceDateSortKey }, onSelected = {
                 selectedRecord = it
                 selectedTab = 0
                 onActivity()
             })
 
-            2 -> CptCountTab(
+                2 -> CptCountTab(
                 language = language,
                 records = records,
                 selectedCategory = selectedCptCategory,
@@ -434,7 +476,9 @@ private fun HomeScreen(
                 }
             )
 
-            3 -> AppealTab(
+                3 -> NewsTab(language = language, newsItems = firebaseNews.ifEmpty { EobKnowledgeBase.newsReleases })
+
+                4 -> AppealTab(
                 language = language,
                 profile = profile,
                 selectedRecord = selectedRecord,
@@ -449,7 +493,7 @@ private fun HomeScreen(
                 }
             )
 
-            4 -> ProfileTab(
+                5 -> ProfileTab(
                 language = language,
                 profile = profile,
                 onProfileChanged = {
@@ -461,15 +505,11 @@ private fun HomeScreen(
                     }
                     onActivity()
                 },
-                firebaseStatus = firebaseStatus,
-                insuranceCardStoragePath = firebaseStatus.userId
-                    .takeIf { it.isNotBlank() }
-                    ?.let { firebaseRepository.insuranceCardStoragePath(it, "insurance-card.jpg") }
-                    .orEmpty(),
                 onLanguageChanged = onLanguageChanged
             )
 
-            5 -> SupportTab(language = language)
+                6 -> SupportTab(language = language)
+            }
         }
     }
 }
@@ -480,21 +520,14 @@ private fun OverviewTab(
     profile: UserProfile,
     records: List<EobRecord>,
     selectedRecord: EobRecord?,
-    firebaseStatus: FirebaseSyncStatus,
-    firebaseNews: List<NewsRelease>,
     appointments: List<DoctorAppointment>,
-    appointmentDate: String,
-    appointmentProvider: String,
-    appointmentNotes: String,
     uploadNotice: String,
     uploadText: String,
     onUploadTextChanged: (String) -> Unit,
-    onAppointmentDateChanged: (String) -> Unit,
-    onAppointmentProviderChanged: (String) -> Unit,
-    onAppointmentNotesChanged: (String) -> Unit,
-    onAddAppointment: () -> Unit,
+    onAddAppointment: (String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
-    onUpload: (String) -> Unit
+    onLibraryUpload: () -> Unit,
+    onCameraScan: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -502,27 +535,19 @@ private fun OverviewTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { InsuranceCard(language, profile) }
-        item { FirebaseSyncCard(language, firebaseStatus) }
         item {
             QuickActionsCard(
                 language = language,
                 appointments = appointments,
-                appointmentDate = appointmentDate,
-                appointmentProvider = appointmentProvider,
-                appointmentNotes = appointmentNotes,
-                onAppointmentDateChanged = onAppointmentDateChanged,
-                onAppointmentProviderChanged = onAppointmentProviderChanged,
-                onAppointmentNotesChanged = onAppointmentNotesChanged,
                 onAddAppointment = onAddAppointment,
                 onRemoveAppointment = onRemoveAppointment
             )
         }
-        item { UploadCard(language, uploadText, onUploadTextChanged, onUpload) }
+        item { UploadCard(language, uploadText, onUploadTextChanged, onLibraryUpload, onCameraScan) }
         if (uploadNotice.isNotBlank()) {
             item { Text(uploadNotice, style = MaterialTheme.typography.titleSmall) }
         }
         item { selectedRecord?.let { AnalysisResultsCard(language, it) } }
-        item { NewsCard(language, firebaseNews.ifEmpty { EobKnowledgeBase.newsReleases }) }
         item {
             Text("${t(language, "history")}: ${records.size} ${t(language, "eobs")}", style = MaterialTheme.typography.titleMedium)
         }
@@ -536,8 +561,6 @@ private fun InsuranceCard(language: AppLanguage, profile: UserProfile) {
             Text(t(language, "insuranceCard"), style = MaterialTheme.typography.titleMedium)
             if (profile.insuranceCardSummary.isNotBlank()) {
                 Text(profile.insuranceCardSummary)
-            } else if (profile.insuranceCardDownloadUrl.isNotBlank()) {
-                Text("${t(language, "firebaseCardFile")}: ${profile.insuranceCardDownloadUrl}")
             } else {
                 Text("${t(language, "subscriberId")}: ${profile.subscriberId.ifBlank { t(language, "addSubscriberId") }}")
             }
@@ -547,63 +570,37 @@ private fun InsuranceCard(language: AppLanguage, profile: UserProfile) {
 }
 
 @Composable
-private fun FirebaseSyncCard(language: AppLanguage, firebaseStatus: FirebaseSyncStatus) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(t(language, "firebaseDataSync"), style = MaterialTheme.typography.titleMedium)
-            Text(firebaseStatusText(language, firebaseStatus))
-            if (firebaseStatus.userId.isNotBlank()) {
-                Text("${t(language, "profile")}: users/${firebaseStatus.userId}")
-                Text("${t(language, "eobHistory")}: users/${firebaseStatus.userId}/eobs")
-                Text("${t(language, "insuranceCards")}: users/${firebaseStatus.userId}/insurance-cards")
-                Text("${t(language, "news")}: insuranceNews")
-            }
-        }
-    }
-}
-
-@Composable
 private fun QuickActionsCard(
     language: AppLanguage,
     appointments: List<DoctorAppointment>,
-    appointmentDate: String,
-    appointmentProvider: String,
-    appointmentNotes: String,
-    onAppointmentDateChanged: (String) -> Unit,
-    onAppointmentProviderChanged: (String) -> Unit,
-    onAppointmentNotesChanged: (String) -> Unit,
-    onAddAppointment: () -> Unit,
+    onAddAppointment: (String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit
 ) {
+    var visibleMonth by remember { mutableStateOf(Calendar.getInstance()) }
+    var selectedDate by remember { mutableStateOf("") }
+    var showAppointmentDialog by remember { mutableStateOf(false) }
+    var appointmentProvider by remember { mutableStateOf("") }
+    var appointmentNotes by remember { mutableStateOf("") }
+
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(t(language, "quickActions"), style = MaterialTheme.typography.titleMedium)
             Text(t(language, "appointmentCalendar"))
-            OutlinedTextField(
-                value = appointmentDate,
-                onValueChange = onAppointmentDateChanged,
-                label = { Text(t(language, "appointmentDate")) },
-                modifier = Modifier.fillMaxWidth()
+            CalendarPicker(
+                language = language,
+                visibleMonth = visibleMonth,
+                appointments = appointments,
+                onPreviousMonth = {
+                    visibleMonth = (visibleMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
+                },
+                onNextMonth = {
+                    visibleMonth = (visibleMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) }
+                },
+                onDateSelected = { date ->
+                    selectedDate = date
+                    showAppointmentDialog = true
+                }
             )
-            OutlinedTextField(
-                value = appointmentProvider,
-                onValueChange = onAppointmentProviderChanged,
-                label = { Text(t(language, "appointmentProvider")) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = appointmentNotes,
-                onValueChange = onAppointmentNotesChanged,
-                label = { Text(t(language, "appointmentNotes")) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Button(
-                onClick = onAddAppointment,
-                enabled = appointmentDate.isNotBlank() && appointmentProvider.isNotBlank(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(t(language, "addAppointment"))
-            }
             if (appointments.isEmpty()) {
                 Text(t(language, "noAppointments"))
             } else {
@@ -621,6 +618,121 @@ private fun QuickActionsCard(
             }
         }
     }
+    if (showAppointmentDialog) {
+        AlertDialog(
+            onDismissRequest = { showAppointmentDialog = false },
+            title = { Text(t(language, "addAppointment")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = appointmentProvider,
+                        onValueChange = { appointmentProvider = it },
+                        label = { Text(t(language, "appointmentProvider")) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = selectedDate,
+                        onValueChange = { selectedDate = it },
+                        label = { Text(t(language, "appointmentDate")) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = appointmentNotes,
+                        onValueChange = { appointmentNotes = it },
+                        label = { Text(t(language, "appointmentNotes")) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onAddAppointment(selectedDate, appointmentProvider, appointmentNotes)
+                        appointmentProvider = ""
+                        appointmentNotes = ""
+                        showAppointmentDialog = false
+                    },
+                    enabled = selectedDate.isNotBlank() && appointmentProvider.isNotBlank()
+                ) {
+                    Text(t(language, "saveAppointment"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAppointmentDialog = false }) {
+                    Text(t(language, "close"))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun CalendarPicker(
+    language: AppLanguage,
+    visibleMonth: Calendar,
+    appointments: List<DoctorAppointment>,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onDateSelected: (String) -> Unit
+) {
+    val monthTitle = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(visibleMonth.time)
+    val daysInMonth = visibleMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val firstDayOffset = (visibleMonth.clone() as Calendar).apply {
+        set(Calendar.DAY_OF_MONTH, 1)
+    }.get(Calendar.DAY_OF_WEEK) - 1
+    val appointmentDates = appointments.map { it.date }.toSet()
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedButton(onClick = onPreviousMonth) { Text("<") }
+        Text(monthTitle, style = MaterialTheme.typography.titleMedium)
+        OutlinedButton(onClick = onNextMonth) { Text(">") }
+    }
+    Row(Modifier.fillMaxWidth()) {
+        listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { day ->
+            Text(day, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        var dayNumber = 1
+        repeat(6) { week ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(7) { dayOfWeek ->
+                    val isBlank = week == 0 && dayOfWeek < firstDayOffset || dayNumber > daysInMonth
+                    if (isBlank) {
+                        Spacer(Modifier.weight(1f).aspectRatio(1f))
+                    } else {
+                        val dateLabel = formatAppointmentDate(visibleMonth, dayNumber)
+                        val hasAppointment = appointmentDates.contains(dateLabel)
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .clickable { onDateSelected(dateLabel) }
+                        ) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = if (hasAppointment) "$dayNumber •" else dayNumber.toString(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (hasAppointment) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        dayNumber++
+                    }
+                }
+            }
+        }
+    }
+    Text(t(language, "selectAppointmentDate"), style = MaterialTheme.typography.bodySmall)
+}
+
+private fun formatAppointmentDate(month: Calendar, day: Int): String {
+    val selected = (month.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, day) }
+    return SimpleDateFormat("MM/dd/yyyy", Locale.US).format(selected.time)
 }
 
 @Composable
@@ -628,7 +740,8 @@ private fun UploadCard(
     language: AppLanguage,
     uploadText: String,
     onUploadTextChanged: (String) -> Unit,
-    onUpload: (String) -> Unit
+    onLibraryUpload: () -> Unit,
+    onCameraScan: () -> Unit
 ) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -642,15 +755,15 @@ private fun UploadCard(
                 label = { Text(t(language, "eobText")) }
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onUpload(t(language, "libraryUpload")) }) { Text(t(language, "uploadFromLibrary")) }
-                OutlinedButton(onClick = { onUpload(t(language, "cameraScan")) }) { Text(t(language, "scanWithCamera")) }
+                Button(onClick = onLibraryUpload) { Text(t(language, "uploadFromLibrary")) }
+                OutlinedButton(onClick = onCameraScan) { Text(t(language, "scanWithCamera")) }
             }
         }
     }
 }
 
 @Composable
-private fun NewsCard(language: AppLanguage, newsItems: List<NewsRelease>) {
+private fun NewsTab(language: AppLanguage, newsItems: List<NewsRelease>) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(t(language, "insuranceNews"), style = MaterialTheme.typography.titleMedium)
@@ -811,8 +924,6 @@ private fun ProfileTab(
     language: AppLanguage,
     profile: UserProfile,
     onProfileChanged: (UserProfile) -> Unit,
-    firebaseStatus: FirebaseSyncStatus,
-    insuranceCardStoragePath: String,
     onLanguageChanged: (AppLanguage) -> Unit
 ) {
     Column(
@@ -824,10 +935,6 @@ private fun ProfileTab(
     ) {
         Text(t(language, "userProfile"), style = MaterialTheme.typography.titleLarge)
         Text(t(language, "editSavedDetails"))
-        Text("${t(language, "firebase")}: ${firebaseStatusText(language, firebaseStatus)}")
-        if (insuranceCardStoragePath.isNotBlank()) {
-            Text("${t(language, "uploadInsuranceCardPath")}: $insuranceCardStoragePath")
-        }
         ProfileFields(language = language, profile = profile, onProfileChanged = onProfileChanged)
         Text(t(language, "languageSettings"), style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -895,12 +1002,6 @@ private fun ProfileFields(language: AppLanguage, profile: UserProfile, onProfile
         modifier = Modifier.fillMaxWidth(),
         minLines = 2
     )
-    OutlinedTextField(
-        value = profile.insuranceCardDownloadUrl,
-        onValueChange = { onProfileChanged(profile.copy(insuranceCardDownloadUrl = it)) },
-        label = { Text(t(language, "firebaseInsuranceCardUrl")) },
-        modifier = Modifier.fillMaxWidth()
-    )
 }
 
 @Composable
@@ -952,14 +1053,6 @@ private fun localizedIntro(language: AppLanguage): List<Pair<String, String>> {
     }
 }
 
-private fun firebaseStatusText(language: AppLanguage, status: FirebaseSyncStatus): String {
-    return when {
-        !status.isConfigured -> t(language, "firebaseNotConfigured")
-        status.userId.isNotBlank() -> t(language, "firebaseActive")
-        else -> t(language, "firebaseConfigured")
-    }
-}
-
 private fun cptCategoryLabel(language: AppLanguage, category: CptCategory): String {
     return when (category) {
         CptCategory.OfficeVisit -> t(language, "categoryOfficeVisit")
@@ -975,6 +1068,8 @@ private fun t(language: AppLanguage, key: String): String {
     val english = mapOf(
         "next" to "Next",
         "createAccount" to "Create account",
+        "accountCreated" to "Account created. Please log in to continue.",
+        "loginToContinue" to "Log in",
         "profileRequired" to "Create your profile",
         "profileRequiredHelp" to "First name, last name, email, and password are required after the introduction screens.",
         "continueHome" to "Continue to home",
@@ -1000,19 +1095,26 @@ private fun t(language: AppLanguage, key: String): String {
         "insuranceCards" to "Insurance cards",
         "news" to "News",
         "quickActions" to "Quick Actions",
+        "scanBill" to "Scan Bill",
         "appointmentCalendar" to "Appointment calendar",
         "appointmentDate" to "Appointment date",
         "appointmentProvider" to "Provider or doctor",
         "appointmentNotes" to "Appointment notes",
         "addAppointment" to "Add appointment",
+        "saveAppointment" to "Save appointment",
         "removeAppointment" to "Remove appointment",
         "noAppointments" to "No doctor appointments added yet.",
+        "selectAppointmentDate" to "Select a date to add an appointment.",
         "uploadHelp" to "Paste OCR text from an EOB or use the sample scan. If the upload matches an existing EOB, the original copy will be replaced.",
         "eobText" to "EOB text",
         "libraryUpload" to "Library upload",
         "uploadFromLibrary" to "Upload from library",
+        "libraryUploadStarted" to "Library upload selected. EOB analysis started.",
         "cameraScan" to "Camera scan",
         "scanWithCamera" to "Scan with camera",
+        "cameraScanStarted" to "Camera scan captured. EOB analysis started.",
+        "cameraPermissionRequired" to "Camera permission is required to scan an EOB.",
+        "close" to "Close",
         "insuranceNews" to "Insurance news",
         "analysisResults" to "Analysis Results",
         "insurance" to "Insurance",
@@ -1072,6 +1174,8 @@ private fun t(language: AppLanguage, key: String): String {
     val spanish = mapOf(
         "next" to "Siguiente",
         "createAccount" to "Crear cuenta",
+        "accountCreated" to "Cuenta creada. Inicie sesión para continuar.",
+        "loginToContinue" to "Iniciar sesión",
         "profileRequired" to "Cree su perfil",
         "profileRequiredHelp" to "Nombre, apellido, correo electrónico y contraseña son obligatorios.",
         "continueHome" to "Continuar",
@@ -1097,19 +1201,26 @@ private fun t(language: AppLanguage, key: String): String {
         "insuranceCards" to "Tarjetas de seguro",
         "news" to "Noticias",
         "quickActions" to "Acciones rápidas",
+        "scanBill" to "Escanear EOB",
         "appointmentCalendar" to "Calendario de citas",
         "appointmentDate" to "Fecha de cita",
         "appointmentProvider" to "Proveedor o médico",
         "appointmentNotes" to "Notas de cita",
         "addAppointment" to "Agregar cita",
+        "saveAppointment" to "Guardar cita",
         "removeAppointment" to "Eliminar cita",
         "noAppointments" to "Aún no hay citas médicas.",
+        "selectAppointmentDate" to "Seleccione una fecha para agregar una cita.",
         "uploadHelp" to "Pegue texto OCR de un EOB o use el ejemplo. Si coincide con un EOB existente, se reemplazará la copia original.",
         "eobText" to "Texto del EOB",
         "libraryUpload" to "Carga de biblioteca",
         "uploadFromLibrary" to "Subir desde biblioteca",
+        "libraryUploadStarted" to "Biblioteca seleccionada. Análisis iniciado.",
         "cameraScan" to "Escaneo de cámara",
         "scanWithCamera" to "Escanear con cámara",
+        "cameraScanStarted" to "Escaneo capturado. Análisis iniciado.",
+        "cameraPermissionRequired" to "Se requiere permiso de cámara para escanear un EOB.",
+        "close" to "Cerrar",
         "insuranceNews" to "Noticias de seguros",
         "analysisResults" to "Resultados del análisis",
         "insurance" to "Seguro",
@@ -1169,6 +1280,8 @@ private fun t(language: AppLanguage, key: String): String {
     val french = mapOf(
         "next" to "Suivant",
         "createAccount" to "Créer un compte",
+        "accountCreated" to "Compte créé. Connectez-vous pour continuer.",
+        "loginToContinue" to "Connexion",
         "profileRequired" to "Créer votre profil",
         "profileRequiredHelp" to "Prénom, nom, courriel et mot de passe sont requis.",
         "continueHome" to "Continuer",
@@ -1194,19 +1307,26 @@ private fun t(language: AppLanguage, key: String): String {
         "insuranceCards" to "Cartes d'assurance",
         "news" to "Actualités",
         "quickActions" to "Actions rapides",
+        "scanBill" to "Scanner EOB",
         "appointmentCalendar" to "Calendrier des rendez-vous",
         "appointmentDate" to "Date du rendez-vous",
         "appointmentProvider" to "Prestataire ou médecin",
         "appointmentNotes" to "Notes du rendez-vous",
         "addAppointment" to "Ajouter rendez-vous",
+        "saveAppointment" to "Enregistrer rendez-vous",
         "removeAppointment" to "Supprimer rendez-vous",
         "noAppointments" to "Aucun rendez-vous médical ajouté.",
+        "selectAppointmentDate" to "Sélectionnez une date pour ajouter un rendez-vous.",
         "uploadHelp" to "Collez le texte OCR d'un EOB ou utilisez l'exemple. Si l'EOB existe déjà, la copie originale sera remplacée.",
         "eobText" to "Texte EOB",
         "libraryUpload" to "Téléversement bibliothèque",
         "uploadFromLibrary" to "Depuis bibliothèque",
+        "libraryUploadStarted" to "Bibliothèque sélectionnée. Analyse lancée.",
         "cameraScan" to "Scan caméra",
         "scanWithCamera" to "Scanner avec caméra",
+        "cameraScanStarted" to "Scan capturé. Analyse lancée.",
+        "cameraPermissionRequired" to "L'autorisation caméra est requise pour scanner un EOB.",
+        "close" to "Fermer",
         "insuranceNews" to "Actualités assurance",
         "analysisResults" to "Résultats d'analyse",
         "insurance" to "Assurance",
@@ -1266,6 +1386,8 @@ private fun t(language: AppLanguage, key: String): String {
     val chinese = mapOf(
         "next" to "下一步",
         "createAccount" to "创建账户",
+        "accountCreated" to "账户已创建。请登录继续。",
+        "loginToContinue" to "登录",
         "profileRequired" to "创建个人资料",
         "profileRequiredHelp" to "介绍后必须输入名字、姓氏、电子邮件和密码。",
         "continueHome" to "继续",
@@ -1291,19 +1413,26 @@ private fun t(language: AppLanguage, key: String): String {
         "insuranceCards" to "保险卡",
         "news" to "新闻",
         "quickActions" to "快速操作",
+        "scanBill" to "扫描 EOB",
         "appointmentCalendar" to "预约日历",
         "appointmentDate" to "预约日期",
         "appointmentProvider" to "提供者或医生",
         "appointmentNotes" to "预约备注",
         "addAppointment" to "添加预约",
+        "saveAppointment" to "保存预约",
         "removeAppointment" to "删除预约",
         "noAppointments" to "尚未添加医生预约。",
+        "selectAppointmentDate" to "选择日期以添加预约。",
         "uploadHelp" to "粘贴 EOB OCR 文本或使用示例。如果与现有 EOB 匹配，将替换原始副本。",
         "eobText" to "EOB 文本",
         "libraryUpload" to "图库上传",
         "uploadFromLibrary" to "从图库上传",
+        "libraryUploadStarted" to "已选择图库文件。EOB 分析已开始。",
         "cameraScan" to "相机扫描",
         "scanWithCamera" to "用相机扫描",
+        "cameraScanStarted" to "相机已捕获。EOB 分析已开始。",
+        "cameraPermissionRequired" to "扫描 EOB 需要相机权限。",
+        "close" to "关闭",
         "insuranceNews" to "保险新闻",
         "analysisResults" to "分析结果",
         "insurance" to "保险",
