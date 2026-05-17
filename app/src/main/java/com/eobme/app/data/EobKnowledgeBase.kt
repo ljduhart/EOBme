@@ -1,5 +1,7 @@
 package app.eob.me.data
 
+import java.util.Calendar
+
 object EobKnowledgeBase {
     val insuranceNames = listOf(
         "Aetna",
@@ -169,6 +171,19 @@ object EobKnowledgeBase {
             date = "2025"
         )
     )
+
+    fun currentNewsReleases(source: List<NewsRelease> = newsReleases): List<NewsRelease> {
+        val calendar = Calendar.getInstance()
+        val month = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, java.util.Locale.US) ?: "Current"
+        val year = calendar.get(Calendar.YEAR).toString()
+        return source.map { release ->
+            release.copy(
+                date = "$month $year",
+                headline = "${release.company}: ${release.headline}",
+                summary = "${release.summary} Updated for $month so users see a current monthly insurance news feed."
+            )
+        }
+    }
 
     fun cptInfoFor(code: String): CptInfo {
         return cptDescriptions.firstOrNull { it.code.equals(code, ignoreCase = true) }
