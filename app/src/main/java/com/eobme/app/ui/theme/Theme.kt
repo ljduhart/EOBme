@@ -9,35 +9,40 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = EobBlue80,
+    secondary = EobBlueGrey80,
+    tertiary = EobSky80,
+    background = Color(0xFF071B33),
+    surface = Color(0xFF0C2746),
+    onPrimary = Color(0xFF001D36),
+    onSecondary = Color(0xFF102A43),
+    onBackground = Color(0xFFEAF4FF),
+    onSurface = Color(0xFFEAF4FF)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = EobNavy40,
+    secondary = EobBlue40,
+    tertiary = EobSky40,
+    background = EobBackground,
+    surface = EobSurface,
+    surfaceVariant = Color(0xFFE8F2FF),
+    outline = EobOutline,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    onBackground = Color(0xFF102033),
+    onSurface = Color(0xFF102033)
 )
 
 @Composable
 fun EOBmeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
