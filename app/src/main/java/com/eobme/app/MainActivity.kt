@@ -29,6 +29,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -91,7 +92,6 @@ fun EobMeApp() {
     var introStep by remember { mutableStateOf(0) }
     var profile by remember { mutableStateOf(UserProfile()) }
     var signedIn by remember { mutableStateOf(false) }
-    var accountCreated by remember { mutableStateOf(false) }
     var lastActivityAt by remember { mutableStateOf(System.currentTimeMillis()) }
 
     LaunchedEffect(signedIn, lastActivityAt) {
@@ -131,19 +131,12 @@ fun EobMeApp() {
             !signedIn -> RegistrationScreen(
                 language = selectedLanguage,
                 profile = profile,
-                accountCreated = accountCreated,
                 modifier = Modifier.padding(innerPadding),
                 onProfileChanged = {
                     profile = it
                     lastActivityAt = System.currentTimeMillis()
                 },
                 onCreateAccount = {
-                    if (profile.isComplete) {
-                        accountCreated = true
-                        lastActivityAt = System.currentTimeMillis()
-                    }
-                },
-                onLogin = {
                     if (profile.isComplete) {
                         signedIn = true
                         lastActivityAt = System.currentTimeMillis()
@@ -167,7 +160,6 @@ fun EobMeApp() {
                 onLogout = {
                     signedIn = false
                     introStep = 0
-                    accountCreated = false
                 },
                 onActivity = { lastActivityAt = System.currentTimeMillis() }
             )
@@ -236,11 +228,9 @@ private fun IntroScreen(
 private fun RegistrationScreen(
     language: AppLanguage,
     profile: UserProfile,
-    accountCreated: Boolean,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
-    onCreateAccount: () -> Unit,
-    onLogin: () -> Unit
+    onCreateAccount: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -252,15 +242,11 @@ private fun RegistrationScreen(
         Text(t(language, "profileRequired"), style = MaterialTheme.typography.headlineSmall)
         Text(t(language, "profileRequiredHelp"))
         ProfileFields(language = language, profile = profile, onProfileChanged = onProfileChanged)
-        if (accountCreated) {
-            Text(t(language, "accountCreated"))
-            Button(onClick = onLogin, enabled = profile.isComplete, modifier = Modifier.fillMaxWidth()) {
-                Text(t(language, "loginToContinue"))
-            }
-        } else {
-            Button(onClick = onCreateAccount, enabled = profile.isComplete, modifier = Modifier.fillMaxWidth()) {
-                Text(t(language, "createAccount"))
-            }
+        if (profile.password.isNotBlank() && !profile.isPasswordValid) {
+            Text(t(language, "passwordRule"), color = MaterialTheme.colorScheme.error)
+        }
+        Button(onClick = onCreateAccount, enabled = profile.isComplete, modifier = Modifier.fillMaxWidth()) {
+            Text(t(language, "createAccount"))
         }
     }
 }
@@ -342,12 +328,10 @@ private fun HomeScreen(
     }
     val tabs = listOf(
         t(language, "home"),
-        t(language, "history"),
+        t(language, "analysis"),
         t(language, "cptCount"),
         t(language, "news"),
-        t(language, "appeal"),
-        t(language, "profile"),
-        t(language, "support")
+        t(language, "appeal")
     )
 
     LaunchedEffect(profile.email, profile.password, profile.isComplete) {
@@ -412,9 +396,12 @@ private fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("EOBme", style = MaterialTheme.typography.headlineMedium)
-                OutlinedButton(onClick = onLogout) { Text(t(language, "logout")) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { selectedTab = 5 }) { Text(t(language, "profile")) }
+                    OutlinedButton(onClick = onLogout) { Text(t(language, "logout")) }
+                }
             }
-            ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 8.dp) {
+            ScrollableTabRow(selectedTabIndex = selectedTab.coerceIn(0, tabs.lastIndex), edgePadding = 8.dp) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
@@ -460,11 +447,16 @@ private fun HomeScreen(
                 onCameraScan = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
             )
 
-                1 -> HistoryTab(language = language, records = records.sortedBy { it.serviceDateSortKey }, onSelected = {
-                selectedRecord = it
-                selectedTab = 0
-                onActivity()
-            })
+                1 -> AnalysisTab(
+                    language = language,
+                    records = records.sortedBy { it.serviceDateSortKey },
+                    selectedRecord = selectedRecord,
+                    onSelected = {
+                        selectedRecord = it
+                        appealLetter = AppealLetterGenerator.generate(profile, it)
+                        onActivity()
+                    }
+                )
 
                 2 -> CptCountTab(
                 language = language,
@@ -476,7 +468,7 @@ private fun HomeScreen(
                 }
             )
 
-                3 -> NewsTab(language = language, newsItems = firebaseNews.ifEmpty { EobKnowledgeBase.newsReleases })
+                3 -> NewsTab(language = language, newsItems = EobKnowledgeBase.currentNewsReleases(firebaseNews.ifEmpty { EobKnowledgeBase.newsReleases }))
 
                 4 -> AppealTab(
                 language = language,
@@ -494,21 +486,20 @@ private fun HomeScreen(
             )
 
                 5 -> ProfileTab(
-                language = language,
-                profile = profile,
-                onProfileChanged = {
-                    onProfileChanged(it)
-                    if (firebaseStatus.userId.isNotBlank()) {
-                        firebaseRepository.saveProfile(firebaseStatus.userId, it) { message ->
-                            firebaseStatus = firebaseStatus.copy(message = message)
+                    language = language,
+                    profile = profile,
+                    onProfileChanged = {
+                        onProfileChanged(it)
+                        if (firebaseStatus.userId.isNotBlank()) {
+                            firebaseRepository.saveProfile(firebaseStatus.userId, it) { message ->
+                                firebaseStatus = firebaseStatus.copy(message = message)
+                            }
                         }
-                    }
-                    onActivity()
-                },
-                onLanguageChanged = onLanguageChanged
-            )
-
-                6 -> SupportTab(language = language)
+                        onActivity()
+                    },
+                    onLanguageChanged = onLanguageChanged,
+                    onLogout = onLogout
+                )
             }
         }
     }
@@ -547,7 +538,6 @@ private fun OverviewTab(
         if (uploadNotice.isNotBlank()) {
             item { Text(uploadNotice, style = MaterialTheme.typography.titleSmall) }
         }
-        item { selectedRecord?.let { AnalysisResultsCard(language, it) } }
         item {
             Text("${t(language, "history")}: ${records.size} ${t(language, "eobs")}", style = MaterialTheme.typography.titleMedium)
         }
@@ -681,6 +671,7 @@ private fun CalendarPicker(
         set(Calendar.DAY_OF_MONTH, 1)
     }.get(Calendar.DAY_OF_WEEK) - 1
     val appointmentDates = appointments.map { it.date }.toSet()
+    val today = Calendar.getInstance()
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -707,17 +698,27 @@ private fun CalendarPicker(
                     } else {
                         val dateLabel = formatAppointmentDate(visibleMonth, dayNumber)
                         val hasAppointment = appointmentDates.contains(dateLabel)
+                        val isToday = today.get(Calendar.YEAR) == visibleMonth.get(Calendar.YEAR) &&
+                            today.get(Calendar.MONTH) == visibleMonth.get(Calendar.MONTH) &&
+                            today.get(Calendar.DAY_OF_MONTH) == dayNumber
                         Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
-                                .clickable { onDateSelected(dateLabel) }
+                                .clickable { onDateSelected(dateLabel) },
+                            colors = CardDefaults.cardColors(
+                                containerColor = when {
+                                    isToday -> MaterialTheme.colorScheme.primary
+                                    hasAppointment -> MaterialTheme.colorScheme.primaryContainer
+                                    else -> MaterialTheme.colorScheme.surface
+                                }
+                            )
                         ) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text(
                                     text = if (hasAppointment) "$dayNumber •" else dayNumber.toString(),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = if (hasAppointment) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    color = if (isToday) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -817,12 +818,21 @@ private fun AmountRow(label: String, amount: Double) {
 }
 
 @Composable
-private fun HistoryTab(language: AppLanguage, records: List<EobRecord>, onSelected: (EobRecord) -> Unit) {
+private fun AnalysisTab(
+    language: AppLanguage,
+    records: List<EobRecord>,
+    selectedRecord: EobRecord?,
+    onSelected: (EobRecord) -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        item {
+            Text(t(language, "analysis"), style = MaterialTheme.typography.titleLarge)
+            Text(t(language, "analysisHelp"))
+        }
         items(records) { record ->
             ElevatedCard(
                 modifier = Modifier
@@ -836,6 +846,9 @@ private fun HistoryTab(language: AppLanguage, records: List<EobRecord>, onSelect
                     Text("${t(language, "billed")}: ${record.totalBilledAmount.asCurrency()} • ${t(language, "paid")}: ${record.totalInsurancePaidAmount.asCurrency()}")
                 }
             }
+        }
+        item {
+            selectedRecord?.let { AnalysisResultsCard(language, it) }
         }
     }
 }
@@ -924,8 +937,10 @@ private fun ProfileTab(
     language: AppLanguage,
     profile: UserProfile,
     onProfileChanged: (UserProfile) -> Unit,
-    onLanguageChanged: (AppLanguage) -> Unit
+    onLanguageChanged: (AppLanguage) -> Unit,
+    onLogout: () -> Unit
 ) {
+    var showSupport by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -945,6 +960,16 @@ private fun ProfileTab(
                     enabled = option != language
                 )
             }
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = { showSupport = !showSupport }, modifier = Modifier.fillMaxWidth()) {
+            Text(t(language, "support"))
+        }
+        if (showSupport) {
+            SupportContent(language)
+        }
+        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+            Text(t(language, "logout"))
         }
     }
 }
@@ -1006,11 +1031,13 @@ private fun ProfileFields(language: AppLanguage, profile: UserProfile, onProfile
 
 @Composable
 private fun SupportTab(language: AppLanguage) {
+    SupportContent(language)
+}
+
+@Composable
+private fun SupportContent(language: AppLanguage) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+        modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(t(language, "support"), style = MaterialTheme.typography.titleLarge)
@@ -1071,10 +1098,13 @@ private fun t(language: AppLanguage, key: String): String {
         "accountCreated" to "Account created. Please log in to continue.",
         "loginToContinue" to "Log in",
         "profileRequired" to "Create your profile",
-        "profileRequiredHelp" to "First name, last name, email, and password are required after the introduction screens.",
+        "profileRequiredHelp" to "First name, last name, email, password, city, and state are required. Insurance ID and insurance name are optional.",
+        "passwordRule" to "Password must be at least 8 characters and include at least 1 number.",
         "continueHome" to "Continue to home",
         "home" to "Home",
         "history" to "History",
+        "analysis" to "Analysis",
+        "analysisHelp" to "EOBs are organized by Date of Service. Tap an EOB to show deductible, copay, coinsurance, insurance paid, and other details.",
         "cptCount" to "CPT Count",
         "appeal" to "Appeal",
         "profile" to "Profile",
@@ -1177,10 +1207,13 @@ private fun t(language: AppLanguage, key: String): String {
         "accountCreated" to "Cuenta creada. Inicie sesión para continuar.",
         "loginToContinue" to "Iniciar sesión",
         "profileRequired" to "Cree su perfil",
-        "profileRequiredHelp" to "Nombre, apellido, correo electrónico y contraseña son obligatorios.",
+        "profileRequiredHelp" to "Nombre, apellido, correo, contraseña, ciudad y estado son obligatorios. ID y seguro son opcionales.",
+        "passwordRule" to "La contraseña debe tener al menos 8 caracteres e incluir 1 número.",
         "continueHome" to "Continuar",
         "home" to "Inicio",
         "history" to "Historial",
+        "analysis" to "Análisis",
+        "analysisHelp" to "Los EOB se ordenan por fecha de servicio. Toque un EOB para ver deducible, copago, coseguro, seguro pagado y detalles.",
         "cptCount" to "CPT",
         "appeal" to "Apelación",
         "profile" to "Perfil",
@@ -1283,10 +1316,13 @@ private fun t(language: AppLanguage, key: String): String {
         "accountCreated" to "Compte créé. Connectez-vous pour continuer.",
         "loginToContinue" to "Connexion",
         "profileRequired" to "Créer votre profil",
-        "profileRequiredHelp" to "Prénom, nom, courriel et mot de passe sont requis.",
+        "profileRequiredHelp" to "Prénom, nom, courriel, mot de passe, ville et état sont requis. ID et assurance sont facultatifs.",
+        "passwordRule" to "Le mot de passe doit contenir au moins 8 caractères et 1 chiffre.",
         "continueHome" to "Continuer",
         "home" to "Accueil",
         "history" to "Historique",
+        "analysis" to "Analyse",
+        "analysisHelp" to "Les EOB sont triés par date de service. Touchez un EOB pour voir franchise, quote-part, coassurance, assurance payée et détails.",
         "cptCount" to "CPT",
         "appeal" to "Appel",
         "profile" to "Profil",
@@ -1389,10 +1425,13 @@ private fun t(language: AppLanguage, key: String): String {
         "accountCreated" to "账户已创建。请登录继续。",
         "loginToContinue" to "登录",
         "profileRequired" to "创建个人资料",
-        "profileRequiredHelp" to "介绍后必须输入名字、姓氏、电子邮件和密码。",
+        "profileRequiredHelp" to "必须输入名字、姓氏、电子邮件、密码、城市和州。保险 ID 和保险名称为可选。",
+        "passwordRule" to "密码至少 8 个字符，并包含至少 1 个数字。",
         "continueHome" to "继续",
         "home" to "主页",
         "history" to "历史",
+        "analysis" to "分析",
+        "analysisHelp" to "EOB 按服务日期排序。点击 EOB 查看免赔额、共付额、共同保险、保险支付和其他详情。",
         "cptCount" to "CPT",
         "appeal" to "申诉",
         "profile" to "资料",

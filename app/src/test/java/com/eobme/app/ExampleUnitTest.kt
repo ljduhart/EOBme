@@ -124,6 +124,29 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun profileRequiresCityStateAndStrongPassword() {
+        val weakProfile = UserProfile(
+            firstName = "Lester",
+            lastName = "Duhart",
+            email = "member@example.com",
+            password = "password",
+            city = "Atlanta",
+            state = "GA"
+        )
+        val completeProfile = weakProfile.copy(password = "password1")
+
+        assertFalse(weakProfile.isComplete)
+        assertTrue(completeProfile.isComplete)
+    }
+
+    @Test
+    fun currentNewsUsesCurrentYear() {
+        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR).toString()
+
+        assertTrue(EobKnowledgeBase.currentNewsReleases().all { it.date.contains(currentYear) })
+    }
+
+    @Test
     fun firebaseMapperRoundTripsProfileAndEobData() {
         val profile = UserProfile(
             firstName = "Lester",

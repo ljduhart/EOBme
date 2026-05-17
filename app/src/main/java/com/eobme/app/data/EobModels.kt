@@ -31,7 +31,12 @@ data class UserProfile(
         get() = firstName.isNotBlank() &&
             lastName.isNotBlank() &&
             email.isNotBlank() &&
-            password.isNotBlank()
+            isPasswordValid &&
+            city.isNotBlank() &&
+            state.isNotBlank()
+
+    val isPasswordValid: Boolean
+        get() = password.length >= 8 && password.any { it.isDigit() }
 
     val fullName: String
         get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
