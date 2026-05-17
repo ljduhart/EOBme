@@ -68,6 +68,43 @@ class FirebaseEobRepository(private val context: Context) {
             }
     }
 
+    fun signIn(email: String, password: String, onResult: (FirebaseSyncStatus) -> Unit) {
+        if (!configured) {
+            onResult(status())
+            return
+        }
+        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+            .addOnSuccessListener {
+                val userId = it.user?.uid.orEmpty()
+                registerMessagingToken(userId)
+                onResult(FirebaseSyncStatus(true, userId, "Firebase sync is active."))
+            }
+            .addOnFailureListener {
+                onResult(FirebaseSyncStatus(true, message = "Firebase sign-in failed: ${it.localizedMessage}"))
+            }
+    }
+
+    fun createAccount(profile: UserProfile, onResult: (FirebaseSyncStatus) -> Unit) {
+        if (!configured) {
+            onResult(status())
+            return
+        }
+        FirebaseAuth.getInstance().createUserWithEmailAndPassword(profile.email, profile.password)
+            .addOnSuccessListener {
+                val userId = it.user?.uid.orEmpty()
+                saveProfile(userId, profile) {}
+                registerMessagingToken(userId)
+                onResult(FirebaseSyncStatus(true, userId, "Firebase account created and sync is active."))
+            }
+            .addOnFailureListener {
+                onResult(FirebaseSyncStatus(true, message = "Firebase account creation failed: ${it.localizedMessage}"))
+            }
+    }
+
+    fun signOut() {
+        if (configured) FirebaseAuth.getInstance().signOut()
+    }
+
     fun observeProfile(
         userId: String,
         currentPassword: String,
