@@ -44,7 +44,7 @@ fun EobMeAppRoot() {
     var profile by remember { mutableStateOf(UserProfile(email = auth?.currentUser?.email.orEmpty())) }
     var isSignUp by remember { mutableStateOf(true) }
     var authMessage by remember {
-        mutableStateOf(if (firebaseConfigured) "" else "Firebase is not configured. Confirm app/google-services.json is present for app.eob.me, then sync and rebuild.")
+        mutableStateOf(if (firebaseConfigured) "" else firebaseConfigMessage())
     }
     var lastActivityAt by remember { mutableStateOf(System.currentTimeMillis()) }
 
@@ -112,7 +112,7 @@ fun EobMeAppRoot() {
                 onSubmit = {
                     authMessage = ""
                     if (!firebaseConfigured) {
-                        authMessage = "Firebase is not configured. Confirm app/google-services.json is present for app.eob.me, then sync and rebuild."
+                        authMessage = firebaseConfigMessage()
                         return@AuthScreen
                     }
                     if (isSignUp) {
@@ -147,4 +147,9 @@ fun EobMeAppRoot() {
             )
         }
     }
+}
+
+private fun firebaseConfigMessage(): String {
+    return "Firebase config was not included in this build. Confirm app/google-services.json exists, " +
+        "contains package_name app.eob.me, then Sync Gradle and rebuild the signed AAB."
 }
