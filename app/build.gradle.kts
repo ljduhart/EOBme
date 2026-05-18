@@ -3,11 +3,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val hasGoogleServicesConfig = listOf(
+val googleServicesConfigFiles = listOf(
     file("google-services.json"),
     file("src/debug/google-services.json"),
     file("src/release/google-services.json")
-).any { it.exists() }
+)
+val googleServicesConfigFile = googleServicesConfigFiles.firstOrNull { it.exists() }
+val hasGoogleServicesConfig = googleServicesConfigFile != null
 
 if (hasGoogleServicesConfig) {
     apply(plugin = "com.google.gms.google-services")
@@ -51,12 +53,34 @@ android {
 
 tasks.register("verifyGoogleServicesJson") {
     group = "verification"
-    description = "Fails release builds when app/google-services.json is missing."
+    description = "Fails release builds when google-services.json is missing or not configured for app.eob.me."
     doLast {
-        if (!hasGoogleServicesConfig) {
+        val configFile = googleServicesConfigFile
+        val misnamedConfigs = fileTree(projectDir) {
+            include("google-services*.json")
+            exclude("google-services.json")
+            exclude("src/debug/google-services.json")
+            exclude("src/release/google-services.json")
+        }.files
+
+        if (configFile == null) {
+            val extraHint = if (misnamedConfigs.isNotEmpty()) {
+                " Found misnamed Firebase config file(s): ${misnamedConfigs.joinToString { it.name }}. Rename the correct file to google-services.json."
+            } else {
+                ""
+            }
             throw GradleException(
                 "Missing Firebase config. Place google-services.json in the app/ module " +
-                    "for package app.eob.me before building a release AAB."
+                    "for package app.eob.me before building a release AAB.$extraHint"
+            )
+        }
+
+        val configText = configFile.readText()
+        val appPackageRegex = Regex(""""package_name"\s*:\s*"app\.eob\.me"""")
+        if (!appPackageRegex.containsMatchIn(configText)) {
+            throw GradleException(
+                "Firebase config ${configFile.relativeTo(projectDir)} is not registered for package app.eob.me. " +
+                    "Download the Android google-services.json for package app.eob.me from Firebase Console."
             )
         }
     }
