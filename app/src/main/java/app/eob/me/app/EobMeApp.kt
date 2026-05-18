@@ -21,6 +21,7 @@ import app.eob.me.navigation.EobNavHost
 import app.eob.me.screens.AuthScreen
 import app.eob.me.screens.IntroScreen
 import app.eob.me.screens.LanguageScreen
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.delay
@@ -29,16 +30,28 @@ import kotlinx.coroutines.delay
 fun EobMeAppRoot() {
     val appContext = LocalContext.current.applicationContext
     val firebaseRepository = remember { FirebaseEobRepository(appContext) }
-    val auth = remember { FirebaseAuth.getInstance() }
-    var firebaseUser by remember { mutableStateOf<FirebaseUser?>(auth.currentUser) }
+    val firebaseConfigured = remember {
+        runCatching {
+            FirebaseApp.getApps(appContext).isNotEmpty() || FirebaseApp.initializeApp(appContext) != null
+        }.getOrDefault(false)
+    }
+    val auth = remember(firebaseConfigured) {
+        if (firebaseConfigured) runCatching { FirebaseAuth.getInstance() }.getOrNull() else null
+    }
+    var firebaseUser by remember { mutableStateOf<FirebaseUser?>(auth?.currentUser) }
     var language by remember { mutableStateOf<AppLanguage?>(null) }
     var introStep by remember { mutableStateOf(0) }
-    var profile by remember { mutableStateOf(UserProfile(email = auth.currentUser?.email.orEmpty())) }
+    var profile by remember { mutableStateOf(UserProfile(email = auth?.currentUser?.email.orEmpty())) }
     var isSignUp by remember { mutableStateOf(true) }
-    var authMessage by remember { mutableStateOf("") }
+    var authMessage by remember {
+        mutableStateOf(if (firebaseConfigured) "" else "Firebase is not configured. Confirm app/google-services.json is present for app.eob.me, then sync and rebuild.")
+    }
     var lastActivityAt by remember { mutableStateOf(System.currentTimeMillis()) }
 
     DisposableEffect(auth) {
+        if (auth == null) {
+            onDispose { }
+        } else {
         val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             firebaseUser = firebaseAuth.currentUser
             if (firebaseAuth.currentUser?.email != null && profile.email.isBlank()) {
@@ -47,6 +60,7 @@ fun EobMeAppRoot() {
         }
         auth.addAuthStateListener(listener)
         onDispose { auth.removeAuthStateListener(listener) }
+        }
     }
 
     LaunchedEffect(firebaseUser, lastActivityAt) {
@@ -97,6 +111,10 @@ fun EobMeAppRoot() {
                 },
                 onSubmit = {
                     authMessage = ""
+                    if (!firebaseConfigured) {
+                        authMessage = "Firebase is not configured. Confirm app/google-services.json is present for app.eob.me, then sync and rebuild."
+                        return@AuthScreen
+                    }
                     if (isSignUp) {
                         firebaseRepository.createAccount(profile) { status ->
                             authMessage = if (status.userId.isBlank()) status.message else ""
