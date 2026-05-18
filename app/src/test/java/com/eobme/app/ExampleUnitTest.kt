@@ -5,6 +5,8 @@ import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.FirebaseEobMapper
 import app.eob.me.data.UserProfile
+import app.eob.me.data.AppealLetterGenerator
+import app.eob.me.data.BillingIssueType
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -73,6 +75,136 @@ class ExampleUnitTest {
         assertEquals(CptCategory.OfficeVisit, officeVisit.info.category)
         assertEquals(1, lab.count)
         assertEquals(CptCategory.Lab, lab.info.category)
+    }
+
+    @Test
+    fun accuracyReviewFlagsMathMismatchAndMissingFields() {
+        val record = EobAnalyzer.analyze(
+            """
+                Aetna
+                Date of Service: 02/03/2025
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00 copay $10.00 deductible $10.00 coinsurance $0.00
+            """.trimIndent(),
+            "library",
+            20
+        )
+
+        val review = EobAnalyzer.accuracyReview(record)
+
+        assertFalse(review.mathValidation.isBalanced)
+        assertTrue(review.warnings.any { it.contains("Billing math differs") })
+        assertTrue(review.fields.any { it.fieldName == "Provider" && it.needsReview })
+    }
+
+    @Test
+    fun smartBillingIssuesDetectMissingPaymentAndDenial() {
+        val record = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                Claim denied as not covered.
+                99215 billed $300.00 contractual adjustment $0.00 copay $0.00 deductible $300.00 coinsurance $0.00
+            """.trimIndent(),
+            "library",
+            30
+        )
+
+        val issueTypes = EobAnalyzer.detectBillingIssues(record).map { it.type }.toSet()
+
+        assertTrue(issueTypes.contains(BillingIssueType.MissingInsurancePayment))
+        assertTrue(issueTypes.contains(BillingIssueType.PossibleDenial))
+        assertTrue(issueTypes.contains(BillingIssueType.HighPatientResponsibility))
+    }
+
+    @Test
+    fun appealLetterIncludesDetectedIssueTemplateSection() {
+        val profile = UserProfile(
+            firstName = "Lester",
+            lastName = "Duhart",
+            email = "member@example.com",
+            password = "password1",
+            city = "Atlanta",
+            state = "GA"
+        )
+        val record = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                Claim denied as not covered.
+                99215 billed $300.00 contractual adjustment $0.00 copay $0.00 deductible $300.00 coinsurance $0.00
+            """.trimIndent(),
+            "library",
+            31
+        )
+
+        val letter = AppealLetterGenerator.generate(profile, record)
+
+        assertTrue(letter.contains("Issues identified for review"))
+        assertTrue(letter.contains("Possible denial language"))
+    }
+
+    @Test
+    fun yearlyHealthCostSummaryTotalsLatestYear() {
+        val first = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2026
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00 copay $30.00 deductible $25.00 coinsurance $20.00
+            """.trimIndent(),
+            "library",
+            21
+        )
+        val previousYear = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                99215 billed $100.00 insurance paid $50.00 contractual adjustment $25.00 copay $10.00 deductible $10.00 coinsurance $5.00
+            """.trimIndent(),
+            "library",
+            22
+        )
+
+        val summary = EobAnalyzer.yearlyHealthCostSummary(listOf(previousYear, first))
+
+        assertEquals(2026, summary.year)
+        assertEquals(1, summary.eobCount)
+        assertEquals(300.0, summary.totalBilled, 0.001)
+        assertEquals(75.0, summary.totalPatientResponsibility, 0.001)
+    }
+
+    @Test
+    fun providerDirectorySummarizesProviders() {
+        val first = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2026
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00 copay $30.00 deductible $25.00 coinsurance $20.00
+            """.trimIndent(),
+            "library",
+            32
+        )
+        val second = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 03/03/2026
+                99214 billed $200.00 insurance paid $100.00 contractual adjustment $50.00 copay $25.00 deductible $15.00 coinsurance $10.00
+            """.trimIndent(),
+            "library",
+            33
+        )
+
+        val provider = EobAnalyzer.providerDirectory(listOf(first, second)).first()
+
+        assertEquals("Downtown Medical Group", provider.providerName)
+        assertEquals(2, provider.eobCount)
+        assertEquals(500.0, provider.totalBilled, 0.001)
+        assertEquals("03/03/2026", provider.lastServiceDate)
     }
 
     @Test
