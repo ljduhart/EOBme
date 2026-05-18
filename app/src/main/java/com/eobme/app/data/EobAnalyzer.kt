@@ -146,6 +146,113 @@ object EobAnalyzer {
         )
     }
 
+    fun detectBillingIssues(record: EobRecord): List<BillingIssue> {
+        val issues = mutableListOf<BillingIssue>()
+        val review = accuracyReview(record)
+
+        if (record.duplicateChargeWarnings.isNotEmpty()) {
+            issues += BillingIssue(
+                type = BillingIssueType.DuplicateCharge,
+                severity = BillingIssueSeverity.Critical,
+                title = "Possible duplicate charge",
+                explanation = record.duplicateChargeWarnings.joinToString("; "),
+                recommendedAction = "Ask the insurer and provider to verify whether this line was billed more than once."
+            )
+        }
+        if (!review.mathValidation.isBalanced) {
+            issues += BillingIssue(
+                type = BillingIssueType.MathMismatch,
+                severity = BillingIssueSeverity.Warning,
+                title = "Billing math mismatch",
+                explanation = "Expected patient responsibility is ${review.mathValidation.expectedPatientResponsibility.asCurrency()}, but extracted responsibility is ${review.mathValidation.extractedPatientResponsibility.asCurrency()}.",
+                recommendedAction = "Request a written explanation of the remaining patient responsibility."
+            )
+        }
+        if (record.totalInsurancePaidAmount == 0.0 && record.totalBilledAmount > 0.0) {
+            issues += BillingIssue(
+                type = BillingIssueType.MissingInsurancePayment,
+                severity = BillingIssueSeverity.Critical,
+                title = "No insurance payment detected",
+                explanation = "The EOB has billed charges but no insurance payment was extracted.",
+                recommendedAction = "Confirm whether the claim was denied, still processing, or applied fully to patient responsibility."
+            )
+        }
+        if (record.totalBilledAmount > 0.0 && review.mathValidation.extractedPatientResponsibility / record.totalBilledAmount >= 0.5) {
+            issues += BillingIssue(
+                type = BillingIssueType.HighPatientResponsibility,
+                severity = BillingIssueSeverity.Warning,
+                title = "High patient responsibility",
+                explanation = "The patient responsibility appears to be at least 50% of the billed amount.",
+                recommendedAction = "Review deductible, copay, coinsurance, network status, and plan benefits."
+            )
+        }
+        if (record.providerName.contains("not recognized", ignoreCase = true)) {
+            issues += BillingIssue(
+                type = BillingIssueType.MissingProvider,
+                severity = BillingIssueSeverity.Warning,
+                title = "Provider missing",
+                explanation = "The provider name could not be confidently extracted.",
+                recommendedAction = "Review the scan and add or correct the provider before sending an appeal."
+            )
+        }
+        if (record.insuranceName.contains("not recognized", ignoreCase = true)) {
+            issues += BillingIssue(
+                type = BillingIssueType.MissingInsurance,
+                severity = BillingIssueSeverity.Warning,
+                title = "Insurance missing",
+                explanation = "The insurance company could not be confidently extracted.",
+                recommendedAction = "Review the scan and select the correct insurance company."
+            )
+        }
+        if (record.serviceDate == "Date not recognized") {
+            issues += BillingIssue(
+                type = BillingIssueType.MissingDateOfService,
+                severity = BillingIssueSeverity.Warning,
+                title = "Date of Service missing",
+                explanation = "The service date could not be confidently extracted.",
+                recommendedAction = "Review the EOB and confirm the date of service."
+            )
+        }
+        if (record.charges.isEmpty()) {
+            issues += BillingIssue(
+                type = BillingIssueType.MissingCptCode,
+                severity = BillingIssueSeverity.Warning,
+                title = "No CPT codes detected",
+                explanation = "No valid CPT/HCPCS codes were extracted from the EOB.",
+                recommendedAction = "Rescan or manually review the EOB line items."
+            )
+        }
+        if (record.rawText.contains("denied", ignoreCase = true) || record.rawText.contains("not covered", ignoreCase = true)) {
+            issues += BillingIssue(
+                type = BillingIssueType.PossibleDenial,
+                severity = BillingIssueSeverity.Critical,
+                title = "Possible denial language",
+                explanation = "The EOB text contains denial or not-covered language.",
+                recommendedAction = "Use the denial appeal template and request the plan rule used for the denial."
+            )
+        }
+
+        return issues.distinctBy { it.type }
+    }
+
+    fun providerDirectory(records: List<EobRecord>): List<ProviderSummary> {
+        return records
+            .filter { it.providerName.isNotBlank() && !it.providerName.contains("not recognized", ignoreCase = true) }
+            .groupBy { it.providerName }
+            .map { (provider, providerRecords) ->
+                val latest = providerRecords.maxByOrNull { it.serviceDateSortKey }
+                ProviderSummary(
+                    providerName = provider,
+                    eobCount = providerRecords.size,
+                    totalBilled = providerRecords.sumOf { it.totalBilledAmount },
+                    totalInsurancePaid = providerRecords.sumOf { it.totalInsurancePaidAmount },
+                    totalPatientResponsibility = providerRecords.sumOf { it.totalCopayAmount + it.totalDeductibleAmount + it.totalCoinsuranceAmount },
+                    lastServiceDate = latest?.serviceDate ?: "Date not recognized"
+                )
+            }
+            .sortedByDescending { it.eobCount }
+    }
+
     private fun confidence(fieldName: String, value: String, isReliable: Boolean): EobFieldConfidence {
         return EobFieldConfidence(
             fieldName = fieldName,

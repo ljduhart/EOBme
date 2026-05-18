@@ -134,3 +134,38 @@ data class YearlyHealthCostSummary(
     val totalPatientResponsibility: Double
         get() = totalCopay + totalDeductible + totalCoinsurance
 }
+
+enum class BillingIssueType {
+    DuplicateCharge,
+    MathMismatch,
+    MissingInsurancePayment,
+    HighPatientResponsibility,
+    MissingProvider,
+    MissingInsurance,
+    MissingDateOfService,
+    MissingCptCode,
+    PossibleDenial
+}
+
+enum class BillingIssueSeverity {
+    Info,
+    Warning,
+    Critical
+}
+
+data class BillingIssue(
+    val type: BillingIssueType,
+    val severity: BillingIssueSeverity,
+    val title: String,
+    val explanation: String,
+    val recommendedAction: String
+)
+
+data class ProviderSummary(
+    val providerName: String,
+    val eobCount: Int,
+    val totalBilled: Double,
+    val totalInsurancePaid: Double,
+    val totalPatientResponsibility: Double,
+    val lastServiceDate: String
+)

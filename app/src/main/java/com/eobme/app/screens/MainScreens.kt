@@ -34,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.eob.me.components.CalendarPicker
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.BillingIssue
+import app.eob.me.data.BillingIssueSeverity
 import app.eob.me.data.CptCategory
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
@@ -41,6 +43,7 @@ import app.eob.me.data.EobAccuracyReview
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
 import app.eob.me.data.NewsRelease
+import app.eob.me.data.ProviderSummary
 import app.eob.me.data.UserProfile
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.asCurrency
@@ -68,6 +71,7 @@ fun HomeScreen(
     ) {
         item { InsuranceCard(language, profile) }
         item { YearlyHealthCostDashboard(EobAnalyzer.yearlyHealthCostSummary(records)) }
+        item { ProviderDirectoryCard(EobAnalyzer.providerDirectory(records)) }
         item {
             QuickActionsCard(
                 language = language,
@@ -124,6 +128,9 @@ fun AnalysisScreen(
         }
         item {
             selectedRecord?.let { AccuracyReviewCard(EobAnalyzer.accuracyReview(it)) }
+        }
+        item {
+            selectedRecord?.let { SmartBillingIssuesCard(EobAnalyzer.detectBillingIssues(it)) }
         }
     }
 }
@@ -461,6 +468,29 @@ private fun AccuracyReviewCard(review: EobAccuracyReview) {
 }
 
 @Composable
+private fun SmartBillingIssuesCard(issues: List<BillingIssue>) {
+    ElevatedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Smart Billing Issue Flags", style = MaterialTheme.typography.titleLarge)
+            if (issues.isEmpty()) {
+                Text("No major billing issues detected.")
+            } else {
+                issues.forEach { issue ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(issue.title, style = MaterialTheme.typography.titleMedium)
+                            Text("Severity: ${issue.severity.label()}")
+                            Text(issue.explanation)
+                            Text("Action: ${issue.recommendedAction}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun YearlyHealthCostDashboard(summary: YearlyHealthCostSummary) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -474,6 +504,37 @@ private fun YearlyHealthCostDashboard(summary: YearlyHealthCostSummary) {
             AmountRow("Deductibles", summary.totalDeductible)
             AmountRow("Coinsurance", summary.totalCoinsurance)
         }
+    }
+}
+
+@Composable
+private fun ProviderDirectoryCard(providers: List<ProviderSummary>) {
+    ElevatedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Provider Directory", style = MaterialTheme.typography.titleLarge)
+            if (providers.isEmpty()) {
+                Text("Providers will appear here after EOBs are scanned.")
+            } else {
+                providers.take(5).forEach { provider ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(provider.providerName, style = MaterialTheme.typography.titleMedium)
+                            Text("EOBs: ${provider.eobCount} • Last service: ${provider.lastServiceDate}")
+                            Text("Billed: ${provider.totalBilled.asCurrency()} • Paid: ${provider.totalInsurancePaid.asCurrency()}")
+                            Text("Patient responsibility: ${provider.totalPatientResponsibility.asCurrency()}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun BillingIssueSeverity.label(): String {
+    return when (this) {
+        BillingIssueSeverity.Info -> "Info"
+        BillingIssueSeverity.Warning -> "Review"
+        BillingIssueSeverity.Critical -> "Important"
     }
 }
 
