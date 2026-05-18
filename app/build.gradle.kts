@@ -49,6 +49,23 @@ android {
     }
 }
 
+tasks.register("verifyGoogleServicesJson") {
+    group = "verification"
+    description = "Fails release builds when app/google-services.json is missing."
+    doLast {
+        if (!hasGoogleServicesConfig) {
+            throw GradleException(
+                "Missing Firebase config. Place google-services.json in the app/ module " +
+                    "for package app.eob.me before building a release AAB."
+            )
+        }
+    }
+}
+
+tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }.configureEach {
+    dependsOn("verifyGoogleServicesJson")
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.firebase.bom))
