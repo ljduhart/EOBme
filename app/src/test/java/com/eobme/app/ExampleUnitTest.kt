@@ -76,6 +76,56 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun accuracyReviewFlagsMathMismatchAndMissingFields() {
+        val record = EobAnalyzer.analyze(
+            """
+                Aetna
+                Date of Service: 02/03/2025
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00 copay $10.00 deductible $10.00 coinsurance $0.00
+            """.trimIndent(),
+            "library",
+            20
+        )
+
+        val review = EobAnalyzer.accuracyReview(record)
+
+        assertFalse(review.mathValidation.isBalanced)
+        assertTrue(review.warnings.any { it.contains("Billing math differs") })
+        assertTrue(review.fields.any { it.fieldName == "Provider" && it.needsReview })
+    }
+
+    @Test
+    fun yearlyHealthCostSummaryTotalsLatestYear() {
+        val first = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2026
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00 copay $30.00 deductible $25.00 coinsurance $20.00
+            """.trimIndent(),
+            "library",
+            21
+        )
+        val previousYear = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                99215 billed $100.00 insurance paid $50.00 contractual adjustment $25.00 copay $10.00 deductible $10.00 coinsurance $5.00
+            """.trimIndent(),
+            "library",
+            22
+        )
+
+        val summary = EobAnalyzer.yearlyHealthCostSummary(listOf(previousYear, first))
+
+        assertEquals(2026, summary.year)
+        assertEquals(1, summary.eobCount)
+        assertEquals(300.0, summary.totalBilled, 0.001)
+        assertEquals(75.0, summary.totalPatientResponsibility, 0.001)
+    }
+
+    @Test
     fun libraryUploadDoesNotCreateFalseDuplicateWarning() {
         val record = EobAnalyzer.analyze(
             """

@@ -1,6 +1,7 @@
 package app.eob.me.data
 
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.max
 
 object EobAnalyzer {
@@ -85,6 +86,73 @@ object EobAnalyzer {
             .eachCount()
             .map { (code, count) -> CptUsage(EobKnowledgeBase.cptInfoFor(code), year, count) }
             .sortedWith(compareBy<CptUsage> { it.info.category.ordinal }.thenBy { it.info.code })
+    }
+
+    fun accuracyReview(record: EobRecord): EobAccuracyReview {
+        val fieldConfidences = listOf(
+            confidence("Insurance", record.insuranceName, !record.insuranceName.contains("not recognized", ignoreCase = true)),
+            confidence("Provider", record.providerName, !record.providerName.contains("not recognized", ignoreCase = true)),
+            confidence("Date of Service", record.serviceDate, record.serviceDate != "Date not recognized"),
+            confidence("Billed Amount", record.totalBilledAmount.asCurrency(), record.totalBilledAmount > 0.0),
+            confidence("Insurance Paid", record.totalInsurancePaidAmount.asCurrency(), record.totalInsurancePaidAmount > 0.0),
+            confidence("Contractual Adjustment", record.totalContractualAdjustmentAmount.asCurrency(), record.totalContractualAdjustmentAmount >= 0.0),
+            confidence("CPT Codes", record.charges.joinToString { it.cptCode }, record.charges.isNotEmpty() && record.charges.all { it.cptCode.isNotBlank() })
+        )
+        val expectedResponsibility = (record.totalBilledAmount - record.totalInsurancePaidAmount - record.totalContractualAdjustmentAmount)
+            .coerceAtLeast(0.0)
+        val extractedResponsibility = record.totalCopayAmount + record.totalDeductibleAmount + record.totalCoinsuranceAmount
+        val difference = abs(expectedResponsibility - extractedResponsibility)
+        val mathValidation = EobMathValidation(
+            expectedPatientResponsibility = expectedResponsibility,
+            extractedPatientResponsibility = extractedResponsibility,
+            difference = difference,
+            isBalanced = difference <= 0.05
+        )
+        val warnings = buildList {
+            addAll(record.duplicateChargeWarnings)
+            fieldConfidences.filter { it.needsReview }.forEach { add("${it.fieldName} needs review") }
+            if (!mathValidation.isBalanced) {
+                add("Billing math differs by ${difference.asCurrency()}")
+            }
+            if (record.rawText.length < 80) {
+                add("OCR text is short; consider rescanning for better accuracy")
+            }
+        }
+        val overall = fieldConfidences.map { it.confidencePercent }.average().toInt()
+            .let { if (mathValidation.isBalanced) it else (it - 10).coerceAtLeast(0) }
+
+        return EobAccuracyReview(
+            overallConfidencePercent = overall,
+            fields = fieldConfidences,
+            mathValidation = mathValidation,
+            warnings = warnings.distinct()
+        )
+    }
+
+    fun yearlyHealthCostSummary(records: List<EobRecord>, preferredYear: Int? = null): YearlyHealthCostSummary {
+        val year = preferredYear
+            ?: records.map { serviceYear(it.serviceDate) }.filter { it > 0 }.maxOrNull()
+            ?: 0
+        val yearRecords = records.filter { serviceYear(it.serviceDate) == year }
+        return YearlyHealthCostSummary(
+            year = year,
+            eobCount = yearRecords.size,
+            totalBilled = yearRecords.sumOf { it.totalBilledAmount },
+            totalInsurancePaid = yearRecords.sumOf { it.totalInsurancePaidAmount },
+            totalContractualAdjustment = yearRecords.sumOf { it.totalContractualAdjustmentAmount },
+            totalCopay = yearRecords.sumOf { it.totalCopayAmount },
+            totalDeductible = yearRecords.sumOf { it.totalDeductibleAmount },
+            totalCoinsurance = yearRecords.sumOf { it.totalCoinsuranceAmount }
+        )
+    }
+
+    private fun confidence(fieldName: String, value: String, isReliable: Boolean): EobFieldConfidence {
+        return EobFieldConfidence(
+            fieldName = fieldName,
+            value = value.ifBlank { "Missing" },
+            confidencePercent = if (isReliable) 95 else 45,
+            needsReview = !isReliable
+        )
     }
 
     fun isSameEob(first: EobRecord, second: EobRecord): Boolean {

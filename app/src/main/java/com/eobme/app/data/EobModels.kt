@@ -99,3 +99,38 @@ data class DoctorAppointment(
     val providerName: String,
     val notes: String
 )
+
+data class EobFieldConfidence(
+    val fieldName: String,
+    val value: String,
+    val confidencePercent: Int,
+    val needsReview: Boolean
+)
+
+data class EobMathValidation(
+    val expectedPatientResponsibility: Double,
+    val extractedPatientResponsibility: Double,
+    val difference: Double,
+    val isBalanced: Boolean
+)
+
+data class EobAccuracyReview(
+    val overallConfidencePercent: Int,
+    val fields: List<EobFieldConfidence>,
+    val mathValidation: EobMathValidation,
+    val warnings: List<String>
+)
+
+data class YearlyHealthCostSummary(
+    val year: Int,
+    val eobCount: Int,
+    val totalBilled: Double,
+    val totalInsurancePaid: Double,
+    val totalContractualAdjustment: Double,
+    val totalCopay: Double,
+    val totalDeductible: Double,
+    val totalCoinsurance: Double
+) {
+    val totalPatientResponsibility: Double
+        get() = totalCopay + totalDeductible + totalCoinsurance
+}

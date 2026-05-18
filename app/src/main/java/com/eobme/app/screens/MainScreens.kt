@@ -37,10 +37,12 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CptCategory
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobAccuracyReview
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
+import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.asCurrency
 import app.eob.me.localization.Translations
 import java.util.Calendar
@@ -65,6 +67,7 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { InsuranceCard(language, profile) }
+        item { YearlyHealthCostDashboard(EobAnalyzer.yearlyHealthCostSummary(records)) }
         item {
             QuickActionsCard(
                 language = language,
@@ -118,6 +121,9 @@ fun AnalysisScreen(
         }
         item {
             selectedRecord?.let { AnalysisResultsCard(language, it) }
+        }
+        item {
+            selectedRecord?.let { AccuracyReviewCard(EobAnalyzer.accuracyReview(it)) }
         }
     }
 }
@@ -420,6 +426,53 @@ private fun AnalysisResultsCard(language: AppLanguage, record: EobRecord) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AccuracyReviewCard(review: EobAccuracyReview) {
+    ElevatedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Accuracy Review", style = MaterialTheme.typography.titleLarge)
+            Text("Overall confidence: ${review.overallConfidencePercent}%")
+            review.fields.forEach { field ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(field.fieldName)
+                    Text("${field.confidencePercent}%")
+                }
+                if (field.needsReview) Text("Review: ${field.value}", color = MaterialTheme.colorScheme.error)
+            }
+            HorizontalDivider()
+            Text("Math validation", style = MaterialTheme.typography.titleMedium)
+            AmountRow("Expected patient responsibility", review.mathValidation.expectedPatientResponsibility)
+            AmountRow("Extracted patient responsibility", review.mathValidation.extractedPatientResponsibility)
+            AmountRow("Difference", review.mathValidation.difference)
+            Text(
+                if (review.mathValidation.isBalanced) "Billing math balances." else "Billing math needs review.",
+                color = if (review.mathValidation.isBalanced) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+            )
+            if (review.warnings.isNotEmpty()) {
+                Text("Warnings", style = MaterialTheme.typography.titleMedium)
+                review.warnings.forEach { Text("• $it") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun YearlyHealthCostDashboard(summary: YearlyHealthCostSummary) {
+    ElevatedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Yearly Health Cost Dashboard", style = MaterialTheme.typography.titleLarge)
+            Text("Year: ${if (summary.year == 0) "No EOBs yet" else summary.year} • EOBs: ${summary.eobCount}")
+            AmountRow("Total billed", summary.totalBilled)
+            AmountRow("Insurance paid", summary.totalInsurancePaid)
+            AmountRow("Contractual adjustments", summary.totalContractualAdjustment)
+            AmountRow("Patient responsibility", summary.totalPatientResponsibility)
+            AmountRow("Copays", summary.totalCopay)
+            AmountRow("Deductibles", summary.totalDeductible)
+            AmountRow("Coinsurance", summary.totalCoinsurance)
         }
     }
 }
