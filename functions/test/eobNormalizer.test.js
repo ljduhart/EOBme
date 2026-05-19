@@ -5,7 +5,8 @@ const assert = require("node:assert/strict");
 const {
   comparableEobData,
   normalizeEobDocument,
-  parseCptCodes
+  parseCptCodes,
+  veryfiToEobDocument
 } = require("../lib/eobNormalizer");
 
 test("normalizes legacy eob_records fields into app-ready EOB data", () => {
@@ -59,6 +60,32 @@ test("normalizes nested charge documents and mirrors snake_case fields", () => {
 
 test("parses only valid CPT and HCPCS codes", () => {
   assert.deepEqual(parseCptCodes("99215 01234 Z9999 A0425 J3301 123456"), ["99215", "A0425", "J3301"]);
+});
+
+test("maps Veryfi extraction payload into normalized EOB fields", () => {
+  const normalized = veryfiToEobDocument({
+    id: "veryfi-doc-1",
+    vendor: {name: "Downtown Medical Group"},
+    insurance_name: "Aetna",
+    date_of_service: "2026-02-03",
+    total: 300,
+    insurance_paid: 125,
+    contractual_adj: 100,
+    copay: 30,
+    deductible: 25,
+    coinsurance: 20,
+    line_items: [{description: "99215 office visit"}]
+  }, {
+    documentId: "storage-file-1",
+    sourceFilePath: "users/u1/eob_uploads/storage-file-1.jpg"
+  });
+
+  assert.equal(normalized.providerName, "Downtown Medical Group");
+  assert.equal(normalized.insuranceName, "Aetna");
+  assert.equal(normalized.serviceDate, "02/03/2026");
+  assert.equal(normalized.totalBilledAmount, 300);
+  assert.equal(normalized.cptCodes, "99215");
+  assert.equal(normalized.sourceFilePath, "users/u1/eob_uploads/storage-file-1.jpg");
 });
 
 test("comparison ignores sync-only fields to prevent mirror loops", () => {

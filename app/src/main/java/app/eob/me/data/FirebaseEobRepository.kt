@@ -1,6 +1,8 @@
 package app.eob.me.data
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -8,6 +10,8 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageMetadata
+import java.io.ByteArrayOutputStream
 
 data class FirebaseSyncStatus(
     val isConfigured: Boolean,
@@ -195,6 +199,38 @@ class FirebaseEobRepository(private val context: Context) {
             .set(payload)
             .addOnSuccessListener { onComplete("EOB saved to Firebase.") }
             .addOnFailureListener { onComplete("EOB save failed: ${it.localizedMessage}") }
+    }
+
+    fun uploadEobFile(userId: String, uri: Uri, sourceName: String, onComplete: (String) -> Unit) {
+        if (!configured || userId.isBlank()) {
+            onComplete("Please sign in before uploading an EOB.")
+            return
+        }
+        val fileName = "eob_${System.currentTimeMillis()}"
+        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/$fileName")
+        val metadata = StorageMetadata.Builder()
+            .setCustomMetadata("sourceName", sourceName)
+            .build()
+        ref.putFile(uri, metadata)
+            .addOnSuccessListener { onComplete("EOB uploaded. Veryfi processing started.") }
+            .addOnFailureListener { onComplete("EOB upload failed: ${it.localizedMessage}") }
+    }
+
+    fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, onComplete: (String) -> Unit) {
+        if (!configured || userId.isBlank()) {
+            onComplete("Please sign in before scanning an EOB.")
+            return
+        }
+        val output = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)
+        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/eob_${System.currentTimeMillis()}.jpg")
+        val metadata = StorageMetadata.Builder()
+            .setContentType("image/jpeg")
+            .setCustomMetadata("sourceName", sourceName)
+            .build()
+        ref.putBytes(output.toByteArray(), metadata)
+            .addOnSuccessListener { onComplete("EOB uploaded. Veryfi processing started.") }
+            .addOnFailureListener { onComplete("EOB upload failed: ${it.localizedMessage}") }
     }
 
     fun insuranceCardStoragePath(userId: String, fileName: String): String {

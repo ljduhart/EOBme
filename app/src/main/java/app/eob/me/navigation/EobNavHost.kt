@@ -23,11 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -36,15 +32,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import app.eob.me.app.EobViewModel
 import app.eob.me.data.AppLanguage
-import app.eob.me.data.AppealLetterGenerator
-import app.eob.me.data.CptCategory
-import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobKnowledgeBase
-import app.eob.me.data.EobRecord
 import app.eob.me.data.FirebaseEobRepository
-import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.localization.Translations
 import app.eob.me.screens.AnalysisScreen
@@ -53,8 +46,6 @@ import app.eob.me.screens.CptCountScreen
 import app.eob.me.screens.HomeScreen
 import app.eob.me.screens.NewsScreen
 import app.eob.me.screens.ProfileScreen
-import app.eob.me.util.OcrProcessor
-import kotlinx.coroutines.launch
 
 @Composable
 fun EobNavHost(
@@ -67,68 +58,33 @@ fun EobNavHost(
     onActivity: () -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val navController = rememberNavController()
-    val records = remember { mutableStateListOf(EobAnalyzer.analyze(sampleEobText, "Sample camera scan", 1)) }
-    val appointments = remember { mutableStateListOf<DoctorAppointment>() }
-    var selectedRecord by remember { mutableStateOf<EobRecord?>(records.firstOrNull()) }
-    var uploadText by remember { mutableStateOf("") }
-    var uploadNotice by remember { mutableStateOf("") }
-    var selectedCptCategory by remember { mutableStateOf(CptCategory.OfficeVisit) }
-    var appealLetter by remember { mutableStateOf(AppealLetterGenerator.generate(profile, selectedRecord)) }
-    var firebaseStatus by remember { mutableStateOf(firebaseRepository.status()) }
-    var firebaseNews by remember { mutableStateOf<List<NewsRelease>>(emptyList()) }
-
-    fun saveAnalyzedEob(source: String, rawText: String) {
-        val analyzedRecord = EobAnalyzer.analyze(rawText, source, (records.maxOfOrNull { it.id } ?: 0) + 1)
-        val duplicateIndex = records.indexOfFirst { existing -> EobAnalyzer.isSameEob(existing, analyzedRecord) }
-        val record = if (duplicateIndex >= 0) {
-            uploadNotice = Translations.t(language, "duplicateReplaced")
-            analyzedRecord.copy(id = records[duplicateIndex].id)
-        } else {
-            uploadNotice = Translations.t(language, "eobAdded")
-            analyzedRecord
-        }
-        if (duplicateIndex >= 0) records[duplicateIndex] = record else records.add(record)
-        val compactedRecords = EobAnalyzer.compactDuplicateEobs(records)
-        records.clear()
-        records.addAll(compactedRecords)
-        selectedRecord = record
-        appealLetter = AppealLetterGenerator.generate(profile, record)
-        uploadText = ""
-        if (firebaseStatus.userId.isNotBlank()) {
-            firebaseRepository.saveEob(firebaseStatus.userId, record) {
-                firebaseStatus = firebaseStatus.copy(message = it)
-            }
-        }
-        onActivity()
-        navController.navigate(EobRoute.Analysis.route)
-    }
-
-    fun handleOcrResult(source: String, text: String) {
-        if (text.isBlank()) {
-            Toast.makeText(context, Translations.t(language, "ocrEmpty"), Toast.LENGTH_SHORT).show()
-        } else {
-            saveAnalyzedEob(source, text)
-        }
-    }
+    val viewModel: EobViewModel = viewModel()
 
     val libraryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            scope.launch {
-                runCatching { OcrProcessor.recognizeFromUri(context, uri) }
-                    .onSuccess { handleOcrResult(Translations.t(language, "libraryUpload"), it.ifBlank { uploadText }) }
-                    .onFailure { Toast.makeText(context, Translations.t(language, "ocrFailed"), Toast.LENGTH_SHORT).show() }
-            }
+            viewModel.uploadEobFile(
+                repository = firebaseRepository,
+                userId = viewModel.firebaseStatus.userId,
+                uri = uri,
+                sourceName = Translations.t(language, "libraryUpload"),
+                language = language
+            )
+            navController.navigate(EobRoute.Analysis.route)
+            onActivity()
         }
     }
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
         if (bitmap != null) {
-            scope.launch {
-                runCatching { OcrProcessor.recognizeFromBitmap(bitmap) }
-                    .onSuccess { handleOcrResult(Translations.t(language, "cameraScan"), it.ifBlank { uploadText }) }
-                    .onFailure { Toast.makeText(context, Translations.t(language, "ocrFailed"), Toast.LENGTH_SHORT).show() }
-            }
+            viewModel.uploadEobBitmap(
+                repository = firebaseRepository,
+                userId = viewModel.firebaseStatus.userId,
+                bitmap = bitmap,
+                sourceName = Translations.t(language, "cameraScan"),
+                language = language
+            )
+            navController.navigate(EobRoute.Analysis.route)
+            onActivity()
         }
     }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -144,13 +100,13 @@ fun EobNavHost(
     }
 
     LaunchedEffect(profile.email, profile.password, profile.isComplete) {
-        if (profile.isComplete && firebaseStatus.userId.isNotBlank()) {
-            firebaseRepository.saveProfile(firebaseStatus.userId, profile) {}
+        if (profile.isComplete && viewModel.firebaseStatus.userId.isNotBlank()) {
+            firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, profile) {}
         }
     }
 
-    DisposableEffect(firebaseStatus.userId) {
-        val userId = firebaseStatus.userId
+    DisposableEffect(viewModel.firebaseStatus.userId) {
+        val userId = viewModel.firebaseStatus.userId
         val profileListener = firebaseRepository.observeProfile(
             userId = userId,
             currentPassword = profile.password,
@@ -158,25 +114,22 @@ fun EobNavHost(
                 onProfileChanged(it)
                 onActivity()
             },
-            onError = { firebaseStatus = firebaseStatus.copy(message = it) }
+            onError = { viewModel.firebaseStatus = viewModel.firebaseStatus.copy(message = it) }
         )
         val eobListener = firebaseRepository.observeEobs(
             userId = userId,
             onRecords = {
-                records.clear()
-                records.addAll(EobAnalyzer.compactDuplicateEobs(it))
-                selectedRecord = records.firstOrNull()
-                appealLetter = AppealLetterGenerator.generate(profile, selectedRecord)
+                viewModel.replaceRecords(it, profile)
                 onActivity()
             },
-            onError = { firebaseStatus = firebaseStatus.copy(message = it) }
+            onError = { viewModel.firebaseStatus = viewModel.firebaseStatus.copy(message = it) }
         )
         val newsListener = firebaseRepository.observeInsuranceNews(
             onNews = {
-                firebaseNews = it
+                viewModel.firebaseNews = it
                 onActivity()
             },
-            onError = { firebaseStatus = firebaseStatus.copy(message = it) }
+            onError = { viewModel.firebaseStatus = viewModel.firebaseStatus.copy(message = it) }
         )
         onDispose {
             profileListener?.remove()
@@ -224,20 +177,20 @@ fun EobNavHost(
                     HomeScreen(
                         language = language,
                         profile = profile,
-                        records = records.sortedBy { it.serviceDateSortKey },
-                        appointments = appointments.sortedBy { it.date },
-                        uploadNotice = uploadNotice,
-                        uploadText = uploadText,
+                        records = viewModel.records.sortedBy { it.serviceDateSortKey },
+                        appointments = viewModel.appointments.sortedBy { it.date },
+                        uploadNotice = viewModel.uploadNotice,
+                        uploadText = viewModel.uploadText,
                         onUploadTextChanged = {
-                            uploadText = it
+                            viewModel.uploadText = it
                             onActivity()
                         },
                         onAddAppointment = { date, provider, notes ->
-                            appointments.add(DoctorAppointment((appointments.maxOfOrNull { it.id } ?: 0) + 1, date, provider, notes))
+                            viewModel.addAppointment(date, provider, notes)
                             onActivity()
                         },
                         onRemoveAppointment = {
-                            appointments.removeAll { appointment -> appointment.id == it.id }
+                            viewModel.removeAppointment(it)
                             onActivity()
                         },
                         onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
@@ -245,27 +198,26 @@ fun EobNavHost(
                     )
                 }
                 composable(EobRoute.Analysis.route) {
-                    AnalysisScreen(language, records.sortedBy { it.serviceDateSortKey }, selectedRecord) {
-                        selectedRecord = it
-                        appealLetter = AppealLetterGenerator.generate(profile, it)
+                    AnalysisScreen(language, viewModel.records.sortedBy { it.serviceDateSortKey }, viewModel.selectedRecord) {
+                        viewModel.selectRecord(it, profile)
                         onActivity()
                     }
                 }
                 composable(EobRoute.CptCount.route) {
-                    CptCountScreen(language, records, selectedCptCategory) {
-                        selectedCptCategory = it
+                    CptCountScreen(language, viewModel.records, viewModel.selectedCptCategory) {
+                        viewModel.selectedCptCategory = it
                         onActivity()
                     }
                 }
                 composable(EobRoute.News.route) {
-                    NewsScreen(language, EobKnowledgeBase.currentNewsReleases(firebaseNews.ifEmpty { EobKnowledgeBase.newsReleases }))
+                    NewsScreen(language, EobKnowledgeBase.currentNewsReleases(viewModel.firebaseNews.ifEmpty { EobKnowledgeBase.newsReleases }))
                 }
                 composable(EobRoute.Appeal.route) {
-                    AppealScreen(language, profile, selectedRecord, appealLetter, {
-                        appealLetter = AppealLetterGenerator.generate(profile, selectedRecord)
+                    AppealScreen(language, profile, viewModel.selectedRecord, viewModel.appealLetter, {
+                        viewModel.regenerateAppeal(profile)
                         onActivity()
                     }, {
-                        appealLetter = it
+                        viewModel.updateAppeal(it)
                         onActivity()
                     })
                 }
@@ -275,7 +227,7 @@ fun EobNavHost(
                         profile = profile,
                         onProfileChanged = {
                             onProfileChanged(it)
-                            if (firebaseStatus.userId.isNotBlank()) firebaseRepository.saveProfile(firebaseStatus.userId, it) {}
+                            if (viewModel.firebaseStatus.userId.isNotBlank()) firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, it) {}
                             onActivity()
                         },
                         onLanguageChanged = onLanguageChanged,
@@ -314,10 +266,3 @@ private fun EobRoute.title(language: AppLanguage): String {
     }
 }
 
-private val sampleEobText = """
-    UnitedHealthcare Explanation of Benefits
-    Provider: Lakeside Family Medical Clinic
-    Date of Service: 01/12/2025
-    99215 billed $265.00 insurance paid $120.00 contractual adjustment $95.00 copay $25.00 deductible $20.00 coinsurance $5.00
-    80053 billed $48.00 insurance paid $22.00 contractual adjustment $18.00 copay $0.00 deductible $8.00 coinsurance $0.00
-""".trimIndent()
