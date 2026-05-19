@@ -1,5 +1,6 @@
 package app.eob.me.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -31,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.components.CalendarPicker
 import app.eob.me.data.AppLanguage
@@ -408,30 +411,58 @@ private fun UploadCard(
 
 @Composable
 private fun AnalysisResultsCard(language: AppLanguage, record: EobRecord) {
+    val topDownTotal = (record.totalBilledAmount - record.totalInsurancePaidAmount - record.totalContractualAdjustmentAmount).coerceAtLeast(0.0)
+    val bottomUpTotal = record.totalCopayAmount + record.totalDeductibleAmount + record.totalCoinsuranceAmount
+    val isBalanced = kotlin.math.abs(topDownTotal - bottomUpTotal) <= 0.05
+    
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(Translations.t(language, "analysisResults"), style = MaterialTheme.typography.titleLarge)
-            Text("${Translations.t(language, "insurance")}: ${record.insuranceName}")
+            Text("${Translations.t(language, "insurance")}: ${record.insuranceName}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Text("${Translations.t(language, "provider")}: ${record.providerName}")
             Text("${Translations.t(language, "dateOfService")}: ${record.serviceDate}")
+            
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            
             AmountRow(Translations.t(language, "eobBilledAmount"), record.totalBilledAmount)
-            AmountRow(Translations.t(language, "insurancePaid"), record.totalInsurancePaidAmount)
-            AmountRow(Translations.t(language, "contractualAdjustment"), record.totalContractualAdjustmentAmount)
-            AmountRow(Translations.t(language, "copay"), record.totalCopayAmount)
-            AmountRow(Translations.t(language, "deductible"), record.totalDeductibleAmount)
-            AmountRow(Translations.t(language, "coinsurance"), record.totalCoinsuranceAmount)
-            if (record.duplicateChargeWarnings.isEmpty()) {
-                Text(Translations.t(language, "noDuplicateCharges"))
-            } else {
-                record.duplicateChargeWarnings.forEach { Text(it) }
+            AmountRow("- ${Translations.t(language, "insurancePaid")}", record.totalInsurancePaidAmount)
+            AmountRow("- ${Translations.t(language, "contractualAdjustment")}", record.totalContractualAdjustmentAmount)
+            
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            
+            Text("Patient Responsibility Breakdown", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+            if (record.totalCopayAmount > 0) AmountRow("• Copay", record.totalCopayAmount)
+            if (record.totalDeductibleAmount > 0) AmountRow("• Deductible", record.totalDeductibleAmount)
+            if (record.totalCoinsuranceAmount > 0) AmountRow("• Coinsurance", record.totalCoinsuranceAmount)
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .background(
+                        if (isBalanced) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                        RoundedCornerShape(4.dp)
+                    )
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Text(Translations.t(language, "patientResponsibility"), fontWeight = FontWeight.Bold)
+                Text(record.totalPatientResponsibility.asCurrency(), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
             }
-            record.charges.forEach { charge ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text("${charge.cptCode}: ${charge.cptDescription}", style = MaterialTheme.typography.titleSmall)
-                        Text("${cptCategoryLabel(language, charge.category)} • ${Translations.t(language, "billed")} ${charge.billedAmount.asCurrency()} • ${Translations.t(language, "paid")} ${charge.insurancePaidAmount.asCurrency()}")
-                    }
-                }
+            
+            if (!isBalanced) {
+                Text(
+                    "⚠️ Billing Math Discrepancy: Extracted totals do not balance. Top-down calculation suggests ${topDownTotal.asCurrency()}.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            
+            if (record.duplicateChargeWarnings.isNotEmpty()) {
+                record.duplicateChargeWarnings.forEach { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
         }
     }

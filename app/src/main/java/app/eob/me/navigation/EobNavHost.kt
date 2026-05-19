@@ -162,10 +162,20 @@ fun EobNavHost(
         )
         val eobListener = firebaseRepository.observeEobs(
             userId = userId,
-            onRecords = {
+            onRecords = { newRecords ->
+                val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
                 records.clear()
-                records.addAll(EobAnalyzer.compactDuplicateEobs(it))
-                selectedRecord = records.firstOrNull()
+                records.addAll(compacted)
+                
+                // Smart Selection Logic: Only reset if current selection is invalid
+                val current = selectedRecord
+                if (current == null || compacted.none { it.id == current.id }) {
+                    selectedRecord = compacted.firstOrNull()
+                } else {
+                    // Update selection with latest cloud data for this record
+                    compacted.find { it.id == current.id }?.let { selectedRecord = it }
+                }
+                
                 appealLetter = AppealLetterGenerator.generate(profile, selectedRecord)
                 onActivity()
             },
@@ -248,6 +258,7 @@ fun EobNavHost(
                     AnalysisScreen(language, records.sortedBy { it.serviceDateSortKey }, selectedRecord) {
                         selectedRecord = it
                         appealLetter = AppealLetterGenerator.generate(profile, it)
+                        uploadNotice = "" // Clear stale real-time notification
                         onActivity()
                     }
                 }
