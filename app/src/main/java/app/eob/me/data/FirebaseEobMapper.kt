@@ -91,7 +91,13 @@ object FirebaseEobMapper {
                 ?: EobAnalyzer.serviceDateSortKey(serviceDate),
             charges = charges,
             duplicateChargeWarnings = data.stringListValue("duplicateChargeWarnings", "duplicate_charge_warnings"),
-            rawText = rawText
+            rawText = rawText,
+            totalBilledAmount = data.doubleValue("totalBilledAmount", "billed_amount", "total_amount_billed"),
+            totalInsurancePaidAmount = data.doubleValue("totalInsurancePaidAmount", "insurance_paid"),
+            totalContractualAdjustmentAmount = data.doubleValue("totalContractualAdjustmentAmount", "contractual_adj"),
+            totalCopayAmount = data.doubleValue("totalCopayAmount", "copay"),
+            totalDeductibleAmount = data.doubleValue("totalDeductibleAmount", "deductible"),
+            totalCoinsuranceAmount = data.doubleValue("totalCoinsuranceAmount", "coinsurance")
         )
     }
 

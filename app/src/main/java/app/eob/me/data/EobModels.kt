@@ -70,14 +70,16 @@ data class EobRecord(
     val serviceDateSortKey: Int,
     val charges: List<EobCharge>,
     val duplicateChargeWarnings: List<String>,
-    val rawText: String
+    val rawText: String,
+    val totalBilledAmount: Double = 0.0,
+    val totalInsurancePaidAmount: Double = 0.0,
+    val totalContractualAdjustmentAmount: Double = 0.0,
+    val totalCopayAmount: Double = 0.0,
+    val totalDeductibleAmount: Double = 0.0,
+    val totalCoinsuranceAmount: Double = 0.0
 ) {
-    val totalBilledAmount: Double = charges.sumOf { it.billedAmount }
-    val totalInsurancePaidAmount: Double = charges.sumOf { it.insurancePaidAmount }
-    val totalContractualAdjustmentAmount: Double = charges.sumOf { it.contractualAdjustmentAmount }
-    val totalCopayAmount: Double = charges.sumOf { it.copayAmount }
-    val totalDeductibleAmount: Double = charges.sumOf { it.deductibleAmount }
-    val totalCoinsuranceAmount: Double = charges.sumOf { it.coinsuranceAmount }
+    val totalPatientResponsibility: Double
+        get() = totalCopayAmount + totalDeductibleAmount + totalCoinsuranceAmount
 }
 
 data class NewsRelease(

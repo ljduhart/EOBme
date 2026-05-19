@@ -21,6 +21,14 @@ object EobAnalyzer {
         val charges = if (lineCharges.isNotEmpty()) lineCharges else parseDocumentLevelCharge(cleanedText, serviceDate)
         val warnings = duplicateWarnings(charges)
 
+        // Independent Totals Extraction
+        val docBilled = amountAfterLabels(cleanedText, listOf("total billed", "billed", "charges", "amount billed", "submitted")) ?: charges.sumOf { it.billedAmount }
+        val docPaid = amountAfterLabels(cleanedText, listOf("insurance paid", "plan paid", "paid", "payer paid")) ?: charges.sumOf { it.insurancePaidAmount }
+        val docAdj = amountAfterLabels(cleanedText, listOf("contractual adjustment", "adjustment", "contractual", "discount")) ?: charges.sumOf { it.contractualAdjustmentAmount }
+        val docCopay = amountAfterLabels(cleanedText, listOf("copay", "co-pay")) ?: charges.sumOf { it.copayAmount }
+        val docDeductible = amountAfterLabels(cleanedText, listOf("deductible")) ?: charges.sumOf { it.deductibleAmount }
+        val docCoinsurance = amountAfterLabels(cleanedText, listOf("coinsurance", "co-insurance")) ?: charges.sumOf { it.coinsuranceAmount }
+
         return EobRecord(
             id = nextId,
             sourceName = sourceName,
@@ -30,7 +38,13 @@ object EobAnalyzer {
             serviceDateSortKey = serviceDateSortKey(serviceDate),
             charges = charges,
             duplicateChargeWarnings = warnings,
-            rawText = cleanedText
+            rawText = cleanedText,
+            totalBilledAmount = docBilled,
+            totalInsurancePaidAmount = docPaid,
+            totalContractualAdjustmentAmount = docAdj,
+            totalCopayAmount = docCopay,
+            totalDeductibleAmount = docDeductible,
+            totalCoinsuranceAmount = docCoinsurance
         )
     }
 
