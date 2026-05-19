@@ -1,62 +1,61 @@
 package app.eob.me.util
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 object OcrProcessor {
-    private val client = okhttp3.OkHttpClient()
-    private val gson = com.google.gson.Gson()
+    private val recognizer by lazy {
+        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    }
 
-    // Authenticated Veryfi API Developer Credentials
-    private const val CLIENT_ID = "vrfFGAvphpB29l4yoZDf8ggk0HGN2NlbWlhm1Us"
-    private const val USERNAME = "heathenistic.jd"
-    private const val API_KEY = "cd5aa63ad8487603b344aee0e5326b5f"
+    suspend fun recognizeFromBitmap(bitmap: Bitmap): String {
+        return recognizeImage(InputImage.fromBitmap(bitmap, 0))
+    }
 
-    /**
-     * Sends the selected EOB file straight to Veryfi's extraction engine
-     */
-    suspend fun recognizeFromUri(context: Context, uri: Uri): String = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        // Read the file's raw bytes directly from the user's phone storage
-        val inputStream = context.contentResolver.openInputStream(uri)
-            ?: throw java.io.IOException("Failed to open file stream")
-        val fileBytes = inputStream.readBytes()
-        inputStream.close()
+    suspend fun recognizeFromUri(context: Context, uri: Uri): String {
+        val mimeType = context.contentResolver.getType(uri).orEmpty()
+        return if (mimeType == "application/pdf" || uri.toString().endsWith(".pdf", ignoreCase = true)) {
+            recognizePdf(context, uri)
+        } else {
+            recognizeImage(InputImage.fromFilePath(context, uri))
+        }
+    }
 
-        // Configure the custom medical field parameters we want Veryfi to map out
-        val parameters = mapOf(
-            "categories" to listOf("Medical", "Health Insurance", "EOB"),
-            "tags" to listOf("provider_name", "billed_amount", "insurance_paid", "patient_responsibility", "cpt_codes"),
-            "auto_delete" to false
-        )
-        val parametersJson = gson.toJson(parameters)
-
-        // Pack the image data and parameters together
-        val requestBody = okhttp3.MultipartBody.Builder()
-            .setType(okhttp3.MultipartBody.FORM)
-            .addFormDataPart(
-                "file",
-                "eob_upload.jpg",
-                okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), fileBytes)
-            )
-            .addFormDataPart("parameters", parametersJson)
-            .build()
-
-        // Build the authenticated secure web request targeting Veryfi's platform
-        val request = okhttp3.Request.Builder()
-            .url("https://api.veryfi.com/api/v8/partner/documents")
-            .addHeader("Client-Id", CLIENT_ID)
-            .addHeader("Authorization", "apikey $USERNAME:$API_KEY")
-            .post(requestBody)
-            .build()
-
-        // Execute the server communication call safely
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw java.io.IOException("Veryfi extraction call failed with status code: ${response.code}")
+    private suspend fun recognizePdf(context: Context, uri: Uri): String {
+        val descriptor = context.contentResolver.openFileDescriptor(uri, "r") ?: return ""
+        return descriptor.use { fileDescriptor ->
+            PdfRenderer(fileDescriptor).use { renderer ->
+                buildString {
+                    repeat(renderer.pageCount) { pageIndex ->
+                        renderer.openPage(pageIndex).use { page ->
+                            val bitmap = Bitmap.createBitmap(
+                                page.width.coerceAtLeast(1) * 2,
+                                page.height.coerceAtLeast(1) * 2,
+                                Bitmap.Config.ARGB_8888
+                            )
+                            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            appendLine(recognizeFromBitmap(bitmap))
+                            bitmap.recycle()
+                        }
+                    }
+                }
             }
+        }
+    }
 
-            // Return the raw structured JSON payload back to your app's processing queue
-            return@withContext response.body()?.string() ?: throw java.io.IOException("Empty response received")
+    private suspend fun recognizeImage(image: InputImage): String {
+        return suspendCoroutine { continuation ->
+            recognizer.process(image)
+                .addOnSuccessListener { text -> continuation.resume(text.text) }
+                .addOnFailureListener { error -> continuation.resumeWithException(error) }
         }
     }
 }

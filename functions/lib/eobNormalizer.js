@@ -91,6 +91,52 @@ function normalizeEobDocument(data = {}, documentId = "") {
   };
 }
 
+function veryfiToEobDocument(veryfi = {}, metadata = {}) {
+  const rawText = JSON.stringify(veryfi);
+  const providerName = stringValue(veryfi, [
+    "provider_name",
+    "vendor_name"
+  ]) || stringValue(veryfi.vendor || {}, ["name"]) || findProviderName(rawText);
+  const insuranceName = stringValue(veryfi, [
+    "insurance_name",
+    "payer_name",
+    "insurance"
+  ]) || findInsuranceName(rawText);
+  const dateOfService = normalizeDate(firstValue(veryfi, [
+    "date_of_service",
+    "service_date",
+    "date"
+  ]));
+  const cptCodes = parseCptCodes([
+    veryfi.cptCodes,
+    veryfi.cpt_codes,
+    JSON.stringify(veryfi.line_items || ""),
+    rawText
+  ].flat().filter(Boolean).join(" "));
+
+  const normalized = normalizeEobDocument({
+    sourceName: metadata.sourceName || "Veryfi",
+    providerName,
+    insuranceName,
+    date_of_service: dateOfService,
+    billed_amount: numberValue(veryfi, ["billed_amount", "total_amount_billed", "total", "subtotal"]),
+    insurance_paid: numberValue(veryfi, ["insurance_paid", "amount_paid", "payment"]),
+    contractual_adj: numberValue(veryfi, ["contractual_adj", "contractual_adjustment", "discount"]),
+    copay: numberValue(veryfi, ["copay", "co_pay"]),
+    deductible: numberValue(veryfi, ["deductible"]),
+    coinsurance: numberValue(veryfi, ["coinsurance"]),
+    ...(cptCodes.length > 0 ? {cptCodes} : {}),
+    rawText,
+    sourceFilePath: metadata.sourceFilePath || "",
+    veryfiDocumentId: veryfi.id || veryfi.document_id || ""
+  }, metadata.documentId || String(veryfi.id || veryfi.document_id || Date.now()));
+  return {
+    ...normalized,
+    sourceFilePath: metadata.sourceFilePath || "",
+    veryfiDocumentId: veryfi.id || veryfi.document_id || ""
+  };
+}
+
 function normalizeCharge(charge = {}, fallbackDate = "Date not recognized") {
   const cptCode = stringValue(charge, ["cptCode", "cpt_code", "code"]).toUpperCase();
   return {
@@ -139,10 +185,11 @@ function comparableEobData(data) {
 }
 
 function parseCptCodes(value) {
-  const rawValues = Array.isArray(value) ? value : String(value || "").split(/[\s,;|]+/);
-  return [...new Set(rawValues
-    .map((code) => String(code).trim().toUpperCase())
-    .filter((code) => VALID_CPT_PATTERN.test(code)))];
+  const text = Array.isArray(value) ?
+    value.map((item) => typeof item === "object" ? JSON.stringify(item) : String(item)).join(" ") :
+    String(value || "");
+  const matches = text.toUpperCase().match(/(?<![A-Z0-9])(?:[1-9][0-9]{4}|[A-J][0-9]{4})(?![A-Z0-9])/g) || [];
+  return [...new Set(matches.filter((code) => VALID_CPT_PATTERN.test(code)))];
 }
 
 function totalCharges(charges) {
@@ -263,6 +310,7 @@ function normalizePlainObject(value) {
 module.exports = {
   comparableEobData,
   normalizeEobDocument,
+  veryfiToEobDocument,
   parseCptCodes,
   serviceDateSortKey
 };
