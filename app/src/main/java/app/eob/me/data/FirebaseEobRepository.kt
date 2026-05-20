@@ -206,9 +206,13 @@ class FirebaseEobRepository(private val context: Context) {
             onComplete("Please sign in before uploading an EOB.")
             return
         }
-        val fileName = "eob_${System.currentTimeMillis()}"
+        val contentType = context.contentResolver.getType(uri)
+            ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
+        val extension = if (contentType == "application/pdf") "pdf" else "jpg"
+        val fileName = "eob_${System.currentTimeMillis()}.$extension"
         val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/$fileName")
         val metadata = StorageMetadata.Builder()
+            .setContentType(contentType)
             .setCustomMetadata("sourceName", sourceName)
             .build()
         ref.putFile(uri, metadata)
