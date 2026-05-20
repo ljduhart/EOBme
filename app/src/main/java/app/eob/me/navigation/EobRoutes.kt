@@ -7,6 +7,7 @@ sealed class EobRoute(val route: String) {
     data object News : EobRoute("news")
     data object Appeal : EobRoute("appeal")
     data object Profile : EobRoute("profile")
+    data object CameraCapture : EobRoute("camera_capture")
 }
 
 val primaryRoutes = listOf(

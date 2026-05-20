@@ -1,7 +1,7 @@
 package app.eob.me.navigation
 
 import android.Manifest
-import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,10 +24,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -35,17 +35,19 @@ import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.eob.me.app.EobViewModel
 import app.eob.me.data.AppLanguage
-import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.UserProfile
 import app.eob.me.localization.Translations
 import app.eob.me.screens.AnalysisScreen
 import app.eob.me.screens.AppealScreen
+import app.eob.me.screens.CameraCaptureScreen
 import app.eob.me.screens.CptCountScreen
 import app.eob.me.screens.HomeScreen
 import app.eob.me.screens.NewsScreen
 import app.eob.me.screens.ProfileScreen
+import app.eob.me.util.OcrProcessor
+import kotlinx.coroutines.launch
 
 @Composable
 fun EobNavHost(
@@ -58,37 +60,37 @@ fun EobNavHost(
     onActivity: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val viewModel: EobViewModel = viewModel()
 
-    val libraryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            viewModel.uploadEobFile(
-                repository = firebaseRepository,
-                userId = viewModel.firebaseStatus.userId,
-                uri = uri,
-                sourceName = Translations.t(language, "libraryUpload"),
-                language = language
-            )
-            navController.navigate(EobRoute.Analysis.route)
-            onActivity()
+    fun prepareAndUpload(uri: Uri, sourceName: String) {
+        scope.launch {
+            runCatching { OcrProcessor.prepareUriForUpload(context, uri) }
+                .onSuccess { preparedUri ->
+                    viewModel.uploadEobFile(
+                        repository = firebaseRepository,
+                        userId = viewModel.firebaseStatus.userId,
+                        uri = preparedUri,
+                        sourceName = sourceName,
+                        language = language
+                    )
+                    navController.navigate(EobRoute.Analysis.route) { launchSingleTop = true }
+                    onActivity()
+                }
+                .onFailure {
+                    Toast.makeText(context, Translations.t(language, "ocrFailed"), Toast.LENGTH_SHORT).show()
+                }
         }
     }
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            viewModel.uploadEobBitmap(
-                repository = firebaseRepository,
-                userId = viewModel.firebaseStatus.userId,
-                bitmap = bitmap,
-                sourceName = Translations.t(language, "cameraScan"),
-                language = language
-            )
-            navController.navigate(EobRoute.Analysis.route)
-            onActivity()
+
+    val libraryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            prepareAndUpload(uri, Translations.t(language, "libraryUpload"))
         }
     }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) cameraLauncher.launch(null)
+        if (granted) navController.navigate(EobRoute.CameraCapture.route)
         else Toast.makeText(context, Translations.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
     }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -154,7 +156,7 @@ fun EobNavHost(
                 .padding(padding)
         ) {
             Header(language, onProfile = { navController.navigate(EobRoute.Profile.route) }, onLogout = onLogout)
-            ScrollableTabRow(
+            PrimaryScrollableTabRow(
                 selectedTabIndex = primaryRoutes.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0),
                 edgePadding = 8.dp
             ) {
@@ -180,11 +182,6 @@ fun EobNavHost(
                         records = viewModel.records.sortedBy { it.serviceDateSortKey },
                         appointments = viewModel.appointments.sortedBy { it.date },
                         uploadNotice = viewModel.uploadNotice,
-                        uploadText = viewModel.uploadText,
-                        onUploadTextChanged = {
-                            viewModel.uploadText = it
-                            onActivity()
-                        },
                         onAddAppointment = { date, provider, notes ->
                             viewModel.addAppointment(date, provider, notes)
                             onActivity()
@@ -192,16 +189,35 @@ fun EobNavHost(
                         onRemoveAppointment = {
                             viewModel.removeAppointment(it)
                             onActivity()
-                        },
-                        onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
-                        onCameraScan = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
+                        }
                     )
                 }
                 composable(EobRoute.Analysis.route) {
-                    AnalysisScreen(language, viewModel.records.sortedBy { it.serviceDateSortKey }, viewModel.selectedRecord) {
+                    AnalysisScreen(
+                        language = language,
+                        records = viewModel.records.sortedBy { it.serviceDateSortKey },
+                        selectedRecord = viewModel.selectedRecord,
+                        uploadText = viewModel.uploadText,
+                        uploadNotice = viewModel.uploadNotice,
+                        onUploadTextChanged = {
+                            viewModel.uploadText = it
+                            onActivity()
+                        },
+                        onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
+                        onCameraScan = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
+                    ) {
                         viewModel.selectRecord(it, profile)
                         onActivity()
                     }
+                }
+                composable(EobRoute.CameraCapture.route) {
+                    CameraCaptureScreen(
+                        language = language,
+                        onImageCaptured = { uri ->
+                            prepareAndUpload(uri, Translations.t(language, "cameraScan"))
+                        },
+                        onClose = { navController.popBackStack() }
+                    )
                 }
                 composable(EobRoute.CptCount.route) {
                     CptCountScreen(language, viewModel.records, viewModel.selectedCptCategory) {
@@ -258,11 +274,12 @@ private fun Header(language: AppLanguage, onProfile: () -> Unit, onLogout: () ->
 private fun EobRoute.title(language: AppLanguage): String {
     return when (this) {
         EobRoute.Home -> Translations.t(language, "home")
-        EobRoute.Analysis -> Translations.t(language, "analysis")
+        EobRoute.Analysis -> "Eob/Analysis"
         EobRoute.CptCount -> Translations.t(language, "cptCount")
         EobRoute.News -> Translations.t(language, "news")
         EobRoute.Appeal -> Translations.t(language, "appeal")
         EobRoute.Profile -> Translations.t(language, "profile")
+        EobRoute.CameraCapture -> Translations.t(language, "scanBill")
     }
 }
 

@@ -60,12 +60,8 @@ fun HomeScreen(
     records: List<EobRecord>,
     appointments: List<DoctorAppointment>,
     uploadNotice: String,
-    uploadText: String,
-    onUploadTextChanged: (String) -> Unit,
     onAddAppointment: (String, String, String) -> Unit,
-    onRemoveAppointment: (DoctorAppointment) -> Unit,
-    onLibraryUpload: () -> Unit,
-    onCameraScan: () -> Unit
+    onRemoveAppointment: (DoctorAppointment) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -83,7 +79,6 @@ fun HomeScreen(
                 onRemoveAppointment = onRemoveAppointment
             )
         }
-        item { UploadCard(language, uploadText, onUploadTextChanged, onLibraryUpload, onCameraScan) }
         if (uploadNotice.isNotBlank()) {
             item { Text(uploadNotice, style = MaterialTheme.typography.titleSmall) }
         }
@@ -101,6 +96,11 @@ fun AnalysisScreen(
     language: AppLanguage,
     records: List<EobRecord>,
     selectedRecord: EobRecord?,
+    uploadText: String,
+    uploadNotice: String,
+    onUploadTextChanged: (String) -> Unit,
+    onLibraryUpload: () -> Unit,
+    onCameraScan: () -> Unit,
     onSelected: (EobRecord) -> Unit
 ) {
     LazyColumn(
@@ -109,8 +109,12 @@ fun AnalysisScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Text(Translations.t(language, "analysis"), style = MaterialTheme.typography.titleLarge)
+            Text("Eob/Analysis", style = MaterialTheme.typography.titleLarge)
             Text(Translations.t(language, "analysisHelp"))
+        }
+        item { UploadCard(language, uploadText, onUploadTextChanged, onLibraryUpload, onCameraScan) }
+        if (uploadNotice.isNotBlank()) {
+            item { Text(uploadNotice, style = MaterialTheme.typography.titleSmall) }
         }
         items(records) { record ->
             ElevatedCard(
