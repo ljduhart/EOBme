@@ -246,11 +246,9 @@ fun InsuranceCard(language: AppLanguage, profile: UserProfile) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(EobStrings.t(language, "insuranceCard"), style = MaterialTheme.typography.titleMedium)
-            if (profile.insuranceCardSummary.isNotBlank()) {
-                Text(profile.insuranceCardSummary)
-            } else {
-                Text("${EobStrings.t(language, "subscriberId")}: ${profile.subscriberId.ifBlank { EobStrings.t(language, "addSubscriberId") }}")
-            }
+            Text("${EobStrings.t(language, "insuranceNameField")}: ${profile.insuranceName.ifBlank { EobStrings.t(language, "addInsuranceInfo") }}")
+            Text("${EobStrings.t(language, "insuranceId")}: ${profile.insuranceId.ifBlank { "-" }}")
+            Text("${EobStrings.t(language, "groupName")}: ${profile.groupName.ifBlank { "-" }}")
             Text("${EobStrings.t(language, "member")}: ${profile.fullName.ifBlank { EobStrings.t(language, "profileIncomplete") }}")
         }
     }
@@ -260,13 +258,14 @@ fun InsuranceCard(language: AppLanguage, profile: UserProfile) {
 fun QuickActionsCard(
     language: AppLanguage,
     appointments: List<DoctorAppointment>,
-    onAddAppointment: (String, String, String) -> Unit,
+    onAddAppointment: (String, String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit
 ) {
     var visibleMonth by remember { mutableStateOf(Calendar.getInstance()) }
     var selectedDate by remember { mutableStateOf("") }
     var showAppointmentDialog by remember { mutableStateOf(false) }
     var appointmentProvider by remember { mutableStateOf("") }
+    var appointmentTime by remember { mutableStateOf("") }
     var appointmentNotes by remember { mutableStateOf("") }
 
     ElevatedCard(Modifier.fillMaxWidth()) {
@@ -290,6 +289,7 @@ fun QuickActionsCard(
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("${appointment.date} • ${appointment.providerName}", style = MaterialTheme.typography.titleSmall)
+                            if (appointment.time.isNotBlank()) Text(appointment.time)
                             if (appointment.notes.isNotBlank()) Text(appointment.notes)
                             OutlinedButton(onClick = { onRemoveAppointment(appointment) }) {
                                 Text(EobStrings.t(language, "removeAppointment"))
@@ -319,6 +319,12 @@ fun QuickActionsCard(
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
+                        value = appointmentTime,
+                        onValueChange = { appointmentTime = it },
+                        label = { Text(EobStrings.t(language, "time")) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
                         value = appointmentNotes,
                         onValueChange = { appointmentNotes = it },
                         label = { Text(EobStrings.t(language, "appointmentNotes")) },
@@ -329,8 +335,9 @@ fun QuickActionsCard(
             confirmButton = {
                 Button(
                     onClick = {
-                        onAddAppointment(selectedDate, appointmentProvider, appointmentNotes)
+                        onAddAppointment(selectedDate, appointmentProvider, appointmentTime, appointmentNotes)
                         appointmentProvider = ""
+                        appointmentTime = ""
                         appointmentNotes = ""
                         showAppointmentDialog = false
                     },

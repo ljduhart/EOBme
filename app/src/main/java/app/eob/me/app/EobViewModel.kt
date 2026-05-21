@@ -52,8 +52,8 @@ class EobViewModel : ViewModel() {
         uploadNotice = ""
     }
 
-    fun addAppointment(date: String, provider: String, notes: String) {
-        appointments.add(DoctorAppointment((appointments.maxOfOrNull { it.id } ?: 0) + 1, date, provider, notes))
+    fun addAppointment(date: String, provider: String, time: String, notes: String) {
+        appointments.add(DoctorAppointment((appointments.maxOfOrNull { it.id } ?: 0) + 1, date, provider, time, notes))
     }
 
     fun removeAppointment(appointment: DoctorAppointment) {

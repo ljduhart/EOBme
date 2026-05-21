@@ -60,6 +60,7 @@ fun EobMeApp() {
     var introStep by remember { mutableStateOf(0) }
     var profile by remember { mutableStateOf(UserProfile(email = auth?.currentUser?.email.orEmpty())) }
     var isSignUp by remember { mutableStateOf(true) }
+    var awaitingEmailVerification by remember { mutableStateOf(auth?.currentUser?.let { !it.isEmailVerified } == true) }
     var authMessage by remember {
         mutableStateOf(if (firebaseConfigured) "" else firebaseConfigMessage())
     }
@@ -70,9 +71,11 @@ fun EobMeApp() {
             onDispose { }
         } else {
             val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-                firebaseUser = firebaseAuth.currentUser
-                if (firebaseAuth.currentUser?.email != null && profile.email.isBlank()) {
-                    profile = profile.copy(email = firebaseAuth.currentUser?.email.orEmpty())
+                val currentUser = firebaseAuth.currentUser
+                awaitingEmailVerification = currentUser != null && !currentUser.isEmailVerified
+                firebaseUser = currentUser?.takeIf { it.isEmailVerified }
+                if (currentUser?.email != null && profile.email.isBlank()) {
+                    profile = profile.copy(email = currentUser.email.orEmpty())
                 }
             }
             auth.addAuthStateListener(listener)
@@ -106,7 +109,7 @@ fun EobMeApp() {
                     introStep = 0
                 }
             )
-            firebaseUser == null && introStep < 3 -> IntroScreen(
+            firebaseUser == null && !awaitingEmailVerification && introStep < 3 -> IntroScreen(
                 language = selectedLanguage,
                 step = introStep,
                 modifier = Modifier.padding(innerPadding),
@@ -116,6 +119,7 @@ fun EobMeApp() {
                 language = selectedLanguage,
                 profile = profile,
                 isSignUp = isSignUp,
+                awaitingEmailVerification = awaitingEmailVerification,
                 authMessage = authMessage,
                 modifier = Modifier.padding(innerPadding),
                 onProfileChanged = {
@@ -134,14 +138,41 @@ fun EobMeApp() {
                     }
                     if (isSignUp) {
                         firebaseRepository.createAccount(profile) { status ->
-                            authMessage = if (status.userId.isBlank()) status.message else ""
+                            authMessage = if (status.userId.isBlank()) status.message else "Verification email sent. Check your email before continuing."
+                            if (status.userId.isNotBlank()) {
+                                auth?.currentUser?.sendEmailVerification()
+                                awaitingEmailVerification = true
+                            }
                         }
                     } else {
                         firebaseRepository.signIn(profile.email, profile.password) { status ->
-                            authMessage = if (status.userId.isBlank()) status.message else ""
+                            val currentUser = auth?.currentUser
+                            if (currentUser != null && !currentUser.isEmailVerified) {
+                                awaitingEmailVerification = true
+                                currentUser.sendEmailVerification()
+                                authMessage = "Email verification required. Check your email before continuing."
+                            } else {
+                                authMessage = if (status.userId.isBlank()) status.message else ""
+                            }
                         }
                     }
                     lastActivityAt = System.currentTimeMillis()
+                },
+                onResendVerification = {
+                    authMessage = "Verification email sent. Check your inbox."
+                    auth?.currentUser?.sendEmailVerification()
+                },
+                onRefreshVerification = {
+                    auth?.currentUser?.reload()?.addOnCompleteListener {
+                        val currentUser = auth.currentUser
+                        awaitingEmailVerification = currentUser != null && !currentUser.isEmailVerified
+                        firebaseUser = currentUser?.takeIf { user -> user.isEmailVerified }
+                        authMessage = if (awaitingEmailVerification) {
+                            "Email is not verified yet. Please check your inbox and try again."
+                        } else {
+                            ""
+                        }
+                    }
                 }
             )
             else -> EobNavHost(

@@ -23,8 +23,9 @@ data class UserProfile(
     val password: String = "",
     val city: String = "",
     val state: String = "",
-    val subscriberId: String = "",
-    val insuranceCardSummary: String = "",
+    val insuranceName: String = "",
+    val insuranceId: String = "",
+    val groupName: String = "",
     val insuranceCardDownloadUrl: String = ""
 ) {
     val isComplete: Boolean
@@ -99,6 +100,7 @@ data class DoctorAppointment(
     val id: Int,
     val date: String,
     val providerName: String,
+    val time: String,
     val notes: String
 )
 

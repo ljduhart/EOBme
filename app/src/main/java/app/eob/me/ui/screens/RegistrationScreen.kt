@@ -25,12 +25,25 @@ fun AuthScreen(
     language: AppLanguage,
     profile: UserProfile,
     isSignUp: Boolean,
+    awaitingEmailVerification: Boolean = false,
     authMessage: String,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
     onToggleMode: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    onResendVerification: () -> Unit = {},
+    onRefreshVerification: () -> Unit = {}
 ) {
+    if (awaitingEmailVerification) {
+        EmailVerificationScreen(
+            language = language,
+            authMessage = authMessage,
+            modifier = modifier,
+            onResendVerification = onResendVerification,
+            onRefreshVerification = onRefreshVerification
+        )
+        return
+    }
     RegistrationScreen(
         language = language,
         profile = profile,
@@ -41,6 +54,34 @@ fun AuthScreen(
         onToggleMode = onToggleMode,
         onSubmit = onSubmit
     )
+}
+
+@Composable
+private fun EmailVerificationScreen(
+    language: AppLanguage,
+    authMessage: String,
+    modifier: Modifier = Modifier,
+    onResendVerification: () -> Unit,
+    onRefreshVerification: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(EobStrings.t(language, "verifyEmailTitle"), style = MaterialTheme.typography.headlineSmall)
+        Text(EobStrings.t(language, "verifyEmailHelp"))
+        if (authMessage.isNotBlank()) {
+            Text(authMessage, color = MaterialTheme.colorScheme.error)
+        }
+        Button(onClick = onRefreshVerification, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "iVerifiedEmail"))
+        }
+        OutlinedButton(onClick = onResendVerification, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "resendVerification"))
+        }
+    }
 }
 
 @Composable
@@ -142,16 +183,21 @@ fun ProfileFields(language: AppLanguage, profile: UserProfile, onProfileChanged:
         )
     }
     OutlinedTextField(
-        value = profile.subscriberId,
-        onValueChange = { onProfileChanged(profile.copy(subscriberId = it)) },
-        label = { Text(EobStrings.t(language, "subscriberId")) },
+        value = profile.insuranceName,
+        onValueChange = { onProfileChanged(profile.copy(insuranceName = it)) },
+        label = { Text(EobStrings.t(language, "insuranceNameField")) },
         modifier = Modifier.fillMaxWidth()
     )
     OutlinedTextField(
-        value = profile.insuranceCardSummary,
-        onValueChange = { onProfileChanged(profile.copy(insuranceCardSummary = it)) },
-        label = { Text(EobStrings.t(language, "insuranceCardDetails")) },
-        modifier = Modifier.fillMaxWidth(),
-        minLines = 2
+        value = profile.insuranceId,
+        onValueChange = { onProfileChanged(profile.copy(insuranceId = it)) },
+        label = { Text(EobStrings.t(language, "insuranceId")) },
+        modifier = Modifier.fillMaxWidth()
+    )
+    OutlinedTextField(
+        value = profile.groupName,
+        onValueChange = { onProfileChanged(profile.copy(groupName = it)) },
+        label = { Text(EobStrings.t(language, "groupName")) },
+        modifier = Modifier.fillMaxWidth()
     )
 }

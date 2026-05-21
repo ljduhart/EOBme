@@ -194,8 +194,9 @@ class FirebaseEobRepository(private val context: Context) {
             .document("current")
             .set(
                 mapOf(
-                    "subscriberId" to profile.subscriberId,
-                    "insuranceCardSummary" to profile.insuranceCardSummary,
+                    "insuranceName" to profile.insuranceName,
+                    "insuranceId" to profile.insuranceId,
+                    "groupName" to profile.groupName,
                     "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
                     "updatedAt" to System.currentTimeMillis()
                 )

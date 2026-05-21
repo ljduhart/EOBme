@@ -22,7 +22,7 @@ fun HomeScreen(
     records: List<EobRecord>,
     appointments: List<DoctorAppointment>,
     uploadNotice: String,
-    onAddAppointment: (String, String, String) -> Unit,
+    onAddAppointment: (String, String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit
 ) {
     LazyColumn(
