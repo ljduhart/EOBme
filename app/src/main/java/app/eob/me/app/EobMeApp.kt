@@ -19,6 +19,7 @@ import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.EobNavHost
 import app.eob.me.screens.AuthScreen
+import app.eob.me.screens.EmailVerificationScreen
 import app.eob.me.screens.IntroScreen
 import app.eob.me.screens.LanguageScreen
 import com.google.firebase.FirebaseApp
@@ -43,6 +44,9 @@ fun EobMeAppRoot() {
     var introStep by remember { mutableStateOf(0) }
     var profile by remember { mutableStateOf(UserProfile(email = auth?.currentUser?.email.orEmpty())) }
     var isSignUp by remember { mutableStateOf(true) }
+    var isAwaitingAccountVerification by remember { mutableStateOf(false) }
+    var verificationCode by remember { mutableStateOf("") }
+    var verificationMessage by remember { mutableStateOf("") }
     var authMessage by remember {
         mutableStateOf(if (firebaseConfigured) "" else firebaseConfigMessage())
     }
@@ -73,6 +77,17 @@ fun EobMeAppRoot() {
         }
     }
 
+    LaunchedEffect(firebaseUser?.uid) {
+        val user = firebaseUser ?: return@LaunchedEffect
+        firebaseRepository.loadProfile(user.uid, profile.password) { loadedProfile ->
+            profile = loadedProfile
+            if (!loadedProfile.accountSetupVerified) {
+                isAwaitingAccountVerification = true
+                verificationMessage = "Enter the latest code sent to ${loadedProfile.email}."
+            }
+        }
+    }
+
     val selectedLanguage = language ?: AppLanguage.English
     Scaffold(
         modifier = Modifier
@@ -94,6 +109,47 @@ fun EobMeAppRoot() {
                 step = introStep,
                 modifier = Modifier.padding(innerPadding),
                 onNext = { introStep++ }
+            )
+            firebaseUser != null && isAwaitingAccountVerification -> EmailVerificationScreen(
+                language = selectedLanguage,
+                email = profile.email.ifBlank { firebaseUser?.email.orEmpty() },
+                verificationCode = verificationCode,
+                verificationMessage = verificationMessage,
+                modifier = Modifier.padding(innerPadding),
+                onVerificationCodeChanged = {
+                    verificationCode = it
+                    lastActivityAt = System.currentTimeMillis()
+                },
+                onVerify = {
+                    verificationMessage = ""
+                    firebaseRepository.verifyAccountCreationCode(verificationCode) { status ->
+                        if (status.userId.isNotBlank()) {
+                            val verifiedProfile = profile.copy(accountSetupVerified = true)
+                            profile = verifiedProfile
+                            firebaseRepository.saveProfile(status.userId, verifiedProfile) {}
+                            isAwaitingAccountVerification = false
+                            verificationCode = ""
+                        } else {
+                            verificationMessage = status.message
+                        }
+                    }
+                    lastActivityAt = System.currentTimeMillis()
+                },
+                onResend = {
+                    verificationMessage = ""
+                    firebaseRepository.requestAccountVerificationCode { status ->
+                        verificationMessage = status.message
+                    }
+                    lastActivityAt = System.currentTimeMillis()
+                },
+                onCancel = {
+                    firebaseRepository.signOut()
+                    isAwaitingAccountVerification = false
+                    verificationCode = ""
+                    verificationMessage = ""
+                    introStep = 3
+                    lastActivityAt = System.currentTimeMillis()
+                }
             )
             firebaseUser == null -> AuthScreen(
                 language = selectedLanguage,
@@ -117,11 +173,28 @@ fun EobMeAppRoot() {
                     }
                     if (isSignUp) {
                         firebaseRepository.createAccount(profile) { status ->
-                            authMessage = if (status.userId.isBlank()) status.message else ""
+                            if (status.userId.isBlank()) {
+                                isAwaitingAccountVerification = false
+                                authMessage = status.message
+                            } else {
+                                profile = profile.copy(accountSetupVerified = false)
+                                isAwaitingAccountVerification = status.requiresEmailCodeVerification
+                                verificationMessage = status.message
+                                authMessage = ""
+                            }
                         }
                     } else {
                         firebaseRepository.signIn(profile.email, profile.password) { status ->
                             authMessage = if (status.userId.isBlank()) status.message else ""
+                            if (status.userId.isNotBlank()) {
+                                firebaseRepository.loadProfile(status.userId, profile.password) { loadedProfile ->
+                                    profile = loadedProfile
+                                    isAwaitingAccountVerification = !loadedProfile.accountSetupVerified
+                                    if (!loadedProfile.accountSetupVerified) {
+                                        verificationMessage = "Enter the latest code sent to ${loadedProfile.email}."
+                                    }
+                                }
+                            }
                         }
                     }
                     lastActivityAt = System.currentTimeMillis()

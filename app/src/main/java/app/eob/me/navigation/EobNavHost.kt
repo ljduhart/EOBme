@@ -12,9 +12,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -23,8 +28,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -63,6 +70,10 @@ fun EobNavHost(
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val viewModel: EobViewModel = viewModel()
+
+    LaunchedEffect(firebaseRepository) {
+        viewModel.firebaseStatus = firebaseRepository.status()
+    }
 
     fun prepareAndUpload(uri: Uri, sourceName: String) {
         scope.launch {
@@ -246,8 +257,7 @@ fun EobNavHost(
                             if (viewModel.firebaseStatus.userId.isNotBlank()) firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, it) {}
                             onActivity()
                         },
-                        onLanguageChanged = onLanguageChanged,
-                        onLogout = onLogout
+                        onLanguageChanged = onLanguageChanged
                     )
                 }
             }
@@ -257,6 +267,7 @@ fun EobNavHost(
 
 @Composable
 private fun Header(language: AppLanguage, onProfile: () -> Unit, onLogout: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -264,9 +275,29 @@ private fun Header(language: AppLanguage, onProfile: () -> Unit, onLogout: () ->
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text("EOBme", style = MaterialTheme.typography.headlineMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onProfile) { Text(Translations.t(language, "profile")) }
-            OutlinedButton(onClick = onLogout) { Text(Translations.t(language, "logout")) }
+        Row {
+            IconButton(onClick = { expanded = true }) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = Translations.t(language, "userMenu")
+                )
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenuItem(
+                    text = { Text(Translations.t(language, "profile")) },
+                    onClick = {
+                        expanded = false
+                        onProfile()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(Translations.t(language, "logout")) },
+                    onClick = {
+                        expanded = false
+                        onLogout()
+                    }
+                )
+            }
         }
     }
 }

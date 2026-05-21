@@ -23,9 +23,12 @@ data class UserProfile(
     val password: String = "",
     val city: String = "",
     val state: String = "",
+    val insuranceName: String = "",
+    val insuranceGroupNumber: String = "",
     val subscriberId: String = "",
     val insuranceCardSummary: String = "",
-    val insuranceCardDownloadUrl: String = ""
+    val insuranceCardDownloadUrl: String = "",
+    val accountSetupVerified: Boolean = true
 ) {
     val isComplete: Boolean
         get() = firstName.isNotBlank() &&

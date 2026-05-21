@@ -287,9 +287,12 @@ class ExampleUnitTest {
             password = "private",
             city = "Atlanta",
             state = "GA",
+            insuranceName = "Aetna",
+            insuranceGroupNumber = "GRP-456",
             subscriberId = "SUB123",
             insuranceCardSummary = "Aetna card on file",
-            insuranceCardDownloadUrl = "https://firebasestorage.example/card.jpg"
+            insuranceCardDownloadUrl = "https://firebasestorage.example/card.jpg",
+            accountSetupVerified = false
         )
         val profileMap = FirebaseEobMapper.profileToMap(profile)
         val restoredProfile = FirebaseEobMapper.profileFromMap(profileMap, currentPassword = profile.password)

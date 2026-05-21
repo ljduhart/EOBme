@@ -8,6 +8,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
@@ -16,7 +17,8 @@ import java.io.ByteArrayOutputStream
 data class FirebaseSyncStatus(
     val isConfigured: Boolean,
     val userId: String = "",
-    val message: String = "Firebase not connected yet."
+    val message: String = "Firebase not connected yet.",
+    val requiresEmailCodeVerification: Boolean = false
 )
 
 class FirebaseEobRepository(private val context: Context) {
@@ -54,21 +56,11 @@ class FirebaseEobRepository(private val context: Context) {
         auth.signInWithEmailAndPassword(profile.email, profile.password)
             .addOnSuccessListener {
                 val userId = it.user?.uid.orEmpty()
-                saveProfile(userId, profile) {}
                 registerMessagingToken(userId)
                 onResult(FirebaseSyncStatus(true, userId, "Firebase sync is active."))
             }
             .addOnFailureListener {
-                auth.createUserWithEmailAndPassword(profile.email, profile.password)
-                    .addOnSuccessListener { result ->
-                        val userId = result.user?.uid.orEmpty()
-                        saveProfile(userId, profile) {}
-                        registerMessagingToken(userId)
-                        onResult(FirebaseSyncStatus(true, userId, "Firebase account created and sync is active."))
-                    }
-                    .addOnFailureListener { createError ->
-                        onResult(FirebaseSyncStatus(true, message = "Firebase sign-in failed: ${createError.localizedMessage}"))
-                    }
+                createAccount(profile, onResult)
             }
     }
 
@@ -94,14 +86,70 @@ class FirebaseEobRepository(private val context: Context) {
             return
         }
         FirebaseAuth.getInstance().createUserWithEmailAndPassword(profile.email, profile.password)
-            .addOnSuccessListener {
-                val userId = it.user?.uid.orEmpty()
-                saveProfile(userId, profile) {}
-                registerMessagingToken(userId)
-                onResult(FirebaseSyncStatus(true, userId, "Firebase account created and sync is active."))
+            .addOnSuccessListener { result ->
+                val userId = result.user?.uid.orEmpty()
+                saveProfile(userId, profile.copy(accountSetupVerified = false)) {}
+                requestAccountVerificationCode { status ->
+                    onResult(
+                        FirebaseSyncStatus(
+                            isConfigured = true,
+                            userId = userId,
+                            message = status.message,
+                            requiresEmailCodeVerification = true
+                        )
+                    )
+                }
             }
             .addOnFailureListener {
                 onResult(FirebaseSyncStatus(true, message = "Firebase account creation failed: ${it.localizedMessage}"))
+            }
+    }
+
+    fun requestAccountVerificationCode(onResult: (FirebaseSyncStatus) -> Unit) {
+        if (!configured) {
+            onResult(status())
+            return
+        }
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            onResult(FirebaseSyncStatus(true, message = "Create or sign in to an account before requesting a code."))
+            return
+        }
+        functions().getHttpsCallable(SEND_ACCOUNT_VERIFICATION_CODE)
+            .call()
+            .addOnSuccessListener {
+                onResult(
+                    FirebaseSyncStatus(
+                        isConfigured = true,
+                        userId = user.uid,
+                        message = "Verification code sent to ${user.email.orEmpty()}.",
+                        requiresEmailCodeVerification = true
+                    )
+                )
+            }
+            .addOnFailureListener {
+                onResult(FirebaseSyncStatus(true, message = "Verification code send failed: ${it.localizedMessage}"))
+            }
+    }
+
+    fun verifyAccountCreationCode(code: String, onResult: (FirebaseSyncStatus) -> Unit) {
+        if (!configured) {
+            onResult(status())
+            return
+        }
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            onResult(FirebaseSyncStatus(true, message = "Sign in before entering the verification code."))
+            return
+        }
+        functions().getHttpsCallable(VERIFY_ACCOUNT_VERIFICATION_CODE)
+            .call(mapOf("code" to code.trim()))
+            .addOnSuccessListener {
+                registerMessagingToken(user.uid)
+                onResult(FirebaseSyncStatus(true, user.uid, "Email verified. Account setup is complete."))
+            }
+            .addOnFailureListener {
+                onResult(FirebaseSyncStatus(true, message = "Verification failed: ${it.localizedMessage}"))
             }
     }
 
@@ -124,6 +172,15 @@ class FirebaseEobRepository(private val context: Context) {
                 }
                 val data = snapshot?.data ?: return@addSnapshotListener
                 onProfile(FirebaseEobMapper.profileFromMap(data, currentPassword))
+            }
+    }
+
+    fun loadProfile(userId: String, currentPassword: String, onProfile: (UserProfile) -> Unit) {
+        if (!configured || userId.isBlank()) return
+        firestore().collection(USERS).document(userId)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                snapshot.data?.let { onProfile(FirebaseEobMapper.profileFromMap(it, currentPassword)) }
             }
     }
 
@@ -255,6 +312,8 @@ class FirebaseEobRepository(private val context: Context) {
 
     private fun firestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
 
+    private fun functions(): FirebaseFunctions = FirebaseFunctions.getInstance()
+
     private fun ensureConfigured(): Boolean {
         return try {
             FirebaseApp.getApps(context).isNotEmpty() || FirebaseApp.initializeApp(context) != null
@@ -269,6 +328,8 @@ class FirebaseEobRepository(private val context: Context) {
         const val EOB_RECORDS = "eob_records"
         const val DEVICES = "devices"
         const val NEWS = "insuranceNews"
+        const val SEND_ACCOUNT_VERIFICATION_CODE = "sendAccountVerificationCode"
+        const val VERIFY_ACCOUNT_VERIFICATION_CODE = "verifyAccountVerificationCode"
     }
 }
 

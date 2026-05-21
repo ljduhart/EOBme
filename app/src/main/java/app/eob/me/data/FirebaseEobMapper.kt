@@ -12,7 +12,7 @@ object FirebaseEobMapper {
             "email" to profile.email,
             "city" to profile.city,
             "state" to profile.state,
-            "subscriberId" to profile.subscriberId,
+            "subscriberId" to profile.subscriberId.ifBlank { profile.insuranceGroupNumber },
             "insuranceCardSummary" to profile.insuranceCardSummary,
             "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
             "updatedAt" to System.currentTimeMillis()

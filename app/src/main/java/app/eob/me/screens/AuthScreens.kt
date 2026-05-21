@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -88,7 +89,24 @@ fun AuthScreen(
             if (isSignUp) Translations.t(language, "profileRequired") else Translations.t(language, "login"),
             style = MaterialTheme.typography.headlineSmall
         )
-        Text(Translations.t(language, "profileRequiredHelp"))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            if (isSignUp) {
+                Button(onClick = {}, modifier = Modifier.weight(1f)) {
+                    Text(Translations.t(language, "createAccount"))
+                }
+                OutlinedButton(onClick = onToggleMode, modifier = Modifier.weight(1f)) {
+                    Text(Translations.t(language, "returningUserSignIn"))
+                }
+            } else {
+                OutlinedButton(onClick = onToggleMode, modifier = Modifier.weight(1f)) {
+                    Text(Translations.t(language, "createAccount"))
+                }
+                Button(onClick = {}, modifier = Modifier.weight(1f)) {
+                    Text(Translations.t(language, "returningUserSignIn"))
+                }
+            }
+        }
+        if (isSignUp) Text(Translations.t(language, "profileRequiredHelp"))
         if (isSignUp) {
             ProfileFields(language, profile, onProfileChanged)
         } else {
@@ -118,8 +136,53 @@ fun AuthScreen(
         ) {
             Text(if (isSignUp) Translations.t(language, "createAccount") else Translations.t(language, "login"))
         }
-        OutlinedButton(onClick = onToggleMode, modifier = Modifier.fillMaxWidth()) {
-            Text(if (isSignUp) Translations.t(language, "login") else Translations.t(language, "createAccount"))
+    }
+}
+
+@Composable
+fun EmailVerificationScreen(
+    language: AppLanguage,
+    email: String,
+    verificationCode: String,
+    verificationMessage: String,
+    modifier: Modifier = Modifier,
+    onVerificationCodeChanged: (String) -> Unit,
+    onVerify: () -> Unit,
+    onResend: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(Translations.t(language, "verifyEmail"), style = MaterialTheme.typography.headlineSmall)
+        Text("${Translations.t(language, "email")}: $email")
+        Text(Translations.t(language, "verificationCodeHelp"))
+        OutlinedTextField(
+            value = verificationCode,
+            onValueChange = { onVerificationCodeChanged(it.filter(Char::isDigit).take(6)) },
+            label = { Text(Translations.t(language, "verificationCode")) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        if (verificationMessage.isNotBlank()) {
+            Text(verificationMessage, color = MaterialTheme.colorScheme.error)
+        }
+        Button(
+            onClick = onVerify,
+            enabled = verificationCode.length == 6,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(Translations.t(language, "verifyCode"))
+        }
+        OutlinedButton(onClick = onResend, modifier = Modifier.fillMaxWidth()) {
+            Text(Translations.t(language, "resendCode"))
+        }
+        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+            Text(Translations.t(language, "backToCreateAccount"))
         }
     }
 }
@@ -165,16 +228,15 @@ fun ProfileFields(language: AppLanguage, profile: UserProfile, onProfileChanged:
         )
     }
     OutlinedTextField(
-        value = profile.subscriberId,
-        onValueChange = { onProfileChanged(profile.copy(subscriberId = it)) },
-        label = { Text(Translations.t(language, "subscriberId")) },
+        value = profile.insuranceName,
+        onValueChange = { onProfileChanged(profile.copy(insuranceName = it)) },
+        label = { Text(Translations.t(language, "insuranceName")) },
         modifier = Modifier.fillMaxWidth()
     )
     OutlinedTextField(
-        value = profile.insuranceCardSummary,
-        onValueChange = { onProfileChanged(profile.copy(insuranceCardSummary = it)) },
-        label = { Text(Translations.t(language, "insuranceCardDetails")) },
-        modifier = Modifier.fillMaxWidth(),
-        minLines = 2
+        value = profile.insuranceGroupNumber,
+        onValueChange = { onProfileChanged(profile.copy(insuranceGroupNumber = it)) },
+        label = { Text(Translations.t(language, "insuranceGroupNumber")) },
+        modifier = Modifier.fillMaxWidth()
     )
 }

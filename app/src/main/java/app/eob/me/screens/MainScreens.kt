@@ -244,8 +244,7 @@ fun ProfileScreen(
     language: AppLanguage,
     profile: UserProfile,
     onProfileChanged: (UserProfile) -> Unit,
-    onLanguageChanged: (AppLanguage) -> Unit,
-    onLogout: () -> Unit
+    onLanguageChanged: (AppLanguage) -> Unit
 ) {
     var showSupport by remember { mutableStateOf(false) }
     Column(
@@ -273,9 +272,6 @@ fun ProfileScreen(
             Text(Translations.t(language, "support"))
         }
         if (showSupport) SupportContent(language)
-        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-            Text(Translations.t(language, "logout"))
-        }
     }
 }
 
@@ -283,12 +279,9 @@ fun ProfileScreen(
 private fun InsuranceCard(language: AppLanguage, profile: UserProfile) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(Translations.t(language, "insuranceCard"), style = MaterialTheme.typography.titleMedium)
-            if (profile.insuranceCardSummary.isNotBlank()) {
-                Text(profile.insuranceCardSummary)
-            } else {
-                Text("${Translations.t(language, "subscriberId")}: ${profile.subscriberId.ifBlank { Translations.t(language, "addSubscriberId") }}")
-            }
+            Text(Translations.t(language, "insurance"), style = MaterialTheme.typography.titleMedium)
+            Text("${Translations.t(language, "insuranceName")}: ${profile.insuranceName.ifBlank { Translations.t(language, "profileIncomplete") }}")
+            Text("${Translations.t(language, "insuranceGroupNumber")}: ${profile.insuranceGroupNumber.ifBlank { Translations.t(language, "profileIncomplete") }}")
             Text("${Translations.t(language, "member")}: ${profile.fullName.ifBlank { Translations.t(language, "profileIncomplete") }}")
         }
     }

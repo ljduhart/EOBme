@@ -5,7 +5,7 @@ object AppealLetterGenerator {
         val selectedEob = eob ?: return emptyDraft(profile)
         val memberName = profile.fullName.ifBlank { "[Member name]" }
         val cityState = listOf(profile.city, profile.state).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "[City, State]" }
-        val subscriber = profile.subscriberId.ifBlank { "[Subscriber ID]" }
+        val groupNumber = profile.insuranceGroupNumber.ifBlank { "[Insurance group number]" }
         val issues = EobAnalyzer.detectBillingIssues(selectedEob)
         val issueSection = issueAppealSection(issues)
 
@@ -15,7 +15,7 @@ object AppealLetterGenerator {
             Re: Appeal of EOB determination
 
             Member: $memberName
-            Subscriber ID: $subscriber
+            Insurance group number: $groupNumber
             Location: $cityState
             Provider: ${selectedEob.providerName}
             Date of Service: ${selectedEob.serviceDate}
@@ -53,7 +53,7 @@ object AppealLetterGenerator {
             Re: Appeal of EOB determination
 
             Member: $memberName
-            Subscriber ID: ${profile.subscriberId.ifBlank { "[Subscriber ID]" }}
+            Insurance group number: ${profile.insuranceGroupNumber.ifBlank { "[Insurance group number]" }}
 
             Please review the attached Explanation of Benefits and reprocess the claim according to the plan benefits and provider contract.
 
