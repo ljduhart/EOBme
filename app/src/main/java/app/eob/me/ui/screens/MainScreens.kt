@@ -1,4 +1,4 @@
-package app.eob.me.screens
+package app.eob.me.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,7 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.eob.me.components.CalendarPicker
+import app.eob.me.ui.components.CalendarPicker
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.BillingIssue
 import app.eob.me.data.BillingIssueSeverity
@@ -50,46 +50,8 @@ import app.eob.me.data.ProviderSummary
 import app.eob.me.data.UserProfile
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.asCurrency
-import app.eob.me.localization.Translations
+import app.eob.me.data.EobStrings
 import java.util.Calendar
-
-@Composable
-fun HomeScreen(
-    language: AppLanguage,
-    profile: UserProfile,
-    records: List<EobRecord>,
-    appointments: List<DoctorAppointment>,
-    uploadNotice: String,
-    onAddAppointment: (String, String, String) -> Unit,
-    onRemoveAppointment: (DoctorAppointment) -> Unit
-) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item { InsuranceCard(language, profile) }
-        item { YearlyHealthCostDashboard(EobAnalyzer.yearlyHealthCostSummary(records)) }
-        item { ProviderDirectoryCard(EobAnalyzer.providerDirectory(records)) }
-        item {
-            QuickActionsCard(
-                language = language,
-                appointments = appointments,
-                onAddAppointment = onAddAppointment,
-                onRemoveAppointment = onRemoveAppointment
-            )
-        }
-        if (uploadNotice.isNotBlank()) {
-            item { Text(uploadNotice, style = MaterialTheme.typography.titleSmall) }
-        }
-        item {
-            Text(
-                "${Translations.t(language, "analysis")}: ${records.size} ${Translations.t(language, "eobs")}",
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-    }
-}
 
 @Composable
 fun AnalysisScreen(
@@ -110,7 +72,7 @@ fun AnalysisScreen(
     ) {
         item {
             Text("Eob/Analysis", style = MaterialTheme.typography.titleLarge)
-            Text(Translations.t(language, "analysisHelp"))
+            Text(EobStrings.t(language, "analysisHelp"))
         }
         item { UploadCard(language, uploadText, onUploadTextChanged, onLibraryUpload, onCameraScan) }
         if (uploadNotice.isNotBlank()) {
@@ -124,9 +86,9 @@ fun AnalysisScreen(
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(record.serviceDate, style = MaterialTheme.typography.titleMedium)
-                    Text("${Translations.t(language, "insurance")}: ${record.insuranceName}")
-                    Text("${Translations.t(language, "provider")}: ${record.providerName}")
-                    Text("${Translations.t(language, "billed")}: ${record.totalBilledAmount.asCurrency()} • ${Translations.t(language, "paid")}: ${record.totalInsurancePaidAmount.asCurrency()}")
+                    Text("${EobStrings.t(language, "insurance")}: ${record.insuranceName}")
+                    Text("${EobStrings.t(language, "provider")}: ${record.providerName}")
+                    Text("${EobStrings.t(language, "billed")}: ${record.totalBilledAmount.asCurrency()} • ${EobStrings.t(language, "paid")}: ${record.totalInsurancePaidAmount.asCurrency()}")
                 }
             }
         }
@@ -158,15 +120,15 @@ fun CptCountScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Text("${Translations.t(language, "cptsBilledIn")} $year", style = MaterialTheme.typography.titleLarge)
-            Text(Translations.t(language, "cptRule"))
+            Text("${EobStrings.t(language, "cptsBilledIn")} $year", style = MaterialTheme.typography.titleLarge)
+            Text(EobStrings.t(language, "cptRule"))
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 CptCategory.entries.filter { it != CptCategory.Other }.forEach { category ->
                     AssistChip(
                         onClick = { onCategoryChanged(category) },
-                        label = { Text(cptCategoryLabel(language, category)) },
+                        label = { Text(EobStrings.cptCategoryLabel(language, category)) },
                         enabled = category != selectedCategory
                     )
                 }
@@ -177,12 +139,12 @@ fun CptCountScreen(
                 Column(Modifier.padding(16.dp)) {
                     Text("${item.info.code} (${item.count}x)", style = MaterialTheme.typography.titleMedium)
                     Text(item.info.description)
-                    Text("${Translations.t(language, "category")}: ${cptCategoryLabel(language, item.info.category)}")
+                    Text("${EobStrings.t(language, "category")}: ${EobStrings.cptCategoryLabel(language, item.info.category)}")
                 }
             }
         }
         item {
-            if (usage.isEmpty()) Text("${Translations.t(language, "noCptsFound")} ${cptCategoryLabel(language, selectedCategory)} $year")
+            if (usage.isEmpty()) Text("${EobStrings.t(language, "noCptsFound")} ${EobStrings.cptCategoryLabel(language, selectedCategory)} $year")
         }
     }
 }
@@ -194,7 +156,7 @@ fun NewsScreen(language: AppLanguage, newsItems: List<NewsRelease>) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { Text(Translations.t(language, "insuranceNews"), style = MaterialTheme.typography.titleLarge) }
+        item { Text(EobStrings.t(language, "insuranceNews"), style = MaterialTheme.typography.titleLarge) }
         items(newsItems) { news ->
             ElevatedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -224,17 +186,17 @@ fun AppealScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(Translations.t(language, "appealLetter"), style = MaterialTheme.typography.titleLarge)
-        Text(Translations.t(language, "appealHelp"))
-        Text("${Translations.t(language, "currentMember")}: ${profile.fullName.ifBlank { Translations.t(language, "profileIncomplete") }}")
-        Text("${Translations.t(language, "selectedEob")}: ${selectedRecord?.providerName ?: Translations.t(language, "noEobSelected")}")
-        Button(onClick = onRegenerate) { Text(Translations.t(language, "autoFillAppeal")) }
+        Text(EobStrings.t(language, "appealLetter"), style = MaterialTheme.typography.titleLarge)
+        Text(EobStrings.t(language, "appealHelp"))
+        Text("${EobStrings.t(language, "currentMember")}: ${profile.fullName.ifBlank { EobStrings.t(language, "profileIncomplete") }}")
+        Text("${EobStrings.t(language, "selectedEob")}: ${selectedRecord?.providerName ?: EobStrings.t(language, "noEobSelected")}")
+        Button(onClick = onRegenerate) { Text(EobStrings.t(language, "autoFillAppeal")) }
         OutlinedTextField(
             value = letter,
             onValueChange = onLetterChanged,
             modifier = Modifier.fillMaxWidth(),
             minLines = 14,
-            label = { Text(Translations.t(language, "editAppealLetter")) }
+            label = { Text(EobStrings.t(language, "editAppealLetter")) }
         )
     }
 }
@@ -255,10 +217,10 @@ fun ProfileScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(Translations.t(language, "userProfile"), style = MaterialTheme.typography.titleLarge)
-        Text(Translations.t(language, "editSavedDetails"))
+        Text(EobStrings.t(language, "userProfile"), style = MaterialTheme.typography.titleLarge)
+        Text(EobStrings.t(language, "editSavedDetails"))
         ProfileFields(language = language, profile = profile, onProfileChanged = onProfileChanged)
-        Text(Translations.t(language, "languageSettings"), style = MaterialTheme.typography.titleMedium)
+        Text(EobStrings.t(language, "languageSettings"), style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AppLanguage.entries.forEach { option ->
                 AssistChip(
@@ -270,32 +232,32 @@ fun ProfileScreen(
         }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = { showSupport = !showSupport }, modifier = Modifier.fillMaxWidth()) {
-            Text(Translations.t(language, "support"))
+            Text(EobStrings.t(language, "support"))
         }
         if (showSupport) SupportContent(language)
         OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-            Text(Translations.t(language, "logout"))
+            Text(EobStrings.t(language, "logout"))
         }
     }
 }
 
 @Composable
-private fun InsuranceCard(language: AppLanguage, profile: UserProfile) {
+fun InsuranceCard(language: AppLanguage, profile: UserProfile) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(Translations.t(language, "insuranceCard"), style = MaterialTheme.typography.titleMedium)
+            Text(EobStrings.t(language, "insuranceCard"), style = MaterialTheme.typography.titleMedium)
             if (profile.insuranceCardSummary.isNotBlank()) {
                 Text(profile.insuranceCardSummary)
             } else {
-                Text("${Translations.t(language, "subscriberId")}: ${profile.subscriberId.ifBlank { Translations.t(language, "addSubscriberId") }}")
+                Text("${EobStrings.t(language, "subscriberId")}: ${profile.subscriberId.ifBlank { EobStrings.t(language, "addSubscriberId") }}")
             }
-            Text("${Translations.t(language, "member")}: ${profile.fullName.ifBlank { Translations.t(language, "profileIncomplete") }}")
+            Text("${EobStrings.t(language, "member")}: ${profile.fullName.ifBlank { EobStrings.t(language, "profileIncomplete") }}")
         }
     }
 }
 
 @Composable
-private fun QuickActionsCard(
+fun QuickActionsCard(
     language: AppLanguage,
     appointments: List<DoctorAppointment>,
     onAddAppointment: (String, String, String) -> Unit,
@@ -309,8 +271,8 @@ private fun QuickActionsCard(
 
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(Translations.t(language, "quickActions"), style = MaterialTheme.typography.titleMedium)
-            Text(Translations.t(language, "appointmentCalendar"))
+            Text(EobStrings.t(language, "quickActions"), style = MaterialTheme.typography.titleMedium)
+            Text(EobStrings.t(language, "appointmentCalendar"))
             CalendarPicker(
                 visibleMonth = visibleMonth,
                 appointments = appointments,
@@ -322,7 +284,7 @@ private fun QuickActionsCard(
                 }
             )
             if (appointments.isEmpty()) {
-                Text(Translations.t(language, "noAppointments"))
+                Text(EobStrings.t(language, "noAppointments"))
             } else {
                 appointments.forEach { appointment ->
                     Card(Modifier.fillMaxWidth()) {
@@ -330,7 +292,7 @@ private fun QuickActionsCard(
                             Text("${appointment.date} • ${appointment.providerName}", style = MaterialTheme.typography.titleSmall)
                             if (appointment.notes.isNotBlank()) Text(appointment.notes)
                             OutlinedButton(onClick = { onRemoveAppointment(appointment) }) {
-                                Text(Translations.t(language, "removeAppointment"))
+                                Text(EobStrings.t(language, "removeAppointment"))
                             }
                         }
                     }
@@ -341,25 +303,25 @@ private fun QuickActionsCard(
     if (showAppointmentDialog) {
         AlertDialog(
             onDismissRequest = { showAppointmentDialog = false },
-            title = { Text(Translations.t(language, "addAppointment")) },
+            title = { Text(EobStrings.t(language, "addAppointment")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = appointmentProvider,
                         onValueChange = { appointmentProvider = it },
-                        label = { Text(Translations.t(language, "appointmentProvider")) },
+                        label = { Text(EobStrings.t(language, "appointmentProvider")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = selectedDate,
                         onValueChange = { selectedDate = it },
-                        label = { Text(Translations.t(language, "appointmentDate")) },
+                        label = { Text(EobStrings.t(language, "appointmentDate")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = appointmentNotes,
                         onValueChange = { appointmentNotes = it },
-                        label = { Text(Translations.t(language, "appointmentNotes")) },
+                        label = { Text(EobStrings.t(language, "appointmentNotes")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -374,12 +336,12 @@ private fun QuickActionsCard(
                     },
                     enabled = selectedDate.isNotBlank() && appointmentProvider.isNotBlank()
                 ) {
-                    Text(Translations.t(language, "saveAppointment"))
+                    Text(EobStrings.t(language, "saveAppointment"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAppointmentDialog = false }) {
-                    Text(Translations.t(language, "close"))
+                    Text(EobStrings.t(language, "close"))
                 }
             }
         )
@@ -396,18 +358,30 @@ private fun UploadCard(
 ) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(Translations.t(language, "uploadEob"), style = MaterialTheme.typography.titleMedium)
-            Text(Translations.t(language, "uploadHelp"))
+            Text(EobStrings.t(language, "uploadEob"), style = MaterialTheme.typography.titleMedium)
+            Text(EobStrings.t(language, "uploadHelp"))
             OutlinedTextField(
                 value = uploadText,
                 onValueChange = onUploadTextChanged,
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
-                label = { Text(Translations.t(language, "eobText")) }
+                label = { Text(EobStrings.t(language, "eobText")) }
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onLibraryUpload) { Text(Translations.t(language, "uploadFromLibrary")) }
-                OutlinedButton(onClick = onCameraScan) { Text(Translations.t(language, "scanWithCamera")) }
+                Button(onClick = onLibraryUpload) { Text(EobStrings.t(language, "uploadFromLibrary")) }
+                OutlinedButton(
+                    onClick = {
+                        /*
+                         * Future Veryfi Android SDK branch:
+                         * 1. Launch the camera/document capture SDK and receive the OCR payload or image stream.
+                         * 2. If the SDK returns structured OCR text, forward it into EobAnalyzer.analyze(...)
+                         *    before saving to Firebase.
+                         * 3. If the SDK returns an image/file stream, save it as a local Uri and upload it
+                         *    through the existing Firebase Storage path for Cloud Function processing.
+                         */
+                        onCameraScan()
+                    }
+                ) { Text(EobStrings.t(language, "scanWithCamera")) }
             }
         }
     }
@@ -421,16 +395,16 @@ private fun AnalysisResultsCard(language: AppLanguage, record: EobRecord) {
     
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(Translations.t(language, "analysisResults"), style = MaterialTheme.typography.titleLarge)
-            Text("${Translations.t(language, "insurance")}: ${record.insuranceName}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Text("${Translations.t(language, "provider")}: ${record.providerName}")
-            Text("${Translations.t(language, "dateOfService")}: ${record.serviceDate}")
+            Text(EobStrings.t(language, "analysisResults"), style = MaterialTheme.typography.titleLarge)
+            Text("${EobStrings.t(language, "insurance")}: ${record.insuranceName}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text("${EobStrings.t(language, "provider")}: ${record.providerName}")
+            Text("${EobStrings.t(language, "dateOfService")}: ${record.serviceDate}")
             
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             
-            AmountRow(Translations.t(language, "eobBilledAmount"), record.totalBilledAmount)
-            AmountRow("- ${Translations.t(language, "insurancePaid")}", record.totalInsurancePaidAmount)
-            AmountRow("- ${Translations.t(language, "contractualAdjustment")}", record.totalContractualAdjustmentAmount)
+            AmountRow(EobStrings.t(language, "eobBilledAmount"), record.totalBilledAmount)
+            AmountRow("- ${EobStrings.t(language, "insurancePaid")}", record.totalInsurancePaidAmount)
+            AmountRow("- ${EobStrings.t(language, "contractualAdjustment")}", record.totalContractualAdjustmentAmount)
             
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             
@@ -452,7 +426,7 @@ private fun AnalysisResultsCard(language: AppLanguage, record: EobRecord) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
             ) {
-                Text(Translations.t(language, "patientResponsibility"), fontWeight = FontWeight.Bold)
+                Text(EobStrings.t(language, "patientResponsibility"), fontWeight = FontWeight.Bold)
                 Text(record.totalPatientResponsibility.asCurrency(), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
             }
             
@@ -526,7 +500,7 @@ private fun SmartBillingIssuesCard(issues: List<BillingIssue>) {
 }
 
 @Composable
-private fun YearlyHealthCostDashboard(summary: YearlyHealthCostSummary) {
+fun YearlyHealthCostDashboard(summary: YearlyHealthCostSummary) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Yearly Health Cost Dashboard", style = MaterialTheme.typography.titleLarge)
@@ -543,7 +517,7 @@ private fun YearlyHealthCostDashboard(summary: YearlyHealthCostSummary) {
 }
 
 @Composable
-private fun ProviderDirectoryCard(providers: List<ProviderSummary>) {
+fun ProviderDirectoryCard(providers: List<ProviderSummary>) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Provider Directory", style = MaterialTheme.typography.titleLarge)
@@ -587,25 +561,15 @@ private fun SupportContent(language: AppLanguage) {
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(Translations.t(language, "support"), style = MaterialTheme.typography.titleLarge)
-        Text(Translations.t(language, "howToUse"), style = MaterialTheme.typography.titleMedium)
-        Text(Translations.t(language, "supportStep1"))
-        Text(Translations.t(language, "supportStep2"))
-        Text(Translations.t(language, "supportStep3"))
-        Text(Translations.t(language, "supportStep4"))
-        Text(Translations.t(language, "supportStep5"))
-        Text(Translations.t(language, "features"), style = MaterialTheme.typography.titleMedium)
-        Text(Translations.t(language, "featuresText"))
+        Text(EobStrings.t(language, "support"), style = MaterialTheme.typography.titleLarge)
+        Text(EobStrings.t(language, "howToUse"), style = MaterialTheme.typography.titleMedium)
+        Text(EobStrings.t(language, "supportStep1"))
+        Text(EobStrings.t(language, "supportStep2"))
+        Text(EobStrings.t(language, "supportStep3"))
+        Text(EobStrings.t(language, "supportStep4"))
+        Text(EobStrings.t(language, "supportStep5"))
+        Text(EobStrings.t(language, "features"), style = MaterialTheme.typography.titleMedium)
+        Text(EobStrings.t(language, "featuresText"))
     }
 }
 
-private fun cptCategoryLabel(language: AppLanguage, category: CptCategory): String {
-    return when (category) {
-        CptCategory.OfficeVisit -> Translations.t(language, "categoryOfficeVisit")
-        CptCategory.Lab -> Translations.t(language, "categoryLab")
-        CptCategory.Hospital -> Translations.t(language, "categoryHospital")
-        CptCategory.Dme -> Translations.t(language, "categoryDme")
-        CptCategory.Injection -> Translations.t(language, "categoryInjection")
-        CptCategory.Other -> Translations.t(language, "categoryOther")
-    }
-}

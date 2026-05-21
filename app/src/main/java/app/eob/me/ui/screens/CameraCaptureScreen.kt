@@ -1,4 +1,4 @@
-package app.eob.me.screens
+package app.eob.me.ui.screens
 
 import android.Manifest
 import android.content.Context
@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import app.eob.me.data.AppLanguage
-import app.eob.me.localization.Translations
+import app.eob.me.data.EobStrings
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -76,7 +76,7 @@ fun CameraCaptureScreen(
     var statusMessage by remember { mutableStateOf("") }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         hasPermission = granted
-        if (!granted) statusMessage = Translations.t(language, "cameraPermissionRequired")
+        if (!granted) statusMessage = EobStrings.t(language, "cameraPermissionRequired")
     }
 
     LaunchedEffect(Unit) {
@@ -134,10 +134,10 @@ fun CameraCaptureScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(Translations.t(language, "scanBill"))
+                    Text(EobStrings.t(language, "scanBill"))
                 }
                 Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
-                    Text(Translations.t(language, "close"))
+                    Text(EobStrings.t(language, "close"))
                 }
             }
         } else {
@@ -148,9 +148,9 @@ fun CameraCaptureScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(statusMessage.ifBlank { Translations.t(language, "cameraPermissionRequired") })
+                Text(statusMessage.ifBlank { EobStrings.t(language, "cameraPermissionRequired") })
                 Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                    Text(Translations.t(language, "scanWithCamera"))
+                    Text(EobStrings.t(language, "scanWithCamera"))
                 }
             }
         }

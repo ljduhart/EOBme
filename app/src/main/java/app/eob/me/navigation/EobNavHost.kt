@@ -38,14 +38,14 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.UserProfile
-import app.eob.me.localization.Translations
-import app.eob.me.screens.AnalysisScreen
-import app.eob.me.screens.AppealScreen
-import app.eob.me.screens.CameraCaptureScreen
-import app.eob.me.screens.CptCountScreen
-import app.eob.me.screens.HomeScreen
-import app.eob.me.screens.NewsScreen
-import app.eob.me.screens.ProfileScreen
+import app.eob.me.data.EobStrings
+import app.eob.me.ui.screens.AnalysisScreen
+import app.eob.me.ui.screens.AppealScreen
+import app.eob.me.ui.screens.CameraCaptureScreen
+import app.eob.me.ui.screens.CptCountScreen
+import app.eob.me.ui.screens.HomeScreen
+import app.eob.me.ui.screens.NewsScreen
+import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.util.OcrProcessor
 import kotlinx.coroutines.launch
 
@@ -79,19 +79,19 @@ fun EobNavHost(
                     onActivity()
                 }
                 .onFailure {
-                    Toast.makeText(context, Translations.t(language, "ocrFailed"), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, EobStrings.t(language, "ocrFailed"), Toast.LENGTH_SHORT).show()
                 }
         }
     }
 
     val libraryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            prepareAndUpload(uri, Translations.t(language, "libraryUpload"))
+            prepareAndUpload(uri, EobStrings.t(language, "libraryUpload"))
         }
     }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) navController.navigate(EobRoute.CameraCapture.route)
-        else Toast.makeText(context, Translations.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
+        else Toast.makeText(context, EobStrings.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
     }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
@@ -104,6 +104,7 @@ fun EobNavHost(
     LaunchedEffect(profile.email, profile.password, profile.isComplete) {
         if (profile.isComplete && viewModel.firebaseStatus.userId.isNotBlank()) {
             firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, profile) {}
+            firebaseRepository.saveInsuranceCardMetadata(viewModel.firebaseStatus.userId, profile) {}
         }
     }
 
@@ -146,7 +147,7 @@ fun EobNavHost(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                Text(Translations.t(language, "scanBill"), modifier = Modifier.padding(horizontal = 12.dp))
+                Text(EobStrings.t(language, "scanBill"), modifier = Modifier.padding(horizontal = 12.dp))
             }
         }
     ) { padding ->
@@ -214,7 +215,7 @@ fun EobNavHost(
                     CameraCaptureScreen(
                         language = language,
                         onImageCaptured = { uri ->
-                            prepareAndUpload(uri, Translations.t(language, "cameraScan"))
+                            prepareAndUpload(uri, EobStrings.t(language, "cameraScan"))
                         },
                         onClose = { navController.popBackStack() }
                     )
@@ -243,7 +244,10 @@ fun EobNavHost(
                         profile = profile,
                         onProfileChanged = {
                             onProfileChanged(it)
-                            if (viewModel.firebaseStatus.userId.isNotBlank()) firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, it) {}
+                            if (viewModel.firebaseStatus.userId.isNotBlank()) {
+                                firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, it) {}
+                                firebaseRepository.saveInsuranceCardMetadata(viewModel.firebaseStatus.userId, it) {}
+                            }
                             onActivity()
                         },
                         onLanguageChanged = onLanguageChanged,
@@ -265,21 +269,21 @@ private fun Header(language: AppLanguage, onProfile: () -> Unit, onLogout: () ->
     ) {
         Text("EOBme", style = MaterialTheme.typography.headlineMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onProfile) { Text(Translations.t(language, "profile")) }
-            OutlinedButton(onClick = onLogout) { Text(Translations.t(language, "logout")) }
+            OutlinedButton(onClick = onProfile) { Text(EobStrings.t(language, "profile")) }
+            OutlinedButton(onClick = onLogout) { Text(EobStrings.t(language, "logout")) }
         }
     }
 }
 
 private fun EobRoute.title(language: AppLanguage): String {
     return when (this) {
-        EobRoute.Home -> Translations.t(language, "home")
+        EobRoute.Home -> EobStrings.t(language, "home")
         EobRoute.Analysis -> "Eob/Analysis"
-        EobRoute.CptCount -> Translations.t(language, "cptCount")
-        EobRoute.News -> Translations.t(language, "news")
-        EobRoute.Appeal -> Translations.t(language, "appeal")
-        EobRoute.Profile -> Translations.t(language, "profile")
-        EobRoute.CameraCapture -> Translations.t(language, "scanBill")
+        EobRoute.CptCount -> EobStrings.t(language, "cptCount")
+        EobRoute.News -> EobStrings.t(language, "news")
+        EobRoute.Appeal -> EobStrings.t(language, "appeal")
+        EobRoute.Profile -> EobStrings.t(language, "profile")
+        EobRoute.CameraCapture -> EobStrings.t(language, "scanBill")
     }
 }
 

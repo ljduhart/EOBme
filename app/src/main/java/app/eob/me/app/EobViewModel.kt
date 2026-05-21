@@ -12,16 +12,15 @@ import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.CptCategory
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
-import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
+import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
-import app.eob.me.localization.Translations
 
 class EobViewModel : ViewModel() {
-    val records = mutableStateListOf(EobAnalyzer.analyze(sampleEobText, "Sample camera scan", 1))
+    val records = mutableStateListOf(EobAnalyzer.analyze(EobStrings.sampleEobText, "Sample camera scan", 1))
     val appointments = mutableStateListOf<DoctorAppointment>()
     var selectedRecord by mutableStateOf<EobRecord?>(records.firstOrNull())
         private set
@@ -77,7 +76,7 @@ class EobViewModel : ViewModel() {
         language: AppLanguage
     ) {
         repository.uploadEobFile(userId, uri, sourceName) { message ->
-            uploadNotice = message.ifBlank { Translations.t(language, "libraryUploadStarted") }
+            uploadNotice = message.ifBlank { EobStrings.t(language, "libraryUploadStarted") }
         }
     }
 
@@ -89,7 +88,7 @@ class EobViewModel : ViewModel() {
         language: AppLanguage
     ) {
         repository.uploadEobBitmap(userId, bitmap, sourceName) { message ->
-            uploadNotice = message.ifBlank { Translations.t(language, "cameraScanStarted") }
+            uploadNotice = message.ifBlank { EobStrings.t(language, "cameraScanStarted") }
         }
     }
 
@@ -108,15 +107,5 @@ class EobViewModel : ViewModel() {
         replaceRecords(records, profile)
         if (userId.isNotBlank()) repository.saveEob(userId, record) { uploadNotice = it }
         uploadText = ""
-    }
-
-    companion object {
-        val sampleEobText = """
-            UnitedHealthcare Explanation of Benefits
-            Provider: Lakeside Family Medical Clinic
-            Date of Service: 01/12/2025
-            99215 billed $265.00 insurance paid $120.00 contractual adjustment $95.00 copay $25.00 deductible $20.00 coinsurance $5.00
-            80053 billed $48.00 insurance paid $22.00 contractual adjustment $18.00 copay $0.00 deductible $8.00 coinsurance $0.00
-        """.trimIndent()
     }
 }

@@ -188,6 +188,22 @@ class FirebaseEobRepository(private val context: Context) {
             .addOnFailureListener { onComplete("Profile save failed: ${it.localizedMessage}") }
     }
 
+    fun saveInsuranceCardMetadata(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
+        if (!configured || userId.isBlank()) return
+        firestore().collection(USERS).document(userId).collection("insurance-cards")
+            .document("current")
+            .set(
+                mapOf(
+                    "subscriberId" to profile.subscriberId,
+                    "insuranceCardSummary" to profile.insuranceCardSummary,
+                    "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            )
+            .addOnSuccessListener { onComplete("Insurance card metadata saved.") }
+            .addOnFailureListener { onComplete("Insurance card metadata save failed: ${it.localizedMessage}") }
+    }
+
     fun saveEob(userId: String, record: EobRecord, onComplete: (String) -> Unit) {
         if (!configured || userId.isBlank()) return
         val payload = FirebaseEobMapper.eobToMap(record)

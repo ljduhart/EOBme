@@ -1,11 +1,11 @@
-package app.eob.me.localization
+package app.eob.me.data
 
-import app.eob.me.data.AppLanguage
-
-object Translations {
+object EobStrings {
     fun t(language: AppLanguage, key: String): String {
         return localized[language]?.get(key) ?: localized.getValue(AppLanguage.English).getValue(key)
     }
+
+    fun localizedIntro(language: AppLanguage): List<Pair<String, String>> = intro(language)
 
     fun intro(language: AppLanguage): List<Pair<String, String>> {
         return when (language) {
@@ -31,6 +31,33 @@ object Translations {
             )
         }
     }
+
+    fun firebaseStatusText(language: AppLanguage, status: FirebaseSyncStatus): String {
+        return when {
+            !status.isConfigured -> t(language, "firebaseNotConfigured")
+            status.userId.isNotBlank() -> t(language, "firebaseActive")
+            else -> t(language, "firebaseConfigured")
+        }
+    }
+
+    fun cptCategoryLabel(language: AppLanguage, category: CptCategory): String {
+        return when (category) {
+            CptCategory.OfficeVisit -> t(language, "categoryOfficeVisit")
+            CptCategory.Lab -> t(language, "categoryLab")
+            CptCategory.Hospital -> t(language, "categoryHospital")
+            CptCategory.Dme -> t(language, "categoryDme")
+            CptCategory.Injection -> t(language, "categoryInjection")
+            CptCategory.Other -> t(language, "categoryOther")
+        }
+    }
+
+    val sampleEobText = """
+        UnitedHealthcare Explanation of Benefits
+        Provider: Lakeside Family Medical Clinic
+        Date of Service: 01/12/2025
+        99215 billed $265.00 insurance paid $120.00 contractual adjustment $95.00 copay $25.00 deductible $20.00 coinsurance $5.00
+        80053 billed $48.00 insurance paid $22.00 contractual adjustment $18.00 copay $0.00 deductible $8.00 coinsurance $0.00
+    """.trimIndent()
 
     private val english = mapOf(
         "next" to "Next",
