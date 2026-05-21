@@ -12,9 +12,12 @@ object FirebaseEobMapper {
             "email" to profile.email,
             "city" to profile.city,
             "state" to profile.state,
+            "insuranceName" to profile.insuranceName,
+            "insuranceGroupNumber" to profile.insuranceGroupNumber,
             "subscriberId" to profile.subscriberId.ifBlank { profile.insuranceGroupNumber },
             "insuranceCardSummary" to profile.insuranceCardSummary,
             "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
+            "accountSetupVerified" to profile.accountSetupVerified,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -27,9 +30,12 @@ object FirebaseEobMapper {
             password = currentPassword,
             city = data.stringValue("city"),
             state = data.stringValue("state"),
+            insuranceName = data.stringValue("insuranceName", "insurance_name", "insurance"),
+            insuranceGroupNumber = data.stringValue("insuranceGroupNumber", "insurance_group_number", "groupNumber", "group_number", "subscriberId", "subscriber_id"),
             subscriberId = data.stringValue("subscriberId", "subscriber_id", "memberId", "member_id", "policyId"),
             insuranceCardSummary = data.stringValue("insuranceCardSummary", "insurance_card_summary"),
-            insuranceCardDownloadUrl = data.stringValue("insuranceCardDownloadUrl", "insurance_card_download_url", "insurance_card_url")
+            insuranceCardDownloadUrl = data.stringValue("insuranceCardDownloadUrl", "insurance_card_download_url", "insurance_card_url"),
+            accountSetupVerified = data.booleanValue("accountSetupVerified", "emailSecondFactorVerified", default = true)
         )
     }
 
@@ -191,6 +197,14 @@ object FirebaseEobMapper {
             is Number -> value.toDouble()
             is String -> value.replace("$", "").replace(",", "").toDoubleOrNull() ?: 0.0
             else -> 0.0
+        }
+    }
+
+    private fun Map<String, Any?>.booleanValue(vararg keys: String, default: Boolean): Boolean {
+        return when (val value = keys.firstNotNullOfOrNull { key -> this[key] }) {
+            is Boolean -> value
+            is String -> value.toBooleanStrictOrNull() ?: default
+            else -> default
         }
     }
 

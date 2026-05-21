@@ -105,6 +105,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.functions)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.messaging)
     implementation(libs.mlkit.text.recognition)
