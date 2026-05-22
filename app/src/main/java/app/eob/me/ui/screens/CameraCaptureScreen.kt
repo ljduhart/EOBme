@@ -6,9 +6,11 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.view.Surface
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraInfoUnavailableException
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
@@ -62,18 +64,16 @@ fun CameraCaptureScreen(
     val previewView = remember {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         }
     }
-    val imageCapture = remember {
-        ImageCapture.Builder()
-            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-            .setJpegQuality(92)
-            .build()
-    }
+    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var hasPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
     var statusMessage by remember { mutableStateOf("") }
+    var isCameraReady by remember { mutableStateOf(false) }
+    var isCapturing by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         hasPermission = granted
         if (!granted) statusMessage = EobStrings.t(language, "cameraPermissionRequired")
@@ -93,23 +93,44 @@ fun CameraCaptureScreen(
             val focusHandler = Handler(Looper.getMainLooper())
             var focusRunnable: Runnable? = null
             val listener = Runnable {
-                val cameraProvider = cameraProviderFuture.get()
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
+                runCatching {
+                    val cameraProvider = cameraProviderFuture.get()
+                    val preview = Preview.Builder().build().also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
+                    val capture = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setJpegQuality(92)
+                        .setTargetRotation(previewView.display?.rotation ?: Surface.ROTATION_0)
+                        .build()
+                    val selector = availableCameraSelector(cameraProvider)
+                    cameraProvider.unbindAll()
+                    camera = cameraProvider.bindToLifecycle(
+                        lifecycleOwner,
+                        selector,
+                        preview,
+                        capture
+                    )
+                    imageCapture = capture
+                    isCameraReady = true
+                    statusMessage = ""
+                    focusRunnable = autofocusRunnable(previewView, camera).also { focusHandler.postDelayed(it, 400) }
+                }.onFailure { error ->
+                    isCameraReady = false
+                    imageCapture = null
+                    statusMessage = error.localizedMessage ?: "Unable to open camera. Please try again."
                 }
-                cameraProvider.unbindAll()
-                camera = cameraProvider.bindToLifecycle(
-                    lifecycleOwner,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview,
-                    imageCapture
-                )
-                focusRunnable = autofocusRunnable(previewView, camera).also { focusHandler.post(it) }
             }
             cameraProviderFuture.addListener(listener, executor)
             onDispose {
                 focusRunnable?.let { focusHandler.removeCallbacks(it) }
-                runCatching { cameraProviderFuture.get().unbindAll() }
+                runCatching {
+                    if (cameraProviderFuture.isDone) {
+                        cameraProviderFuture.get().unbindAll()
+                    }
+                }
+                imageCapture = null
+                isCameraReady = false
             }
         }
     }
@@ -130,11 +151,29 @@ fun CameraCaptureScreen(
                 }
                 Button(
                     onClick = {
-                        captureImage(context, imageCapture, onImageCaptured) { statusMessage = it }
+                        val capture = imageCapture
+                        if (capture == null || !isCameraReady) {
+                            statusMessage = "Camera is still starting. Please wait a moment."
+                            return@Button
+                        }
+                        isCapturing = true
+                        captureImage(
+                            context = context,
+                            imageCapture = capture,
+                            onImageCaptured = {
+                                isCapturing = false
+                                onImageCaptured(it)
+                            },
+                            onError = {
+                                isCapturing = false
+                                statusMessage = it
+                            }
+                        )
                     },
+                    enabled = isCameraReady && !isCapturing,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(EobStrings.t(language, "scanBill"))
+                    Text(if (isCapturing) "Capturing..." else EobStrings.t(language, "scanBill"))
                 }
                 Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
                     Text(EobStrings.t(language, "close"))
@@ -194,6 +233,18 @@ private fun autofocusRunnable(previewView: PreviewView, camera: Camera?): Runnab
             currentCamera.cameraControl.startFocusAndMetering(action)
             previewView.postDelayed(this, 3500)
         }
+    }
+}
+
+private fun availableCameraSelector(cameraProvider: ProcessCameraProvider): CameraSelector {
+    return try {
+        if (cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)) {
+            CameraSelector.DEFAULT_BACK_CAMERA
+        } else {
+            CameraSelector.DEFAULT_FRONT_CAMERA
+        }
+    } catch (_: CameraInfoUnavailableException) {
+        CameraSelector.DEFAULT_BACK_CAMERA
     }
 }
 
