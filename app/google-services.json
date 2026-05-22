@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "611886421040",
+    "project_id": "eobme-1c385",
+    "storage_bucket": "eobme-1c385.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:611886421040:android:a92ccbba2def3f6eac09f5",
+        "android_client_info": {
+          "package_name": "app.eob.me"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPJfJustIgJgFhkGP6CdvVrlBaK0L8t7c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
