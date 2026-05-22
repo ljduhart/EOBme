@@ -21,6 +21,29 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
 
 @Composable
+fun AuthChoiceScreen(
+    language: AppLanguage,
+    modifier: Modifier = Modifier,
+    onCreateAccount: () -> Unit,
+    onSignIn: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(EobStrings.t(language, "chooseAccountAction"), style = MaterialTheme.typography.headlineSmall)
+        Button(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "createAccount"))
+        }
+        OutlinedButton(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "login"))
+        }
+    }
+}
+
+@Composable
 fun AuthScreen(
     language: AppLanguage,
     profile: UserProfile,
@@ -31,6 +54,8 @@ fun AuthScreen(
     onProfileChanged: (UserProfile) -> Unit,
     onToggleMode: () -> Unit,
     onSubmit: () -> Unit,
+    onForgotPassword: () -> Unit = {},
+    onForgotUsername: () -> Unit = {},
     onResendVerification: () -> Unit = {},
     onRefreshVerification: () -> Unit = {}
 ) {
@@ -52,7 +77,9 @@ fun AuthScreen(
         modifier = modifier,
         onProfileChanged = onProfileChanged,
         onToggleMode = onToggleMode,
-        onSubmit = onSubmit
+        onSubmit = onSubmit,
+        onForgotPassword = onForgotPassword,
+        onForgotUsername = onForgotUsername
     )
 }
 
@@ -78,9 +105,6 @@ private fun EmailVerificationScreen(
         Button(onClick = onRefreshVerification, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "iVerifiedEmail"))
         }
-        OutlinedButton(onClick = onResendVerification, modifier = Modifier.fillMaxWidth()) {
-            Text(EobStrings.t(language, "resendVerification"))
-        }
     }
 }
 
@@ -93,7 +117,9 @@ fun RegistrationScreen(
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
     onToggleMode: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    onForgotPassword: () -> Unit = {},
+    onForgotUsername: () -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -138,6 +164,14 @@ fun RegistrationScreen(
         }
         OutlinedButton(onClick = onToggleMode, modifier = Modifier.fillMaxWidth()) {
             Text(if (isSignUp) EobStrings.t(language, "login") else EobStrings.t(language, "createAccount"))
+        }
+        if (!isSignUp) {
+            OutlinedButton(onClick = onForgotPassword, modifier = Modifier.fillMaxWidth()) {
+                Text(EobStrings.t(language, "forgotPassword"))
+            }
+            OutlinedButton(onClick = onForgotUsername, modifier = Modifier.fillMaxWidth()) {
+                Text(EobStrings.t(language, "forgotUsername"))
+            }
         }
     }
 }

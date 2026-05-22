@@ -2,7 +2,8 @@ package app.eob.me.navigation
 
 sealed class EobRoute(val route: String) {
     data object Home : EobRoute("home")
-    data object Analysis : EobRoute("analysis")
+    data object History : EobRoute("history")
+    data object Dashboard : EobRoute("dashboard")
     data object CptCount : EobRoute("cpt_count")
     data object News : EobRoute("news")
     data object Appeal : EobRoute("appeal")
@@ -12,7 +13,8 @@ sealed class EobRoute(val route: String) {
 
 val primaryRoutes = listOf(
     EobRoute.Home,
-    EobRoute.Analysis,
+    EobRoute.History,
+    EobRoute.Dashboard,
     EobRoute.CptCount,
     EobRoute.News,
     EobRoute.Appeal
