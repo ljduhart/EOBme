@@ -22,10 +22,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="app.eob.me" />
-                  <option name="mobileSdkAppId" value="1:611886421040:android:a92ccbba2def3f6eac09f5" />
-                  <option name="projectId" value="eobme-1c385" />
-                  <option name="projectNumber" value="611886421040" />
+                  <option name="appId" value="PLACEHOLDER" />
+                  <option name="mobileSdkAppId" value="" />
+                  <option name="projectId" value="" />
+                  <option name="projectNumber" value="" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

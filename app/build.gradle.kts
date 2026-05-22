@@ -26,9 +26,9 @@ android {
     defaultConfig {
         applicationId = "app.eob.me"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 43
-        versionName = "5.2"
+        targetSdk = 35
+        versionCode = 52
+        versionName = "6.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
