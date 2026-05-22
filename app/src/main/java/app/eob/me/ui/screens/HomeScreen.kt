@@ -31,7 +31,6 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { InsuranceCard(language, profile) }
-        item { YearlyHealthCostDashboard(EobAnalyzer.yearlyHealthCostSummary(records)) }
         item { ProviderDirectoryCard(EobAnalyzer.providerDirectory(records)) }
         item {
             QuickActionsCard(

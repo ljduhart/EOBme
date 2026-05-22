@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.EobNavHost
+import app.eob.me.ui.screens.AuthChoiceScreen
 import app.eob.me.ui.screens.AuthScreen
 import app.eob.me.ui.screens.IntroScreen
 import app.eob.me.ui.screens.LanguageScreen
@@ -59,7 +61,7 @@ fun EobMeApp() {
     var language by remember { mutableStateOf<AppLanguage?>(null) }
     var introStep by remember { mutableStateOf(0) }
     var profile by remember { mutableStateOf(UserProfile(email = auth?.currentUser?.email.orEmpty())) }
-    var isSignUp by remember { mutableStateOf(true) }
+    var isSignUp by remember { mutableStateOf<Boolean?>(null) }
     var awaitingEmailVerification by remember { mutableStateOf(auth?.currentUser?.let { !it.isEmailVerified } == true) }
     var authMessage by remember {
         mutableStateOf(if (firebaseConfigured) "" else firebaseConfigMessage())
@@ -115,10 +117,22 @@ fun EobMeApp() {
                 modifier = Modifier.padding(innerPadding),
                 onNext = { introStep++ }
             )
+            firebaseUser == null && isSignUp == null -> AuthChoiceScreen(
+                language = selectedLanguage,
+                modifier = Modifier.padding(innerPadding),
+                onCreateAccount = {
+                    isSignUp = true
+                    authMessage = ""
+                },
+                onSignIn = {
+                    isSignUp = false
+                    authMessage = ""
+                }
+            )
             firebaseUser == null -> AuthScreen(
                 language = selectedLanguage,
                 profile = profile,
-                isSignUp = isSignUp,
+                isSignUp = isSignUp == true,
                 awaitingEmailVerification = awaitingEmailVerification,
                 authMessage = authMessage,
                 modifier = Modifier.padding(innerPadding),
@@ -127,7 +141,7 @@ fun EobMeApp() {
                     lastActivityAt = System.currentTimeMillis()
                 },
                 onToggleMode = {
-                    isSignUp = !isSignUp
+                    isSignUp = null
                     authMessage = ""
                 },
                 onSubmit = {
@@ -136,7 +150,7 @@ fun EobMeApp() {
                         authMessage = firebaseConfigMessage()
                         return@AuthScreen
                     }
-                    if (isSignUp) {
+                    if (isSignUp == true) {
                         firebaseRepository.createAccount(profile) { status ->
                             authMessage = if (status.userId.isBlank()) status.message else "Verification email sent. Check your email before continuing."
                             if (status.userId.isNotBlank()) {
@@ -149,8 +163,7 @@ fun EobMeApp() {
                             val currentUser = auth?.currentUser
                             if (currentUser != null && !currentUser.isEmailVerified) {
                                 awaitingEmailVerification = true
-                                currentUser.sendEmailVerification()
-                                authMessage = "Email verification required. Check your email before continuing."
+                                authMessage = "Email verification required. Check your original verification email before continuing."
                             } else {
                                 authMessage = if (status.userId.isBlank()) status.message else ""
                             }
@@ -158,10 +171,13 @@ fun EobMeApp() {
                     }
                     lastActivityAt = System.currentTimeMillis()
                 },
-                onResendVerification = {
-                    authMessage = "Verification email sent. Check your inbox."
-                    auth?.currentUser?.sendEmailVerification()
+                onForgotPassword = {
+                    firebaseRepository.sendPasswordReset(profile.email) { authMessage = it.ifBlank { EobStrings.t(selectedLanguage, "passwordResetSent") } }
                 },
+                onForgotUsername = {
+                    authMessage = EobStrings.t(selectedLanguage, "forgotUsernameHelp")
+                },
+                onResendVerification = {},
                 onRefreshVerification = {
                     auth?.currentUser?.reload()?.addOnCompleteListener {
                         val currentUser = auth.currentUser

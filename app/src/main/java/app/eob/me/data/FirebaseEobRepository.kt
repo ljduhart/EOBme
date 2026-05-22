@@ -88,6 +88,20 @@ class FirebaseEobRepository(private val context: Context) {
             }
     }
 
+    fun sendPasswordReset(email: String, onResult: (String) -> Unit) {
+        if (!configured) {
+            onResult("Firebase is not configured.")
+            return
+        }
+        if (email.isBlank()) {
+            onResult("Enter your email address first.")
+            return
+        }
+        FirebaseAuth.getInstance().sendPasswordResetEmail(email)
+            .addOnSuccessListener { onResult("Password reset email sent if the account exists.") }
+            .addOnFailureListener { onResult("Password reset failed: ${it.localizedMessage}") }
+    }
+
     fun createAccount(profile: UserProfile, onResult: (FirebaseSyncStatus) -> Unit) {
         if (!configured) {
             onResult(status())
@@ -216,6 +230,15 @@ class FirebaseEobRepository(private val context: Context) {
             .set(payload)
             .addOnSuccessListener { onComplete("EOB saved to Firebase.") }
             .addOnFailureListener { onComplete("EOB save failed: ${it.localizedMessage}") }
+    }
+
+    fun deleteEob(userId: String, record: EobRecord, onComplete: (String) -> Unit) {
+        if (!configured || userId.isBlank()) return
+        val docId = record.id.toString()
+        firestore().collection(USERS).document(userId).collection(EOBS).document(docId).delete()
+        firestore().collection(USERS).document(userId).collection(EOB_RECORDS).document(docId).delete()
+            .addOnSuccessListener { onComplete("EOB deleted.") }
+            .addOnFailureListener { onComplete("EOB delete failed: ${it.localizedMessage}") }
     }
 
     fun uploadEobFile(userId: String, uri: Uri, sourceName: String, onComplete: (String) -> Unit) {

@@ -47,6 +47,7 @@ import app.eob.me.ui.screens.AnalysisScreen
 import app.eob.me.ui.screens.AppealScreen
 import app.eob.me.ui.screens.CameraCaptureScreen
 import app.eob.me.ui.screens.CptCountScreen
+import app.eob.me.ui.screens.DashboardScreen
 import app.eob.me.ui.screens.HomeScreen
 import app.eob.me.ui.screens.NewsScreen
 import app.eob.me.ui.screens.ProfileScreen
@@ -79,7 +80,7 @@ fun EobNavHost(
                         sourceName = sourceName,
                         language = language
                     )
-                    navController.navigate(EobRoute.Analysis.route) { launchSingleTop = true }
+                    navController.navigate(EobRoute.History.route) { launchSingleTop = true }
                     onActivity()
                 }
                 .onFailure {
@@ -149,7 +150,7 @@ fun EobNavHost(
     val currentRoute = backStackEntry?.destination?.route ?: EobRoute.Home.route
     val selectedTabIndex = primaryRoutes.indexOfFirst { it.route == currentRoute }
         .takeIf { it >= 0 }
-        ?: primaryRoutes.indexOf(EobRoute.Analysis).coerceAtLeast(0)
+        ?: primaryRoutes.indexOf(EobRoute.History).coerceAtLeast(0)
 
     Scaffold(
         floatingActionButton = {
@@ -200,7 +201,7 @@ fun EobNavHost(
                         }
                     )
                 }
-                composable(EobRoute.Analysis.route) {
+                composable(EobRoute.History.route) {
                     AnalysisScreen(
                         language = language,
                         records = viewModel.records.sortedBy { it.serviceDateSortKey },
@@ -212,18 +213,30 @@ fun EobNavHost(
                             onActivity()
                         },
                         onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
-                        onCameraScan = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
+                        onCameraScan = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                        onDeleteEob = {
+                            viewModel.deleteRecord(it, profile)
+                            if (viewModel.firebaseStatus.userId.isNotBlank()) {
+                                firebaseRepository.deleteEob(viewModel.firebaseStatus.userId, it) { message ->
+                                    viewModel.updateUploadNotice(message)
+                                }
+                            }
+                            onActivity()
+                        }
                     ) {
                         viewModel.selectRecord(it, profile)
                         onActivity()
                     }
+                }
+                composable(EobRoute.Dashboard.route) {
+                    DashboardScreen(language = language, records = viewModel.records)
                 }
                 composable(EobRoute.CameraCapture.route) {
                     CameraCaptureScreen(
                         language = language,
                         onImageCaptured = { uri ->
                             prepareAndUpload(uri, EobStrings.t(language, "cameraScan"))
-                            navController.popBackStack(EobRoute.Analysis.route, inclusive = false)
+                            navController.popBackStack(EobRoute.History.route, inclusive = false)
                         },
                         onClose = { navController.popBackStack() }
                     )
@@ -235,7 +248,11 @@ fun EobNavHost(
                     }
                 }
                 composable(EobRoute.News.route) {
-                    NewsScreen(language, EobKnowledgeBase.currentNewsReleases(viewModel.firebaseNews.ifEmpty { EobKnowledgeBase.newsReleases }))
+                    NewsScreen(
+                        language = language,
+                        newsItems = EobKnowledgeBase.currentNewsReleases(viewModel.visibleNews(EobKnowledgeBase.newsReleases)),
+                        onDeleteNews = { viewModel.deleteNews(it) }
+                    )
                 }
                 composable(EobRoute.Appeal.route) {
                     AppealScreen(language, profile, viewModel.selectedRecord, viewModel.appealLetter, {
@@ -307,7 +324,8 @@ private fun Header(language: AppLanguage, onProfile: () -> Unit, onLogout: () ->
 private fun EobRoute.title(language: AppLanguage): String {
     return when (this) {
         EobRoute.Home -> EobStrings.t(language, "home")
-        EobRoute.Analysis -> "Eob/Analysis"
+        EobRoute.History -> EobStrings.t(language, "history")
+        EobRoute.Dashboard -> EobStrings.t(language, "dashboard")
         EobRoute.CptCount -> EobStrings.t(language, "cptCount")
         EobRoute.News -> EobStrings.t(language, "news")
         EobRoute.Appeal -> EobStrings.t(language, "appeal")

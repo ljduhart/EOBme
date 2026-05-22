@@ -63,6 +63,7 @@ fun AnalysisScreen(
     onUploadTextChanged: (String) -> Unit,
     onLibraryUpload: () -> Unit,
     onCameraScan: () -> Unit,
+    onDeleteEob: (EobRecord) -> Unit,
     onSelected: (EobRecord) -> Unit
 ) {
     LazyColumn(
@@ -71,7 +72,7 @@ fun AnalysisScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Text("Eob/Analysis", style = MaterialTheme.typography.titleLarge)
+            Text(EobStrings.t(language, "history"), style = MaterialTheme.typography.titleLarge)
             Text(EobStrings.t(language, "analysisHelp"))
         }
         item { UploadCard(language, uploadText, onUploadTextChanged, onLibraryUpload, onCameraScan) }
@@ -89,6 +90,9 @@ fun AnalysisScreen(
                     Text("${EobStrings.t(language, "insurance")}: ${record.insuranceName}")
                     Text("${EobStrings.t(language, "provider")}: ${record.providerName}")
                     Text("${EobStrings.t(language, "billed")}: ${record.totalBilledAmount.asCurrency()} • ${EobStrings.t(language, "paid")}: ${record.totalInsurancePaidAmount.asCurrency()}")
+                    OutlinedButton(onClick = { onDeleteEob(record) }) {
+                        Text(EobStrings.t(language, "deleteEob"))
+                    }
                 }
             }
         }
@@ -150,7 +154,7 @@ fun CptCountScreen(
 }
 
 @Composable
-fun NewsScreen(language: AppLanguage, newsItems: List<NewsRelease>) {
+fun NewsScreen(language: AppLanguage, newsItems: List<NewsRelease>, onDeleteNews: (NewsRelease) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -163,10 +167,24 @@ fun NewsScreen(language: AppLanguage, newsItems: List<NewsRelease>) {
                     Text("${news.company} • ${news.date}", style = MaterialTheme.typography.labelLarge)
                     Text(news.headline, style = MaterialTheme.typography.titleSmall)
                     Text(news.summary)
+                    OutlinedButton(onClick = { onDeleteNews(news) }) {
+                        Text(EobStrings.t(language, "deleteNews"))
+                    }
                     HorizontalDivider()
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DashboardScreen(language: AppLanguage, records: List<EobRecord>) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item { YearlyHealthCostDashboard(EobAnalyzer.yearlyHealthCostSummary(records)) }
     }
 }
 

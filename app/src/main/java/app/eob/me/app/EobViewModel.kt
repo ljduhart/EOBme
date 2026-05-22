@@ -32,6 +32,7 @@ class EobViewModel : ViewModel() {
         private set
     var firebaseStatus by mutableStateOf(FirebaseSyncStatus(isConfigured = false))
     var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
+    private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
 
     fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
         val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
@@ -52,6 +53,21 @@ class EobViewModel : ViewModel() {
         uploadNotice = ""
     }
 
+    fun deleteRecord(record: EobRecord, profile: UserProfile) {
+        records.removeAll { it.id == record.id }
+        selectedRecord = records.firstOrNull()
+        regenerateAppeal(profile)
+    }
+
+    fun deleteNews(news: NewsRelease) {
+        deletedNewsKeys = deletedNewsKeys + news.key()
+        firebaseNews = firebaseNews.filterNot { it.key() == news.key() }
+    }
+
+    fun visibleNews(fallbackNews: List<NewsRelease>): List<NewsRelease> {
+        return firebaseNews.ifEmpty { fallbackNews }.filterNot { it.key() in deletedNewsKeys }
+    }
+
     fun addAppointment(date: String, provider: String, time: String, notes: String) {
         appointments.add(DoctorAppointment((appointments.maxOfOrNull { it.id } ?: 0) + 1, date, provider, time, notes))
     }
@@ -62,6 +78,10 @@ class EobViewModel : ViewModel() {
 
     fun updateAppeal(text: String) {
         appealLetter = text
+    }
+
+    fun updateUploadNotice(message: String) {
+        uploadNotice = message
     }
 
     fun regenerateAppeal(profile: UserProfile) {
@@ -109,3 +129,5 @@ class EobViewModel : ViewModel() {
         uploadText = ""
     }
 }
+
+private fun NewsRelease.key(): String = "$company|$headline|$date"
