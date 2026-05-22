@@ -147,6 +147,9 @@ fun EobNavHost(
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: EobRoute.Home.route
+    val selectedTabIndex = primaryRoutes.indexOfFirst { it.route == currentRoute }
+        .takeIf { it >= 0 }
+        ?: primaryRoutes.indexOf(EobRoute.Analysis).coerceAtLeast(0)
 
     Scaffold(
         floatingActionButton = {
@@ -162,7 +165,7 @@ fun EobNavHost(
         ) {
             Header(language, onProfile = { navController.navigate(EobRoute.Profile.route) }, onLogout = onLogout)
             PrimaryScrollableTabRow(
-                selectedTabIndex = primaryRoutes.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0),
+                selectedTabIndex = selectedTabIndex,
                 edgePadding = 8.dp
             ) {
                 primaryRoutes.forEach { route ->
@@ -220,6 +223,7 @@ fun EobNavHost(
                         language = language,
                         onImageCaptured = { uri ->
                             prepareAndUpload(uri, EobStrings.t(language, "cameraScan"))
+                            navController.popBackStack(EobRoute.Analysis.route, inclusive = false)
                         },
                         onClose = { navController.popBackStack() }
                     )
