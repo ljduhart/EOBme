@@ -393,13 +393,13 @@ private fun HistoryRoute(
 
     val filteredRecords by remember {
         derivedStateOf {
-            val sorted = records.sortedBy { it.serviceDateSortKey }
+            val sorted = records.sortedByDescending { it.serviceDateSortKey } // Descending puts newest claims on top!
             if (searchQuery.isBlank()) {
                 sorted
             } else {
-                sorted.filter {
-                    it.providerName.contains(searchQuery, ignoreCase = true) ||
-                        it.insuranceName.contains(searchQuery, ignoreCase = true)
+                sorted.filter { record ->
+                    record.providerName.contains(searchQuery, ignoreCase = true) ||
+                        record.insuranceCompany.contains(searchQuery, ignoreCase = true)
                 }
             }
         }

@@ -79,6 +79,9 @@ data class EobRecord(
     val totalDeductibleAmount: Double = 0.0,
     val totalCoinsuranceAmount: Double = 0.0
 ) {
+    val insuranceCompany: String
+        get() = insuranceName
+
     val totalPatientResponsibility: Double
         get() = totalCopayAmount + totalDeductibleAmount + totalCoinsuranceAmount
 }
