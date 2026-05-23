@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.core.app.NotificationCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -54,11 +55,7 @@ class EobFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            android.app.Notification.Builder(this, EOBME_CHANNEL_ID)
-        } else {
-            android.app.Notification.Builder(this)
-        }
+        val notification = NotificationCompat.Builder(this, EOBME_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
