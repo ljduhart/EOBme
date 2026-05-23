@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,30 +33,123 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.lifecycle.viewmodel.compose.viewModel
 import app.eob.me.app.EobViewModel
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobKnowledgeBase
+import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.UserProfile
-import app.eob.me.data.EobStrings
 import app.eob.me.ui.screens.AnalysisScreen
 import app.eob.me.ui.screens.AppealScreen
+import app.eob.me.ui.screens.AuthChoiceScreen
+import app.eob.me.ui.screens.AuthScreen
 import app.eob.me.ui.screens.CameraCaptureScreen
 import app.eob.me.ui.screens.CptCountScreen
 import app.eob.me.ui.screens.DashboardScreen
+import app.eob.me.ui.screens.EobSplashScreen
 import app.eob.me.ui.screens.HomeScreen
+import app.eob.me.ui.screens.IntroScreen
+import app.eob.me.ui.screens.LanguageScreen
 import app.eob.me.ui.screens.NewsScreen
 import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.util.OcrProcessor
+import app.eob.me.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun EobNavHost(
+fun EobNavHost(viewModel: AppViewModel) {
+    val navController = rememberNavController()
+    val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
+    val language by viewModel.selectedLanguage.collectAsStateWithLifecycle()
+    val profile by viewModel.profile.collectAsStateWithLifecycle()
+    val introStep by viewModel.introStep.collectAsStateWithLifecycle()
+    val isSignUp by viewModel.isSignUp.collectAsStateWithLifecycle()
+    val awaitingEmailVerification by viewModel.awaitingEmailVerification.collectAsStateWithLifecycle()
+    val authMessage by viewModel.authMessage.collectAsStateWithLifecycle()
+
+    LaunchedEffect(currentScreen) {
+        val targetRoute = currentScreen.route
+        if (navController.currentDestination?.route != targetRoute) {
+            navController.navigate(targetRoute) {
+                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
+
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Splash.route,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        composable(Screen.Splash.route) {
+            EobSplashScreen(
+                modifier = Modifier.fillMaxSize(),
+                onSplashComplete = viewModel::onSplashComplete
+            )
+        }
+        composable(Screen.Language.route) {
+            LanguageScreen(
+                modifier = Modifier.fillMaxSize(),
+                onSelected = viewModel::onLanguageSelected
+            )
+        }
+        composable(Screen.Intro.route) {
+            IntroScreen(
+                language = language,
+                step = introStep,
+                modifier = Modifier.fillMaxSize(),
+                onNext = viewModel::onIntroNext
+            )
+        }
+        composable(Screen.AuthChoice.route) {
+            AuthChoiceScreen(
+                language = language,
+                modifier = Modifier.fillMaxSize(),
+                onCreateAccount = viewModel::onCreateAccountSelected,
+                onSignIn = viewModel::onSignInSelected
+            )
+        }
+        composable(Screen.Auth.route) {
+            AuthScreen(
+                language = language,
+                profile = profile,
+                isSignUp = isSignUp == true,
+                awaitingEmailVerification = awaitingEmailVerification,
+                authMessage = authMessage,
+                modifier = Modifier.fillMaxSize(),
+                onProfileChanged = viewModel::onProfileChanged,
+                onToggleMode = viewModel::onAuthToggleMode,
+                onSubmit = viewModel::onAuthSubmit,
+                onForgotPassword = viewModel::onForgotPassword,
+                onForgotUsername = viewModel::onForgotUsername,
+                onResendVerification = {},
+                onRefreshVerification = viewModel::onRefreshVerification
+            )
+        }
+        composable(Screen.MainHub.route) {
+            MainHubNavHost(
+                language = language,
+                profile = profile,
+                firebaseRepository = viewModel.firebaseRepository,
+                onProfileChanged = viewModel::onProfileChanged,
+                onLanguageChanged = viewModel::onLanguageChanged,
+                onLogout = viewModel::onLogout,
+                onActivity = viewModel::updateActivityTime
+            )
+        }
+    }
+}
+
+@Composable
+private fun MainHubNavHost(
     language: AppLanguage,
     profile: UserProfile,
     firebaseRepository: FirebaseEobRepository,
@@ -67,15 +161,19 @@ fun EobNavHost(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
-    val viewModel: EobViewModel = viewModel()
+    val eobViewModel: EobViewModel = viewModel()
+
+    val historyRecords by remember {
+        derivedStateOf { eobViewModel.records.sortedBy { it.serviceDateSortKey } }
+    }
 
     fun prepareAndUpload(uri: Uri, sourceName: String) {
         scope.launch {
             runCatching { OcrProcessor.prepareUriForUpload(context, uri) }
                 .onSuccess { preparedUri ->
-                    viewModel.uploadEobFile(
+                    eobViewModel.uploadEobFile(
                         repository = firebaseRepository,
-                        userId = viewModel.firebaseStatus.userId,
+                        userId = eobViewModel.firebaseStatus.userId,
                         uri = preparedUri,
                         sourceName = sourceName,
                         language = language
@@ -101,20 +199,21 @@ fun EobNavHost(
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     LaunchedEffect(Unit) {
+        eobViewModel.firebaseStatus = firebaseRepository.status()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
     LaunchedEffect(profile.email, profile.password, profile.isComplete) {
-        if (profile.isComplete && viewModel.firebaseStatus.userId.isNotBlank()) {
-            firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, profile) {}
-            firebaseRepository.saveInsuranceCardMetadata(viewModel.firebaseStatus.userId, profile) {}
+        if (profile.isComplete && eobViewModel.firebaseStatus.userId.isNotBlank()) {
+            firebaseRepository.saveProfile(eobViewModel.firebaseStatus.userId, profile) {}
+            firebaseRepository.saveInsuranceCardMetadata(eobViewModel.firebaseStatus.userId, profile) {}
         }
     }
 
-    DisposableEffect(viewModel.firebaseStatus.userId) {
-        val userId = viewModel.firebaseStatus.userId
+    DisposableEffect(eobViewModel.firebaseStatus.userId) {
+        val userId = eobViewModel.firebaseStatus.userId
         val profileListener = firebaseRepository.observeProfile(
             userId = userId,
             currentPassword = profile.password,
@@ -122,22 +221,22 @@ fun EobNavHost(
                 onProfileChanged(it)
                 onActivity()
             },
-            onError = { viewModel.firebaseStatus = viewModel.firebaseStatus.copy(message = it) }
+            onError = { eobViewModel.firebaseStatus = eobViewModel.firebaseStatus.copy(message = it) }
         )
         val eobListener = firebaseRepository.observeEobs(
             userId = userId,
             onRecords = {
-                viewModel.replaceRecords(it, profile)
+                eobViewModel.replaceRecords(it, profile)
                 onActivity()
             },
-            onError = { viewModel.firebaseStatus = viewModel.firebaseStatus.copy(message = it) }
+            onError = { eobViewModel.firebaseStatus = eobViewModel.firebaseStatus.copy(message = it) }
         )
         val newsListener = firebaseRepository.observeInsuranceNews(
             onNews = {
-                viewModel.firebaseNews = it
+                eobViewModel.firebaseNews = it
                 onActivity()
             },
-            onError = { viewModel.firebaseStatus = viewModel.firebaseStatus.copy(message = it) }
+            onError = { eobViewModel.firebaseStatus = eobViewModel.firebaseStatus.copy(message = it) }
         )
         onDispose {
             profileListener?.remove()
@@ -188,15 +287,15 @@ fun EobNavHost(
                     HomeScreen(
                         language = language,
                         profile = profile,
-                        records = viewModel.records.sortedBy { it.serviceDateSortKey },
-                        appointments = viewModel.appointments.sortedBy { it.date },
-                        uploadNotice = viewModel.uploadNotice,
+                        records = historyRecords,
+                        appointments = eobViewModel.appointments.sortedBy { it.date },
+                        uploadNotice = eobViewModel.uploadNotice,
                         onAddAppointment = { date, provider, time, notes ->
-                            viewModel.addAppointment(date, provider, time, notes)
+                            eobViewModel.addAppointment(date, provider, time, notes)
                             onActivity()
                         },
                         onRemoveAppointment = {
-                            viewModel.removeAppointment(it)
+                            eobViewModel.removeAppointment(it)
                             onActivity()
                         }
                     )
@@ -204,32 +303,32 @@ fun EobNavHost(
                 composable(EobRoute.History.route) {
                     AnalysisScreen(
                         language = language,
-                        records = viewModel.records.sortedBy { it.serviceDateSortKey },
-                        selectedRecord = viewModel.selectedRecord,
-                        uploadText = viewModel.uploadText,
-                        uploadNotice = viewModel.uploadNotice,
+                        records = historyRecords,
+                        selectedRecord = eobViewModel.selectedRecord,
+                        uploadText = eobViewModel.uploadText,
+                        uploadNotice = eobViewModel.uploadNotice,
                         onUploadTextChanged = {
-                            viewModel.uploadText = it
+                            eobViewModel.uploadText = it
                             onActivity()
                         },
                         onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
                         onCameraScan = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
                         onDeleteEob = {
-                            viewModel.deleteRecord(it, profile)
-                            if (viewModel.firebaseStatus.userId.isNotBlank()) {
-                                firebaseRepository.deleteEob(viewModel.firebaseStatus.userId, it) { message ->
-                                    viewModel.updateUploadNotice(message)
+                            eobViewModel.deleteRecord(it, profile)
+                            if (eobViewModel.firebaseStatus.userId.isNotBlank()) {
+                                firebaseRepository.deleteEob(eobViewModel.firebaseStatus.userId, it) { message ->
+                                    eobViewModel.updateUploadNotice(message)
                                 }
                             }
                             onActivity()
                         }
                     ) {
-                        viewModel.selectRecord(it, profile)
+                        eobViewModel.selectRecord(it, profile)
                         onActivity()
                     }
                 }
                 composable(EobRoute.Dashboard.route) {
-                    DashboardScreen(language = language, records = viewModel.records)
+                    DashboardScreen(language = language, records = historyRecords)
                 }
                 composable(EobRoute.CameraCapture.route) {
                     CameraCaptureScreen(
@@ -242,26 +341,35 @@ fun EobNavHost(
                     )
                 }
                 composable(EobRoute.CptCount.route) {
-                    CptCountScreen(language, viewModel.records, viewModel.selectedCptCategory) {
-                        viewModel.selectedCptCategory = it
+                    CptCountScreen(language, historyRecords, eobViewModel.selectedCptCategory) {
+                        eobViewModel.selectedCptCategory = it
                         onActivity()
                     }
                 }
                 composable(EobRoute.News.route) {
                     NewsScreen(
                         language = language,
-                        newsItems = EobKnowledgeBase.currentNewsReleases(viewModel.visibleNews(EobKnowledgeBase.newsReleases)),
-                        onDeleteNews = { viewModel.deleteNews(it) }
+                        newsItems = EobKnowledgeBase.currentNewsReleases(
+                            eobViewModel.visibleNews(EobKnowledgeBase.newsReleases)
+                        ),
+                        onDeleteNews = { eobViewModel.deleteNews(it) }
                     )
                 }
                 composable(EobRoute.Appeal.route) {
-                    AppealScreen(language, profile, viewModel.selectedRecord, viewModel.appealLetter, {
-                        viewModel.regenerateAppeal(profile)
-                        onActivity()
-                    }, {
-                        viewModel.updateAppeal(it)
-                        onActivity()
-                    })
+                    AppealScreen(
+                        language,
+                        profile,
+                        eobViewModel.selectedRecord,
+                        eobViewModel.appealLetter,
+                        {
+                            eobViewModel.regenerateAppeal(profile)
+                            onActivity()
+                        },
+                        {
+                            eobViewModel.updateAppeal(it)
+                            onActivity()
+                        }
+                    )
                 }
                 composable(EobRoute.Profile.route) {
                     ProfileScreen(
@@ -269,9 +377,9 @@ fun EobNavHost(
                         profile = profile,
                         onProfileChanged = {
                             onProfileChanged(it)
-                            if (viewModel.firebaseStatus.userId.isNotBlank()) {
-                                firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, it) {}
-                                firebaseRepository.saveInsuranceCardMetadata(viewModel.firebaseStatus.userId, it) {}
+                            if (eobViewModel.firebaseStatus.userId.isNotBlank()) {
+                                firebaseRepository.saveProfile(eobViewModel.firebaseStatus.userId, it) {}
+                                firebaseRepository.saveInsuranceCardMetadata(eobViewModel.firebaseStatus.userId, it) {}
                             }
                             onActivity()
                         },
@@ -333,4 +441,3 @@ private fun EobRoute.title(language: AppLanguage): String {
         EobRoute.CameraCapture -> EobStrings.t(language, "scanBill")
     }
 }
-
