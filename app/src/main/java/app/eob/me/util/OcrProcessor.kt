@@ -69,12 +69,15 @@ object OcrProcessor {
                 // Drop quality slightly to 85% for vastly reduced payload file size without losing OCR accuracy
                 enhanced.compress(Bitmap.CompressFormat.JPEG, 85, output)
             }
-            Uri.fromFile(file)
         } finally {
+            // Memory is guaranteed to clean up safely here
             if (scaled !== bitmap) scaled.recycle()
             if (enhanced !== scaled) enhanced.recycle()
             bitmap.recycle()
         }
+
+        // Clean, unambiguous return to the outer coroutine scope
+        return@withContext Uri.fromFile(file)
     }
 
     private suspend fun recognizePdf(context: Context, uri: Uri): String = withContext(Dispatchers.IO) {
