@@ -64,17 +64,17 @@ object OcrProcessor {
         val enhanced = enhanceContrast(scaled)
 
         val file = File(context.cacheDir, "eob_upload_${System.currentTimeMillis()}.jpg")
-        FileOutputStream(file).use { output ->
-            // Drop quality slightly to 85% for vastly reduced payload file size without losing OCR accuracy
-            enhanced.compress(Bitmap.CompressFormat.JPEG, 85, output)
+        try {
+            FileOutputStream(file).use { output ->
+                // Drop quality slightly to 85% for vastly reduced payload file size without losing OCR accuracy
+                enhanced.compress(Bitmap.CompressFormat.JPEG, 85, output)
+            }
+            Uri.fromFile(file)
+        } finally {
+            if (scaled !== bitmap) scaled.recycle()
+            if (enhanced !== scaled) enhanced.recycle()
+            bitmap.recycle()
         }
-
-        // Immediate, aggressive memory cleanup
-        if (scaled !== bitmap) scaled.recycle()
-        if (enhanced !== scaled) enhanced.recycle()
-        bitmap.recycle()
-
-        return@withContext Uri.fromFile(file)
     }
 
     private suspend fun recognizePdf(context: Context, uri: Uri): String = withContext(Dispatchers.IO) {
@@ -142,8 +142,7 @@ object OcrProcessor {
     }
 
     private fun enhanceContrast(bitmap: Bitmap): Bitmap {
-        // Keeps configuration mapping aligned
-        val output = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.RGB_565)
+        val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         val paint = Paint()
         val contrast = 1.25f
