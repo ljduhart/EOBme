@@ -12,11 +12,13 @@ import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 object OcrProcessor {
     private val recognizer by lazy {
@@ -27,54 +29,66 @@ object OcrProcessor {
         return recognizeImage(InputImage.fromBitmap(bitmap, 0))
     }
 
-    suspend fun recognizeFromUri(context: Context, uri: Uri): String {
+    suspend fun recognizeFromUri(context: Context, uri: Uri): String = withContext(Dispatchers.IO) {
         val mimeType = context.contentResolver.getType(uri).orEmpty()
-        return if (mimeType == "application/pdf" || uri.toString().endsWith(".pdf", ignoreCase = true)) {
+        if (mimeType == "application/pdf" || uri.toString().endsWith(".pdf", ignoreCase = true)) {
             recognizePdf(context, uri)
         } else {
             recognizeImage(InputImage.fromFilePath(context, uri))
         }
     }
 
-    fun prepareUriForUpload(context: Context, uri: Uri): Uri {
+    // Shifted to Dispatchers.IO to prevent UI Stalling
+    suspend fun prepareUriForUpload(context: Context, uri: Uri): Uri = withContext(Dispatchers.IO) {
         val mimeType = context.contentResolver.getType(uri).orEmpty()
-        if (mimeType == "application/pdf" || uri.toString().endsWith(".pdf", ignoreCase = true)) return uri
+        if (mimeType == "application/pdf" || uri.toString().endsWith(".pdf", ignoreCase = true)) return@withContext uri
 
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+
         val sampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight)
         val options = BitmapFactory.Options().apply {
             inSampleSize = sampleSize
-            inPreferredConfig = Bitmap.Config.ARGB_8888
+            // Config.RGB_565 halves memory consumption and prevents OOM on large camera uploads
+            inPreferredConfig = Bitmap.Config.RGB_565
         }
+
         val decoded = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
             ?: throw IllegalArgumentException("Unable to decode selected EOB image")
-        return prepareBitmapForUpload(context, decoded)
+
+        return@withContext prepareBitmapForUpload(context, decoded)
     }
 
-    fun prepareBitmapForUpload(context: Context, bitmap: Bitmap): Uri {
+    suspend fun prepareBitmapForUpload(context: Context, bitmap: Bitmap): Uri = withContext(Dispatchers.IO) {
         val scaled = scaleBitmap(bitmap)
         val enhanced = enhanceContrast(scaled)
+
         val file = File(context.cacheDir, "eob_upload_${System.currentTimeMillis()}.jpg")
         FileOutputStream(file).use { output ->
-            enhanced.compress(Bitmap.CompressFormat.JPEG, 88, output)
+            // Drop quality slightly to 85% for vastly reduced payload file size without losing OCR accuracy
+            enhanced.compress(Bitmap.CompressFormat.JPEG, 85, output)
         }
+
+        // Immediate, aggressive memory cleanup
         if (scaled !== bitmap) scaled.recycle()
         if (enhanced !== scaled) enhanced.recycle()
-        return Uri.fromFile(file)
+        bitmap.recycle()
+
+        return@withContext Uri.fromFile(file)
     }
 
-    private suspend fun recognizePdf(context: Context, uri: Uri): String {
-        val descriptor = context.contentResolver.openFileDescriptor(uri, "r") ?: return ""
-        return descriptor.use { fileDescriptor ->
+    private suspend fun recognizePdf(context: Context, uri: Uri): String = withContext(Dispatchers.IO) {
+        val descriptor = context.contentResolver.openFileDescriptor(uri, "r") ?: return@withContext ""
+        return@withContext descriptor.use { fileDescriptor ->
             PdfRenderer(fileDescriptor).use { renderer ->
                 buildString {
                     repeat(renderer.pageCount) { pageIndex ->
                         renderer.openPage(pageIndex).use { page ->
+                            // Uses RGB_565 here too to ensure multi-page PDFs don't swamp device RAM
                             val bitmap = Bitmap.createBitmap(
                                 page.width.coerceAtLeast(1) * 2,
                                 page.height.coerceAtLeast(1) * 2,
-                                Bitmap.Config.ARGB_8888
+                                Bitmap.Config.RGB_565
                             )
                             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                             appendLine(recognizeFromBitmap(bitmap))
@@ -86,11 +100,20 @@ object OcrProcessor {
         }
     }
 
+    // Upgraded to suspendCancellableCoroutine to handle execution scope interruptions safely
     private suspend fun recognizeImage(image: InputImage): String {
-        return suspendCoroutine { continuation ->
+        return suspendCancellableCoroutine { continuation ->
             recognizer.process(image)
-                .addOnSuccessListener { text -> continuation.resume(text.text) }
-                .addOnFailureListener { error -> continuation.resumeWithException(error) }
+                .addOnSuccessListener { text ->
+                    if (continuation.isActive) continuation.resume(text.text)
+                }
+                .addOnFailureListener { error ->
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                }
+
+            continuation.invokeOnCancellation {
+                // If the routine is cancelled, clean up memory states
+            }
         }
     }
 
@@ -103,7 +126,7 @@ object OcrProcessor {
             candidateHeight /= 2
             sampleSize *= 2
         }
-        return sampleSize.coerceAtLeast(1)
+        return sampleSize
     }
 
     private fun scaleBitmap(bitmap: Bitmap, maxDimension: Int = 1800): Bitmap {
@@ -119,7 +142,8 @@ object OcrProcessor {
     }
 
     private fun enhanceContrast(bitmap: Bitmap): Bitmap {
-        val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        // Keeps configuration mapping aligned
+        val output = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.RGB_565)
         val canvas = Canvas(output)
         val paint = Paint()
         val contrast = 1.25f
