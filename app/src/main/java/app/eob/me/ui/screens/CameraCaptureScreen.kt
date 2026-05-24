@@ -129,27 +129,24 @@ fun CameraCaptureScreen(
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        if (hasPermission) {
-            AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
-            CameraScanningOverlay()
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (statusMessage.isNotBlank()) {
-                    Text(statusMessage, color = MaterialTheme.colorScheme.error)
-                }
-                Button(
-                    onClick = {
-                        val capture = imageCapture
-                        if (capture == null || !isCameraReady) {
-                            statusMessage = "Camera is still starting. Please wait a moment."
-                            return@Button
-                        }
+    if (hasPermission) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            CameraViewfinderStream(
+                previewView = previewView,
+                modifier = Modifier.fillMaxSize()
+            )
+            CameraScanningOverlay(modifier = Modifier.fillMaxSize())
+            CameraControlHudElements(
+                language = language,
+                statusMessage = statusMessage,
+                isCameraReady = isCameraReady,
+                isCapturing = isCapturing,
+                onClose = onClose,
+                onRequestCapture = {
+                    val capture = imageCapture
+                    if (capture == null || !isCameraReady) {
+                        statusMessage = "Camera is still starting. Please wait a moment."
+                    } else {
                         isCapturing = true
                         captureImage(
                             context = context,
@@ -163,29 +160,79 @@ fun CameraCaptureScreen(
                                 statusMessage = it
                             }
                         )
-                    },
-                    enabled = isCameraReady && !isCapturing,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (isCapturing) "Capturing..." else EobStrings.t(language, "scanBill"))
-                }
-                Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
-                    Text(EobStrings.t(language, "close"))
-                }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(statusMessage.ifBlank { EobStrings.t(language, "cameraPermissionRequired") })
-                Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                    Text(EobStrings.t(language, "scanWithCamera"))
-                }
-            }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    } else {
+        CameraPermissionPrompt(
+            language = language,
+            statusMessage = statusMessage,
+            onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun CameraViewfinderStream(
+    previewView: PreviewView,
+    modifier: Modifier = Modifier
+) {
+    AndroidView(
+        factory = { previewView },
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun CameraControlHudElements(
+    language: AppLanguage,
+    statusMessage: String,
+    isCameraReady: Boolean,
+    isCapturing: Boolean,
+    onClose: () -> Unit,
+    onRequestCapture: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .padding(20.dp),
+        verticalArrangement = Arrangement.Bottom,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (statusMessage.isNotBlank()) {
+            Text(statusMessage, color = MaterialTheme.colorScheme.error)
+        }
+        Button(
+            onClick = onRequestCapture,
+            enabled = isCameraReady && !isCapturing,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (isCapturing) "Capturing..." else EobStrings.t(language, "scanBill"))
+        }
+        Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "close"))
+        }
+    }
+}
+
+@Composable
+private fun CameraPermissionPrompt(
+    language: AppLanguage,
+    statusMessage: String,
+    onRequestPermission: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(statusMessage.ifBlank { EobStrings.t(language, "cameraPermissionRequired") })
+        Button(onClick = onRequestPermission) {
+            Text(EobStrings.t(language, "scanWithCamera"))
         }
     }
 }
