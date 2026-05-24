@@ -351,10 +351,15 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.CptCount.route) {
-                    CptCountScreen(language, sortedEobRecords, eobViewModel.selectedCptCategory) {
-                        eobViewModel.selectedCptCategory = it
-                        onActivity()
-                    }
+                    CptCountScreen(
+                        language = language,
+                        records = sortedEobRecords,
+                        selectedCategory = eobViewModel.selectedCptCategory,
+                        onCategorySelected = {
+                            eobViewModel.selectedCptCategory = it
+                            onActivity()
+                        }
+                    )
                 }
                 composable(EobRoute.News.route) {
                     NewsScreen(
