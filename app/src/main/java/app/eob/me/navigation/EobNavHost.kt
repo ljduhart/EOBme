@@ -63,6 +63,7 @@ import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.util.OcrProcessor
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
+import app.eob.me.viewmodel.HubUiState
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 
@@ -170,7 +171,7 @@ private fun MainHubNavHost(
     val navController = rememberNavController()
     val eobViewModel: EobViewModel = viewModel()
     val eobRecords by eobViewModel.eobRecords.collectAsStateWithLifecycle()
-    val hubUiState by eobViewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     val sortedEobRecords by remember {
         derivedStateOf { eobRecords.sortedBy { it.serviceDateSortKey } }
     }
@@ -308,8 +309,8 @@ private fun MainHubNavHost(
                         language = language,
                         profile = profile,
                         records = sortedEobRecords,
-                        appointments = hubUiState.appointments.sortedBy { it.date },
-                        uploadNotice = hubUiState.uploadNotice,
+                        appointments = uiState.appointments.sortedBy { it.date },
+                        uploadNotice = uiState.uploadNotice,
                         onAddAppointment = { date, provider, time, notes ->
                             eobViewModel.addAppointment(date, provider, time, notes)
                             onActivity()
@@ -324,6 +325,7 @@ private fun MainHubNavHost(
                     HistoryRoute(
                         language = language,
                         profile = profile,
+                        uiState = uiState,
                         eobViewModel = eobViewModel,
                         firebaseRepository = firebaseRepository,
                         onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
@@ -361,10 +363,10 @@ private fun MainHubNavHost(
                 }
                 composable(EobRoute.Appeal.route) {
                     AppealScreen(
-                        language,
-                        profile,
-                        hubUiState.selectedRecord,
-                        hubUiState.appealLetter,
+                        language = language,
+                        profile = profile,
+                        selectedRecord = uiState.selectedRecord,
+                        letter = uiState.appealLetter,
                         {
                             eobViewModel.regenerateAppeal(profile)
                             onActivity()
@@ -403,6 +405,7 @@ private fun MainHubNavHost(
 private fun HistoryRoute(
     language: AppLanguage,
     profile: UserProfile,
+    uiState: HubUiState,
     eobViewModel: EobViewModel,
     firebaseRepository: FirebaseEobRepository,
     onLibraryUpload: () -> Unit,
@@ -410,7 +413,6 @@ private fun HistoryRoute(
     onActivity: () -> Unit
 ) {
     val records by eobViewModel.eobRecords.collectAsStateWithLifecycle()
-    val hubUiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredRecords by remember {
@@ -457,9 +459,9 @@ private fun HistoryRoute(
         AnalysisScreen(
             language = language,
             records = filteredRecords,
-            selectedRecord = hubUiState.selectedRecord,
+            selectedRecord = uiState.selectedRecord,
             uploadText = eobViewModel.uploadText,
-            uploadNotice = hubUiState.uploadNotice,
+            uploadNotice = uiState.uploadNotice,
             onUploadTextChanged = {
                 eobViewModel.uploadText = it
                 onActivity()
