@@ -154,30 +154,6 @@ fun CptCountScreen(
 }
 
 @Composable
-fun NewsScreen(language: AppLanguage, newsItems: List<NewsRelease>, onDeleteNews: (NewsRelease) -> Unit) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        item { Text(EobStrings.t(language, "insuranceNews"), style = MaterialTheme.typography.titleLarge) }
-        items(newsItems) { news ->
-            ElevatedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${news.company} • ${news.date}", style = MaterialTheme.typography.labelLarge)
-                    Text(news.headline, style = MaterialTheme.typography.titleSmall)
-                    Text(news.summary)
-                    OutlinedButton(onClick = { onDeleteNews(news) }) {
-                        Text(EobStrings.t(language, "deleteNews"))
-                    }
-                    HorizontalDivider()
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun DashboardScreen(language: AppLanguage, records: List<EobRecord>) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
