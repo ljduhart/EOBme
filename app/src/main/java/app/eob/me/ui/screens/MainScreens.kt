@@ -109,58 +109,26 @@ fun AnalysisScreen(
 }
 
 @Composable
-fun CptCountScreen(
-    language: AppLanguage,
-    records: List<EobRecord>,
-    selectedCategory: CptCategory,
-    onCategoryChanged: (CptCategory) -> Unit
-) {
-    val year = records.map { EobAnalyzer.serviceYear(it.serviceDate) }.filter { it > 0 }.maxOrNull()
-        ?: Calendar.getInstance().get(Calendar.YEAR)
-    val usage = EobAnalyzer.cptUsage(records, year).filter { it.info.category == selectedCategory }
+fun NewsScreen(language: AppLanguage, newsItems: List<NewsRelease>, onDeleteNews: (NewsRelease) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item {
-            Text("${EobStrings.t(language, "cptsBilledIn")} $year", style = MaterialTheme.typography.titleLarge)
-            Text(EobStrings.t(language, "cptRule"))
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                CptCategory.entries.filter { it != CptCategory.Other }.forEach { category ->
-                    AssistChip(
-                        onClick = { onCategoryChanged(category) },
-                        label = { Text(EobStrings.cptCategoryLabel(language, category)) },
-                        enabled = category != selectedCategory
-                    )
-                }
-            }
-        }
-        items(usage) { item ->
+        item { Text(EobStrings.t(language, "insuranceNews"), style = MaterialTheme.typography.titleLarge) }
+        items(newsItems) { news ->
             ElevatedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("${item.info.code} (${item.count}x)", style = MaterialTheme.typography.titleMedium)
-                    Text(item.info.description)
-                    Text("${EobStrings.t(language, "category")}: ${EobStrings.cptCategoryLabel(language, item.info.category)}")
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${news.company} • ${news.date}", style = MaterialTheme.typography.labelLarge)
+                    Text(news.headline, style = MaterialTheme.typography.titleSmall)
+                    Text(news.summary)
+                    OutlinedButton(onClick = { onDeleteNews(news) }) {
+                        Text(EobStrings.t(language, "deleteNews"))
+                    }
+                    HorizontalDivider()
                 }
             }
         }
-        item {
-            if (usage.isEmpty()) Text("${EobStrings.t(language, "noCptsFound")} ${EobStrings.cptCategoryLabel(language, selectedCategory)} $year")
-        }
-    }
-}
-
-@Composable
-fun DashboardScreen(language: AppLanguage, records: List<EobRecord>) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        item { YearlyHealthCostDashboard(EobAnalyzer.yearlyHealthCostSummary(records)) }
     }
 }
 
