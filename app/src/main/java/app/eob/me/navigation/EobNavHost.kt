@@ -170,6 +170,7 @@ private fun MainHubNavHost(
     val navController = rememberNavController()
     val eobViewModel: EobViewModel = viewModel()
     val eobRecords by eobViewModel.eobRecords.collectAsStateWithLifecycle()
+    val hubUiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     val sortedEobRecords by remember {
         derivedStateOf { eobRecords.sortedBy { it.serviceDateSortKey } }
     }
@@ -275,7 +276,14 @@ private fun MainHubNavHost(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Header(language, onProfile = { navController.navigate(EobRoute.Profile.route) }, onLogout = onLogout)
+            Header(
+                language = language,
+                onProfile = { navController.navigate(EobRoute.Profile.route) },
+                onLogout = {
+                    eobViewModel.resetHubState()
+                    onLogout()
+                }
+            )
             PrimaryScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
                 edgePadding = 8.dp
@@ -300,8 +308,8 @@ private fun MainHubNavHost(
                         language = language,
                         profile = profile,
                         records = sortedEobRecords,
-                        appointments = eobViewModel.appointments.sortedBy { it.date },
-                        uploadNotice = eobViewModel.uploadNotice,
+                        appointments = hubUiState.appointments.sortedBy { it.date },
+                        uploadNotice = hubUiState.uploadNotice,
                         onAddAppointment = { date, provider, time, notes ->
                             eobViewModel.addAppointment(date, provider, time, notes)
                             onActivity()
@@ -355,8 +363,8 @@ private fun MainHubNavHost(
                     AppealScreen(
                         language,
                         profile,
-                        eobViewModel.selectedRecord,
-                        eobViewModel.appealLetter,
+                        hubUiState.selectedRecord,
+                        hubUiState.appealLetter,
                         {
                             eobViewModel.regenerateAppeal(profile)
                             onActivity()
@@ -380,7 +388,10 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onLanguageChanged = onLanguageChanged,
-                        onLogout = onLogout
+                        onLogout = {
+                            eobViewModel.resetHubState()
+                            onLogout()
+                        }
                     )
                 }
             }
@@ -399,6 +410,7 @@ private fun HistoryRoute(
     onActivity: () -> Unit
 ) {
     val records by eobViewModel.eobRecords.collectAsStateWithLifecycle()
+    val hubUiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredRecords by remember {
@@ -445,9 +457,9 @@ private fun HistoryRoute(
         AnalysisScreen(
             language = language,
             records = filteredRecords,
-            selectedRecord = eobViewModel.selectedRecord,
+            selectedRecord = hubUiState.selectedRecord,
             uploadText = eobViewModel.uploadText,
-            uploadNotice = eobViewModel.uploadNotice,
+            uploadNotice = hubUiState.uploadNotice,
             onUploadTextChanged = {
                 eobViewModel.uploadText = it
                 onActivity()
