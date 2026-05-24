@@ -69,7 +69,7 @@ object EobStrings {
         "forgotUsernameHelp" to "Your EOBme username is your email address. Check your inbox for EOBme or contact support if you no longer know which email you used.",
         "passwordResetSent" to "Password reset email sent if the account exists.",
         "profileRequired" to "Create your profile",
-        "profileRequiredHelp" to "First name, last name, email, password, city, and state are required. Insurance ID and insurance name are optional.",
+        "profileRequiredHelp" to "First name, last name, email, city, and state are required. Password is collected only during sign-in or account creation. Insurance ID and insurance name are optional.",
         "passwordRule" to "Password must be at least 8 characters and include at least 1 number.",
         "home" to "Home",
         "analysis" to "EOB History",

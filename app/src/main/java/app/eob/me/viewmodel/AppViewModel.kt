@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
+import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.Screen
 import com.google.firebase.FirebaseApp
@@ -44,6 +45,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _profile = MutableStateFlow(UserProfile(email = auth?.currentUser?.email.orEmpty()))
     val profile: StateFlow<UserProfile> = _profile.asStateFlow()
+
+    private val _registrationCredentials = MutableStateFlow(RegistrationCredentials())
+    val registrationCredentials: StateFlow<RegistrationCredentials> = _registrationCredentials.asStateFlow()
 
     private val _isSignUp = MutableStateFlow<Boolean?>(null)
     val isSignUp: StateFlow<Boolean?> = _isSignUp.asStateFlow()
@@ -143,20 +147,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onCreateAccountSelected() {
         _isSignUp.value = true
         _authMessage.value = ""
+        _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
     }
 
     fun onSignInSelected() {
         _isSignUp.value = false
         _authMessage.value = ""
+        _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
     }
 
     fun onAuthToggleMode() {
         _isSignUp.value = null
         _authMessage.value = ""
+        _registrationCredentials.value = RegistrationCredentials()
     }
 
     fun onProfileChanged(updated: UserProfile) {
         _profile.value = updated
+        updateActivityTime()
+    }
+
+    fun onCredentialsChanged(updated: RegistrationCredentials) {
+        _registrationCredentials.value = updated
+        if (updated.email.isNotBlank() && updated.email != _profile.value.email) {
+            _profile.update { it.copy(email = updated.email) }
+        }
         updateActivityTime()
     }
 
@@ -172,8 +187,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         val profile = _profile.value
+        val credentials = _registrationCredentials.value
         if (_isSignUp.value == true) {
-            firebaseRepository.createAccount(profile) { status ->
+            val signUpCredentials = credentials.copy(email = profile.email)
+            firebaseRepository.createAccount(profile, signUpCredentials) { status ->
                 _authMessage.value = if (status.userId.isBlank()) {
                     status.message
                 } else {
@@ -182,10 +199,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (status.userId.isNotBlank()) {
                     auth?.currentUser?.sendEmailVerification()
                     _awaitingEmailVerification.value = true
+                    _registrationCredentials.value = RegistrationCredentials()
                 }
             }
         } else {
-            firebaseRepository.signIn(profile.email, profile.password) { status ->
+            firebaseRepository.signIn(credentials.email, credentials.password) { status ->
                 val currentUser = auth?.currentUser
                 if (currentUser != null && !currentUser.isEmailVerified) {
                     _awaitingEmailVerification.value = true
@@ -193,6 +211,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         "Email verification required. Check your original verification email before continuing."
                 } else {
                     _authMessage.value = if (status.userId.isBlank()) status.message else ""
+                    if (status.userId.isNotBlank()) {
+                        _registrationCredentials.value = RegistrationCredentials()
+                    }
                 }
             }
         }
@@ -200,7 +221,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onForgotPassword() {
-        firebaseRepository.sendPasswordReset(_profile.value.email) { message ->
+        val email = _registrationCredentials.value.email.ifBlank { _profile.value.email }
+        firebaseRepository.sendPasswordReset(email) { message ->
             _authMessage.value = message.ifBlank {
                 EobStrings.t(selectedLanguage.value, "passwordResetSent")
             }
@@ -227,6 +249,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onLogout() {
         firebaseRepository.signOut()
         _introStep.value = 0
+        _registrationCredentials.value = RegistrationCredentials()
         updateActivityTime()
     }
 

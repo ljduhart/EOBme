@@ -39,19 +39,20 @@ class FirebaseEobRepository(private val context: Context) {
 
     fun signInOrCreate(
         profile: UserProfile,
+        credentials: RegistrationCredentials,
         onResult: (FirebaseSyncStatus) -> Unit
     ) {
         if (!configured) {
             onResult(status())
             return
         }
-        if (profile.email.isBlank() || profile.password.isBlank()) {
+        if (credentials.email.isBlank() || credentials.password.isBlank()) {
             onResult(FirebaseSyncStatus(true, message = "Enter email and password to sync with Firebase."))
             return
         }
 
         val auth = FirebaseAuth.getInstance()
-        auth.signInWithEmailAndPassword(profile.email, profile.password)
+        auth.signInWithEmailAndPassword(credentials.email, credentials.password)
             .addOnSuccessListener {
                 val userId = it.user?.uid.orEmpty()
                 saveProfile(userId, profile) {}
@@ -59,7 +60,7 @@ class FirebaseEobRepository(private val context: Context) {
                 onResult(FirebaseSyncStatus(true, userId, "Firebase sync is active."))
             }
             .addOnFailureListener {
-                auth.createUserWithEmailAndPassword(profile.email, profile.password)
+                auth.createUserWithEmailAndPassword(credentials.email, credentials.password)
                     .addOnSuccessListener { result ->
                         val userId = result.user?.uid.orEmpty()
                         saveProfile(userId, profile) {}
@@ -102,12 +103,16 @@ class FirebaseEobRepository(private val context: Context) {
             .addOnFailureListener { onResult("Password reset failed: ${it.localizedMessage}") }
     }
 
-    fun createAccount(profile: UserProfile, onResult: (FirebaseSyncStatus) -> Unit) {
+    fun createAccount(
+        profile: UserProfile,
+        credentials: RegistrationCredentials,
+        onResult: (FirebaseSyncStatus) -> Unit
+    ) {
         if (!configured) {
             onResult(status())
             return
         }
-        FirebaseAuth.getInstance().createUserWithEmailAndPassword(profile.email, profile.password)
+        FirebaseAuth.getInstance().createUserWithEmailAndPassword(credentials.email, credentials.password)
             .addOnSuccessListener {
                 val userId = it.user?.uid.orEmpty()
                 saveProfile(userId, profile) {}
@@ -125,7 +130,6 @@ class FirebaseEobRepository(private val context: Context) {
 
     fun observeProfile(
         userId: String,
-        currentPassword: String,
         onProfile: (UserProfile) -> Unit,
         onError: (String) -> Unit
     ): ListenerRegistration? {
@@ -137,7 +141,7 @@ class FirebaseEobRepository(private val context: Context) {
                     return@addSnapshotListener
                 }
                 val data = snapshot?.data ?: return@addSnapshotListener
-                onProfile(FirebaseEobMapper.profileFromMap(data, currentPassword))
+                onProfile(FirebaseEobMapper.profileFromMap(data))
             }
     }
 
