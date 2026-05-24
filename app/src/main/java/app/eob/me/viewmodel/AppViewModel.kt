@@ -12,9 +12,11 @@ import app.eob.me.navigation.Screen
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +25,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     val firebaseRepository = FirebaseEobRepository(application.applicationContext)
@@ -180,43 +184,68 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onAuthSubmit() {
-        _authMessage.value = ""
         if (!firebaseConfigured) {
             _authMessage.value = firebaseConfigMessage()
             return
         }
+
         val profile = _profile.value
         val credentials = _registrationCredentials.value
-        if (_isSignUp.value == true) {
-            val signUpCredentials = credentials.copy(email = profile.email)
-            firebaseRepository.createAccount(profile, signUpCredentials) { status ->
-                _authMessage.value = if (status.userId.isBlank()) {
-                    status.message
-                } else {
-                    "Verification email sent. Check your email before continuing."
-                }
-                if (status.userId.isNotBlank()) {
-                    auth?.currentUser?.sendEmailVerification()
-                    _awaitingEmailVerification.value = true
-                    _registrationCredentials.value = RegistrationCredentials()
-                }
-            }
-        } else {
-            firebaseRepository.signIn(credentials.email, credentials.password) { status ->
-                val currentUser = auth?.currentUser
-                if (currentUser != null && !currentUser.isEmailVerified) {
-                    _awaitingEmailVerification.value = true
-                    _authMessage.value =
-                        "Email verification required. Check your original verification email before continuing."
-                } else {
-                    _authMessage.value = if (status.userId.isBlank()) status.message else ""
-                    if (status.userId.isNotBlank()) {
-                        _registrationCredentials.value = RegistrationCredentials()
+        val isSignUp = _isSignUp.value == true
+        _authMessage.value = ""
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val status = suspendCancellableCoroutine { continuation ->
+                    if (isSignUp) {
+                        val signUpCredentials = credentials.copy(email = profile.email)
+                        firebaseRepository.createAccount(profile, signUpCredentials) { result ->
+                            continuation.resume(result)
+                        }
+                    } else {
+                        firebaseRepository.signIn(credentials.email, credentials.password) { result ->
+                            continuation.resume(result)
+                        }
                     }
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (isSignUp) {
+                        _authMessage.value = if (status.userId.isBlank()) {
+                            status.message
+                        } else {
+                            "Verification email sent. Check your email before continuing."
+                        }
+                        if (status.userId.isNotBlank()) {
+                            auth?.currentUser?.sendEmailVerification()
+                            _awaitingEmailVerification.value = true
+                            _registrationCredentials.value = RegistrationCredentials()
+                        }
+                    } else {
+                        val currentUser = auth?.currentUser
+                        if (currentUser != null && !currentUser.isEmailVerified) {
+                            _awaitingEmailVerification.value = true
+                            _authMessage.value =
+                                "Email verification required. Check your original verification email before continuing."
+                        } else {
+                            _authMessage.value = if (status.userId.isBlank()) {
+                                status.message.ifBlank { "Invalid credentials. Please try again." }
+                            } else {
+                                ""
+                            }
+                            if (status.userId.isNotBlank()) {
+                                _registrationCredentials.value = RegistrationCredentials()
+                            }
+                        }
+                    }
+                    updateActivityTime()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = e.localizedMessage ?: "An authentication error occurred."
                 }
             }
         }
-        updateActivityTime()
     }
 
     fun onForgotPassword() {
