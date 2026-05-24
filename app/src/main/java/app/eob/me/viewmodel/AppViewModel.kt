@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -71,26 +72,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastActivityAt = MutableStateFlow(System.currentTimeMillis())
     val lastActivityAt: StateFlow<Long> = _lastActivityAt.asStateFlow()
 
-    val selectedLanguage: StateFlow<AppLanguage> = combine(_language) { languages ->
-        languages[0] ?: AppLanguage.English
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppLanguage.English)
+    val selectedLanguage: StateFlow<AppLanguage> = _language
+        .map { language -> language ?: AppLanguage.English }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppLanguage.English)
 
     val currentScreen: StateFlow<Screen> = combine(
-        _splashComplete,
-        _language,
-        _introStep,
-        _firebaseUser,
-        _awaitingEmailVerification,
-        _isSignUp
-    ) { values ->
-        val splashComplete = values[0] as Boolean
-        val language = values[1] as AppLanguage?
-        val introStep = values[2] as Int
-        val firebaseUser = values[3] as FirebaseUser?
-        val awaitingEmailVerification = values[4] as Boolean
-        @Suppress("UNCHECKED_CAST")
-        val isSignUp = values[5] as Boolean?
-
+        combine(_splashComplete, _language, _introStep) { splashComplete, language, introStep ->
+            Triple(splashComplete, language, introStep)
+        },
+        combine(_firebaseUser, _awaitingEmailVerification, _isSignUp) { firebaseUser, awaitingEmailVerification, isSignUp ->
+            Triple(firebaseUser, awaitingEmailVerification, isSignUp)
+        }
+    ) { onboarding, auth ->
+        val (splashComplete, language, introStep) = onboarding
+        val (firebaseUser, awaitingEmailVerification, isSignUp) = auth
         when {
             !splashComplete -> Screen.Splash
             language == null -> Screen.Language
@@ -221,16 +216,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onForgotPassword() {
+        val language = _language.value ?: AppLanguage.English
         val email = _registrationCredentials.value.email.ifBlank { _profile.value.email }
         firebaseRepository.sendPasswordReset(email) { message ->
             _authMessage.value = message.ifBlank {
-                EobStrings.t(selectedLanguage.value, "passwordResetSent")
+                EobStrings.t(language, "passwordResetSent")
             }
         }
     }
 
     fun onForgotUsername() {
-        _authMessage.value = EobStrings.t(selectedLanguage.value, "forgotUsernameHelp")
+        val language = _language.value ?: AppLanguage.English
+        _authMessage.value = EobStrings.t(language, "forgotUsernameHelp")
     }
 
     fun onRefreshVerification() {
