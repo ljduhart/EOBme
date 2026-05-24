@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +49,7 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.UserProfile
 import app.eob.me.ui.screens.AnalysisScreen
+import app.eob.me.ui.screens.LoadingInvoiceScreen
 import app.eob.me.ui.screens.AppealScreen
 import app.eob.me.ui.screens.AuthChoiceScreen
 import app.eob.me.ui.screens.AuthScreen
@@ -177,6 +179,7 @@ private fun MainHubNavHost(
     }
 
     fun prepareAndUpload(uri: Uri, sourceName: String) {
+        eobViewModel.setLoadingInvoice(true)
         scope.launch {
             runCatching { OcrProcessor.prepareUriForUpload(context, uri) }
                 .onSuccess { preparedUri ->
@@ -191,6 +194,7 @@ private fun MainHubNavHost(
                     onActivity()
                 }
                 .onFailure {
+                    eobViewModel.setLoadingInvoice(false)
                     Toast.makeText(context, EobStrings.t(language, "ocrFailed"), Toast.LENGTH_SHORT).show()
                 }
         }
@@ -456,32 +460,38 @@ private fun HistoryRoute(
                 color = MaterialTheme.colorScheme.error
             )
         }
-        AnalysisScreen(
-            language = language,
-            records = filteredRecords,
-            selectedRecord = uiState.selectedRecord,
-            uploadText = eobViewModel.uploadText,
-            uploadNotice = uiState.uploadNotice,
-            onUploadTextChanged = {
-                eobViewModel.uploadText = it
-                onActivity()
-            },
-            onLibraryUpload = onLibraryUpload,
-            onCameraScan = onCameraScan,
-            onDeleteEob = { record ->
-                eobViewModel.deleteRecord(record, profile)
-                if (eobViewModel.firebaseStatus.userId.isNotBlank()) {
-                    firebaseRepository.deleteEob(eobViewModel.firebaseStatus.userId, record) { message ->
-                        eobViewModel.updateUploadNotice(message)
+        Box(modifier = Modifier.weight(1f)) {
+            if (uiState.isLoadingInvoice) {
+                LoadingInvoiceScreen(modifier = Modifier.fillMaxSize())
+            } else {
+                AnalysisScreen(
+                    language = language,
+                    records = filteredRecords,
+                    selectedRecord = uiState.selectedRecord,
+                    uploadText = eobViewModel.uploadText,
+                    uploadNotice = uiState.uploadNotice,
+                    onUploadTextChanged = {
+                        eobViewModel.uploadText = it
+                        onActivity()
+                    },
+                    onLibraryUpload = onLibraryUpload,
+                    onCameraScan = onCameraScan,
+                    onDeleteEob = { record ->
+                        eobViewModel.deleteRecord(record, profile)
+                        if (eobViewModel.firebaseStatus.userId.isNotBlank()) {
+                            firebaseRepository.deleteEob(eobViewModel.firebaseStatus.userId, record) { message ->
+                                eobViewModel.updateUploadNotice(message)
+                            }
+                        }
+                        onActivity()
+                    },
+                    onSelected = {
+                        eobViewModel.selectRecord(it, profile)
+                        onActivity()
                     }
-                }
-                onActivity()
-            },
-            onSelected = {
-                eobViewModel.selectRecord(it, profile)
-                onActivity()
+                )
             }
-        )
+        }
     }
 }
 

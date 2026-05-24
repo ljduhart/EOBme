@@ -31,7 +31,8 @@ data class HubUiState(
     val selectedRecord: EobRecord? = null,
     val uploadNotice: String = "",
     val appealLetter: String = "",
-    val appointments: List<DoctorAppointment> = emptyList()
+    val appointments: List<DoctorAppointment> = emptyList(),
+    val isLoadingInvoice: Boolean = false
 )
 
 class EobViewModel : ViewModel() {
@@ -88,14 +89,15 @@ class EobViewModel : ViewModel() {
                         _uiState.update {
                             it.copy(
                                 selectedRecord = nextSelection,
-                                appealLetter = AppealLetterGenerator.generate(profile, nextSelection)
+                                appealLetter = AppealLetterGenerator.generate(profile, nextSelection),
+                                isLoadingInvoice = false
                             )
                         }
                     }
                 }
             },
             onError = { message ->
-                _uiState.update { it.copy(uploadNotice = message) }
+                _uiState.update { it.copy(uploadNotice = message, isLoadingInvoice = false) }
             }
         )
     }
@@ -177,6 +179,10 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(uploadNotice = message) }
     }
 
+    fun setLoadingInvoice(loading: Boolean) {
+        _uiState.update { it.copy(isLoadingInvoice = loading) }
+    }
+
     fun regenerateAppeal(profile: UserProfile) {
         val selected = _uiState.value.selectedRecord
         _uiState.update { it.copy(appealLetter = AppealLetterGenerator.generate(profile, selected)) }
@@ -189,6 +195,7 @@ class EobViewModel : ViewModel() {
         sourceName: String,
         language: AppLanguage
     ) {
+        setLoadingInvoice(true)
         repository.uploadEobFile(userId, uri, sourceName) { message ->
             updateUploadNotice(message.ifBlank { EobStrings.t(language, "libraryUploadStarted") })
         }
@@ -201,6 +208,7 @@ class EobViewModel : ViewModel() {
         sourceName: String,
         language: AppLanguage
     ) {
+        setLoadingInvoice(true)
         repository.uploadEobBitmap(userId, bitmap, sourceName) { message ->
             updateUploadNotice(message.ifBlank { EobStrings.t(language, "cameraScanStarted") })
         }
