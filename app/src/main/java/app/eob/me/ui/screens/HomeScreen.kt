@@ -38,6 +38,7 @@ import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
 import app.eob.me.data.UserProfile
+import app.eob.me.ui.components.HolographicGlassCard
 import java.util.Locale
 
 @Composable
@@ -73,44 +74,41 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = 80.dp, top = 8.dp)
     ) {
         item {
-            Card(
+            HolographicGlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                cornerRadius = 16.dp
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Hello, ${profile.firstName.ifBlank { "User" }} 👋",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Your healthcare expense profile overview",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(text = "Total Billed", style = MaterialTheme.typography.labelMedium)
-                            Text(
-                                text = String.format(Locale.US, "$%.2f", totalBilled),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Column {
-                            Text(text = "Out of Pocket", style = MaterialTheme.typography.labelMedium)
-                            Text(
-                                text = String.format(Locale.US, "$%.2f", totalResponsibility),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
+                Text(
+                    text = "Hello, ${profile.firstName.ifBlank { "User" }} 👋",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Your healthcare expense profile overview",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(text = "Total Billed", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            text = String.format(Locale.US, "$%.2f", totalBilled),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Column {
+                        Text(text = "Out of Pocket", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            text = String.format(Locale.US, "$%.2f", totalResponsibility),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }

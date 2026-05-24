@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobRecord
+import app.eob.me.ui.components.HolographicGlassCard
 import java.util.Locale
 
 private val BilledBlue = Color(0xFF2498EA)
@@ -103,76 +104,74 @@ fun DashboardScreen(
             }
         } else {
             item {
-                Card(
+                HolographicGlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
+                    cornerRadius = 16.dp
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Claim Allocation Profile",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = String.format(Locale.US, "Total Aggregated Claims: $%.2f", metrics.grossBilled),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
+                    Text(
+                        text = "Claim Allocation Profile",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = String.format(Locale.US, "Total Aggregated Claims: $%.2f", metrics.grossBilled),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(24.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                        ) {
-                            val total = metrics.grossBilled
-                            if (total > 0) {
-                                val adjustmentWeight = (metrics.adjustments / total).toFloat().coerceAtLeast(0.05f)
-                                val insuranceWeight = (metrics.insurancePaid / total).toFloat().coerceAtLeast(0.05f)
-                                val patientWeight = (metrics.patientDue / total).toFloat().coerceAtLeast(0.05f)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(24.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                    ) {
+                        val total = metrics.grossBilled
+                        if (total > 0) {
+                            val adjustmentWeight = (metrics.adjustments / total).toFloat().coerceAtLeast(0.05f)
+                            val insuranceWeight = (metrics.insurancePaid / total).toFloat().coerceAtLeast(0.05f)
+                            val patientWeight = (metrics.patientDue / total).toFloat().coerceAtLeast(0.05f)
 
-                                Box(
-                                    modifier = Modifier
-                                        .weight(adjustmentWeight)
-                                        .fillMaxHeight()
-                                        .background(AdjustmentGreen)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .weight(insuranceWeight)
-                                        .fillMaxHeight()
-                                        .background(BilledBlue)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .weight(patientWeight)
-                                        .fillMaxHeight()
-                                        .background(PatientRed)
-                                )
-                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(adjustmentWeight)
+                                    .fillMaxHeight()
+                                    .background(AdjustmentGreen)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(insuranceWeight)
+                                    .fillMaxHeight()
+                                    .background(BilledBlue)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(patientWeight)
+                                    .fillMaxHeight()
+                                    .background(PatientRed)
+                            )
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        LegendItem(
-                            label = "Network Savings Adjustments",
-                            amount = metrics.adjustments,
-                            color = AdjustmentGreen
-                        )
-                        LegendItem(
-                            label = "Covered By Carrier Plan",
-                            amount = metrics.insurancePaid,
-                            color = BilledBlue
-                        )
-                        LegendItem(
-                            label = "Your Patient Responsibility",
-                            amount = metrics.patientDue,
-                            color = PatientRed
-                        )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    LegendItem(
+                        label = "Network Savings Adjustments",
+                        amount = metrics.adjustments,
+                        color = AdjustmentGreen
+                    )
+                    LegendItem(
+                        label = "Covered By Carrier Plan",
+                        amount = metrics.insurancePaid,
+                        color = BilledBlue
+                    )
+                    LegendItem(
+                        label = "Your Patient Responsibility",
+                        amount = metrics.patientDue,
+                        color = PatientRed
+                    )
                 }
             }
 
