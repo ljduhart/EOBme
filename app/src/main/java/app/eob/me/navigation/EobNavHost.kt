@@ -63,6 +63,7 @@ import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.util.OcrProcessor
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 
 @Composable
@@ -223,27 +224,34 @@ private fun MainHubNavHost(
         }
     }
 
-    DisposableEffect(eobViewModel.firebaseStatus.userId) {
-        val userId = eobViewModel.firebaseStatus.userId
-        val profileListener = firebaseRepository.observeProfile(
+    val userId = eobViewModel.firebaseStatus.userId
+
+    DisposableEffect(userId) {
+        val profileRegistration = firebaseRepository.observeProfile(
             userId = userId,
             currentPassword = profile.password,
-            onProfile = {
-                onProfileChanged(it)
+            onProfile = { updatedProfile ->
+                onProfileChanged(updatedProfile)
                 onActivity()
             },
-            onError = { eobViewModel.firebaseStatus = eobViewModel.firebaseStatus.copy(message = it) }
-        )
-        val newsListener = firebaseRepository.observeInsuranceNews(
-            onNews = {
-                eobViewModel.firebaseNews = it
+            onError = { error ->
+                eobViewModel.firebaseStatus = eobViewModel.firebaseStatus.copy(message = error)
+            }
+        ) ?: NoOpListenerRegistration
+        val newsRegistration = firebaseRepository.observeInsuranceNews(
+            onNews = { newsItems ->
+                eobViewModel.firebaseNews = newsItems
                 onActivity()
             },
-            onError = { eobViewModel.firebaseStatus = eobViewModel.firebaseStatus.copy(message = it) }
-        )
+            onError = { error ->
+                eobViewModel.firebaseStatus = eobViewModel.firebaseStatus.copy(message = error)
+            }
+        ) ?: NoOpListenerRegistration
+
         onDispose {
-            profileListener?.remove()
-            newsListener?.remove()
+            // Essential: Unregister listeners instantly when user logs out or leaves the hub
+            profileRegistration.remove()
+            newsRegistration.remove()
         }
     }
 
@@ -496,6 +504,10 @@ private fun Header(language: AppLanguage, onProfile: () -> Unit, onLogout: () ->
             )
         }
     }
+}
+
+private object NoOpListenerRegistration : ListenerRegistration {
+    override fun remove() = Unit
 }
 
 private fun EobRoute.title(language: AppLanguage): String {
