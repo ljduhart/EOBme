@@ -189,37 +189,6 @@ fun DashboardScreen(language: AppLanguage, records: List<EobRecord>) {
 }
 
 @Composable
-fun AppealScreen(
-    language: AppLanguage,
-    profile: UserProfile,
-    selectedRecord: EobRecord?,
-    letter: String,
-    onRegenerate: () -> Unit,
-    onLetterChanged: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(EobStrings.t(language, "appealLetter"), style = MaterialTheme.typography.titleLarge)
-        Text(EobStrings.t(language, "appealHelp"))
-        Text("${EobStrings.t(language, "currentMember")}: ${profile.fullName.ifBlank { EobStrings.t(language, "profileIncomplete") }}")
-        Text("${EobStrings.t(language, "selectedEob")}: ${selectedRecord?.providerName ?: EobStrings.t(language, "noEobSelected")}")
-        Button(onClick = onRegenerate) { Text(EobStrings.t(language, "autoFillAppeal")) }
-        OutlinedTextField(
-            value = letter,
-            onValueChange = onLetterChanged,
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 14,
-            label = { Text(EobStrings.t(language, "editAppealLetter")) }
-        )
-    }
-}
-
-@Composable
 fun ProfileScreen(
     language: AppLanguage,
     profile: UserProfile,
