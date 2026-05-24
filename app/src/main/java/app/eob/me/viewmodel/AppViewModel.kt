@@ -76,16 +76,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         .map { language -> language ?: AppLanguage.English }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppLanguage.English)
 
-    val currentScreen: StateFlow<Screen> = combine(
-        combine(_splashComplete, _language, _introStep) { splashComplete, language, introStep ->
-            Triple(splashComplete, language, introStep)
-        },
-        combine(_firebaseUser, _awaitingEmailVerification, _isSignUp) { firebaseUser, awaitingEmailVerification, isSignUp ->
-            Triple(firebaseUser, awaitingEmailVerification, isSignUp)
-        }
-    ) { onboarding, auth ->
-        val (splashComplete, language, introStep) = onboarding
-        val (firebaseUser, awaitingEmailVerification, isSignUp) = auth
+    val currentScreen: StateFlow<Screen> = listOf(
+        _splashComplete,
+        _language,
+        _introStep,
+        _firebaseUser,
+        _awaitingEmailVerification,
+        _isSignUp
+    ).combineAll { values ->
+        val splashComplete = values[0] as Boolean
+        val language = values[1] as AppLanguage?
+        val introStep = values[2] as Int
+        val firebaseUser = values[3] as FirebaseUser?
+        val awaitingEmailVerification = values[4] as Boolean
+        val isSignUp = values[5] as Boolean?
         when {
             !splashComplete -> Screen.Splash
             language == null -> Screen.Language
