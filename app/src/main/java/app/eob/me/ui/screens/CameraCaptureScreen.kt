@@ -18,7 +18,6 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,12 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -50,6 +43,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
+import app.eob.me.ui.components.CameraScanningOverlay
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -138,7 +132,7 @@ fun CameraCaptureScreen(
     Box(Modifier.fillMaxSize()) {
         if (hasPermission) {
             AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
-            DocumentGuideOverlay()
+            CameraScanningOverlay()
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -193,30 +187,6 @@ fun CameraCaptureScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DocumentGuideOverlay() {
-    Canvas(Modifier.fillMaxSize()) {
-        val marginX = size.width * 0.08f
-        val marginY = size.height * 0.16f
-        val rectSize = Size(size.width - marginX * 2, size.height - marginY * 2)
-        val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-        drawRoundRect(
-            color = Color.White.copy(alpha = 0.85f),
-            topLeft = Offset(marginX, marginY),
-            size = rectSize,
-            cornerRadius = CornerRadius(20.dp.toPx()),
-            style = stroke
-        )
-        drawRoundRect(
-            color = Color(0xFF0B3D91).copy(alpha = 0.30f),
-            topLeft = Offset(marginX, marginY),
-            size = rectSize,
-            cornerRadius = CornerRadius(20.dp.toPx()),
-            style = Stroke(width = 12.dp.toPx())
-        )
     }
 }
 
