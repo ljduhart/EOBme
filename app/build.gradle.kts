@@ -27,8 +27,8 @@ android {
         applicationId = "app.eob.me"
         minSdk = 24
         targetSdk = 35
-        versionCode = 52
-        versionName = "6.1"
+        versionCode = 63
+        versionName = "7.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
