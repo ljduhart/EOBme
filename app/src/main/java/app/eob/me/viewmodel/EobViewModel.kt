@@ -1,4 +1,4 @@
-package app.eob.me.app
+package app.eob.me.viewmodel
 
 import android.graphics.Bitmap
 import android.net.Uri
@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.CptCategory
@@ -18,11 +19,22 @@ import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class EobViewModel : ViewModel() {
-    val records = mutableStateListOf(EobAnalyzer.analyze(EobStrings.sampleEobText, "Sample camera scan", 1))
+    private val _eobRecords = MutableStateFlow(
+        listOf(EobAnalyzer.analyze(EobStrings.sampleEobText, "Sample camera scan", 1))
+    )
+    val eobRecords: StateFlow<List<EobRecord>> = _eobRecords.asStateFlow()
+
     val appointments = mutableStateListOf<DoctorAppointment>()
-    var selectedRecord by mutableStateOf<EobRecord?>(records.firstOrNull())
+    var selectedRecord by mutableStateOf<EobRecord?>(_eobRecords.value.firstOrNull())
         private set
     var uploadText by mutableStateOf("")
     var uploadNotice by mutableStateOf("")
@@ -33,11 +45,47 @@ class EobViewModel : ViewModel() {
     var firebaseStatus by mutableStateOf(FirebaseSyncStatus(isConfigured = false))
     var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
     private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
+    private var eobListener: ListenerRegistration? = null
+
+    fun fetchHistoryFromFirestore(
+        repository: FirebaseEobRepository,
+        userId: String,
+        profile: UserProfile
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            eobListener?.remove()
+            eobListener = null
+            if (userId.isBlank()) return@launch
+            eobListener = repository.observeEobs(
+                userId = userId,
+                onRecords = { records ->
+                    viewModelScope.launch(Dispatchers.Default) {
+                        val compacted = EobAnalyzer.compactDuplicateEobs(records)
+                        withContext(Dispatchers.Main) {
+                            applyRecords(compacted, profile)
+                        }
+                    }
+                },
+                onError = { message ->
+                    viewModelScope.launch(Dispatchers.Main) {
+                        firebaseStatus = firebaseStatus.copy(message = message)
+                    }
+                }
+            )
+        }
+    }
 
     fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
-        val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
-        records.clear()
-        records.addAll(compacted)
+        viewModelScope.launch(Dispatchers.Default) {
+            val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
+            withContext(Dispatchers.Main) {
+                applyRecords(compacted, profile)
+            }
+        }
+    }
+
+    private fun applyRecords(compacted: List<EobRecord>, profile: UserProfile) {
+        _eobRecords.value = compacted
         val current = selectedRecord
         selectedRecord = if (current == null || compacted.none { it.id == current.id }) {
             compacted.firstOrNull()
@@ -54,8 +102,8 @@ class EobViewModel : ViewModel() {
     }
 
     fun deleteRecord(record: EobRecord, profile: UserProfile) {
-        records.removeAll { it.id == record.id }
-        selectedRecord = records.firstOrNull()
+        _eobRecords.value = _eobRecords.value.filter { it.id != record.id }
+        selectedRecord = _eobRecords.value.firstOrNull()
         regenerateAppeal(profile)
     }
 
@@ -114,19 +162,28 @@ class EobViewModel : ViewModel() {
 
     fun savePastedEob(repository: FirebaseEobRepository, userId: String, sourceName: String, profile: UserProfile) {
         if (uploadText.isBlank()) return
-        val analyzedRecord = EobAnalyzer.analyze(uploadText, sourceName, (records.maxOfOrNull { it.id } ?: 0) + 1)
-        val duplicateIndex = records.indexOfFirst { EobAnalyzer.isSameEob(it, analyzedRecord) }
+        val currentRecords = _eobRecords.value
+        val analyzedRecord = EobAnalyzer.analyze(uploadText, sourceName, (currentRecords.maxOfOrNull { it.id } ?: 0) + 1)
+        val duplicateIndex = currentRecords.indexOfFirst { EobAnalyzer.isSameEob(it, analyzedRecord) }
         val record = if (duplicateIndex >= 0) {
             uploadNotice = "Duplicate EOB found. The original copy was replaced with this upload."
-            analyzedRecord.copy(id = records[duplicateIndex].id)
+            analyzedRecord.copy(id = currentRecords[duplicateIndex].id)
         } else {
             uploadNotice = "EOB added."
             analyzedRecord
         }
-        if (duplicateIndex >= 0) records[duplicateIndex] = record else records.add(record)
-        replaceRecords(records, profile)
+        val updatedRecords = currentRecords.toMutableList().apply {
+            if (duplicateIndex >= 0) this[duplicateIndex] = record else add(record)
+        }
+        replaceRecords(updatedRecords, profile)
         if (userId.isNotBlank()) repository.saveEob(userId, record) { uploadNotice = it }
         uploadText = ""
+    }
+
+    override fun onCleared() {
+        eobListener?.remove()
+        eobListener = null
+        super.onCleared()
     }
 }
 
