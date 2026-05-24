@@ -20,12 +20,11 @@ object FirebaseEobMapper {
         )
     }
 
-    fun profileFromMap(data: Map<String, Any?>, currentPassword: String = ""): UserProfile {
+    fun profileFromMap(data: Map<String, Any?>): UserProfile {
         return UserProfile(
             firstName = data.stringValue("firstName", "first_name"),
             lastName = data.stringValue("lastName", "last_name"),
             email = data.stringValue("email"),
-            password = currentPassword,
             city = data.stringValue("city"),
             state = data.stringValue("state"),
             insuranceName = data.stringValue("insuranceName", "insurance_name", "insuranceCardSummary", "insurance_card_summary"),

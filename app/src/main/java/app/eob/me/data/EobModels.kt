@@ -20,7 +20,6 @@ data class UserProfile(
     val firstName: String = "",
     val lastName: String = "",
     val email: String = "",
-    val password: String = "",
     val city: String = "",
     val state: String = "",
     val insuranceName: String = "",
@@ -32,15 +31,21 @@ data class UserProfile(
         get() = firstName.isNotBlank() &&
             lastName.isNotBlank() &&
             email.isNotBlank() &&
-            isPasswordValid &&
             city.isNotBlank() &&
             state.isNotBlank()
 
+    val fullName: String
+        get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
+}
+
+data class RegistrationCredentials(val email: String = "", val password: String = "") {
     val isPasswordValid: Boolean
         get() = password.length >= 8 && password.any { it.isDigit() }
 
-    val fullName: String
-        get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
+    fun isReadyForSignIn(): Boolean = email.isNotBlank() && password.isNotBlank()
+
+    fun isReadyForSignUp(profile: UserProfile): Boolean =
+        profile.isComplete && profile.email.isNotBlank() && isPasswordValid
 }
 
 data class CptInfo(

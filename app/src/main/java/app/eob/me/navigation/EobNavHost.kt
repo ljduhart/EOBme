@@ -63,6 +63,7 @@ import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.util.OcrProcessor
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
+import app.eob.me.viewmodel.HubUiState
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 
@@ -76,6 +77,7 @@ fun EobNavHost(viewModel: AppViewModel) {
     val isSignUp by viewModel.isSignUp.collectAsStateWithLifecycle()
     val awaitingEmailVerification by viewModel.awaitingEmailVerification.collectAsStateWithLifecycle()
     val authMessage by viewModel.authMessage.collectAsStateWithLifecycle()
+    val registrationCredentials by viewModel.registrationCredentials.collectAsStateWithLifecycle()
 
     LaunchedEffect(currentScreen) {
         val targetRoute = currentScreen.route
@@ -125,11 +127,13 @@ fun EobNavHost(viewModel: AppViewModel) {
             AuthScreen(
                 language = language,
                 profile = profile,
+                credentials = registrationCredentials,
                 isSignUp = isSignUp == true,
                 awaitingEmailVerification = awaitingEmailVerification,
                 authMessage = authMessage,
                 modifier = Modifier.fillMaxSize(),
                 onProfileChanged = viewModel::onProfileChanged,
+                onCredentialsChanged = viewModel::onCredentialsChanged,
                 onToggleMode = viewModel::onAuthToggleMode,
                 onSubmit = viewModel::onAuthSubmit,
                 onForgotPassword = viewModel::onForgotPassword,
@@ -167,6 +171,7 @@ private fun MainHubNavHost(
     val navController = rememberNavController()
     val eobViewModel: EobViewModel = viewModel()
     val eobRecords by eobViewModel.eobRecords.collectAsStateWithLifecycle()
+    val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     val sortedEobRecords by remember {
         derivedStateOf { eobRecords.sortedBy { it.serviceDateSortKey } }
     }
@@ -217,7 +222,7 @@ private fun MainHubNavHost(
         )
     }
 
-    LaunchedEffect(profile.email, profile.password, profile.isComplete) {
+    LaunchedEffect(profile.email, profile.isComplete) {
         if (profile.isComplete && eobViewModel.firebaseStatus.userId.isNotBlank()) {
             firebaseRepository.saveProfile(eobViewModel.firebaseStatus.userId, profile) {}
             firebaseRepository.saveInsuranceCardMetadata(eobViewModel.firebaseStatus.userId, profile) {}
@@ -229,7 +234,6 @@ private fun MainHubNavHost(
     DisposableEffect(userId) {
         val profileRegistration = firebaseRepository.observeProfile(
             userId = userId,
-            currentPassword = profile.password,
             onProfile = { updatedProfile ->
                 onProfileChanged(updatedProfile)
                 onActivity()
@@ -273,7 +277,14 @@ private fun MainHubNavHost(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Header(language, onProfile = { navController.navigate(EobRoute.Profile.route) }, onLogout = onLogout)
+            Header(
+                language = language,
+                onProfile = { navController.navigate(EobRoute.Profile.route) },
+                onLogout = {
+                    eobViewModel.resetHubState()
+                    onLogout()
+                }
+            )
             PrimaryScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
                 edgePadding = 8.dp
@@ -298,8 +309,8 @@ private fun MainHubNavHost(
                         language = language,
                         profile = profile,
                         records = sortedEobRecords,
-                        appointments = eobViewModel.appointments.sortedBy { it.date },
-                        uploadNotice = eobViewModel.uploadNotice,
+                        appointments = uiState.appointments.sortedBy { it.date },
+                        uploadNotice = uiState.uploadNotice,
                         onAddAppointment = { date, provider, time, notes ->
                             eobViewModel.addAppointment(date, provider, time, notes)
                             onActivity()
@@ -314,6 +325,7 @@ private fun MainHubNavHost(
                     HistoryRoute(
                         language = language,
                         profile = profile,
+                        uiState = uiState,
                         eobViewModel = eobViewModel,
                         firebaseRepository = firebaseRepository,
                         onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
@@ -351,10 +363,10 @@ private fun MainHubNavHost(
                 }
                 composable(EobRoute.Appeal.route) {
                     AppealScreen(
-                        language,
-                        profile,
-                        eobViewModel.selectedRecord,
-                        eobViewModel.appealLetter,
+                        language = language,
+                        profile = profile,
+                        selectedRecord = uiState.selectedRecord,
+                        letter = uiState.appealLetter,
                         {
                             eobViewModel.regenerateAppeal(profile)
                             onActivity()
@@ -378,7 +390,10 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onLanguageChanged = onLanguageChanged,
-                        onLogout = onLogout
+                        onLogout = {
+                            eobViewModel.resetHubState()
+                            onLogout()
+                        }
                     )
                 }
             }
@@ -390,6 +405,7 @@ private fun MainHubNavHost(
 private fun HistoryRoute(
     language: AppLanguage,
     profile: UserProfile,
+    uiState: HubUiState,
     eobViewModel: EobViewModel,
     firebaseRepository: FirebaseEobRepository,
     onLibraryUpload: () -> Unit,
@@ -443,9 +459,9 @@ private fun HistoryRoute(
         AnalysisScreen(
             language = language,
             records = filteredRecords,
-            selectedRecord = eobViewModel.selectedRecord,
+            selectedRecord = uiState.selectedRecord,
             uploadText = eobViewModel.uploadText,
-            uploadNotice = eobViewModel.uploadNotice,
+            uploadNotice = uiState.uploadNotice,
             onUploadTextChanged = {
                 eobViewModel.uploadText = it
                 onActivity()

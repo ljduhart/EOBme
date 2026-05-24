@@ -3,7 +3,6 @@ package app.eob.me.viewmodel
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -24,87 +23,126 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+data class HubUiState(
+    val selectedRecord: EobRecord? = null,
+    val uploadNotice: String = "",
+    val appealLetter: String = "",
+    val appointments: List<DoctorAppointment> = emptyList()
+)
+
 class EobViewModel : ViewModel() {
-    private val _eobRecords = MutableStateFlow(
-        listOf(EobAnalyzer.analyze(EobStrings.sampleEobText, "Sample camera scan", 1))
-    )
+    private val _eobRecords = MutableStateFlow<List<EobRecord>>(emptyList())
     val eobRecords: StateFlow<List<EobRecord>> = _eobRecords.asStateFlow()
 
-    val appointments = mutableStateListOf<DoctorAppointment>()
-    var selectedRecord by mutableStateOf<EobRecord?>(_eobRecords.value.firstOrNull())
-        private set
+    private val _uiState = MutableStateFlow(HubUiState())
+    val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
+
     var uploadText by mutableStateOf("")
-    var uploadNotice by mutableStateOf("")
-        private set
     var selectedCptCategory by mutableStateOf(CptCategory.OfficeVisit)
-    var appealLetter by mutableStateOf(AppealLetterGenerator.generate(UserProfile(), selectedRecord))
-        private set
     var firebaseStatus by mutableStateOf(FirebaseSyncStatus(isConfigured = false))
     var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
     private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
     private var eobListener: ListenerRegistration? = null
+
+    fun resetHubState() {
+        eobListener?.remove()
+        eobListener = null
+        _eobRecords.value = emptyList()
+        _uiState.value = HubUiState()
+        uploadText = ""
+        selectedCptCategory = CptCategory.OfficeVisit
+        firebaseNews = emptyList()
+        deletedNewsKeys = emptySet()
+    }
 
     fun fetchHistoryFromFirestore(
         repository: FirebaseEobRepository,
         userId: String,
         profile: UserProfile
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            eobListener?.remove()
-            eobListener = null
-            if (userId.isBlank()) return@launch
-            eobListener = repository.observeEobs(
-                userId = userId,
-                onRecords = { records ->
-                    viewModelScope.launch(Dispatchers.Default) {
-                        val compacted = EobAnalyzer.compactDuplicateEobs(records)
-                        withContext(Dispatchers.Main) {
-                            applyRecords(compacted, profile)
+        if (userId.isBlank()) {
+            resetHubState()
+            return
+        }
+
+        eobListener?.remove()
+        eobListener = repository.observeEobs(
+            userId = userId,
+            onRecords = { records ->
+                viewModelScope.launch(Dispatchers.Default) {
+                    val compacted = EobAnalyzer.compactDuplicateEobs(records)
+                    _eobRecords.value = compacted
+
+                    withContext(Dispatchers.Main) {
+                        val currentSelection = _uiState.value.selectedRecord
+                        val nextSelection = if (currentSelection == null || compacted.none { it.id == currentSelection.id }) {
+                            compacted.firstOrNull()
+                        } else {
+                            compacted.firstOrNull { it.id == currentSelection.id }
+                        }
+
+                        _uiState.update {
+                            it.copy(
+                                selectedRecord = nextSelection,
+                                appealLetter = AppealLetterGenerator.generate(profile, nextSelection)
+                            )
                         }
                     }
-                },
-                onError = { message ->
-                    viewModelScope.launch(Dispatchers.Main) {
-                        firebaseStatus = firebaseStatus.copy(message = message)
-                    }
                 }
-            )
-        }
+            },
+            onError = { message ->
+                _uiState.update { it.copy(uploadNotice = message) }
+            }
+        )
     }
 
     fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
         viewModelScope.launch(Dispatchers.Default) {
             val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
+            _eobRecords.value = compacted
+
             withContext(Dispatchers.Main) {
-                applyRecords(compacted, profile)
+                val currentSelection = _uiState.value.selectedRecord
+                val nextSelection = if (currentSelection == null || compacted.none { it.id == currentSelection.id }) {
+                    compacted.firstOrNull()
+                } else {
+                    compacted.firstOrNull { it.id == currentSelection.id }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        selectedRecord = nextSelection,
+                        appealLetter = AppealLetterGenerator.generate(profile, nextSelection)
+                    )
+                }
             }
         }
     }
 
-    private fun applyRecords(compacted: List<EobRecord>, profile: UserProfile) {
-        _eobRecords.value = compacted
-        val current = selectedRecord
-        selectedRecord = if (current == null || compacted.none { it.id == current.id }) {
-            compacted.firstOrNull()
-        } else {
-            compacted.firstOrNull { it.id == current.id }
-        }
-        regenerateAppeal(profile)
-    }
-
     fun selectRecord(record: EobRecord, profile: UserProfile) {
-        selectedRecord = record
-        regenerateAppeal(profile)
-        uploadNotice = ""
+        _uiState.update {
+            it.copy(
+                selectedRecord = record,
+                uploadNotice = "",
+                appealLetter = AppealLetterGenerator.generate(profile, record)
+            )
+        }
     }
 
     fun deleteRecord(record: EobRecord, profile: UserProfile) {
-        _eobRecords.value = _eobRecords.value.filter { it.id != record.id }
-        selectedRecord = _eobRecords.value.firstOrNull()
-        regenerateAppeal(profile)
+        val remaining = _eobRecords.value.filter { it.id != record.id }
+        _eobRecords.value = remaining
+        val nextSelection = remaining.firstOrNull()
+        _uiState.update {
+            it.copy(
+                selectedRecord = nextSelection,
+                appealLetter = AppealLetterGenerator.generate(profile, nextSelection)
+            )
+        }
     }
 
     fun deleteNews(news: NewsRelease) {
@@ -117,23 +155,31 @@ class EobViewModel : ViewModel() {
     }
 
     fun addAppointment(date: String, provider: String, time: String, notes: String) {
-        appointments.add(DoctorAppointment((appointments.maxOfOrNull { it.id } ?: 0) + 1, date, provider, time, notes))
+        _uiState.update { state ->
+            val nextId = (state.appointments.maxOfOrNull { it.id } ?: 0) + 1
+            state.copy(
+                appointments = state.appointments + DoctorAppointment(nextId, date, provider, time, notes)
+            )
+        }
     }
 
     fun removeAppointment(appointment: DoctorAppointment) {
-        appointments.removeAll { it.id == appointment.id }
+        _uiState.update { state ->
+            state.copy(appointments = state.appointments.filterNot { it.id == appointment.id })
+        }
     }
 
     fun updateAppeal(text: String) {
-        appealLetter = text
+        _uiState.update { it.copy(appealLetter = text) }
     }
 
     fun updateUploadNotice(message: String) {
-        uploadNotice = message
+        _uiState.update { it.copy(uploadNotice = message) }
     }
 
     fun regenerateAppeal(profile: UserProfile) {
-        appealLetter = AppealLetterGenerator.generate(profile, selectedRecord)
+        val selected = _uiState.value.selectedRecord
+        _uiState.update { it.copy(appealLetter = AppealLetterGenerator.generate(profile, selected)) }
     }
 
     fun uploadEobFile(
@@ -144,7 +190,7 @@ class EobViewModel : ViewModel() {
         language: AppLanguage
     ) {
         repository.uploadEobFile(userId, uri, sourceName) { message ->
-            uploadNotice = message.ifBlank { EobStrings.t(language, "libraryUploadStarted") }
+            updateUploadNotice(message.ifBlank { EobStrings.t(language, "libraryUploadStarted") })
         }
     }
 
@@ -156,7 +202,7 @@ class EobViewModel : ViewModel() {
         language: AppLanguage
     ) {
         repository.uploadEobBitmap(userId, bitmap, sourceName) { message ->
-            uploadNotice = message.ifBlank { EobStrings.t(language, "cameraScanStarted") }
+            updateUploadNotice(message.ifBlank { EobStrings.t(language, "cameraScanStarted") })
         }
     }
 
@@ -165,18 +211,24 @@ class EobViewModel : ViewModel() {
         val currentRecords = _eobRecords.value
         val analyzedRecord = EobAnalyzer.analyze(uploadText, sourceName, (currentRecords.maxOfOrNull { it.id } ?: 0) + 1)
         val duplicateIndex = currentRecords.indexOfFirst { EobAnalyzer.isSameEob(it, analyzedRecord) }
+        val notice = if (duplicateIndex >= 0) {
+            "Duplicate EOB found. The original copy was replaced with this upload."
+        } else {
+            "EOB added."
+        }
         val record = if (duplicateIndex >= 0) {
-            uploadNotice = "Duplicate EOB found. The original copy was replaced with this upload."
             analyzedRecord.copy(id = currentRecords[duplicateIndex].id)
         } else {
-            uploadNotice = "EOB added."
             analyzedRecord
         }
         val updatedRecords = currentRecords.toMutableList().apply {
             if (duplicateIndex >= 0) this[duplicateIndex] = record else add(record)
         }
+        _uiState.update { it.copy(uploadNotice = notice) }
         replaceRecords(updatedRecords, profile)
-        if (userId.isNotBlank()) repository.saveEob(userId, record) { uploadNotice = it }
+        if (userId.isNotBlank()) {
+            repository.saveEob(userId, record) { updateUploadNotice(it) }
+        }
         uploadText = ""
     }
 

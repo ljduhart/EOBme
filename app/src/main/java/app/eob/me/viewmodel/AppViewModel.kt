@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
+import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.Screen
 import com.google.firebase.FirebaseApp
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -45,6 +47,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _profile = MutableStateFlow(UserProfile(email = auth?.currentUser?.email.orEmpty()))
     val profile: StateFlow<UserProfile> = _profile.asStateFlow()
 
+    private val _registrationCredentials = MutableStateFlow(RegistrationCredentials())
+    val registrationCredentials: StateFlow<RegistrationCredentials> = _registrationCredentials.asStateFlow()
+
     private val _isSignUp = MutableStateFlow<Boolean?>(null)
     val isSignUp: StateFlow<Boolean?> = _isSignUp.asStateFlow()
 
@@ -67,26 +72,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastActivityAt = MutableStateFlow(System.currentTimeMillis())
     val lastActivityAt: StateFlow<Long> = _lastActivityAt.asStateFlow()
 
-    val selectedLanguage: StateFlow<AppLanguage> = combine(_language) { languages ->
-        languages[0] ?: AppLanguage.English
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppLanguage.English)
+    val selectedLanguage: StateFlow<AppLanguage> = _language
+        .map { language -> language ?: AppLanguage.English }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppLanguage.English)
 
-    val currentScreen: StateFlow<Screen> = combine(
+    val currentScreen: StateFlow<Screen> = listOf(
         _splashComplete,
         _language,
         _introStep,
         _firebaseUser,
         _awaitingEmailVerification,
         _isSignUp
-    ) { values ->
+    ).combineAll { values ->
         val splashComplete = values[0] as Boolean
         val language = values[1] as AppLanguage?
         val introStep = values[2] as Int
         val firebaseUser = values[3] as FirebaseUser?
         val awaitingEmailVerification = values[4] as Boolean
-        @Suppress("UNCHECKED_CAST")
         val isSignUp = values[5] as Boolean?
-
         when {
             !splashComplete -> Screen.Splash
             language == null -> Screen.Language
@@ -143,20 +146,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onCreateAccountSelected() {
         _isSignUp.value = true
         _authMessage.value = ""
+        _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
     }
 
     fun onSignInSelected() {
         _isSignUp.value = false
         _authMessage.value = ""
+        _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
     }
 
     fun onAuthToggleMode() {
         _isSignUp.value = null
         _authMessage.value = ""
+        _registrationCredentials.value = RegistrationCredentials()
     }
 
     fun onProfileChanged(updated: UserProfile) {
         _profile.value = updated
+        updateActivityTime()
+    }
+
+    fun onCredentialsChanged(updated: RegistrationCredentials) {
+        _registrationCredentials.value = updated
+        if (updated.email.isNotBlank() && updated.email != _profile.value.email) {
+            _profile.update { it.copy(email = updated.email) }
+        }
         updateActivityTime()
     }
 
@@ -172,8 +186,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         val profile = _profile.value
+        val credentials = _registrationCredentials.value
         if (_isSignUp.value == true) {
-            firebaseRepository.createAccount(profile) { status ->
+            val signUpCredentials = credentials.copy(email = profile.email)
+            firebaseRepository.createAccount(profile, signUpCredentials) { status ->
                 _authMessage.value = if (status.userId.isBlank()) {
                     status.message
                 } else {
@@ -182,10 +198,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (status.userId.isNotBlank()) {
                     auth?.currentUser?.sendEmailVerification()
                     _awaitingEmailVerification.value = true
+                    _registrationCredentials.value = RegistrationCredentials()
                 }
             }
         } else {
-            firebaseRepository.signIn(profile.email, profile.password) { status ->
+            firebaseRepository.signIn(credentials.email, credentials.password) { status ->
                 val currentUser = auth?.currentUser
                 if (currentUser != null && !currentUser.isEmailVerified) {
                     _awaitingEmailVerification.value = true
@@ -193,6 +210,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         "Email verification required. Check your original verification email before continuing."
                 } else {
                     _authMessage.value = if (status.userId.isBlank()) status.message else ""
+                    if (status.userId.isNotBlank()) {
+                        _registrationCredentials.value = RegistrationCredentials()
+                    }
                 }
             }
         }
@@ -200,15 +220,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onForgotPassword() {
-        firebaseRepository.sendPasswordReset(_profile.value.email) { message ->
+        val language = _language.value ?: AppLanguage.English
+        val email = _registrationCredentials.value.email.ifBlank { _profile.value.email }
+        firebaseRepository.sendPasswordReset(email) { message ->
             _authMessage.value = message.ifBlank {
-                EobStrings.t(selectedLanguage.value, "passwordResetSent")
+                EobStrings.t(language, "passwordResetSent")
             }
         }
     }
 
     fun onForgotUsername() {
-        _authMessage.value = EobStrings.t(selectedLanguage.value, "forgotUsernameHelp")
+        val language = _language.value ?: AppLanguage.English
+        _authMessage.value = EobStrings.t(language, "forgotUsernameHelp")
     }
 
     fun onRefreshVerification() {
@@ -227,6 +250,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onLogout() {
         firebaseRepository.signOut()
         _introStep.value = 0
+        _registrationCredentials.value = RegistrationCredentials()
         updateActivityTime()
     }
 
