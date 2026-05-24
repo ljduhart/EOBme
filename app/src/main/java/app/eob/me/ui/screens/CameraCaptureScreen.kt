@@ -188,15 +188,13 @@ fun CameraCaptureScreen(
 
     if (hasPermission) {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Block 1: The Secure Viewfinder & Gesture Layer
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         detectTapGestures { offset ->
-                            tapFocusState = TapFocusState(
-                                offset = offset,
-                                triggerTime = System.currentTimeMillis()
-                            )
+                            tapFocusState = TapFocusState(offset, System.currentTimeMillis())
                             focusAtPoint(
                                 previewView = previewView,
                                 camera = boundCamera,
@@ -210,18 +208,18 @@ fun CameraCaptureScreen(
                     modifier = Modifier.fillMaxSize()
                 )
                 CameraScanningOverlay(modifier = Modifier.fillMaxSize())
-                val activeTapFocus = tapFocusState?.takeIf { focusState ->
-                    System.currentTimeMillis() - focusState.triggerTime <= TapFocusReticleActiveMs
-                }
-                if (activeTapFocus != null && reticleAlpha.value > 0f) {
-                    TapFocusReticleOverlay(
-                        tapFocusState = activeTapFocus,
-                        scale = reticleScale.value,
-                        alpha = reticleAlpha.value,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                tapFocusState?.let { state ->
+                    if (System.currentTimeMillis() - state.triggerTime < TapFocusReticleActiveMs) {
+                        TapFocusReticleOverlay(
+                            state = state,
+                            scale = reticleScale.value,
+                            alpha = reticleAlpha.value,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
+            // Block 2: The Interactive HUD Control Interface Layer (Sits on top)
             CameraControlHudElements(
                 language = language,
                 statusMessage = statusMessage,
@@ -325,13 +323,13 @@ private fun CameraPermissionPrompt(
 
 @Composable
 private fun TapFocusReticleOverlay(
-    tapFocusState: TapFocusState,
+    state: TapFocusState,
     scale: Float,
     alpha: Float,
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
-        val center = tapFocusState.offset
+        val center = state.offset
         val radius = 36.dp.toPx()
         val strokeWidth = 2.dp.toPx()
         val tickLength = 12.dp.toPx()
