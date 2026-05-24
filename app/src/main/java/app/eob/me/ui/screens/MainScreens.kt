@@ -178,17 +178,6 @@ fun NewsScreen(language: AppLanguage, newsItems: List<NewsRelease>, onDeleteNews
 }
 
 @Composable
-fun DashboardScreen(language: AppLanguage, records: List<EobRecord>) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        item { YearlyHealthCostDashboard(EobAnalyzer.yearlyHealthCostSummary(records)) }
-    }
-}
-
-@Composable
 fun AppealScreen(
     language: AppLanguage,
     profile: UserProfile,
