@@ -184,17 +184,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onAuthSubmit() {
-        if (!firebaseConfigured) {
-            _authMessage.value = firebaseConfigMessage()
-            return
-        }
-
         val profile = _profile.value
         val credentials = _registrationCredentials.value
         val isSignUp = _isSignUp.value == true
-        _authMessage.value = ""
 
         viewModelScope.launch(Dispatchers.IO) {
+            if (!firebaseConfigured) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = firebaseConfigMessage()
+                }
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                _authMessage.value = ""
+            }
+
             try {
                 val status = suspendCancellableCoroutine { continuation ->
                     if (isSignUp) {
@@ -252,8 +257,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val language = _language.value ?: AppLanguage.English
         val email = _registrationCredentials.value.email.ifBlank { _profile.value.email }
         firebaseRepository.sendPasswordReset(email) { message ->
-            _authMessage.value = message.ifBlank {
-                EobStrings.t(language, "passwordResetSent")
+            viewModelScope.launch {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = message.ifBlank {
+                        EobStrings.t(language, "passwordResetSent")
+                    }
+                }
             }
         }
     }
@@ -265,13 +274,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onRefreshVerification() {
         auth?.currentUser?.reload()?.addOnCompleteListener {
-            val currentUser = auth.currentUser
-            _awaitingEmailVerification.value = currentUser != null && !currentUser.isEmailVerified
-            _firebaseUser.value = currentUser?.takeIf { user -> user.isEmailVerified }
-            _authMessage.value = if (_awaitingEmailVerification.value) {
-                "Email is not verified yet. Please check your inbox and try again."
-            } else {
-                ""
+            viewModelScope.launch {
+                withContext(Dispatchers.Main) {
+                    val currentUser = auth.currentUser
+                    _awaitingEmailVerification.value = currentUser != null && !currentUser.isEmailVerified
+                    _firebaseUser.value = currentUser?.takeIf { user -> user.isEmailVerified }
+                    _authMessage.value = if (_awaitingEmailVerification.value) {
+                        "Email is not verified yet. Please check your inbox and try again."
+                    } else {
+                        ""
+                    }
+                }
             }
         }
     }
