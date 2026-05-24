@@ -375,12 +375,12 @@ private fun MainHubNavHost(
                         language = language,
                         profile = profile,
                         selectedRecord = uiState.selectedRecord,
-                        letter = uiState.appealLetter,
-                        {
+                        appealLetter = uiState.appealLetter,
+                        onRegenerate = {
                             eobViewModel.regenerateAppeal(profile)
                             onActivity()
                         },
-                        {
+                        onEditLetter = {
                             eobViewModel.updateAppeal(it)
                             onActivity()
                         }
