@@ -178,6 +178,7 @@ fun EobMeApp() {
             else -> EobNavHost(
                 language = selectedLanguage,
                 profile = profile,
+                firebaseUserId = firebaseUser?.uid.orEmpty(),
                 firebaseRepository = firebaseRepository,
                 onProfileChanged = {
                     profile = it

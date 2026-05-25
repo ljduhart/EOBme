@@ -121,6 +121,7 @@ object EobStrings {
         "copay" to "Copay",
         "deductible" to "Deductible",
         "coinsurance" to "Coinsurance",
+        "patientResponsibility" to "Patient responsibility",
         "noDuplicateCharges" to "No duplicate charges detected.",
         "billed" to "Billed",
         "paid" to "Paid",
@@ -183,7 +184,8 @@ object EobStrings {
         "logout" to "Salir",
         "scanBill" to "Escanear EOB",
         "uploadFromLibrary" to "Subir desde biblioteca",
-        "scanWithCamera" to "Escanear con cámara"
+        "scanWithCamera" to "Escanear con cámara",
+        "patientResponsibility" to "Responsabilidad del paciente"
     )
 
     private val french = english + mapOf(
@@ -203,7 +205,8 @@ object EobStrings {
         "logout" to "Déconnexion",
         "scanBill" to "Scanner EOB",
         "uploadFromLibrary" to "Depuis bibliothèque",
-        "scanWithCamera" to "Scanner avec caméra"
+        "scanWithCamera" to "Scanner avec caméra",
+        "patientResponsibility" to "Responsabilité du patient"
     )
 
     private val chinese = english + mapOf(
@@ -223,7 +226,8 @@ object EobStrings {
         "logout" to "退出",
         "scanBill" to "扫描 EOB",
         "uploadFromLibrary" to "从图库上传",
-        "scanWithCamera" to "用相机扫描"
+        "scanWithCamera" to "用相机扫描",
+        "patientResponsibility" to "患者自付金额"
     )
 
     private val localized = mapOf(

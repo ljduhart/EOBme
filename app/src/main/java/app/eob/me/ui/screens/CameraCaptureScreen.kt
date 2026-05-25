@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import java.io.File
@@ -261,7 +262,12 @@ private fun captureImage(
         ContextCompat.getMainExecutor(context),
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                onImageCaptured(Uri.fromFile(file))
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+                onImageCaptured(uri)
             }
 
             override fun onError(exception: ImageCaptureException) {

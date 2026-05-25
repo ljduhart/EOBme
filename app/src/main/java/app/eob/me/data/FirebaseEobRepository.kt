@@ -22,6 +22,15 @@ data class FirebaseSyncStatus(
 class FirebaseEobRepository(private val context: Context) {
     private val configured: Boolean by lazy { ensureConfigured() }
 
+    fun isConfigured(): Boolean = configured
+
+    fun currentUserId(): String {
+        if (!configured) return ""
+        return FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+    }
+
+    fun canSyncToCloud(): Boolean = isConfigured() && currentUserId().isNotBlank()
+
     fun status(): FirebaseSyncStatus {
         return if (configured) {
             FirebaseSyncStatus(
@@ -219,15 +228,20 @@ class FirebaseEobRepository(private val context: Context) {
     }
 
     fun uploadEobFile(userId: String, uri: Uri, sourceName: String, onComplete: (String) -> Unit) {
-        if (!configured || userId.isBlank()) {
-            onComplete("Please sign in before uploading an EOB.")
+        val resolvedUserId = userId.ifBlank { currentUserId() }
+        if (!configured) {
+            onComplete("")
+            return
+        }
+        if (resolvedUserId.isBlank()) {
+            onComplete("")
             return
         }
         val contentType = context.contentResolver.getType(uri)
             ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
         val extension = if (contentType == "application/pdf") "pdf" else "jpg"
         val fileName = "eob_${System.currentTimeMillis()}.$extension"
-        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/$fileName")
+        val ref = FirebaseStorage.getInstance().reference.child("users/$resolvedUserId/eob_uploads/$fileName")
         val metadata = StorageMetadata.Builder()
             .setContentType(contentType)
             .setCustomMetadata("sourceName", sourceName)
@@ -238,13 +252,18 @@ class FirebaseEobRepository(private val context: Context) {
     }
 
     fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, onComplete: (String) -> Unit) {
-        if (!configured || userId.isBlank()) {
-            onComplete("Please sign in before scanning an EOB.")
+        val resolvedUserId = userId.ifBlank { currentUserId() }
+        if (!configured) {
+            onComplete("")
+            return
+        }
+        if (resolvedUserId.isBlank()) {
+            onComplete("")
             return
         }
         val output = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)
-        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/eob_${System.currentTimeMillis()}.jpg")
+        val ref = FirebaseStorage.getInstance().reference.child("users/$resolvedUserId/eob_uploads/eob_${System.currentTimeMillis()}.jpg")
         val metadata = StorageMetadata.Builder()
             .setContentType("image/jpeg")
             .setCustomMetadata("sourceName", sourceName)
@@ -274,8 +293,11 @@ class FirebaseEobRepository(private val context: Context) {
 
     private fun ensureConfigured(): Boolean {
         return try {
-            FirebaseApp.getApps(context).isNotEmpty() || FirebaseApp.initializeApp(context) != null
-        } catch (_: IllegalStateException) {
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseApp.initializeApp(context)
+            }
+            FirebaseApp.getApps(context).isNotEmpty()
+        } catch (_: Exception) {
             false
         }
     }

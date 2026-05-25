@@ -68,6 +68,34 @@ class EobViewModel : ViewModel() {
         appealLetter = AppealLetterGenerator.generate(profile, selectedRecord)
     }
 
+    fun syncFirebaseStatus(repository: FirebaseEobRepository, userId: String) {
+        firebaseStatus = repository.status().copy(userId = userId)
+    }
+
+    fun updateUploadNotice(message: String) {
+        uploadNotice = message
+    }
+
+    fun importEobFromText(rawText: String, sourceName: String, profile: UserProfile, language: AppLanguage): EobRecord {
+        val analyzedRecord = EobAnalyzer.analyze(rawText, sourceName, (records.maxOfOrNull { it.id } ?: 0) + 1)
+        val duplicateIndex = records.indexOfFirst { EobAnalyzer.isSameEob(it, analyzedRecord) }
+        val record = if (duplicateIndex >= 0) {
+            uploadNotice = EobStrings.t(language, "duplicateReplaced")
+            analyzedRecord.copy(id = records[duplicateIndex].id)
+        } else {
+            uploadNotice = EobStrings.t(language, "eobAdded")
+            analyzedRecord
+        }
+        if (duplicateIndex >= 0) {
+            records[duplicateIndex] = record
+        } else {
+            records.add(record)
+        }
+        replaceRecords(records, profile)
+        selectedRecord = record
+        return record
+    }
+
     fun uploadEobFile(
         repository: FirebaseEobRepository,
         userId: String,
@@ -76,7 +104,7 @@ class EobViewModel : ViewModel() {
         language: AppLanguage
     ) {
         repository.uploadEobFile(userId, uri, sourceName) { message ->
-            uploadNotice = message.ifBlank { EobStrings.t(language, "libraryUploadStarted") }
+            if (message.isNotBlank()) uploadNotice = message
         }
     }
 
@@ -88,23 +116,19 @@ class EobViewModel : ViewModel() {
         language: AppLanguage
     ) {
         repository.uploadEobBitmap(userId, bitmap, sourceName) { message ->
-            uploadNotice = message.ifBlank { EobStrings.t(language, "cameraScanStarted") }
+            if (message.isNotBlank()) uploadNotice = message
         }
     }
 
-    fun savePastedEob(repository: FirebaseEobRepository, userId: String, sourceName: String, profile: UserProfile) {
+    fun savePastedEob(
+        repository: FirebaseEobRepository,
+        userId: String,
+        sourceName: String,
+        profile: UserProfile,
+        language: AppLanguage
+    ) {
         if (uploadText.isBlank()) return
-        val analyzedRecord = EobAnalyzer.analyze(uploadText, sourceName, (records.maxOfOrNull { it.id } ?: 0) + 1)
-        val duplicateIndex = records.indexOfFirst { EobAnalyzer.isSameEob(it, analyzedRecord) }
-        val record = if (duplicateIndex >= 0) {
-            uploadNotice = "Duplicate EOB found. The original copy was replaced with this upload."
-            analyzedRecord.copy(id = records[duplicateIndex].id)
-        } else {
-            uploadNotice = "EOB added."
-            analyzedRecord
-        }
-        if (duplicateIndex >= 0) records[duplicateIndex] = record else records.add(record)
-        replaceRecords(records, profile)
+        val record = importEobFromText(uploadText, sourceName, profile, language)
         if (userId.isNotBlank()) repository.saveEob(userId, record) { uploadNotice = it }
         uploadText = ""
     }

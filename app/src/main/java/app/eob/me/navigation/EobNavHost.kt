@@ -1,6 +1,7 @@
 package app.eob.me.navigation
 
 import android.Manifest
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
@@ -57,6 +58,7 @@ import kotlinx.coroutines.launch
 fun EobNavHost(
     language: AppLanguage,
     profile: UserProfile,
+    firebaseUserId: String,
     firebaseRepository: FirebaseEobRepository,
     onProfileChanged: (UserProfile) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
@@ -68,29 +70,60 @@ fun EobNavHost(
     val navController = rememberNavController()
     val viewModel: EobViewModel = viewModel()
 
-    fun prepareAndUpload(uri: Uri, sourceName: String) {
+    fun navigateToAnalysis() {
+        navController.navigate(EobRoute.Analysis.route) {
+            launchSingleTop = true
+            popUpTo(EobRoute.Home.route)
+        }
+        onActivity()
+    }
+
+    fun processScannedDocument(uri: Uri, sourceName: String) {
         scope.launch {
-            runCatching { OcrProcessor.prepareUriForUpload(context, uri) }
-                .onSuccess { preparedUri ->
+            runCatching {
+                val preparedUri = OcrProcessor.prepareUriForUpload(context, uri)
+                val ocrText = OcrProcessor.recognizeFromUri(context, preparedUri).trim()
+                if (ocrText.isBlank()) {
+                    error("empty_ocr")
+                }
+                preparedUri to ocrText
+            }.onSuccess { (preparedUri, ocrText) ->
+                val record = viewModel.importEobFromText(ocrText, sourceName, profile, language)
+                val userId = firebaseRepository.currentUserId().ifBlank { firebaseUserId }
+                if (firebaseRepository.canSyncToCloud()) {
+                    firebaseRepository.saveEob(userId, record) { message ->
+                        if (message.isNotBlank()) viewModel.updateUploadNotice(message)
+                    }
                     viewModel.uploadEobFile(
                         repository = firebaseRepository,
-                        userId = viewModel.firebaseStatus.userId,
+                        userId = userId,
                         uri = preparedUri,
                         sourceName = sourceName,
                         language = language
                     )
-                    navController.navigate(EobRoute.Analysis.route) { launchSingleTop = true }
-                    onActivity()
                 }
-                .onFailure {
-                    Toast.makeText(context, EobStrings.t(language, "ocrFailed"), Toast.LENGTH_SHORT).show()
+                navigateToAnalysis()
+            }.onFailure { error ->
+                val message = if (error.message == "empty_ocr") {
+                    EobStrings.t(language, "ocrEmpty")
+                } else {
+                    EobStrings.t(language, "ocrFailed")
                 }
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                navigateToAnalysis()
+            }
         }
     }
 
     val libraryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            prepareAndUpload(uri, EobStrings.t(language, "libraryUpload"))
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            processScannedDocument(uri, EobStrings.t(language, "libraryUpload"))
         }
     }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -105,15 +138,21 @@ fun EobNavHost(
         }
     }
 
-    LaunchedEffect(profile.email, profile.password, profile.isComplete) {
-        if (profile.isComplete && viewModel.firebaseStatus.userId.isNotBlank()) {
-            firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, profile) {}
-            firebaseRepository.saveInsuranceCardMetadata(viewModel.firebaseStatus.userId, profile) {}
+    LaunchedEffect(firebaseUserId) {
+        val userId = firebaseRepository.currentUserId().ifBlank { firebaseUserId }
+        viewModel.syncFirebaseStatus(firebaseRepository, userId)
+    }
+
+    LaunchedEffect(profile.email, profile.password, profile.isComplete, firebaseUserId) {
+        val userId = firebaseRepository.currentUserId().ifBlank { firebaseUserId }
+        if (profile.isComplete && userId.isNotBlank()) {
+            firebaseRepository.saveProfile(userId, profile) {}
+            firebaseRepository.saveInsuranceCardMetadata(userId, profile) {}
         }
     }
 
-    DisposableEffect(viewModel.firebaseStatus.userId) {
-        val userId = viewModel.firebaseStatus.userId
+    DisposableEffect(firebaseUserId) {
+        val userId = firebaseRepository.currentUserId().ifBlank { firebaseUserId }
         val profileListener = firebaseRepository.observeProfile(
             userId = userId,
             currentPassword = profile.password,
@@ -222,8 +261,8 @@ fun EobNavHost(
                     CameraCaptureScreen(
                         language = language,
                         onImageCaptured = { uri ->
-                            prepareAndUpload(uri, EobStrings.t(language, "cameraScan"))
-                            navController.popBackStack(EobRoute.Analysis.route, inclusive = false)
+                            navController.popBackStack()
+                            processScannedDocument(uri, EobStrings.t(language, "cameraScan"))
                         },
                         onClose = { navController.popBackStack() }
                     )
@@ -252,9 +291,10 @@ fun EobNavHost(
                         profile = profile,
                         onProfileChanged = {
                             onProfileChanged(it)
-                            if (viewModel.firebaseStatus.userId.isNotBlank()) {
-                                firebaseRepository.saveProfile(viewModel.firebaseStatus.userId, it) {}
-                                firebaseRepository.saveInsuranceCardMetadata(viewModel.firebaseStatus.userId, it) {}
+                            val userId = firebaseRepository.currentUserId().ifBlank { firebaseUserId }
+                            if (userId.isNotBlank()) {
+                                firebaseRepository.saveProfile(userId, it) {}
+                                firebaseRepository.saveInsuranceCardMetadata(userId, it) {}
                             }
                             onActivity()
                         },
