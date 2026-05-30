@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Button
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedButton
@@ -50,11 +49,15 @@ import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.components.EobDeleteBar
+import app.eob.me.ui.components.HubBottomBar
+import app.eob.me.navigation.HubBentoDestination
+import app.eob.me.navigation.HubBottomTab
 import app.eob.me.ui.screens.AppealScreen
 import app.eob.me.ui.screens.AuthChoiceScreen
 import app.eob.me.ui.screens.AuthScreen
 import app.eob.me.ui.screens.CameraCaptureScreen
 import app.eob.me.ui.screens.CptCountScreen
+import app.eob.me.ui.screens.DashboardScreen
 import app.eob.me.ui.screens.EobSplashScreen
 import app.eob.me.ui.screens.HistoryGridScreen
 import app.eob.me.ui.screens.HomeScreen
@@ -262,7 +265,8 @@ private fun MainHubNavHost(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: EobRoute.Home.route
     val showBack = currentRoute in hubBackRoutes
-    val showScanFab = currentRoute !in hubRoutesWithoutScanFab && userId.isNotBlank()
+    val showBottomBar = currentRoute !in hubRoutesWithoutBottomBar
+    val selectedBottomTab = HubBottomTab.fromRoute(currentRoute)
 
     fun deleteEob(record: EobRecord) {
         eobViewModel.deleteRecordRemote(userId, record, profile) { message ->
@@ -272,14 +276,32 @@ private fun MainHubNavHost(
     }
 
     Scaffold(
-        floatingActionButton = {
-            if (showScanFab) {
-                FloatingActionButton(
-                    onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Text(EobStrings.t(language, "scanBill"), modifier = Modifier.padding(horizontal = 12.dp))
-                }
+        bottomBar = {
+            if (showBottomBar) {
+                HubBottomBar(
+                    selectedTab = selectedBottomTab,
+                    scanEnabled = userId.isNotBlank(),
+                    onTabSelected = { tab ->
+                        when (tab) {
+                            HubBottomTab.Dashboard -> {
+                                navController.navigate(EobRoute.Dashboard.route) {
+                                    launchSingleTop = true
+                                }
+                                onActivity()
+                            }
+                            HubBottomTab.ScanEob -> {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                            HubBottomTab.Profile -> {
+                                openProfileSupport = false
+                                navController.navigate(EobRoute.Profile.route) {
+                                    launchSingleTop = true
+                                }
+                                onActivity()
+                            }
+                        }
+                    }
+                )
             }
         }
     ) { padding ->
@@ -322,10 +344,17 @@ private fun MainHubNavHost(
                             eobViewModel.firebaseStatus
                         ),
                         uploadNotice = uiState.uploadNotice,
-                        onBubbleSelected = { destination ->
+                        onBentoSelected = { destination ->
                             navController.navigate(destination.route) { launchSingleTop = true }
                             onActivity()
                         },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                composable(EobRoute.Dashboard.route) {
+                    DashboardScreen(
+                        language = language,
+                        records = sortedEobRecords,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
