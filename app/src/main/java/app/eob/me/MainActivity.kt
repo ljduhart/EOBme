@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EOBmeTheme {
+            EOBmeTheme(darkTheme = false) {
                 val viewModel: AppViewModel = viewModel()
 
                 Scaffold(

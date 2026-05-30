@@ -18,6 +18,7 @@ import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
+import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,8 @@ data class HubUiState(
     val uploadNotice: String = "",
     val appealLetter: String = "",
     val appointments: List<DoctorAppointment> = emptyList(),
-    val isLoadingInvoice: Boolean = false
+    val isLoadingInvoice: Boolean = false,
+    val historyPage: Int = 0
 )
 
 class EobViewModel : ViewModel() {
@@ -104,8 +106,10 @@ class EobViewModel : ViewModel() {
 
     fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
         viewModelScope.launch(Dispatchers.Default) {
-            val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
-            _eobRecords.value = compacted
+                    val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
+                        .sortedByDescending { it.serviceDateSortKey }
+                        .take(HistoryPagination.MAX_EOBS)
+                    _eobRecords.value = compacted
 
             withContext(Dispatchers.Main) {
                 val currentSelection = _uiState.value.selectedRecord
@@ -181,6 +185,10 @@ class EobViewModel : ViewModel() {
 
     fun setLoadingInvoice(loading: Boolean) {
         _uiState.update { it.copy(isLoadingInvoice = loading) }
+    }
+
+    fun setHistoryPage(page: Int) {
+        _uiState.update { it.copy(historyPage = page.coerceIn(0, HistoryPagination.MAX_PAGE_INDEX)) }
     }
 
     fun regenerateAppeal(profile: UserProfile) {
