@@ -146,7 +146,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onIntroNext() {
-        _introStep.update { it + 1 }
+        if (_introStep.value >= INTRO_LAST_STEP_INDEX) {
+            onCreateAccountSelected()
+            _introStep.value = INTRO_SLIDE_COUNT
+        } else {
+            _introStep.update { it + 1 }
+        }
         updateActivityTime()
     }
 
@@ -406,6 +411,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val INACTIVITY_TIMEOUT_MS = 300_000L
+        const val INTRO_SLIDE_COUNT = 3
+        const val INTRO_LAST_STEP_INDEX = INTRO_SLIDE_COUNT - 1
 
         fun firebaseConfigMessage(): String {
             return "Firebase config was not included in this build. Confirm app/google-services.json exists, " +

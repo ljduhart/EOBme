@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.CptCategory
+import app.eob.me.data.DocumentBounds
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
@@ -40,6 +41,12 @@ data class HubUiState(
     val historyPage: Int = 0
 )
 
+data class CameraScanUiState(
+    val documentBounds: DocumentBounds? = null,
+    val isDocumentDetected: Boolean = false,
+    val scannerHint: String = "Align your insurance document inside the frame"
+)
+
 /**
  * Single source of truth for authenticated hub state: EOB records, selection, appeals, news, uploads.
  * UI layers observe [eobRecords] and [uiState] only; Firestore sync goes through [EobRepository].
@@ -58,6 +65,11 @@ class EobViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(HubUiState())
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
+
+    private val _cameraScanState = MutableStateFlow(CameraScanUiState())
+    val cameraScanState: StateFlow<CameraScanUiState> = _cameraScanState.asStateFlow()
+
+    private var smoothedDocumentBounds: DocumentBounds? = null
 
     var uploadText by mutableStateOf("")
     var selectedCptCategory by mutableStateOf(CptCategory.OfficeVisit)
@@ -88,6 +100,7 @@ class EobViewModel : ViewModel() {
         selectedCptCategory = CptCategory.OfficeVisit
         firebaseNews = emptyList()
         deletedNewsKeys = emptySet()
+        clearCameraScanState()
     }
 
     fun startFirestoreSync(userId: String, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
@@ -303,6 +316,42 @@ class EobViewModel : ViewModel() {
         uploadText = ""
     }
 
+    fun updateDocumentBounds(detected: DocumentBounds?) {
+        val blended = blendDocumentBounds(smoothedDocumentBounds, detected)
+        smoothedDocumentBounds = blended
+        _cameraScanState.update { state ->
+            state.copy(
+                documentBounds = blended,
+                isDocumentDetected = blended?.isDetected == true,
+                scannerHint = if (blended?.isDetected == true) {
+                    "Document detected — tap capture when ready"
+                } else {
+                    "Align your insurance document inside the frame"
+                }
+            )
+        }
+    }
+
+    fun clearCameraScanState() {
+        smoothedDocumentBounds = null
+        _cameraScanState.value = CameraScanUiState()
+    }
+
+    private fun blendDocumentBounds(
+        previous: DocumentBounds?,
+        detected: DocumentBounds?
+    ): DocumentBounds? {
+        if (detected == null) return null
+        if (previous == null) return detected
+        val alpha = 0.55f
+        return DocumentBounds(
+            left = previous.left + (detected.left - previous.left) * alpha,
+            top = previous.top + (detected.top - previous.top) * alpha,
+            right = previous.right + (detected.right - previous.right) * alpha,
+            bottom = previous.bottom + (detected.bottom - previous.bottom) * alpha
+        )
+    }
+
     fun saveProfileToRemote(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
         val repo = repository ?: return
         if (userId.isBlank()) {
@@ -317,6 +366,7 @@ class EobViewModel : ViewModel() {
         eobListener?.remove()
         profileListener?.remove()
         newsListener?.remove()
+        clearCameraScanState()
         super.onCleared()
     }
 }

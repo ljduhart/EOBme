@@ -3,23 +3,24 @@ package app.eob.me.ui.screens
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.hardware.camera2.CaptureRequest
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.view.Surface
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.camera2.interop.Camera2Interop
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraInfoUnavailableException
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -40,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,40 +52,53 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
-import app.eob.me.ui.components.CameraScanningOverlay
+import app.eob.me.ui.components.DocumentScannerOverlay
+import app.eob.me.util.DocumentEdgeAnalyzer
+import app.eob.me.viewmodel.EobViewModel
 import java.io.File
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-private val BrandBlue = Color(0xFF2498EA)
-private const val TapFocusReticleActiveMs = 500L
+private val FocusReticleBlue = Color(0xFF2498EA)
 
-data class TapFocusState(val offset: Offset, val triggerTime: Long)
-
+@OptIn(ExperimentalCamera2Interop::class)
 @Composable
 fun CameraCaptureScreen(
     language: AppLanguage,
+    eobViewModel: EobViewModel,
     onImageCaptured: (Uri) -> Unit,
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
+    val cameraScanState by eobViewModel.cameraScanState.collectAsStateWithLifecycle()
+
     val previewView = remember {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         }
     }
+
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var hasPermission by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+        )
     }
     var statusMessage by remember { mutableStateOf("") }
     var isCameraReady by remember { mutableStateOf(false) }
@@ -92,13 +107,31 @@ fun CameraCaptureScreen(
     var tapFocusState by remember { mutableStateOf<TapFocusState?>(null) }
     val reticleScale = remember { Animatable(2.0f) }
     val reticleAlpha = remember { Animatable(1.0f) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+
+    val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
+    val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
         hasPermission = granted
-        if (!granted) statusMessage = EobStrings.t(language, "cameraPermissionRequired")
+        if (!granted) {
+            statusMessage = EobStrings.t(language, "cameraPermissionRequired")
+        }
     }
 
     LaunchedEffect(Unit) {
-        if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
+        eobViewModel.clearCameraScanState()
+        if (!hasPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            eobViewModel.clearCameraScanState()
+            analysisExecutor.shutdown()
+        }
     }
 
     LaunchedEffect(tapFocusState) {
@@ -116,19 +149,24 @@ fun CameraCaptureScreen(
             }
             launch {
                 delay(250)
-                reticleAlpha.animateTo(
-                    targetValue = 0.0f,
-                    animationSpec = tween(durationMillis = 250, easing = LinearEasing)
-                )
+                reticleAlpha.animateTo(0f, animationSpec = tween(250))
             }
         }
     }
 
     LaunchedEffect(tapFocusState) {
         val state = tapFocusState ?: return@LaunchedEffect
-        delay(TapFocusReticleActiveMs)
+        delay(500L)
         if (tapFocusState?.triggerTime == state.triggerTime) {
             tapFocusState = null
+        }
+    }
+
+    LaunchedEffect(isCameraReady, boundCamera) {
+        if (!isCameraReady) return@LaunchedEffect
+        while (isActive) {
+            focusAtCenter(previewView, boundCamera)
+            delay(3_000)
         }
     }
 
@@ -137,33 +175,35 @@ fun CameraCaptureScreen(
             onDispose { }
         } else {
             val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-            val executor = ContextCompat.getMainExecutor(context)
-            val focusHandler = Handler(Looper.getMainLooper())
-            var focusRunnable: Runnable? = null
+            val edgeAnalyzer = DocumentEdgeAnalyzer { bounds ->
+                mainExecutor.execute {
+                    eobViewModel.updateDocumentBounds(bounds)
+                }
+            }
             val listener = Runnable {
                 runCatching {
                     val cameraProvider = cameraProviderFuture.get()
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-                    val capture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .setJpegQuality(92)
-                        .setTargetRotation(previewView.display?.rotation ?: Surface.ROTATION_0)
+                    val preview = buildPreviewUseCase(previewView)
+                    val capture = buildImageCaptureUseCase(previewView)
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                         .build()
+                        .also { it.setAnalyzer(analysisExecutor, edgeAnalyzer) }
+
                     val selector = availableCameraSelector(cameraProvider)
                     cameraProvider.unbindAll()
                     val camera = cameraProvider.bindToLifecycle(
                         lifecycleOwner,
                         selector,
                         preview,
-                        capture
+                        capture,
+                        analysis
                     )
                     boundCamera = camera
                     imageCapture = capture
                     isCameraReady = true
                     statusMessage = ""
-                    focusRunnable = autofocusRunnable(previewView, camera).also { focusHandler.postDelayed(it, 400) }
                 }.onFailure { error ->
                     boundCamera = null
                     isCameraReady = false
@@ -171,9 +211,8 @@ fun CameraCaptureScreen(
                     statusMessage = error.localizedMessage ?: "Unable to open camera. Please try again."
                 }
             }
-            cameraProviderFuture.addListener(listener, executor)
+            cameraProviderFuture.addListener(listener, mainExecutor)
             onDispose {
-                focusRunnable?.let { focusHandler.removeCallbacks(it) }
                 runCatching {
                     if (cameraProviderFuture.isDone) {
                         cameraProviderFuture.get().unbindAll()
@@ -188,28 +227,24 @@ fun CameraCaptureScreen(
 
     if (hasPermission) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Block 1: The Secure Viewfinder & Gesture Layer
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         detectTapGestures { offset ->
                             tapFocusState = TapFocusState(offset, System.currentTimeMillis())
-                            focusAtPoint(
-                                previewView = previewView,
-                                camera = boundCamera,
-                                offset = offset
-                            )
+                            focusAtPoint(previewView, boundCamera, offset)
                         }
                     }
             ) {
-                CameraViewfinderStream(
-                    previewView = previewView,
+                AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+                DocumentScannerOverlay(
+                    documentBounds = cameraScanState.documentBounds,
+                    isDocumentDetected = cameraScanState.isDocumentDetected,
                     modifier = Modifier.fillMaxSize()
                 )
-                CameraScanningOverlay(modifier = Modifier.fillMaxSize())
                 tapFocusState?.let { state ->
-                    if (System.currentTimeMillis() - state.triggerTime < TapFocusReticleActiveMs) {
+                    if (System.currentTimeMillis() - state.triggerTime < 500L) {
                         TapFocusReticleOverlay(
                             state = state,
                             scale = reticleScale.value,
@@ -219,106 +254,95 @@ fun CameraCaptureScreen(
                     }
                 }
             }
-            // Block 2: The Interactive HUD Control Interface Layer (Sits on top)
-            CameraControlHudElements(
-                language = language,
-                statusMessage = statusMessage,
-                isCameraReady = isCameraReady,
-                isCapturing = isCapturing,
-                onClose = onClose,
-                onRequestCapture = {
-                    val capture = imageCapture
-                    if (capture == null || !isCameraReady) {
-                        statusMessage = "Camera is still starting. Please wait a moment."
-                    } else {
-                        isCapturing = true
-                        captureImage(
-                            context = context,
-                            imageCapture = capture,
-                            onImageCaptured = {
-                                isCapturing = false
-                                onImageCaptured(it)
-                            },
-                            onError = {
-                                isCapturing = false
-                                statusMessage = it
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.Bottom,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = cameraScanState.scannerHint,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                if (statusMessage.isNotBlank()) {
+                    Text(statusMessage, color = MaterialTheme.colorScheme.error)
+                }
+                Button(
+                    onClick = {
+                        val capture = imageCapture
+                        if (capture == null || !isCameraReady) {
+                            statusMessage = "Camera is still starting. Please wait a moment."
+                        } else {
+                            isCapturing = true
+                            scope.launch {
+                                captureImage(
+                                    context = context,
+                                    imageCapture = capture,
+                                    onImageCaptured = { uri ->
+                                        isCapturing = false
+                                        eobViewModel.clearCameraScanState()
+                                        onImageCaptured(uri)
+                                    },
+                                    onError = { message ->
+                                        isCapturing = false
+                                        statusMessage = message
+                                    }
+                                )
                             }
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+                        }
+                    },
+                    enabled = isCameraReady && !isCapturing,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (isCapturing) "Capturing..." else EobStrings.t(language, "scanBill"))
+                }
+                Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
+                    Text(EobStrings.t(language, "close"))
+                }
+            }
         }
     } else {
-        CameraPermissionPrompt(
-            language = language,
-            statusMessage = statusMessage,
-            onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-            modifier = Modifier.fillMaxSize()
-        )
-    }
-}
-
-@Composable
-private fun CameraViewfinderStream(
-    previewView: PreviewView,
-    modifier: Modifier = Modifier
-) {
-    AndroidView(
-        factory = { previewView },
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun CameraControlHudElements(
-    language: AppLanguage,
-    statusMessage: String,
-    isCameraReady: Boolean,
-    isCapturing: Boolean,
-    onClose: () -> Unit,
-    onRequestCapture: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Bottom,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (statusMessage.isNotBlank()) {
-            Text(statusMessage, color = MaterialTheme.colorScheme.error)
-        }
-        Button(
-            onClick = onRequestCapture,
-            enabled = isCameraReady && !isCapturing,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(if (isCapturing) "Capturing..." else EobStrings.t(language, "scanBill"))
-        }
-        Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
-            Text(EobStrings.t(language, "close"))
+            Text(statusMessage.ifBlank { EobStrings.t(language, "cameraPermissionRequired") })
+            Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                Text(EobStrings.t(language, "scanWithCamera"))
+            }
         }
     }
 }
 
-@Composable
-private fun CameraPermissionPrompt(
-    language: AppLanguage,
-    statusMessage: String,
-    onRequestPermission: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(statusMessage.ifBlank { EobStrings.t(language, "cameraPermissionRequired") })
-        Button(onClick = onRequestPermission) {
-            Text(EobStrings.t(language, "scanWithCamera"))
-        }
-    }
+data class TapFocusState(val offset: Offset, val triggerTime: Long)
+
+@OptIn(ExperimentalCamera2Interop::class)
+private fun buildPreviewUseCase(previewView: PreviewView): Preview {
+    val builder = Preview.Builder()
+    Camera2Interop.Extender(builder).setCaptureRequestOption(
+        CaptureRequest.CONTROL_AF_MODE,
+        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+    )
+    return builder.build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
+}
+
+@OptIn(ExperimentalCamera2Interop::class)
+private fun buildImageCaptureUseCase(previewView: PreviewView): ImageCapture {
+    val builder = ImageCapture.Builder()
+        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+        .setJpegQuality(92)
+        .setTargetRotation(previewView.display?.rotation ?: Surface.ROTATION_0)
+    Camera2Interop.Extender(builder).setCaptureRequestOption(
+        CaptureRequest.CONTROL_AF_MODE,
+        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+    )
+    return builder.build()
 }
 
 @Composable
@@ -333,15 +357,11 @@ private fun TapFocusReticleOverlay(
         val radius = 36.dp.toPx()
         val strokeWidth = 2.dp.toPx()
         val tickLength = 12.dp.toPx()
-        val reticleColor = BrandBlue.copy(alpha = alpha)
+        val reticleColor = FocusReticleBlue.copy(alpha = alpha)
 
         translate(center.x, center.y) {
             scale(scale) {
-                drawCircle(
-                    color = reticleColor,
-                    radius = radius,
-                    style = Stroke(width = strokeWidth)
-                )
+                drawCircle(color = reticleColor, radius = radius, style = Stroke(width = strokeWidth))
                 drawLine(
                     color = reticleColor,
                     start = Offset(-tickLength, 0f),
@@ -381,20 +401,10 @@ private fun focusAtPoint(previewView: PreviewView, camera: Camera?, offset: Offs
     currentCamera.cameraControl.startFocusAndMetering(action)
 }
 
-private fun autofocusRunnable(previewView: PreviewView, camera: Camera?): Runnable {
-    return object : Runnable {
-        override fun run() {
-            val currentCamera = camera ?: return
-            val width = previewView.width.takeIf { it > 0 } ?: return
-            val height = previewView.height.takeIf { it > 0 } ?: return
-            val point = previewView.meteringPointFactory.createPoint(width / 2f, height / 2f)
-            val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
-                .setAutoCancelDuration(4, TimeUnit.SECONDS)
-                .build()
-            currentCamera.cameraControl.startFocusAndMetering(action)
-            previewView.postDelayed(this, 3500)
-        }
-    }
+private fun focusAtCenter(previewView: PreviewView, camera: Camera?) {
+    val width = previewView.width.takeIf { it > 0 } ?: return
+    val height = previewView.height.takeIf { it > 0 } ?: return
+    focusAtPoint(previewView, camera, Offset(width / 2f, height / 2f))
 }
 
 private fun availableCameraSelector(cameraProvider: ProcessCameraProvider): CameraSelector {
@@ -409,7 +419,7 @@ private fun availableCameraSelector(cameraProvider: ProcessCameraProvider): Came
     }
 }
 
-private fun captureImage(
+private suspend fun captureImage(
     context: Context,
     imageCapture: ImageCapture,
     onImageCaptured: (Uri) -> Unit,
@@ -417,17 +427,19 @@ private fun captureImage(
 ) {
     val file = File(context.cacheDir, "eob_camera_${System.currentTimeMillis()}.jpg")
     val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
-    imageCapture.takePicture(
-        outputOptions,
-        ContextCompat.getMainExecutor(context),
-        object : ImageCapture.OnImageSavedCallback {
-            override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                onImageCaptured(Uri.fromFile(file))
-            }
+    withContext(Dispatchers.Main) {
+        imageCapture.takePicture(
+            outputOptions,
+            ContextCompat.getMainExecutor(context),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                    onImageCaptured(Uri.fromFile(file))
+                }
 
-            override fun onError(exception: ImageCaptureException) {
-                onError(exception.localizedMessage ?: "Camera capture failed")
+                override fun onError(exception: ImageCaptureException) {
+                    onError(exception.localizedMessage ?: "Camera capture failed")
+                }
             }
-        }
-    )
+        )
+    }
 }
