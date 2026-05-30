@@ -14,16 +14,19 @@ import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
-import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
+import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,9 +40,21 @@ data class HubUiState(
     val historyPage: Int = 0
 )
 
+/**
+ * Single source of truth for authenticated hub state: EOB records, selection, appeals, news, uploads.
+ * UI layers observe [eobRecords] and [uiState] only; Firestore sync goes through [EobRepository].
+ */
 class EobViewModel : ViewModel() {
+    private var repository: EobRepository? = null
+    private var profileListener: ListenerRegistration? = null
+    private var newsListener: ListenerRegistration? = null
+
     private val _eobRecords = MutableStateFlow<List<EobRecord>>(emptyList())
     val eobRecords: StateFlow<List<EobRecord>> = _eobRecords.asStateFlow()
+
+    val sortedEobRecords: StateFlow<List<EobRecord>> = eobRecords
+        .map { records -> records.sortedByDescending { it.serviceDateSortKey } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _uiState = MutableStateFlow(HubUiState())
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
@@ -51,9 +66,22 @@ class EobViewModel : ViewModel() {
     private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
     private var eobListener: ListenerRegistration? = null
 
+    fun attachRepository(repo: EobRepository) {
+        repository = repo
+        refreshFirebaseStatus()
+    }
+
+    fun refreshFirebaseStatus() {
+        repository?.let { firebaseStatus = it.status() }
+    }
+
     fun resetHubState() {
         eobListener?.remove()
         eobListener = null
+        profileListener?.remove()
+        profileListener = null
+        newsListener?.remove()
+        newsListener = null
         _eobRecords.value = emptyList()
         _uiState.value = HubUiState()
         uploadText = ""
@@ -62,71 +90,74 @@ class EobViewModel : ViewModel() {
         deletedNewsKeys = emptySet()
     }
 
-    fun fetchHistoryFromFirestore(
-        repository: FirebaseEobRepository,
-        userId: String,
-        profile: UserProfile
-    ) {
+    fun startFirestoreSync(userId: String, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
+        val repo = repository ?: return
+        refreshFirebaseStatus()
+        fetchHistoryFromFirestore(repo, userId, profile)
+        observeProfile(repo, userId, onProfileChanged)
+        observeNews(repo)
+    }
+
+    private fun observeProfile(repo: EobRepository, userId: String, onProfileChanged: (UserProfile) -> Unit) {
+        profileListener?.remove()
+        profileListener = repo.observeProfile(
+            userId = userId,
+            onProfile = onProfileChanged,
+            onError = { message -> updateUploadNotice(message) }
+        )
+    }
+
+    private fun observeNews(repo: EobRepository) {
+        newsListener?.remove()
+        newsListener = repo.observeInsuranceNews(
+            onNews = { newsItems -> firebaseNews = newsItems },
+            onError = { message -> updateUploadNotice(message) }
+        )
+    }
+
+    fun fetchHistoryFromFirestore(repo: EobRepository, userId: String, profile: UserProfile) {
         if (userId.isBlank()) {
             resetHubState()
             return
         }
 
         eobListener?.remove()
-        eobListener = repository.observeEobs(
+        eobListener = repo.observeEobs(
             userId = userId,
-            onRecords = { records ->
-                viewModelScope.launch(Dispatchers.Default) {
-                    val compacted = EobAnalyzer.compactDuplicateEobs(records)
-                    _eobRecords.value = compacted
-
-                    withContext(Dispatchers.Main) {
-                        val currentSelection = _uiState.value.selectedRecord
-                        val nextSelection = if (currentSelection == null || compacted.none { it.id == currentSelection.id }) {
-                            compacted.firstOrNull()
-                        } else {
-                            compacted.firstOrNull { it.id == currentSelection.id }
-                        }
-
-                        _uiState.update {
-                            it.copy(
-                                selectedRecord = nextSelection,
-                                appealLetter = AppealLetterGenerator.generate(profile, nextSelection),
-                                isLoadingInvoice = false
-                            )
-                        }
-                    }
-                }
-            },
+            onRecords = { records -> applyRemoteRecords(records, profile) },
             onError = { message ->
                 _uiState.update { it.copy(uploadNotice = message, isLoadingInvoice = false) }
             }
         )
     }
 
-    fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
+    private fun applyRemoteRecords(records: List<EobRecord>, profile: UserProfile) {
         viewModelScope.launch(Dispatchers.Default) {
-                    val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
-                        .sortedByDescending { it.serviceDateSortKey }
-                        .take(HistoryPagination.MAX_EOBS)
-                    _eobRecords.value = compacted
+            val compacted = EobAnalyzer.compactDuplicateEobs(records)
+                .sortedByDescending { it.serviceDateSortKey }
+                .take(HistoryPagination.MAX_EOBS)
 
             withContext(Dispatchers.Main) {
+                _eobRecords.value = compacted
                 val currentSelection = _uiState.value.selectedRecord
                 val nextSelection = if (currentSelection == null || compacted.none { it.id == currentSelection.id }) {
                     compacted.firstOrNull()
                 } else {
                     compacted.firstOrNull { it.id == currentSelection.id }
                 }
-
                 _uiState.update {
                     it.copy(
                         selectedRecord = nextSelection,
-                        appealLetter = AppealLetterGenerator.generate(profile, nextSelection)
+                        appealLetter = AppealLetterGenerator.generate(profile, nextSelection),
+                        isLoadingInvoice = false
                     )
                 }
             }
         }
+    }
+
+    fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
+        applyRemoteRecords(newRecords, profile)
     }
 
     fun selectRecord(record: EobRecord, profile: UserProfile) {
@@ -148,6 +179,21 @@ class EobViewModel : ViewModel() {
                 selectedRecord = nextSelection,
                 appealLetter = AppealLetterGenerator.generate(profile, nextSelection)
             )
+        }
+    }
+
+    fun deleteRecordRemote(
+        userId: String,
+        record: EobRecord,
+        profile: UserProfile,
+        onComplete: (String) -> Unit = {}
+    ) {
+        deleteRecord(record, profile)
+        val repo = repository
+        if (userId.isNotBlank() && repo != null) {
+            repo.deleteEob(userId, record, onComplete)
+        } else if (userId.isBlank()) {
+            onComplete("Please sign in to delete EOBs from the cloud.")
         }
     }
 
@@ -196,33 +242,42 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(appealLetter = AppealLetterGenerator.generate(profile, selected)) }
     }
 
-    fun uploadEobFile(
-        repository: FirebaseEobRepository,
-        userId: String,
-        uri: Uri,
-        sourceName: String,
-        language: AppLanguage
-    ) {
+    fun uploadEobFile(userId: String, uri: Uri, sourceName: String, language: AppLanguage) {
+        val repo = repository ?: return
+        if (userId.isBlank()) {
+            setLoadingInvoice(false)
+            updateUploadNotice("Please sign in before uploading an EOB.")
+            return
+        }
         setLoadingInvoice(true)
-        repository.uploadEobFile(userId, uri, sourceName) { message ->
-            updateUploadNotice(message.ifBlank { EobStrings.t(language, "libraryUploadStarted") })
+        repo.uploadEobFile(userId, uri, sourceName) { message ->
+            val notice = message.ifBlank { EobStrings.t(language, "libraryUploadStarted") }
+            updateUploadNotice(notice)
+            if (message.contains("failed", ignoreCase = true)) {
+                setLoadingInvoice(false)
+            }
         }
     }
 
-    fun uploadEobBitmap(
-        repository: FirebaseEobRepository,
-        userId: String,
-        bitmap: Bitmap,
-        sourceName: String,
-        language: AppLanguage
-    ) {
+    fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, language: AppLanguage) {
+        val repo = repository ?: return
+        if (userId.isBlank()) {
+            setLoadingInvoice(false)
+            updateUploadNotice("Please sign in before scanning an EOB.")
+            return
+        }
         setLoadingInvoice(true)
-        repository.uploadEobBitmap(userId, bitmap, sourceName) { message ->
-            updateUploadNotice(message.ifBlank { EobStrings.t(language, "cameraScanStarted") })
+        repo.uploadEobBitmap(userId, bitmap, sourceName) { message ->
+            val notice = message.ifBlank { EobStrings.t(language, "cameraScanStarted") }
+            updateUploadNotice(notice)
+            if (message.contains("failed", ignoreCase = true)) {
+                setLoadingInvoice(false)
+            }
         }
     }
 
-    fun savePastedEob(repository: FirebaseEobRepository, userId: String, sourceName: String, profile: UserProfile) {
+    fun savePastedEob(userId: String, sourceName: String, profile: UserProfile) {
+        val repo = repository ?: return
         if (uploadText.isBlank()) return
         val currentRecords = _eobRecords.value
         val analyzedRecord = EobAnalyzer.analyze(uploadText, sourceName, (currentRecords.maxOfOrNull { it.id } ?: 0) + 1)
@@ -243,14 +298,25 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(uploadNotice = notice) }
         replaceRecords(updatedRecords, profile)
         if (userId.isNotBlank()) {
-            repository.saveEob(userId, record) { updateUploadNotice(it) }
+            repo.saveEob(userId, record) { updateUploadNotice(it) }
         }
         uploadText = ""
     }
 
+    fun saveProfileToRemote(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
+        val repo = repository ?: return
+        if (userId.isBlank()) {
+            onComplete("Please sign in to save your profile.")
+            return
+        }
+        repo.saveProfile(userId, profile, onComplete)
+        repo.saveInsuranceCardMetadata(userId, profile) {}
+    }
+
     override fun onCleared() {
         eobListener?.remove()
-        eobListener = null
+        profileListener?.remove()
+        newsListener?.remove()
         super.onCleared()
     }
 }

@@ -69,6 +69,8 @@ data class EobCharge(
 
 data class EobRecord(
     val id: Int,
+    /** Firestore document id when loaded from or saved to Firebase (Veryfi uploads use hash ids). */
+    val firestoreId: String = "",
     val sourceName: String,
     val providerName: String,
     val insuranceName: String,

@@ -1,159 +1,57 @@
 package app.eob.me.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
-import app.eob.me.data.BillingIssueSeverity
-import app.eob.me.data.DoctorAppointment
-import app.eob.me.data.EobAnalyzer
-import app.eob.me.data.EobRecord
-import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
-import app.eob.me.data.asCurrency
-import app.eob.me.ui.components.HolographicGlassCard
-import java.util.Locale
+import app.eob.me.navigation.HubBubbleDestination
+import app.eob.me.ui.components.HubBubbleButton
 
+/**
+ * Main hub: 6 navigation bubbles in a 2×3 grid (MVVM view — state from [app.eob.me.viewmodel.EobViewModel]).
+ */
 @Composable
 fun HomeScreen(
     language: AppLanguage,
     profile: UserProfile,
-    records: List<EobRecord>,
-    appointments: List<DoctorAppointment>,
+    recordCount: Int,
+    firebaseStatusLine: String,
     uploadNotice: String,
-    onOpenProviderDirectory: () -> Unit,
-    onDeleteEob: (EobRecord) -> Unit,
-    onAddAppointment: (String, String, String, String) -> Unit,
-    onRemoveAppointment: (DoctorAppointment) -> Unit,
+    onBubbleSelected: (HubBubbleDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val totalBilled = remember(records) { records.sumOf { it.totalBilledAmount } }
-    val totalResponsibility = remember(records) { records.sumOf { it.totalPatientResponsibility } }
-    val billingDiscrepancies = remember(records) {
-        records.sumOf { record ->
-            EobAnalyzer.detectBillingIssues(record).count { it.severity != BillingIssueSeverity.Info }
-        }
-    }
-
-    var showAddAppointmentDialog by remember { mutableStateOf(false) }
-    var provider by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
-    var time by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = 80.dp, top = 8.dp)
+        contentPadding = PaddingValues(bottom = 96.dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            HolographicGlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Hello, ${profile.firstName.ifBlank { "User" }} 👋",
+                    text = "Welcome, ${profile.firstName.ifBlank { "Member" }}",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Your healthcare expense profile overview",
+                    text = "$recordCount ${if (recordCount == 1) "EOB" else "EOBs"} • $firebaseStatusLine",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(text = "Total Billed", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = String.format(Locale.US, "$%.2f", totalBilled),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Column {
-                        Text(text = "Out of Pocket", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = String.format(Locale.US, "$%.2f", totalResponsibility),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-        }
-
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(text = "Claims Analyzed", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = "${records.size}",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(text = "Billing Flags", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = "$billingDiscrepancies",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (billingDiscrepancies > 0) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            }
-                        )
-                    }
-                }
             }
         }
 
@@ -161,181 +59,30 @@ fun HomeScreen(
             item {
                 Text(
                     text = uploadNotice,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
 
-        item {
-            Button(onClick = onOpenProviderDirectory, modifier = Modifier.fillMaxWidth()) {
-                Text("Open Provider Directory")
-            }
-        }
-
-        if (records.isNotEmpty()) {
+        HubBubbleDestination.gridRows.forEach { row ->
             item {
-                Text(
-                    text = "Recent EOBs",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            items(records.sortedByDescending { it.serviceDateSortKey }.take(5), key = { it.id }) { record ->
-                Card(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(record.providerName, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "${record.serviceDate} • ${record.totalBilledAmount.asCurrency()}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        TextButton(onClick = { onDeleteEob(record) }) {
-                            Text(EobStrings.t(language, "deleteEob"), color = MaterialTheme.colorScheme.error)
-                        }
+                    row.forEach { destination ->
+                        HubBubbleButton(
+                            emoji = destination.emoji,
+                            title = destination.title(language),
+                            subtitle = destination.subtitle(language),
+                            onClick = { onBubbleSelected(destination) },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
         }
-
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Upcoming Care Timeline",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                TextButton(onClick = { showAddAppointmentDialog = true }) {
-                    Text("+ Log Visit")
-                }
-            }
-        }
-
-        if (appointments.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No care visits mapped yet.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
-                }
-            }
-        } else {
-            items(appointments, key = { it.id }) { appointment ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = appointment.providerName,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${appointment.date} @ ${appointment.time}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                            )
-                            if (appointment.notes.isNotBlank()) {
-                                Text(
-                                    text = appointment.notes,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                        }
-                        IconButton(onClick = { onRemoveAppointment(appointment) }) {
-                            Text("🗑️", style = MaterialTheme.typography.titleMedium)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showAddAppointmentDialog) {
-        AlertDialog(
-            onDismissRequest = { showAddAppointmentDialog = false },
-            title = { Text(text = "Log Doctor Appointment") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = provider,
-                        onValueChange = { provider = it },
-                        label = { Text("Provider/Facility Name") },
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = date,
-                        onValueChange = { date = it },
-                        label = { Text("Date (MM/DD/YYYY)") },
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = time,
-                        onValueChange = { time = it },
-                        label = { Text("Time (e.g. 10:30 AM)") },
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        label = { Text("Notes/Purpose") },
-                        maxLines = 3
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (provider.isNotBlank() && date.isNotBlank()) {
-                            onAddAppointment(date, provider, time, notes)
-                            showAddAppointmentDialog = false
-                            provider = ""
-                            date = ""
-                            time = ""
-                            notes = ""
-                        }
-                    }
-                ) {
-                    Text("Save")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddAppointmentDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }
