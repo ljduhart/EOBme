@@ -167,7 +167,11 @@ fun AppealScreen(
 fun ProfileScreen(
     language: AppLanguage,
     profile: UserProfile,
+    credentials: app.eob.me.data.RegistrationCredentials,
+    saveMessage: String,
     onProfileChanged: (UserProfile) -> Unit,
+    onCredentialsChanged: (app.eob.me.data.RegistrationCredentials) -> Unit,
+    onSave: () -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onLogout: () -> Unit
 ) {
@@ -182,6 +186,30 @@ fun ProfileScreen(
         Text(EobStrings.t(language, "userProfile"), style = MaterialTheme.typography.titleLarge)
         Text(EobStrings.t(language, "editSavedDetails"))
         ProfileFields(language = language, profile = profile, onProfileChanged = onProfileChanged)
+        OutlinedTextField(
+            value = credentials.email,
+            onValueChange = { onCredentialsChanged(credentials.copy(email = it)) },
+            label = { Text(EobStrings.t(language, "email")) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        OutlinedTextField(
+            value = credentials.password,
+            onValueChange = { onCredentialsChanged(credentials.copy(password = it)) },
+            label = { Text(EobStrings.t(language, "password")) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Button(
+            onClick = onSave,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = profile.isComplete
+        ) {
+            Text("Save profile")
+        }
+        if (saveMessage.isNotBlank()) {
+            Text(saveMessage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+        }
         Text(EobStrings.t(language, "languageSettings"), style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AppLanguage.entries.forEach { option ->
@@ -197,7 +225,7 @@ fun ProfileScreen(
             Text(EobStrings.t(language, "support"))
         }
         if (showSupport) SupportContent(language)
-        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "logout"))
         }
     }

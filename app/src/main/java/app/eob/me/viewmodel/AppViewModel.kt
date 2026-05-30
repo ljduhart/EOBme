@@ -289,6 +289,68 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun saveProfileAndCredentials(
+        profile: UserProfile,
+        credentials: RegistrationCredentials,
+        onComplete: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!firebaseConfigured) {
+                withContext(Dispatchers.Main) {
+                    onComplete(firebaseConfigMessage())
+                }
+                return@launch
+            }
+            val userId = auth?.currentUser?.uid.orEmpty()
+            if (userId.isBlank()) {
+                withContext(Dispatchers.Main) {
+                    onComplete("Please sign in to save your profile.")
+                }
+                return@launch
+            }
+
+            try {
+                val profileMessage = suspendCancellableCoroutine { continuation ->
+                    firebaseRepository.saveProfile(userId, profile) { message ->
+                        continuation.resume(message)
+                    }
+                }
+                firebaseRepository.saveInsuranceCardMetadata(userId, profile) {}
+
+                val passwordMessage = if (credentials.password.isNotBlank()) {
+                    if (!credentials.isPasswordValid) {
+                        "Profile saved. Password must be at least 8 characters and include a number."
+                    } else {
+                        suspendCancellableCoroutine { continuation ->
+                            auth?.currentUser?.updatePassword(credentials.password)
+                                ?.addOnSuccessListener {
+                                    continuation.resume("Profile and password saved.")
+                                }
+                                ?.addOnFailureListener { error ->
+                                    continuation.resume("Profile saved. Password update failed: ${error.localizedMessage}")
+                                }
+                                ?: continuation.resume(profileMessage)
+                        }
+                    }
+                } else {
+                    profileMessage.ifBlank { "Profile saved." }
+                }
+
+                withContext(Dispatchers.Main) {
+                    _profile.value = profile
+                    _registrationCredentials.value = credentials.copy(
+                        email = credentials.email.ifBlank { profile.email }
+                    )
+                    onComplete(passwordMessage)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(e.localizedMessage ?: "Unable to save profile.")
+                }
+            }
+        }
+    }
+
     fun onLogout() {
         firebaseRepository.signOut()
         _introStep.value = 0

@@ -37,7 +37,9 @@ import app.eob.me.data.BillingIssueSeverity
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
+import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
+import app.eob.me.data.asCurrency
 import app.eob.me.ui.components.HolographicGlassCard
 import java.util.Locale
 
@@ -48,6 +50,8 @@ fun HomeScreen(
     records: List<EobRecord>,
     appointments: List<DoctorAppointment>,
     uploadNotice: String,
+    onOpenProviderDirectory: () -> Unit,
+    onDeleteEob: (EobRecord) -> Unit,
     onAddAppointment: (String, String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
     modifier: Modifier = Modifier
@@ -160,6 +164,48 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
+            }
+        }
+
+        item {
+            Button(onClick = onOpenProviderDirectory, modifier = Modifier.fillMaxWidth()) {
+                Text("Open Provider Directory")
+            }
+        }
+
+        if (records.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Recent EOBs",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            items(records.sortedByDescending { it.serviceDateSortKey }.take(5), key = { it.id }) { record ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(record.providerName, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${record.serviceDate} • ${record.totalBilledAmount.asCurrency()}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        TextButton(onClick = { onDeleteEob(record) }) {
+                            Text(EobStrings.t(language, "deleteEob"), color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
             }
         }
 

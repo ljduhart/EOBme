@@ -24,7 +24,7 @@ fun EobSplashScreen(modifier: Modifier = Modifier, onSplashComplete: () -> Unit)
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.Main) {
-            delay(4_000)
+            delay(5_000)
             splashAlpha.animateTo(
                 targetValue = 0f,
                 animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)

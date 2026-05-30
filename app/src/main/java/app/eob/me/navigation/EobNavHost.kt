@@ -48,8 +48,11 @@ import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.UserProfile
-import app.eob.me.ui.screens.AnalysisScreen
+import app.eob.me.ui.screens.HistoryGridScreen
 import app.eob.me.ui.screens.LoadingInvoiceScreen
+import app.eob.me.ui.screens.ProviderDirectoryScreen
+import app.eob.me.ui.components.EobDeleteBar
+import app.eob.me.data.RegistrationCredentials
 import app.eob.me.ui.screens.AppealScreen
 import app.eob.me.ui.screens.AuthChoiceScreen
 import app.eob.me.ui.screens.AuthScreen
@@ -65,6 +68,7 @@ import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.util.OcrProcessor
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
+import app.eob.me.ui.history.HistoryPagination
 import app.eob.me.viewmodel.HubUiState
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
@@ -146,10 +150,13 @@ fun EobNavHost(viewModel: AppViewModel) {
         }
         composable(Screen.MainHub.route) {
             MainHubNavHost(
+                appViewModel = viewModel,
                 language = language,
                 profile = profile,
+                credentials = registrationCredentials,
                 firebaseRepository = viewModel.firebaseRepository,
                 onProfileChanged = viewModel::onProfileChanged,
+                onCredentialsChanged = viewModel::onCredentialsChanged,
                 onLanguageChanged = viewModel::onLanguageChanged,
                 onLogout = viewModel::onLogout,
                 onActivity = viewModel::updateActivityTime
@@ -160,10 +167,13 @@ fun EobNavHost(viewModel: AppViewModel) {
 
 @Composable
 private fun MainHubNavHost(
+    appViewModel: AppViewModel,
     language: AppLanguage,
     profile: UserProfile,
+    credentials: RegistrationCredentials,
     firebaseRepository: FirebaseEobRepository,
     onProfileChanged: (UserProfile) -> Unit,
+    onCredentialsChanged: (RegistrationCredentials) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onLogout: () -> Unit,
     onActivity: () -> Unit
@@ -200,22 +210,25 @@ private fun MainHubNavHost(
         }
     }
 
-    val libraryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            prepareAndUpload(uri, EobStrings.t(language, "libraryUpload"))
-        }
-    }
+    var profileSaveMessage by remember { mutableStateOf("") }
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) navController.navigate(EobRoute.CameraCapture.route)
         else Toast.makeText(context, EobStrings.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
     }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
+    val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
+
     LaunchedEffect(Unit) {
         eobViewModel.firebaseStatus = firebaseRepository.status()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    LaunchedEffect(firebaseUser?.uid) {
+        eobViewModel.firebaseStatus = firebaseRepository.status()
     }
 
     LaunchedEffect(eobViewModel.firebaseStatus.userId, profile) {
@@ -269,9 +282,22 @@ private fun MainHubNavHost(
         .takeIf { it >= 0 }
         ?: primaryRoutes.indexOf(EobRoute.History).coerceAtLeast(0)
 
+    fun deleteEob(record: app.eob.me.data.EobRecord) {
+        eobViewModel.deleteRecord(record, profile)
+        if (eobViewModel.firebaseStatus.userId.isNotBlank()) {
+            firebaseRepository.deleteEob(eobViewModel.firebaseStatus.userId, record) { message ->
+                eobViewModel.updateUploadNotice(message)
+            }
+        }
+        onActivity()
+    }
+
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
+            FloatingActionButton(
+                onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
                 Text(EobStrings.t(language, "scanBill"), modifier = Modifier.padding(horizontal = 12.dp))
             }
         }
@@ -315,6 +341,10 @@ private fun MainHubNavHost(
                         records = sortedEobRecords,
                         appointments = uiState.appointments.sortedBy { it.date },
                         uploadNotice = uiState.uploadNotice,
+                        onOpenProviderDirectory = {
+                            navController.navigate(EobRoute.ProviderDirectory.route) { launchSingleTop = true }
+                        },
+                        onDeleteEob = { deleteEob(it) },
                         onAddAppointment = { date, provider, time, notes ->
                             eobViewModel.addAppointment(date, provider, time, notes)
                             onActivity()
@@ -331,14 +361,29 @@ private fun MainHubNavHost(
                         profile = profile,
                         uiState = uiState,
                         eobViewModel = eobViewModel,
-                        firebaseRepository = firebaseRepository,
-                        onLibraryUpload = { libraryLauncher.launch(arrayOf("image/*", "application/pdf")) },
-                        onCameraScan = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                        onDeleteEob = { deleteEob(it) },
                         onActivity = onActivity
                     )
                 }
                 composable(EobRoute.Dashboard.route) {
-                    DashboardScreen(language = language, records = sortedEobRecords)
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        DashboardScreen(
+                            language = language,
+                            records = sortedEobRecords,
+                            modifier = Modifier.weight(1f)
+                        )
+                        EobDeleteBar(
+                            language = language,
+                            selectedRecord = uiState.selectedRecord,
+                            onDeleteEob = { deleteEob(it) }
+                        )
+                    }
+                }
+                composable(EobRoute.ProviderDirectory.route) {
+                    ProviderDirectoryScreen(
+                        language = language,
+                        providers = EobAnalyzer.providerDirectory(sortedEobRecords)
+                    )
                 }
                 composable(EobRoute.CameraCapture.route) {
                     CameraCaptureScreen(
@@ -351,15 +396,23 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.CptCount.route) {
-                    CptCountScreen(
-                        language = language,
-                        records = sortedEobRecords,
-                        selectedCategory = eobViewModel.selectedCptCategory,
-                        onCategorySelected = {
-                            eobViewModel.selectedCptCategory = it
-                            onActivity()
-                        }
-                    )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        CptCountScreen(
+                            language = language,
+                            records = sortedEobRecords,
+                            selectedCategory = eobViewModel.selectedCptCategory,
+                            onCategorySelected = {
+                                eobViewModel.selectedCptCategory = it
+                                onActivity()
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        EobDeleteBar(
+                            language = language,
+                            selectedRecord = uiState.selectedRecord,
+                            onDeleteEob = { deleteEob(it) }
+                        )
+                    }
                 }
                 composable(EobRoute.News.route) {
                     NewsScreen(
@@ -371,36 +424,46 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.Appeal.route) {
-                    AppealScreen(
-                        language = language,
-                        profile = profile,
-                        selectedRecord = uiState.selectedRecord,
-                        appealLetter = uiState.appealLetter,
-                        onRegenerate = {
-                            eobViewModel.regenerateAppeal(profile)
-                            onActivity()
-                        },
-                        onEditLetter = {
-                            eobViewModel.updateAppeal(it)
-                            onActivity()
-                        }
-                    )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        AppealScreen(
+                            language = language,
+                            profile = profile,
+                            selectedRecord = uiState.selectedRecord,
+                            appealLetter = uiState.appealLetter,
+                            onRegenerate = {
+                                eobViewModel.regenerateAppeal(profile)
+                                onActivity()
+                            },
+                            onEditLetter = {
+                                eobViewModel.updateAppeal(it)
+                                onActivity()
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        EobDeleteBar(
+                            language = language,
+                            selectedRecord = uiState.selectedRecord,
+                            onDeleteEob = { deleteEob(it) }
+                        )
+                    }
                 }
                 composable(EobRoute.Profile.route) {
                     ProfileScreen(
                         language = language,
                         profile = profile,
-                        onProfileChanged = {
-                            onProfileChanged(it)
-                            if (eobViewModel.firebaseStatus.userId.isNotBlank()) {
-                                firebaseRepository.saveProfile(eobViewModel.firebaseStatus.userId, it) {}
-                                firebaseRepository.saveInsuranceCardMetadata(eobViewModel.firebaseStatus.userId, it) {}
+                        credentials = credentials,
+                        saveMessage = profileSaveMessage,
+                        onProfileChanged = onProfileChanged,
+                        onCredentialsChanged = onCredentialsChanged,
+                        onSave = {
+                            appViewModel.saveProfileAndCredentials(profile, credentials) { message ->
+                                profileSaveMessage = message
                             }
-                            onActivity()
                         },
                         onLanguageChanged = onLanguageChanged,
                         onLogout = {
                             eobViewModel.resetHubState()
+                            profileSaveMessage = ""
                             onLogout()
                         }
                     )
@@ -416,9 +479,7 @@ private fun HistoryRoute(
     profile: UserProfile,
     uiState: HubUiState,
     eobViewModel: EobViewModel,
-    firebaseRepository: FirebaseEobRepository,
-    onLibraryUpload: () -> Unit,
-    onCameraScan: () -> Unit,
+    onDeleteEob: (app.eob.me.data.EobRecord) -> Unit,
     onActivity: () -> Unit
 ) {
     val records by eobViewModel.eobRecords.collectAsStateWithLifecycle()
@@ -469,31 +530,21 @@ private fun HistoryRoute(
             if (uiState.isLoadingInvoice) {
                 LoadingInvoiceScreen(modifier = Modifier.fillMaxSize())
             } else {
-                AnalysisScreen(
+                HistoryGridScreen(
                     language = language,
-                    records = filteredRecords,
+                    records = filteredRecords.take(HistoryPagination.MAX_EOBS),
                     selectedRecord = uiState.selectedRecord,
-                    uploadText = eobViewModel.uploadText,
-                    uploadNotice = uiState.uploadNotice,
-                    onUploadTextChanged = {
-                        eobViewModel.uploadText = it
-                        onActivity()
-                    },
-                    onLibraryUpload = onLibraryUpload,
-                    onCameraScan = onCameraScan,
-                    onDeleteEob = { record ->
-                        eobViewModel.deleteRecord(record, profile)
-                        if (eobViewModel.firebaseStatus.userId.isNotBlank()) {
-                            firebaseRepository.deleteEob(eobViewModel.firebaseStatus.userId, record) { message ->
-                                eobViewModel.updateUploadNotice(message)
-                            }
-                        }
+                    currentPage = uiState.historyPage,
+                    onPageChange = {
+                        eobViewModel.setHistoryPage(it)
                         onActivity()
                     },
                     onSelected = {
                         eobViewModel.selectRecord(it, profile)
                         onActivity()
-                    }
+                    },
+                    onDeleteEob = onDeleteEob,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }
@@ -551,5 +602,6 @@ private fun EobRoute.title(language: AppLanguage): String {
         EobRoute.Appeal -> EobStrings.t(language, "appeal")
         EobRoute.Profile -> EobStrings.t(language, "profile")
         EobRoute.CameraCapture -> EobStrings.t(language, "scanBill")
+        EobRoute.ProviderDirectory -> "Providers"
     }
 }
