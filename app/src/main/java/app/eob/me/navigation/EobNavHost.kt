@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
@@ -47,7 +48,6 @@ import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
-import app.eob.me.data.remote.FirebaseEobRemoteDataSource
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.components.EobDeleteBar
 import app.eob.me.ui.screens.AppealScreen
@@ -55,7 +55,6 @@ import app.eob.me.ui.screens.AuthChoiceScreen
 import app.eob.me.ui.screens.AuthScreen
 import app.eob.me.ui.screens.CameraCaptureScreen
 import app.eob.me.ui.screens.CptCountScreen
-import app.eob.me.ui.screens.DashboardScreen
 import app.eob.me.ui.screens.EobSplashScreen
 import app.eob.me.ui.screens.HistoryGridScreen
 import app.eob.me.ui.screens.HomeScreen
@@ -144,7 +143,7 @@ fun EobNavHost(viewModel: AppViewModel) {
                 onSubmit = viewModel::onAuthSubmit,
                 onForgotPassword = viewModel::onForgotPassword,
                 onForgotUsername = viewModel::onForgotUsername,
-                onResendVerification = {},
+                onResendVerification = viewModel::onResendVerification,
                 onRefreshVerification = viewModel::onRefreshVerification
             )
         }
@@ -180,20 +179,23 @@ private fun MainHubNavHost(
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val eobViewModel: EobViewModel = viewModel()
-    val remoteDataSource = remember { FirebaseEobRemoteDataSource(context) }
-    val eobRepository: EobRepository = remoteDataSource
+    val eobRepository: EobRepository = appViewModel.eobRepository
 
     val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
 
     fun prepareAndUpload(uri: Uri, sourceName: String) {
-        eobViewModel.setLoadingInvoice(true)
+        val uid = firebaseUser?.uid.orEmpty()
+        if (uid.isBlank()) {
+            Toast.makeText(context, "Please sign in before uploading an EOB.", Toast.LENGTH_SHORT).show()
+            return
+        }
         scope.launch {
             runCatching { OcrProcessor.prepareUriForUpload(context, uri) }
                 .onSuccess { preparedUri ->
                     eobViewModel.uploadEobFile(
-                        userId = firebaseUser?.uid.orEmpty(),
+                        userId = uid,
                         uri = preparedUri,
                         sourceName = sourceName,
                         language = language
@@ -203,12 +205,25 @@ private fun MainHubNavHost(
                 }
                 .onFailure {
                     eobViewModel.setLoadingInvoice(false)
-                    Toast.makeText(context, EobStrings.t(language, "ocrFailed"), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        EobStrings.t(language, "imagePrepFailed"),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
         }
     }
 
     var profileSaveMessage by remember { mutableStateOf("") }
+    var openProfileSupport by remember { mutableStateOf(false) }
+
+    val libraryUploadLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            prepareAndUpload(it, EobStrings.t(language, "libraryUpload"))
+        }
+    }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) navController.navigate(EobRoute.CameraCapture.route)
@@ -244,18 +259,13 @@ private fun MainHubNavHost(
         )
     }
 
-    LaunchedEffect(profile.email, profile.isComplete, userId) {
-        if (profile.isComplete && userId.isNotBlank()) {
-            eobViewModel.saveProfileToRemote(userId, profile) {}
-        }
-    }
-
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: EobRoute.Home.route
-    val showBack = currentRoute in hubFeatureRoutes
+    val showBack = currentRoute in hubBackRoutes
+    val showScanFab = currentRoute !in hubRoutesWithoutScanFab && userId.isNotBlank()
 
     fun deleteEob(record: EobRecord) {
-        eobViewModel.deleteRecordRemote(record, profile) { message ->
+        eobViewModel.deleteRecordRemote(userId, record, profile) { message ->
             if (message.isNotBlank()) eobViewModel.updateUploadNotice(message)
         }
         onActivity()
@@ -263,11 +273,13 @@ private fun MainHubNavHost(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Text(EobStrings.t(language, "scanBill"), modifier = Modifier.padding(horizontal = 12.dp))
+            if (showScanFab) {
+                FloatingActionButton(
+                    onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Text(EobStrings.t(language, "scanBill"), modifier = Modifier.padding(horizontal = 12.dp))
+                }
             }
         }
     ) { padding ->
@@ -286,7 +298,14 @@ private fun MainHubNavHost(
                     }
                     onActivity()
                 },
-                onProfile = { navController.navigate(EobRoute.Profile.route) },
+                onProfile = {
+                    openProfileSupport = false
+                    navController.navigate(EobRoute.Profile.route)
+                },
+                onSupport = {
+                    openProfileSupport = true
+                    navController.navigate(EobRoute.Profile.route)
+                },
                 onLogout = {
                     eobViewModel.resetHubState()
                     onLogout()
@@ -298,6 +317,10 @@ private fun MainHubNavHost(
                         language = language,
                         profile = profile,
                         recordCount = sortedEobRecords.size,
+                        firebaseStatusLine = EobStrings.firebaseStatusText(
+                            language,
+                            eobViewModel.firebaseStatus
+                        ),
                         uploadNotice = uiState.uploadNotice,
                         onBubbleSelected = { destination ->
                             navController.navigate(destination.route) { launchSingleTop = true }
@@ -313,22 +336,11 @@ private fun MainHubNavHost(
                         uiState = uiState,
                         eobViewModel = eobViewModel,
                         onDeleteEob = { deleteEob(it) },
+                        onLibraryUpload = {
+                            libraryUploadLauncher.launch(arrayOf("image/*", "application/pdf"))
+                        },
                         onActivity = onActivity
                     )
-                }
-                composable(EobRoute.Dashboard.route) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        DashboardScreen(
-                            language = language,
-                            records = sortedEobRecords,
-                            modifier = Modifier.weight(1f)
-                        )
-                        EobDeleteBar(
-                            language = language,
-                            selectedRecord = uiState.selectedRecord,
-                            onDeleteEob = { deleteEob(it) }
-                        )
-                    }
                 }
                 composable(EobRoute.YearlyExpense.route) {
                     YearlyExpenseScreen(
@@ -423,7 +435,8 @@ private fun MainHubNavHost(
                             eobViewModel.resetHubState()
                             profileSaveMessage = ""
                             onLogout()
-                        }
+                        },
+                        openSupportInitially = openProfileSupport
                     )
                 }
             }
@@ -438,6 +451,7 @@ private fun HistoryRoute(
     uiState: HubUiState,
     eobViewModel: EobViewModel,
     onDeleteEob: (EobRecord) -> Unit,
+    onLibraryUpload: () -> Unit,
     onActivity: () -> Unit
 ) {
     val records by eobViewModel.eobRecords.collectAsStateWithLifecycle()
@@ -466,16 +480,24 @@ private fun HistoryRoute(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            label = { Text(EobStrings.t(language, "history")) },
-            placeholder = { Text(EobStrings.t(language, "provider")) },
-            singleLine = true
-        )
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.weight(1f),
+                label = { Text(EobStrings.t(language, "history")) },
+                placeholder = { Text(EobStrings.t(language, "provider")) },
+                singleLine = true
+            )
+            Button(onClick = onLibraryUpload) {
+                Text(EobStrings.t(language, "uploadFromLibrary"))
+            }
+        }
         if (totalBillingErrors > 0) {
             Text(
                 text = "$totalBillingErrors ${EobStrings.t(language, "analysis")}",
@@ -515,6 +537,7 @@ private fun HubHeader(
     showBack: Boolean,
     onBack: () -> Unit,
     onProfile: () -> Unit,
+    onSupport: () -> Unit,
     onLogout: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -549,7 +572,7 @@ private fun HubHeader(
                 text = { Text(EobStrings.t(language, "support")) },
                 onClick = {
                     expanded = false
-                    onProfile()
+                    onSupport()
                 }
             )
             DropdownMenuItem(

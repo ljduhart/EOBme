@@ -22,3 +22,14 @@ val hubFeatureRoutes = setOf(
     EobRoute.YearlyExpense.route,
     EobRoute.News.route
 )
+
+/** Routes that show the back-to-home control in the hub header. */
+val hubBackRoutes = hubFeatureRoutes + setOf(
+    EobRoute.Profile.route
+)
+
+/** Routes where the scan FAB is hidden (camera has its own capture UI). */
+val hubRoutesWithoutScanFab = setOf(
+    EobRoute.CameraCapture.route,
+    EobRoute.Profile.route
+)

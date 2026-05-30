@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
+import app.eob.me.data.remote.FirebaseEobRemoteDataSource
+import app.eob.me.data.repository.EobRepository
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.Screen
@@ -29,7 +31,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
-    val firebaseRepository = FirebaseEobRepository(application.applicationContext)
+    private val firebaseRepository = FirebaseEobRepository(application.applicationContext)
+    val eobRepository: EobRepository = FirebaseEobRemoteDataSource(firebaseRepository)
 
     private val firebaseConfigured: Boolean = runCatching {
         val context = application.applicationContext
@@ -270,6 +273,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onForgotUsername() {
         val language = _language.value ?: AppLanguage.English
         _authMessage.value = EobStrings.t(language, "forgotUsernameHelp")
+    }
+
+    fun onResendVerification() {
+        val language = _language.value ?: AppLanguage.English
+        val user = auth?.currentUser
+        if (user == null) {
+            _authMessage.value = EobStrings.t(language, "verifyEmailHelp")
+            return
+        }
+        user.sendEmailVerification()
+            .addOnSuccessListener {
+                viewModelScope.launch {
+                    withContext(Dispatchers.Main) {
+                        _authMessage.value = "Verification email sent. Check your inbox."
+                    }
+                }
+            }
+            .addOnFailureListener { error ->
+                viewModelScope.launch {
+                    withContext(Dispatchers.Main) {
+                        _authMessage.value = error.localizedMessage ?: "Unable to resend verification email."
+                    }
+                }
+            }
     }
 
     fun onRefreshVerification() {

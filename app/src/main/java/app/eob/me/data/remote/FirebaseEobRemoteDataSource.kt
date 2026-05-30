@@ -1,6 +1,5 @@
 package app.eob.me.data.remote
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import app.eob.me.data.EobRecord
@@ -14,8 +13,9 @@ import com.google.firebase.firestore.ListenerRegistration
 /**
  * Firebase / Firestore implementation of [EobRepository].
  */
-class FirebaseEobRemoteDataSource(context: Context) : EobRepository {
-    private val firebase = FirebaseEobRepository(context.applicationContext)
+class FirebaseEobRemoteDataSource(
+    private val firebase: FirebaseEobRepository
+) : EobRepository {
 
     override fun status(): FirebaseSyncStatus = firebase.status()
 

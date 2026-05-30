@@ -27,6 +27,7 @@ fun HomeScreen(
     language: AppLanguage,
     profile: UserProfile,
     recordCount: Int,
+    firebaseStatusLine: String,
     uploadNotice: String,
     onBubbleSelected: (HubBubbleDestination) -> Unit,
     modifier: Modifier = Modifier
@@ -47,7 +48,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "$recordCount EOBs synced from Firestore",
+                    text = "$recordCount ${if (recordCount == 1) "EOB" else "EOBs"} • $firebaseStatusLine",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )

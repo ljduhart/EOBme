@@ -84,6 +84,7 @@ object FirebaseEobMapper {
 
         return EobRecord(
             id = data.longValue("id").toInt().takeUnless { it == 0 } ?: stableId(documentId, data, serviceDate),
+            firestoreId = documentId,
             sourceName = data.stringValue("sourceName", "source_name", "source").ifBlank { "Firebase" },
             providerName = data.stringValue("providerName", "provider_name", "provider").ifBlank { EobAnalyzer.findProviderName(rawText) },
             insuranceName = data.stringValue("insuranceName", "insurance_name", "insurance", "payerName", "payer_name").ifBlank { EobAnalyzer.findInsuranceName(rawText) },

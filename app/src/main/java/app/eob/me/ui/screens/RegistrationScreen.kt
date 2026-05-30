@@ -107,7 +107,10 @@ private fun EmailVerificationScreen(
         if (authMessage.isNotBlank()) {
             Text(authMessage, color = MaterialTheme.colorScheme.error)
         }
-        Button(onClick = onRefreshVerification, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onResendVerification, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "resendVerification"))
+        }
+        OutlinedButton(onClick = onRefreshVerification, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "iVerifiedEmail"))
         }
     }

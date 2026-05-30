@@ -53,7 +53,7 @@ class EobViewModel : ViewModel() {
     val eobRecords: StateFlow<List<EobRecord>> = _eobRecords.asStateFlow()
 
     val sortedEobRecords: StateFlow<List<EobRecord>> = eobRecords
-        .map { records -> records.sortedBy { it.serviceDateSortKey } }
+        .map { records -> records.sortedByDescending { it.serviceDateSortKey } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _uiState = MutableStateFlow(HubUiState())
@@ -182,12 +182,18 @@ class EobViewModel : ViewModel() {
         }
     }
 
-    fun deleteRecordRemote(record: EobRecord, profile: UserProfile, onComplete: (String) -> Unit = {}) {
+    fun deleteRecordRemote(
+        userId: String,
+        record: EobRecord,
+        profile: UserProfile,
+        onComplete: (String) -> Unit = {}
+    ) {
         deleteRecord(record, profile)
-        val userId = firebaseStatus.userId
         val repo = repository
         if (userId.isNotBlank() && repo != null) {
             repo.deleteEob(userId, record, onComplete)
+        } else if (userId.isBlank()) {
+            onComplete("Please sign in to delete EOBs from the cloud.")
         }
     }
 
@@ -238,17 +244,35 @@ class EobViewModel : ViewModel() {
 
     fun uploadEobFile(userId: String, uri: Uri, sourceName: String, language: AppLanguage) {
         val repo = repository ?: return
+        if (userId.isBlank()) {
+            setLoadingInvoice(false)
+            updateUploadNotice("Please sign in before uploading an EOB.")
+            return
+        }
         setLoadingInvoice(true)
         repo.uploadEobFile(userId, uri, sourceName) { message ->
-            updateUploadNotice(message.ifBlank { EobStrings.t(language, "libraryUploadStarted") })
+            val notice = message.ifBlank { EobStrings.t(language, "libraryUploadStarted") }
+            updateUploadNotice(notice)
+            if (message.contains("failed", ignoreCase = true)) {
+                setLoadingInvoice(false)
+            }
         }
     }
 
     fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, language: AppLanguage) {
         val repo = repository ?: return
+        if (userId.isBlank()) {
+            setLoadingInvoice(false)
+            updateUploadNotice("Please sign in before scanning an EOB.")
+            return
+        }
         setLoadingInvoice(true)
         repo.uploadEobBitmap(userId, bitmap, sourceName) { message ->
-            updateUploadNotice(message.ifBlank { EobStrings.t(language, "cameraScanStarted") })
+            val notice = message.ifBlank { EobStrings.t(language, "cameraScanStarted") }
+            updateUploadNotice(notice)
+            if (message.contains("failed", ignoreCase = true)) {
+                setLoadingInvoice(false)
+            }
         }
     }
 
@@ -281,7 +305,10 @@ class EobViewModel : ViewModel() {
 
     fun saveProfileToRemote(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
         val repo = repository ?: return
-        if (userId.isBlank()) return
+        if (userId.isBlank()) {
+            onComplete("Please sign in to save your profile.")
+            return
+        }
         repo.saveProfile(userId, profile, onComplete)
         repo.saveInsuranceCardMetadata(userId, profile) {}
     }
