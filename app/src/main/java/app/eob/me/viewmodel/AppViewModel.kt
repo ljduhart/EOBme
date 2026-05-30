@@ -8,6 +8,7 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.remote.FirebaseEobRemoteDataSource
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.data.util.awaitUnit
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.Screen
@@ -70,9 +71,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     )
     val authMessage: StateFlow<String> = _authMessage.asStateFlow()
 
-    private val _splashComplete = MutableStateFlow(false)
-    val splashComplete: StateFlow<Boolean> = _splashComplete.asStateFlow()
-
     private val _firebaseUser = MutableStateFlow<FirebaseUser?>(auth?.currentUser?.takeIf { it.isEmailVerified })
     val firebaseUser: StateFlow<FirebaseUser?> = _firebaseUser.asStateFlow()
 
@@ -84,28 +82,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppLanguage.English)
 
     val currentScreen: StateFlow<Screen> = listOf(
-        _splashComplete,
         _language,
         _introStep,
         _firebaseUser,
         _awaitingEmailVerification,
         _isSignUp
     ).combineAll { values ->
-        val splashComplete = values[0] as Boolean
-        val language = values[1] as AppLanguage?
-        val introStep = values[2] as Int
-        val firebaseUser = values[3] as FirebaseUser?
-        val awaitingEmailVerification = values[4] as Boolean
-        val isSignUp = values[5] as Boolean?
+        val language = values[0] as AppLanguage?
+        val introStep = values[1] as Int
+        val firebaseUser = values[2] as FirebaseUser?
+        val awaitingEmailVerification = values[3] as Boolean
+        val isSignUp = values[4] as Boolean?
         when {
-            !splashComplete -> Screen.Splash
             language == null -> Screen.Language
             firebaseUser == null && !awaitingEmailVerification && introStep < 3 -> Screen.Intro
             firebaseUser == null && isSignUp == null -> Screen.AuthChoice
             firebaseUser == null -> Screen.Auth
             else -> Screen.MainHub
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Screen.Splash)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Screen.Language)
 
     private var inactivityJob: Job? = null
     private var authStateListener: FirebaseAuth.AuthStateListener? = null
@@ -135,14 +130,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         resetInactivityTimer()
     }
 
-    fun onSplashComplete() {
-        _splashComplete.value = true
-    }
-
     fun onLanguageSelected(selected: AppLanguage) {
-        _language.value = selected
-        _introStep.value = 0
-        updateActivityTime()
+        viewModelScope.launch {
+            delay(LANGUAGE_TO_INTRO_DELAY_MS)
+            _language.value = selected
+            _introStep.value = 0
+            updateActivityTime()
+        }
     }
 
     fun onIntroNext() {
@@ -225,7 +219,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             "Verification email sent. Check your email before continuing."
                         }
                         if (status.userId.isNotBlank()) {
-                            auth?.currentUser?.sendEmailVerification()
                             _awaitingEmailVerification.value = true
                             _registrationCredentials.value = RegistrationCredentials()
                         }
@@ -248,6 +241,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     updateActivityTime()
                 }
+                if (isSignUp && status.userId.isNotBlank()) {
+                    withContext(Dispatchers.IO) {
+                        runCatching { auth?.currentUser?.sendEmailVerification()?.awaitUnit() }
+                    }
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     _authMessage.value = e.localizedMessage ?: "An authentication error occurred."
@@ -259,12 +257,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onForgotPassword() {
         val language = _language.value ?: AppLanguage.English
         val email = _registrationCredentials.value.email.ifBlank { _profile.value.email }
-        firebaseRepository.sendPasswordReset(email) { message ->
-            viewModelScope.launch {
-                withContext(Dispatchers.Main) {
-                    _authMessage.value = message.ifBlank {
-                        EobStrings.t(language, "passwordResetSent")
-                    }
+        viewModelScope.launch(Dispatchers.IO) {
+            val message = suspendCancellableCoroutine { continuation ->
+                firebaseRepository.sendPasswordReset(email) { result ->
+                    continuation.resume(result)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                _authMessage.value = message.ifBlank {
+                    EobStrings.t(language, "passwordResetSent")
                 }
             }
         }
@@ -282,28 +283,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _authMessage.value = EobStrings.t(language, "verifyEmailHelp")
             return
         }
-        user.sendEmailVerification()
-            .addOnSuccessListener {
-                viewModelScope.launch {
-                    withContext(Dispatchers.Main) {
-                        _authMessage.value = "Verification email sent. Check your inbox."
-                    }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                user.sendEmailVerification().awaitUnit()
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = "Verification email sent. Check your inbox."
+                }
+            } catch (error: Exception) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = error.localizedMessage ?: "Unable to resend verification email."
                 }
             }
-            .addOnFailureListener { error ->
-                viewModelScope.launch {
-                    withContext(Dispatchers.Main) {
-                        _authMessage.value = error.localizedMessage ?: "Unable to resend verification email."
-                    }
-                }
-            }
+        }
     }
 
     fun onRefreshVerification() {
-        auth?.currentUser?.reload()?.addOnCompleteListener {
-            viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                auth?.currentUser?.reload()?.awaitUnit()
                 withContext(Dispatchers.Main) {
-                    val currentUser = auth.currentUser
+                    val currentUser = auth?.currentUser
                     _awaitingEmailVerification.value = currentUser != null && !currentUser.isEmailVerified
                     _firebaseUser.value = currentUser?.takeIf { user -> user.isEmailVerified }
                     _authMessage.value = if (_awaitingEmailVerification.value) {
@@ -311,6 +310,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     } else {
                         ""
                     }
+                }
+            } catch (error: Exception) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = error.localizedMessage ?: "Unable to refresh verification status."
                 }
             }
         }
@@ -379,10 +382,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onLogout() {
-        firebaseRepository.signOut()
-        _introStep.value = 0
-        _registrationCredentials.value = RegistrationCredentials()
-        updateActivityTime()
+        viewModelScope.launch(Dispatchers.IO) {
+            firebaseRepository.signOut()
+            withContext(Dispatchers.Main) {
+                _introStep.value = 0
+                _registrationCredentials.value = RegistrationCredentials()
+                updateActivityTime()
+            }
+        }
     }
 
     private fun resetInactivityTimer() {
@@ -392,7 +399,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         inactivityJob = viewModelScope.launch {
             delay(INACTIVITY_TIMEOUT_MS)
             if (_firebaseUser.value != null && System.currentTimeMillis() - scheduledAt >= INACTIVITY_TIMEOUT_MS) {
-                firebaseRepository.signOut()
+                withContext(Dispatchers.IO) {
+                    firebaseRepository.signOut()
+                }
                 _introStep.value = 0
             }
         }
@@ -406,6 +415,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val INACTIVITY_TIMEOUT_MS = 300_000L
+        const val LANGUAGE_TO_INTRO_DELAY_MS = 320L
 
         fun firebaseConfigMessage(): String {
             return "Firebase config was not included in this build. Confirm app/google-services.json exists, " +

@@ -55,7 +55,6 @@ import app.eob.me.ui.screens.AuthChoiceScreen
 import app.eob.me.ui.screens.AuthScreen
 import app.eob.me.ui.screens.CameraCaptureScreen
 import app.eob.me.ui.screens.CptCountScreen
-import app.eob.me.ui.screens.EobSplashScreen
 import app.eob.me.ui.screens.HistoryGridScreen
 import app.eob.me.ui.screens.HomeScreen
 import app.eob.me.ui.screens.IntroScreen
@@ -97,15 +96,9 @@ fun EobNavHost(viewModel: AppViewModel) {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route,
+        startDestination = Screen.Language.route,
         modifier = Modifier.fillMaxSize()
     ) {
-        composable(Screen.Splash.route) {
-            EobSplashScreen(
-                modifier = Modifier.fillMaxSize(),
-                onSplashComplete = viewModel::onSplashComplete
-            )
-        }
         composable(Screen.Language.route) {
             LanguageScreen(
                 modifier = Modifier.fillMaxSize(),
