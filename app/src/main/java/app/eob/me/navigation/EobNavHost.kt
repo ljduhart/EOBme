@@ -387,6 +387,7 @@ private fun MainHubNavHost(
                 composable(EobRoute.CameraCapture.route) {
                     CameraCaptureScreen(
                         language = language,
+                        eobViewModel = eobViewModel,
                         onImageCaptured = { uri ->
                             prepareAndUpload(uri, EobStrings.t(language, "cameraScan"))
                             navController.popBackStack(EobRoute.History.route, inclusive = false)
