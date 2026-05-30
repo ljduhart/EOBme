@@ -16,11 +16,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.UserProfile
-import app.eob.me.navigation.HubBubbleDestination
-import app.eob.me.ui.components.HubBubbleButton
+import app.eob.me.navigation.HubBentoDestination
+import app.eob.me.ui.components.bento.BentoGridCell
 
 /**
- * Main hub: 6 navigation bubbles in a 2×3 grid (MVVM view — state from [app.eob.me.viewmodel.EobViewModel]).
+ * Main hub: 6-spot bento grid (3×2) — state from [app.eob.me.viewmodel.EobViewModel].
  */
 @Composable
 fun HomeScreen(
@@ -29,18 +29,18 @@ fun HomeScreen(
     recordCount: Int,
     firebaseStatusLine: String,
     uploadNotice: String,
-    onBubbleSelected: (HubBubbleDestination) -> Unit,
+    onBentoSelected: (HubBentoDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(bottom = 96.dp, top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 20.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "Welcome, ${profile.firstName.ifBlank { "Member" }}",
                     style = MaterialTheme.typography.headlineSmall,
@@ -66,18 +66,16 @@ fun HomeScreen(
             }
         }
 
-        HubBubbleDestination.gridRows.forEach { row ->
+        HubBentoDestination.gridRows.forEach { row ->
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     row.forEach { destination ->
-                        HubBubbleButton(
-                            emoji = destination.emoji,
-                            title = destination.title(language),
-                            subtitle = destination.subtitle(language),
-                            onClick = { onBubbleSelected(destination) },
+                        BentoGridCell(
+                            destination = destination,
+                            onClick = { onBentoSelected(destination) },
                             modifier = Modifier.weight(1f)
                         )
                     }
