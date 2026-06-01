@@ -17,7 +17,8 @@ import app.eob.me.navigation.HubBottomTab
 fun HubBottomBar(
     language: AppLanguage,
     selectedTab: HubBottomTab?,
-    onTabSelected: (HubBottomTab) -> Unit
+    onTabSelected: (HubBottomTab) -> Unit,
+    scanEnabled: Boolean
 ) {
     NavigationBar(
         containerColor = Color.White,
@@ -28,6 +29,7 @@ fun HubBottomBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = { onTabSelected(tab) },
+                enabled = tab != HubBottomTab.ScanEob || scanEnabled,
                 icon = {
                     Icon(
                         imageVector = tab.icon,

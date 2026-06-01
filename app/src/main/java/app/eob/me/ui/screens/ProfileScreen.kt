@@ -44,6 +44,13 @@ fun ProfileScreen(
 ) {
     var showSupport by remember { mutableStateOf(openSupportInitially) }
     var isEditing by remember { mutableStateOf(false) }
+    val mergedProfile = remember(profile, credentials.email) {
+        profile.copy(email = credentials.email.ifBlank { profile.email })
+    }
+    val canSave = mergedProfile.isComplete &&
+        credentials.email.isNotBlank() &&
+        (credentials.password.isBlank() || credentials.isPasswordValid)
+
     LaunchedEffect(openSupportInitially) {
         if (openSupportInitially) showSupport = true
     }
@@ -81,6 +88,13 @@ fun ProfileScreen(
             readOnly = !isEditing,
             enabled = isEditing
         )
+        if (isEditing && credentials.password.isNotBlank() && !credentials.isPasswordValid) {
+            Text(
+                EobStrings.t(language, "passwordRule"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -98,7 +112,7 @@ fun ProfileScreen(
                     isEditing = false
                 },
                 modifier = Modifier.weight(1f),
-                enabled = isEditing && profile.isComplete
+                enabled = isEditing && canSave
             ) {
                 Text(EobStrings.t(language, "profileSavedButton"))
             }
@@ -112,12 +126,16 @@ fun ProfileScreen(
                 AssistChip(
                     onClick = { onLanguageChanged(option) },
                     label = { Text(option.displayName) },
-                    enabled = option != language
+                    enabled = isEditing && option != language
                 )
             }
         }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = { showSupport = !showSupport }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { showSupport = !showSupport },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = isEditing
+        ) {
             Text(EobStrings.t(language, "support"))
         }
         if (showSupport) {

@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -50,7 +47,6 @@ import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.components.EobDeleteBar
 import app.eob.me.ui.components.HubBottomBar
-import app.eob.me.ui.components.hubBottomIcons
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.navigation.HubBottomTab
 import app.eob.me.ui.screens.AppealScreen
@@ -289,44 +285,38 @@ private fun MainHubNavHost(
                 HubBottomBar(
                     language = language,
                     selectedTab = selectedBottomTab,
+                    scanEnabled = userId.isNotBlank(),
                     onTabSelected = { tab ->
-                        navController.navigate(tab.route) {
-                            launchSingleTop = true
+                        when (tab) {
+                            HubBottomTab.Dashboard -> {
+                                navController.navigate(EobRoute.Dashboard.route) {
+                                    launchSingleTop = true
+                                }
+                                onActivity()
+                            }
+                            HubBottomTab.ScanEob -> {
+                                if (userId.isNotBlank()) {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        EobStrings.t(language, "signInBeforeUpload"),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                            HubBottomTab.Profile -> {
+                                openProfileSupport = false
+                                navController.navigate(EobRoute.Profile.route) {
+                                    launchSingleTop = true
+                                }
+                                onActivity()
+                            }
                         }
-                        if (tab == HubBottomTab.Profile) {
-                            openProfileSupport = false
-                        }
-                        onActivity()
                     }
                 )
             }
-        },
-        floatingActionButton = {
-            if (showBottomBar) {
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        if (userId.isNotBlank()) {
-                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        } else {
-                            Toast.makeText(
-                                context,
-                                EobStrings.t(language, "signInBeforeUpload"),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = hubBottomIcons.ScanEob,
-                            contentDescription = EobStrings.t(language, "bottomScanEob")
-                        )
-                    },
-                    text = { Text(EobStrings.t(language, "bottomScanEob")) },
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            }
-        },
-        floatingActionButtonPosition = FabPosition.Center
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -364,6 +354,10 @@ private fun MainHubNavHost(
                         },
                         onRemoveAppointment = { appointment ->
                             eobViewModel.removeAppointment(appointment)
+                            onActivity()
+                        },
+                        onUpdateAppointment = { id, date, provider, time, notes ->
+                            eobViewModel.updateAppointment(id, date, provider, time, notes)
                             onActivity()
                         },
                         onBentoSelected = { destination ->
@@ -481,7 +475,13 @@ private fun MainHubNavHost(
                         onProfileChanged = onProfileChanged,
                         onCredentialsChanged = onCredentialsChanged,
                         onSave = {
-                            appViewModel.saveProfileAndCredentials(profile, credentials) { message ->
+                            val mergedProfile = profile.copy(
+                                email = credentials.email.ifBlank { profile.email }
+                            )
+                            val mergedCredentials = credentials.copy(email = mergedProfile.email)
+                            onProfileChanged(mergedProfile)
+                            onCredentialsChanged(mergedCredentials)
+                            appViewModel.saveProfileAndCredentials(mergedProfile, mergedCredentials) { message ->
                                 profileSaveMessage = message
                             }
                         },

@@ -286,6 +286,8 @@ object EobStrings {
         "homeInsuranceCardTitle" to "Insurance card",
         "insuranceCardMemberLabel" to "Member name",
         "valueNotSet" to "—",
+        "editAppointment" to "Edit appointment",
+        "updateAppointment" to "Update appointment",
         "profileSavedFirebase" to "Profile saved to Firebase.",
         "profileSaveFailed" to "Profile save failed: %s",
         "insuranceMetadataSaved" to "Insurance card metadata saved.",

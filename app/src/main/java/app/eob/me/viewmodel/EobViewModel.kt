@@ -232,6 +232,26 @@ class EobViewModel : ViewModel() {
         }
     }
 
+    fun updateAppointment(
+        appointmentId: Int,
+        date: String,
+        provider: String,
+        time: String,
+        notes: String
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                appointments = state.appointments.map { existing ->
+                    if (existing.id == appointmentId) {
+                        DoctorAppointment(appointmentId, date, provider, time, notes)
+                    } else {
+                        existing
+                    }
+                }
+            )
+        }
+    }
+
     fun setCalendarExpanded(expanded: Boolean) {
         _uiState.update { it.copy(calendarExpanded = expanded) }
     }
