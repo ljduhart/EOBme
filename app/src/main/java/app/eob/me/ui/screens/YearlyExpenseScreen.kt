@@ -47,5 +47,8 @@ fun YearlyExpenseScreen(
                 YearlyHealthCostDashboard(language = language, summary = summary)
             }
         }
+        item {
+            YearlyHealthCostBarChart(language = language, summary = summary)
+        }
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -23,6 +24,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
@@ -37,19 +40,34 @@ fun ProfileScreen(
     saveMessage: String,
     onProfileChanged: (UserProfile) -> Unit,
     onCredentialsChanged: (RegistrationCredentials) -> Unit,
-    onSave: () -> Unit,
+    onEditingChanged: (Boolean) -> Unit = {},
+    onSave: (UserProfile, RegistrationCredentials) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onLogout: () -> Unit,
     openSupportInitially: Boolean = false
 ) {
     var showSupport by remember { mutableStateOf(openSupportInitially) }
     var isEditing by remember { mutableStateOf(false) }
-    val mergedProfile = remember(profile, credentials.email) {
-        profile.copy(email = credentials.email.ifBlank { profile.email })
+    var draftProfile by remember { mutableStateOf(profile) }
+    var draftCredentials by remember { mutableStateOf(credentials) }
+
+    LaunchedEffect(profile, credentials) {
+        if (!isEditing) {
+            draftProfile = profile
+            draftCredentials = credentials
+        }
     }
+
+    LaunchedEffect(isEditing) {
+        onEditingChanged(isEditing)
+    }
+
+    val mergedProfile = draftProfile.copy(
+        email = draftCredentials.email.ifBlank { draftProfile.email }
+    )
     val canSave = mergedProfile.isComplete &&
-        credentials.email.isNotBlank() &&
-        (credentials.password.isBlank() || credentials.isPasswordValid)
+        draftCredentials.email.isNotBlank() &&
+        (draftCredentials.password.isBlank() || draftCredentials.isPasswordValid)
 
     LaunchedEffect(openSupportInitially) {
         if (openSupportInitially) showSupport = true
@@ -66,29 +84,33 @@ fun ProfileScreen(
         Text(EobStrings.t(language, "editSavedDetails"))
         ProfileFields(
             language = language,
-            profile = profile,
-            onProfileChanged = onProfileChanged,
-            fieldsEnabled = isEditing
+            profile = mergedProfile,
+            onProfileChanged = { draftProfile = it },
+            fieldsEnabled = isEditing,
+            showEmailField = false
         )
         OutlinedTextField(
-            value = credentials.email,
-            onValueChange = { onCredentialsChanged(credentials.copy(email = it)) },
+            value = draftCredentials.email,
+            onValueChange = { draftCredentials = draftCredentials.copy(email = it) },
             label = { Text(EobStrings.t(language, "email")) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             readOnly = !isEditing,
-            enabled = isEditing
+            enabled = isEditing,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
         )
         OutlinedTextField(
-            value = credentials.password,
-            onValueChange = { onCredentialsChanged(credentials.copy(password = it)) },
+            value = draftCredentials.password,
+            onValueChange = { draftCredentials = draftCredentials.copy(password = it) },
             label = { Text(EobStrings.t(language, "password")) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             readOnly = !isEditing,
-            enabled = isEditing
+            enabled = isEditing,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
-        if (isEditing && credentials.password.isNotBlank() && !credentials.isPasswordValid) {
+        if (isEditing && draftCredentials.password.isNotBlank() && !draftCredentials.isPasswordValid) {
             Text(
                 EobStrings.t(language, "passwordRule"),
                 style = MaterialTheme.typography.bodySmall,
@@ -100,7 +122,11 @@ fun ProfileScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedButton(
-                onClick = { isEditing = true },
+                onClick = {
+                    draftProfile = profile
+                    draftCredentials = credentials
+                    isEditing = true
+                },
                 modifier = Modifier.weight(1f),
                 enabled = !isEditing
             ) {
@@ -108,7 +134,11 @@ fun ProfileScreen(
             }
             Button(
                 onClick = {
-                    onSave()
+                    val profileToSave = mergedProfile
+                    val credentialsToSave = draftCredentials.copy(email = profileToSave.email)
+                    onProfileChanged(profileToSave)
+                    onCredentialsChanged(credentialsToSave)
+                    onSave(profileToSave, credentialsToSave)
                     isEditing = false
                 },
                 modifier = Modifier.weight(1f),

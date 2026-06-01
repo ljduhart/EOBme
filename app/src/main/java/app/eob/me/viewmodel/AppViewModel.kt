@@ -54,6 +54,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _profile = MutableStateFlow(UserProfile(email = auth?.currentUser?.email.orEmpty()))
     val profile: StateFlow<UserProfile> = _profile.asStateFlow()
 
+    private val _profileEditing = MutableStateFlow(false)
+
     private val _registrationCredentials = MutableStateFlow(RegistrationCredentials())
     val registrationCredentials: StateFlow<RegistrationCredentials> = _registrationCredentials.asStateFlow()
 
@@ -168,9 +170,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _registrationCredentials.value = RegistrationCredentials()
     }
 
+    fun setProfileEditing(editing: Boolean) {
+        _profileEditing.value = editing
+    }
+
     fun onProfileChanged(updated: UserProfile) {
         _profile.value = updated
         updateActivityTime()
+    }
+
+    fun applyRemoteProfile(updated: UserProfile) {
+        if (!_profileEditing.value) {
+            _profile.value = updated
+        }
     }
 
     fun onCredentialsChanged(updated: RegistrationCredentials) {
@@ -389,6 +401,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onLogout() {
+        _profileEditing.value = false
         firebaseRepository.signOut()
         _introStep.value = 0
         _registrationCredentials.value = RegistrationCredentials()
