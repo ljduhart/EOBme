@@ -226,7 +226,7 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = String.format(Locale.US, "Patient Out-of-Pocket Share: $%.2f", summary.patientAmount),
+                            text = EobStrings.tf(language, "patientOutOfPocketShare", summary.patientAmount),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (summary.patientAmount > 0) PatientRed else Color.Gray
                         )

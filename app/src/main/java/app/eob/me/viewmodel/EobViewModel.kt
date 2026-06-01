@@ -194,6 +194,7 @@ class EobViewModel : ViewModel() {
         userId: String,
         record: EobRecord,
         profile: UserProfile,
+        language: AppLanguage,
         onComplete: (String) -> Unit = {}
     ) {
         deleteRecord(record, profile)
@@ -201,7 +202,7 @@ class EobViewModel : ViewModel() {
         if (userId.isNotBlank() && repo != null) {
             repo.deleteEob(userId, record, onComplete)
         } else if (userId.isBlank()) {
-            onComplete("Please sign in to delete EOBs from the cloud.")
+            onComplete(EobStrings.t(language, "signInToDeleteEob"))
         }
     }
 
@@ -233,7 +234,7 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(calendarExpanded = expanded) }
     }
 
-    fun openInsuranceArticle(article: InsuranceArticle?) {
+    fun openInsuranceArticle(article: InsuranceArticle) {
         _uiState.update { it.copy(selectedInsuranceArticle = article) }
     }
 
@@ -266,7 +267,7 @@ class EobViewModel : ViewModel() {
         val repo = repository ?: return
         if (userId.isBlank()) {
             setLoadingInvoice(false)
-            updateUploadNotice("Please sign in before uploading an EOB.")
+            updateUploadNotice(EobStrings.t(language, "signInBeforeUpload"))
             return
         }
         setLoadingInvoice(true)
@@ -283,7 +284,7 @@ class EobViewModel : ViewModel() {
         val repo = repository ?: return
         if (userId.isBlank()) {
             setLoadingInvoice(false)
-            updateUploadNotice("Please sign in before scanning an EOB.")
+            updateUploadNotice(EobStrings.t(language, "signInBeforeScan"))
             return
         }
         setLoadingInvoice(true)
@@ -296,16 +297,16 @@ class EobViewModel : ViewModel() {
         }
     }
 
-    fun savePastedEob(userId: String, sourceName: String, profile: UserProfile) {
+    fun savePastedEob(userId: String, sourceName: String, profile: UserProfile, language: AppLanguage) {
         val repo = repository ?: return
         if (uploadText.isBlank()) return
         val currentRecords = _eobRecords.value
         val analyzedRecord = EobAnalyzer.analyze(uploadText, sourceName, (currentRecords.maxOfOrNull { it.id } ?: 0) + 1)
         val duplicateIndex = currentRecords.indexOfFirst { EobAnalyzer.isSameEob(it, analyzedRecord) }
         val notice = if (duplicateIndex >= 0) {
-            "Duplicate EOB found. The original copy was replaced with this upload."
+            EobStrings.t(language, "duplicateReplaced")
         } else {
-            "EOB added."
+            EobStrings.t(language, "eobAdded")
         }
         val record = if (duplicateIndex >= 0) {
             analyzedRecord.copy(id = currentRecords[duplicateIndex].id)
@@ -323,10 +324,15 @@ class EobViewModel : ViewModel() {
         uploadText = ""
     }
 
-    fun saveProfileToRemote(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
+    fun saveProfileToRemote(
+        userId: String,
+        profile: UserProfile,
+        language: AppLanguage,
+        onComplete: (String) -> Unit
+    ) {
         val repo = repository ?: return
         if (userId.isBlank()) {
-            onComplete("Please sign in to save your profile.")
+            onComplete(EobStrings.t(language, "signInToSaveProfile"))
             return
         }
         repo.saveProfile(userId, profile, onComplete)

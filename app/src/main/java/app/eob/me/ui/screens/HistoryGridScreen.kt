@@ -101,6 +101,7 @@ fun HistoryGridScreen(
             ) {
                 items(pageRecords, key = { it.id }) { record ->
                     EobSmartCard(
+                        language = language,
                         record = record,
                         isSelected = selectedRecord?.id == record.id,
                         onClick = { onSelected(record) },
@@ -125,6 +126,7 @@ fun HistoryGridScreen(
 
 @Composable
 private fun EobSmartCard(
+    language: AppLanguage,
     record: EobRecord,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -151,7 +153,9 @@ private fun EobSmartCard(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
-                text = record.providerName.take(12).ifBlank { "—" },
+                text = record.providerName.take(12).ifBlank {
+                    EobStrings.t(language, "providerNameMissing")
+                },
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,

@@ -270,7 +270,7 @@ private fun MainHubNavHost(
     val selectedBottomTab = HubBottomTab.fromRoute(currentRoute)
 
     fun deleteEob(record: EobRecord) {
-        eobViewModel.deleteRecordRemote(userId, record, profile) { message ->
+        eobViewModel.deleteRecordRemote(userId, record, profile, language) { message ->
             if (message.isNotBlank()) eobViewModel.updateUploadNotice(message)
         }
         onActivity()

@@ -192,7 +192,7 @@ fun CptCountScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "${record.count}x",
+                                text = EobStrings.tf(language, "cptCountTimes", record.count),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = BrandBlue

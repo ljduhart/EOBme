@@ -44,7 +44,7 @@ fun HomeWeekCalendar(
     var visibleMonth by remember { mutableStateOf(Calendar.getInstance()) }
     val appointmentDates = remember(appointments) { appointments.map { it.date }.toSet() }
     val weekDays = remember { currentWeekDays() }
-    val weekRangeLabel = remember(weekDays) { weekRangeLabel(weekDays) }
+    val weekRangeLabel = remember(weekDays, language) { weekRangeLabel(weekDays, language) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -175,8 +175,8 @@ private fun currentWeekDays(): List<Calendar> {
     }
 }
 
-private fun weekRangeLabel(days: List<Calendar>): String {
-    if (days.isEmpty()) return "This week"
+private fun weekRangeLabel(days: List<Calendar>, language: AppLanguage): String {
+    if (days.isEmpty()) return EobStrings.t(language, "calendarThisWeek")
     val formatter = SimpleDateFormat("MMM d", Locale.US)
     return "${formatter.format(days.first().time)} – ${formatter.format(days.last().time)}"
 }

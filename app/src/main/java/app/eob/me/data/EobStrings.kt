@@ -260,8 +260,30 @@ object EobStrings {
         "coinsuranceLabel" to "Coinsurance",
         "datePlaceholder" to "MM/DD/YYYY",
         "previous" to "Previous",
-        "nextPage" to "Next"
+        "nextPage" to "Next",
+        "signInBeforeScan" to "Please sign in before scanning an EOB.",
+        "signInToDeleteEob" to "Please sign in to delete EOBs from the cloud.",
+        "signInToSaveProfile" to "Please sign in to save your profile.",
+        "verificationEmailSentSignup" to "Verification email sent. Check your email before continuing.",
+        "verificationEmailRequired" to "Email verification required. Check your original verification email before continuing.",
+        "invalidCredentials" to "Invalid credentials. Please try again.",
+        "authErrorGeneric" to "An authentication error occurred.",
+        "verificationEmailResent" to "Verification email sent. Check your inbox.",
+        "resendVerificationFailed" to "Unable to resend verification email.",
+        "emailNotVerifiedYet" to "Email is not verified yet. Please check your inbox and try again.",
+        "profileSavedPasswordRule" to "Profile saved. Password must be at least 8 characters and include a number.",
+        "profileAndPasswordSaved" to "Profile and password saved.",
+        "profileSavedPasswordFailed" to "Profile saved. Password update failed: %s",
+        "profileSaved" to "Profile saved.",
+        "unableToSaveProfile" to "Unable to save profile.",
+        "firebaseConfigMissing" to "Firebase config was not included in this build. Confirm app/google-services.json exists, contains package_name app.eob.me, then Sync Gradle and rebuild the signed AAB.",
+        "calendarThisWeek" to "This week",
+        "patientOutOfPocketShare" to "Patient Out-of-Pocket Share: $%.2f",
+        "providerNameMissing" to "—",
+        "cptCountTimes" to "%dx"
     )
+
+    fun firebaseConfigMessage(language: AppLanguage): String = t(language, "firebaseConfigMissing")
 
     private val spanish = english + mapOf(
         "patientResponsibility" to "Responsabilidad del paciente",

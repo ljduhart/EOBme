@@ -66,7 +66,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val awaitingEmailVerification: StateFlow<Boolean> = _awaitingEmailVerification.asStateFlow()
 
     private val _authMessage = MutableStateFlow(
-        if (firebaseConfigured) "" else firebaseConfigMessage()
+        if (firebaseConfigured) "" else EobStrings.firebaseConfigMessage(AppLanguage.English)
     )
     val authMessage: StateFlow<String> = _authMessage.asStateFlow()
 
@@ -190,11 +190,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val profile = _profile.value
         val credentials = _registrationCredentials.value
         val isSignUp = _isSignUp.value == true
+        val language = _language.value ?: AppLanguage.English
 
         viewModelScope.launch(Dispatchers.IO) {
             if (!firebaseConfigured) {
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = firebaseConfigMessage()
+                    _authMessage.value = EobStrings.firebaseConfigMessage(language)
                 }
                 return@launch
             }
@@ -222,7 +223,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _authMessage.value = if (status.userId.isBlank()) {
                             status.message
                         } else {
-                            "Verification email sent. Check your email before continuing."
+                            EobStrings.t(language, "verificationEmailSentSignup")
                         }
                         if (status.userId.isNotBlank()) {
                             auth?.currentUser?.sendEmailVerification()
@@ -233,11 +234,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         val currentUser = auth?.currentUser
                         if (currentUser != null && !currentUser.isEmailVerified) {
                             _awaitingEmailVerification.value = true
-                            _authMessage.value =
-                                "Email verification required. Check your original verification email before continuing."
+                            _authMessage.value = EobStrings.t(language, "verificationEmailRequired")
                         } else {
                             _authMessage.value = if (status.userId.isBlank()) {
-                                status.message.ifBlank { "Invalid credentials. Please try again." }
+                                status.message.ifBlank { EobStrings.t(language, "invalidCredentials") }
                             } else {
                                 ""
                             }
@@ -250,7 +250,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = e.localizedMessage ?: "An authentication error occurred."
+                    _authMessage.value = e.localizedMessage
+                        ?: EobStrings.t(language, "authErrorGeneric")
                 }
             }
         }
@@ -286,14 +287,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .addOnSuccessListener {
                 viewModelScope.launch {
                     withContext(Dispatchers.Main) {
-                        _authMessage.value = "Verification email sent. Check your inbox."
+                        _authMessage.value = EobStrings.t(language, "verificationEmailResent")
                     }
                 }
             }
             .addOnFailureListener { error ->
                 viewModelScope.launch {
                     withContext(Dispatchers.Main) {
-                        _authMessage.value = error.localizedMessage ?: "Unable to resend verification email."
+                        _authMessage.value = error.localizedMessage
+                            ?: EobStrings.t(language, "resendVerificationFailed")
                     }
                 }
             }
@@ -306,8 +308,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     val currentUser = auth.currentUser
                     _awaitingEmailVerification.value = currentUser != null && !currentUser.isEmailVerified
                     _firebaseUser.value = currentUser?.takeIf { user -> user.isEmailVerified }
+                    val language = _language.value ?: AppLanguage.English
                     _authMessage.value = if (_awaitingEmailVerification.value) {
-                        "Email is not verified yet. Please check your inbox and try again."
+                        EobStrings.t(language, "emailNotVerifiedYet")
                     } else {
                         ""
                     }
@@ -322,16 +325,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         onComplete: (String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            val language = _language.value ?: AppLanguage.English
             if (!firebaseConfigured) {
                 withContext(Dispatchers.Main) {
-                    onComplete(firebaseConfigMessage())
+                    onComplete(EobStrings.firebaseConfigMessage(language))
                 }
                 return@launch
             }
             val userId = auth?.currentUser?.uid.orEmpty()
             if (userId.isBlank()) {
                 withContext(Dispatchers.Main) {
-                    onComplete("Please sign in to save your profile.")
+                    onComplete(EobStrings.t(language, "signInToSaveProfile"))
                 }
                 return@launch
             }
@@ -346,21 +350,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
                 val passwordMessage = if (credentials.password.isNotBlank()) {
                     if (!credentials.isPasswordValid) {
-                        "Profile saved. Password must be at least 8 characters and include a number."
+                        EobStrings.t(language, "profileSavedPasswordRule")
                     } else {
                         suspendCancellableCoroutine { continuation ->
                             auth?.currentUser?.updatePassword(credentials.password)
                                 ?.addOnSuccessListener {
-                                    continuation.resume("Profile and password saved.")
+                                    continuation.resume(EobStrings.t(language, "profileAndPasswordSaved"))
                                 }
                                 ?.addOnFailureListener { error ->
-                                    continuation.resume("Profile saved. Password update failed: ${error.localizedMessage}")
+                                    continuation.resume(
+                                        EobStrings.tf(
+                                            language,
+                                            "profileSavedPasswordFailed",
+                                            error.localizedMessage.orEmpty()
+                                        )
+                                    )
                                 }
                                 ?: continuation.resume(profileMessage)
                         }
                     }
                 } else {
-                    profileMessage.ifBlank { "Profile saved." }
+                    profileMessage.ifBlank { EobStrings.t(language, "profileSaved") }
                 }
 
                 withContext(Dispatchers.Main) {
@@ -372,7 +382,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    onComplete(e.localizedMessage ?: "Unable to save profile.")
+                    onComplete(e.localizedMessage ?: EobStrings.t(language, "unableToSaveProfile"))
                 }
             }
         }
@@ -406,10 +416,5 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val INACTIVITY_TIMEOUT_MS = 300_000L
-
-        fun firebaseConfigMessage(): String {
-            return "Firebase config was not included in this build. Confirm app/google-services.json exists, " +
-                "contains package_name app.eob.me, then Sync Gradle and rebuild the signed AAB."
-        }
     }
 }

@@ -13,7 +13,7 @@ sealed class EobRoute(val route: String) {
     data object ProviderDirectory : EobRoute("provider_directory")
 }
 
-/** Feature routes opened from the 6-bubble main hub (not including Home, Profile, Camera). */
+/** Feature routes opened from the bento hub (not including Home, Profile, Camera). */
 val hubFeatureRoutes = setOf(
     EobRoute.ProviderDirectory.route,
     EobRoute.History.route,
