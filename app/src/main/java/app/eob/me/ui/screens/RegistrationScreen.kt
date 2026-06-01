@@ -198,7 +198,8 @@ fun ProfileFields(
     language: AppLanguage,
     profile: UserProfile,
     onProfileChanged: (UserProfile) -> Unit,
-    fieldsEnabled: Boolean = true
+    fieldsEnabled: Boolean = true,
+    showEmailField: Boolean = true
 ) {
     OutlinedTextField(
         value = profile.firstName,
@@ -216,14 +217,16 @@ fun ProfileFields(
         readOnly = !fieldsEnabled,
         enabled = fieldsEnabled
     )
-    OutlinedTextField(
-        value = profile.email,
-        onValueChange = { onProfileChanged(profile.copy(email = it)) },
-        label = { Text(EobStrings.t(language, "email")) },
-        modifier = Modifier.fillMaxWidth(),
-        readOnly = !fieldsEnabled,
-        enabled = fieldsEnabled
-    )
+    if (showEmailField) {
+        OutlinedTextField(
+            value = profile.email,
+            onValueChange = { onProfileChanged(profile.copy(email = it)) },
+            label = { Text(EobStrings.t(language, "email")) },
+            modifier = Modifier.fillMaxWidth(),
+            readOnly = !fieldsEnabled,
+            enabled = fieldsEnabled
+        )
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = profile.city,

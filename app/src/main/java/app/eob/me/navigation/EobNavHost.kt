@@ -245,7 +245,7 @@ private fun MainHubNavHost(
 
     val userId = firebaseUser?.uid.orEmpty()
 
-    LaunchedEffect(userId, profile) {
+    LaunchedEffect(userId) {
         if (userId.isBlank()) {
             eobViewModel.resetHubState()
             return@LaunchedEffect
@@ -254,7 +254,7 @@ private fun MainHubNavHost(
             userId = userId,
             profile = profile,
             onProfileChanged = { updated ->
-                onProfileChanged(updated)
+                appViewModel.applyRemoteProfile(updated)
                 onActivity()
             }
         )
@@ -397,7 +397,10 @@ private fun MainHubNavHost(
                 composable(EobRoute.ProviderDirectory.route) {
                     ProviderDirectoryScreen(
                         language = language,
-                        providers = EobAnalyzer.providerDirectory(sortedEobRecords)
+                        providers = EobAnalyzer.providerDirectory(sortedEobRecords),
+                        records = sortedEobRecords,
+                        onDeleteEob = { deleteEob(it) },
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
                 composable(EobRoute.CameraCapture.route) {
@@ -474,14 +477,9 @@ private fun MainHubNavHost(
                         saveMessage = profileSaveMessage,
                         onProfileChanged = onProfileChanged,
                         onCredentialsChanged = onCredentialsChanged,
+                        onEditingChanged = appViewModel::setProfileEditing,
                         onSave = {
-                            val mergedProfile = profile.copy(
-                                email = credentials.email.ifBlank { profile.email }
-                            )
-                            val mergedCredentials = credentials.copy(email = mergedProfile.email)
-                            onProfileChanged(mergedProfile)
-                            onCredentialsChanged(mergedCredentials)
-                            appViewModel.saveProfileAndCredentials(mergedProfile, mergedCredentials) { message ->
+                            appViewModel.saveProfileAndCredentials(profile, credentials) { message ->
                                 profileSaveMessage = message
                             }
                         },
