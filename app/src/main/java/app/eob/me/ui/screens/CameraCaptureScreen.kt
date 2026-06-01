@@ -168,7 +168,8 @@ fun CameraCaptureScreen(
                     boundCamera = null
                     isCameraReady = false
                     imageCapture = null
-                    statusMessage = error.localizedMessage ?: "Unable to open camera. Please try again."
+                    statusMessage = error.localizedMessage
+                        ?: EobStrings.t(language, "cameraOpenFailed")
                 }
             }
             cameraProviderFuture.addListener(listener, executor)
@@ -229,11 +230,12 @@ fun CameraCaptureScreen(
                 onRequestCapture = {
                     val capture = imageCapture
                     if (capture == null || !isCameraReady) {
-                        statusMessage = "Camera is still starting. Please wait a moment."
+                        statusMessage = EobStrings.t(language, "cameraStarting")
                     } else {
                         isCapturing = true
                         captureImage(
                             context = context,
+                            language = language,
                             imageCapture = capture,
                             onImageCaptured = {
                                 isCapturing = false
@@ -417,6 +419,7 @@ private fun availableCameraSelector(cameraProvider: ProcessCameraProvider): Came
 
 private fun captureImage(
     context: Context,
+    language: AppLanguage,
     imageCapture: ImageCapture,
     onImageCaptured: (Uri) -> Unit,
     onError: (String) -> Unit
@@ -432,7 +435,9 @@ private fun captureImage(
             }
 
             override fun onError(exception: ImageCaptureException) {
-                onError(exception.localizedMessage ?: "Camera capture failed")
+                onError(
+                    exception.localizedMessage ?: EobStrings.t(language, "cameraCaptureFailed")
+                )
             }
         }
     )

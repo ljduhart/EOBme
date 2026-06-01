@@ -90,6 +90,7 @@ fun HomeWeekCalendar(
 
             if (expanded) {
                 CalendarPicker(
+                    language = language,
                     visibleMonth = visibleMonth,
                     appointments = appointments,
                     onPreviousMonth = {
@@ -112,7 +113,11 @@ fun HomeWeekCalendar(
                     weekDays.forEach { day ->
                         val dateLabel = SimpleDateFormat("MM/dd/yyyy", Locale.US).format(day.time)
                         val dayOfMonth = day.get(Calendar.DAY_OF_MONTH)
-                        val dayName = day.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.US).orEmpty()
+                        val dayName = day.getDisplayName(
+                            Calendar.DAY_OF_WEEK,
+                            Calendar.SHORT,
+                            language.locale()
+                        ).orEmpty()
                         val hasAppointment = appointmentDates.contains(dateLabel)
                         val isToday = isSameDay(day, Calendar.getInstance())
 

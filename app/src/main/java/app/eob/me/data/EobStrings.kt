@@ -288,6 +288,9 @@ object EobStrings {
         "valueNotSet" to "—",
         "editAppointment" to "Edit appointment",
         "updateAppointment" to "Update appointment",
+        "cameraOpenFailed" to "Unable to open camera. Please try again.",
+        "cameraStarting" to "Camera is still starting. Please wait a moment.",
+        "cameraCaptureFailed" to "Camera capture failed.",
         "profileSavedFirebase" to "Profile saved to Firebase.",
         "profileSaveFailed" to "Profile save failed: %s",
         "insuranceMetadataSaved" to "Insurance card metadata saved.",
@@ -367,7 +370,15 @@ object EobStrings {
         "logout" to "Salir",
         "scanBill" to "Escanear EOB",
         "uploadFromLibrary" to "Subir desde biblioteca",
-        "scanWithCamera" to "Escanear con cámara"
+        "scanWithCamera" to "Escanear con cámara",
+        "editAppointment" to "Editar cita",
+        "updateAppointment" to "Actualizar cita",
+        "saveAppointment" to "Guardar cita",
+        "addAppointment" to "Agregar cita",
+        "cameraOpenFailed" to "No se pudo abrir la cámara. Inténtelo de nuevo.",
+        "cameraStarting" to "La cámara aún se está iniciando. Espere un momento.",
+        "cameraCaptureFailed" to "Error al capturar con la cámara.",
+        "contractualAdjustment" to "Ajuste contractual"
     )
 
     private val french = english + mapOf(
@@ -400,7 +411,15 @@ object EobStrings {
         "logout" to "Déconnexion",
         "scanBill" to "Scanner EOB",
         "uploadFromLibrary" to "Depuis bibliothèque",
-        "scanWithCamera" to "Scanner avec caméra"
+        "scanWithCamera" to "Scanner avec caméra",
+        "editAppointment" to "Modifier le rendez-vous",
+        "updateAppointment" to "Mettre à jour le rendez-vous",
+        "saveAppointment" to "Enregistrer le rendez-vous",
+        "addAppointment" to "Ajouter un rendez-vous",
+        "cameraOpenFailed" to "Impossible d'ouvrir la caméra. Réessayez.",
+        "cameraStarting" to "La caméra démarre encore. Patientez un instant.",
+        "cameraCaptureFailed" to "Échec de la capture photo.",
+        "contractualAdjustment" to "Ajustement contractuel"
     )
 
     private val chinese = english + mapOf(
@@ -433,7 +452,15 @@ object EobStrings {
         "logout" to "退出",
         "scanBill" to "扫描 EOB",
         "uploadFromLibrary" to "从图库上传",
-        "scanWithCamera" to "用相机扫描"
+        "scanWithCamera" to "用相机扫描",
+        "editAppointment" to "编辑预约",
+        "updateAppointment" to "更新预约",
+        "saveAppointment" to "保存预约",
+        "addAppointment" to "添加预约",
+        "cameraOpenFailed" to "无法打开相机，请重试。",
+        "cameraStarting" to "相机正在启动，请稍候。",
+        "cameraCaptureFailed" to "相机拍摄失败。",
+        "contractualAdjustment" to "合同调整"
     )
 
     private val localized = mapOf(

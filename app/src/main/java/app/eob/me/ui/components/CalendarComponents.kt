@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorAppointment
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -25,13 +26,15 @@ import java.util.Locale
 
 @Composable
 fun CalendarPicker(
+    language: AppLanguage,
     visibleMonth: Calendar,
     appointments: List<DoctorAppointment>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDateSelected: (String) -> Unit
 ) {
-    val monthTitle = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(visibleMonth.time)
+    val displayLocale = language.locale()
+    val monthTitle = SimpleDateFormat("MMMM yyyy", displayLocale).format(visibleMonth.time)
     val daysInMonth = visibleMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
     val firstDayOffset = (visibleMonth.clone() as Calendar).apply {
         set(Calendar.DAY_OF_MONTH, 1)
@@ -49,8 +52,13 @@ fun CalendarPicker(
         OutlinedButton(onClick = onNextMonth) { Text(">") }
     }
     Row(Modifier.fillMaxWidth()) {
-        listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { day ->
-            Text(day, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
+        repeat(7) { index ->
+            val labelDay = Calendar.getInstance(displayLocale).apply {
+                firstDayOfWeek = Calendar.SUNDAY
+                set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY + index)
+            }
+            val dayLabel = labelDay.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, displayLocale).orEmpty()
+            Text(dayLabel, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -6,6 +6,10 @@ import app.eob.me.navigation.EobRoute
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.navigation.HubBottomTab
 import app.eob.me.navigation.Screen
+import app.eob.me.navigation.hubBackRoutes
+import app.eob.me.navigation.hubFeatureRoutes
+import app.eob.me.navigation.hubRoutesWithoutBottomBar
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -108,6 +112,56 @@ class EobStringsCoverageTest {
     fun firebaseStatusKeysResolveForEveryLanguage() {
         AppLanguage.entries.forEach { language ->
             listOf("firebaseNotConfigured", "firebaseActive", "firebaseConfigured").forEach { key ->
+                val value = EobStrings.t(language, key)
+                assertNotEquals(key, value)
+            }
+        }
+    }
+
+    @Test
+    fun hubNavigationRouteSetsAreConsistent() {
+        val registeredRoutes = setOf(
+            EobRoute.Home.route,
+            EobRoute.History.route,
+            EobRoute.Dashboard.route,
+            EobRoute.YearlyExpense.route,
+            EobRoute.CptCount.route,
+            EobRoute.News.route,
+            EobRoute.Appeal.route,
+            EobRoute.Profile.route,
+            EobRoute.CameraCapture.route,
+            EobRoute.ProviderDirectory.route
+        )
+        assertTrue(hubFeatureRoutes.all { it in registeredRoutes })
+        assertTrue(hubBackRoutes.all { it in registeredRoutes })
+        assertTrue(hubRoutesWithoutBottomBar.all { it in registeredRoutes })
+        assertTrue(EobRoute.Home.route !in hubBackRoutes)
+        assertTrue(EobRoute.CameraCapture.route in hubRoutesWithoutBottomBar)
+    }
+
+    @Test
+    fun hubBottomBarIncludesCenterScanEobTab() {
+        val tabs = HubBottomTab.entries
+        assertEquals(3, tabs.size)
+        assertEquals(HubBottomTab.ScanEob, tabs[1])
+        assertEquals(null, HubBottomTab.ScanEob.route)
+        assertTrue(HubBottomTab.ScanEob.labelKey in EobStrings.allEnglishKeys)
+    }
+
+    @Test
+    fun appointmentAndCameraKeysResolveForEveryLanguage() {
+        val keys = listOf(
+            "editAppointment",
+            "updateAppointment",
+            "saveAppointment",
+            "addAppointment",
+            "cameraOpenFailed",
+            "cameraStarting",
+            "cameraCaptureFailed",
+            "contractualAdjustment"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
                 val value = EobStrings.t(language, key)
                 assertNotEquals(key, value)
             }
