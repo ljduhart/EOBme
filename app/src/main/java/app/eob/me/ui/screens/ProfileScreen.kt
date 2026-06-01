@@ -43,6 +43,7 @@ fun ProfileScreen(
     openSupportInitially: Boolean = false
 ) {
     var showSupport by remember { mutableStateOf(openSupportInitially) }
+    var isEditing by remember { mutableStateOf(false) }
     LaunchedEffect(openSupportInitially) {
         if (openSupportInitially) showSupport = true
     }
@@ -56,27 +57,51 @@ fun ProfileScreen(
     ) {
         Text(EobStrings.t(language, "userProfile"), style = MaterialTheme.typography.titleLarge)
         Text(EobStrings.t(language, "editSavedDetails"))
-        ProfileFields(language = language, profile = profile, onProfileChanged = onProfileChanged)
+        ProfileFields(
+            language = language,
+            profile = profile,
+            onProfileChanged = onProfileChanged,
+            fieldsEnabled = isEditing
+        )
         OutlinedTextField(
             value = credentials.email,
             onValueChange = { onCredentialsChanged(credentials.copy(email = it)) },
             label = { Text(EobStrings.t(language, "email")) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            readOnly = !isEditing,
+            enabled = isEditing
         )
         OutlinedTextField(
             value = credentials.password,
             onValueChange = { onCredentialsChanged(credentials.copy(password = it)) },
             label = { Text(EobStrings.t(language, "password")) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            readOnly = !isEditing,
+            enabled = isEditing
         )
-        Button(
-            onClick = onSave,
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            enabled = profile.isComplete
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(EobStrings.t(language, "saveProfile"))
+            OutlinedButton(
+                onClick = { isEditing = true },
+                modifier = Modifier.weight(1f),
+                enabled = !isEditing
+            ) {
+                Text(EobStrings.t(language, "editProfile"))
+            }
+            Button(
+                onClick = {
+                    onSave()
+                    isEditing = false
+                },
+                modifier = Modifier.weight(1f),
+                enabled = isEditing && profile.isComplete
+            ) {
+                Text(EobStrings.t(language, "profileSavedButton"))
+            }
         }
         if (saveMessage.isNotBlank()) {
             Text(saveMessage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)

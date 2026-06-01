@@ -280,7 +280,12 @@ object EobStrings {
         "calendarThisWeek" to "This week",
         "patientOutOfPocketShare" to "Patient Out-of-Pocket Share: $%.2f",
         "providerNameMissing" to "—",
-        "cptCountTimes" to "%dx"
+        "cptCountTimes" to "%dx",
+        "editProfile" to "Edit",
+        "profileSavedButton" to "Saved",
+        "homeInsuranceCardTitle" to "Insurance card",
+        "insuranceCardMemberLabel" to "Member name",
+        "valueNotSet" to "—"
     )
 
     fun firebaseConfigMessage(language: AppLanguage): String = t(language, "firebaseConfigMissing")
