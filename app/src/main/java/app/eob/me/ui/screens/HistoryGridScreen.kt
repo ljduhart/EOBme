@@ -75,7 +75,9 @@ fun HistoryGridScreen(
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            text = "${sortedRecords.size} ${EobStrings.t(language, "eobs")} • Page ${safePage + 1} of $pageCount",
+            text = "${sortedRecords.size} ${EobStrings.t(language, "eobs")} • ${
+                EobStrings.tf(language, "pageOf", safePage + 1, pageCount)
+            }",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
@@ -83,7 +85,7 @@ fun HistoryGridScreen(
         if (sortedRecords.isEmpty()) {
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = "Scan an EOB with the camera button to build your history grid.",
+                text = EobStrings.t(language, "historyEmptyHint"),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -230,10 +232,10 @@ private fun HistoryPageSelector(
             onClick = { onPageChange((currentPage - 1).coerceAtLeast(0)) },
             enabled = currentPage > 0
         ) {
-            Text("Previous")
+            Text(EobStrings.t(language, "previous"))
         }
         Text(
-            text = "Page ${currentPage + 1} / $pageCount",
+            text = EobStrings.tf(language, "pageSlash", currentPage + 1, pageCount),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold
         )
@@ -241,7 +243,7 @@ private fun HistoryPageSelector(
             onClick = { onPageChange((currentPage + 1).coerceAtMost(pageCount - 1)) },
             enabled = currentPage < pageCount - 1
         ) {
-            Text("Next")
+            Text(EobStrings.t(language, "nextPage"))
         }
     }
 }

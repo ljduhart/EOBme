@@ -1,9 +1,20 @@
 package app.eob.me.data
 
+import java.util.Locale
+
 object EobStrings {
     fun t(language: AppLanguage, key: String): String {
-        return localized[language]?.get(key) ?: localized.getValue(AppLanguage.English).getValue(key)
+        localized[language]?.get(key)?.let { return it }
+        localized[AppLanguage.English]?.get(key)?.let { return it }
+        return key
     }
+
+    fun tf(language: AppLanguage, key: String, vararg formatArgs: Any): String {
+        return String.format(Locale.US, t(language, key), *formatArgs)
+    }
+
+    /** Keys referenced from UI — validated in [app.eob.me.EobStringsCoverageTest]. */
+    val allEnglishKeys: Set<String> get() = english.keys
 
     fun localizedIntro(language: AppLanguage): List<Pair<String, String>> = intro(language)
 
@@ -174,10 +185,98 @@ object EobStrings {
         "categoryHospital" to "Hospital",
         "categoryDme" to "DME",
         "categoryInjection" to "Injections",
-        "categoryOther" to "Other"
+        "categoryOther" to "Other",
+        "patientResponsibility" to "Patient responsibility",
+        "firebaseNotConfigured" to "Firebase is not configured for this build.",
+        "firebaseActive" to "Firebase sync active",
+        "firebaseConfigured" to "Firebase configured — sign in to sync",
+        "welcomeUser" to "Welcome, %s",
+        "homeRecordSummary" to "%d %s • %s",
+        "eobSingular" to "EOB",
+        "featuresSection" to "Features",
+        "insuranceNewsTitle" to "Insurance news • %d",
+        "insuranceNewsSubtitle" to "Updates from United Healthcare, Medicare, Aetna, Blue Cross, and Medicaid.",
+        "insuranceNewsMonthlyBriefings" to "Tap to read • 12 monthly briefings",
+        "calendarFullMonthView" to "Full month view",
+        "calendarWeekView" to "Week view",
+        "calendarExpand" to "Expand",
+        "closeReader" to "Close reader",
+        "capturing" to "Capturing...",
+        "signInBeforeUpload" to "Please sign in before uploading an EOB.",
+        "bottomDashboard" to "Dashboard",
+        "bottomScanEob" to "Scan EOB",
+        "bottomProfile" to "Profile",
+        "bentoProviderDirectory" to "Provider Directory",
+        "bentoEobHistory" to "EOB History",
+        "bentoCptTracker" to "CPT Tracker",
+        "bentoYtdExpense" to "Y-T-D Expense",
+        "bentoInsuranceNews" to "Insurance News",
+        "bentoAppealGenerator" to "Appeal Generator",
+        "historyEmptyHint" to "Scan an EOB with the camera button to build your history grid.",
+        "pageOf" to "Page %1\$d of %2\$d",
+        "pageSlash" to "Page %1\$d / %2\$d",
+        "expenseAnalytics" to "Expense Analytics",
+        "dashboardUploadHint" to "Upload an EOB invoice to view analytics charting summaries.",
+        "claimAllocationProfile" to "Claim Allocation Profile",
+        "totalAggregatedClaims" to "Total Aggregated Claims: $%.2f",
+        "networkSavingsAdjustments" to "Network Savings Adjustments",
+        "coveredByCarrierPlan" to "Covered By Carrier Plan",
+        "yourPatientResponsibility" to "Your Patient Responsibility",
+        "spendingByFacility" to "Spending by Medical Facility",
+        "unknownProvider" to "Unknown Provider",
+        "appealGeneratorTitle" to "Appeal Generator",
+        "appealSelectClaimHint" to "Select a claim from the History tab to generate an appeal letter.",
+        "appealingProvider" to "Appealing: %s",
+        "appealServiceDate" to "Service Date: %s",
+        "appealDraftPlaceholder" to "Drafting your appeal...",
+        "appealRegenerate" to "Regenerate",
+        "appealCopy" to "Copy",
+        "insuranceIntelligence" to "Insurance Intelligence",
+        "insuranceIntelligenceSubtitle" to "Policy updates, coverage warnings, and carrier alerts",
+        "insuranceIntelligenceTip" to "EOBme cross-references your uploaded provider networks with regional policy changes to flag unexpected coverage adjustments.",
+        "insuranceNewsAllClear" to "All clear! No pending network alerts or updates.",
+        "cptTrackingTitle" to "Medical Code Tracking",
+        "cptTrackingSubtitle" to "Analyze procedural frequency and billing distributions",
+        "cptCodeDescriptionHeader" to "Code / Description",
+        "cptFrequencyHeader" to "Frequency",
+        "cptBilledTotalHeader" to "Billed Total",
+        "cptNoProcedures" to "No recorded procedures match this category footprint.",
+        "cptCodeLabel" to "CPT %s",
+        "unspecifiedProcedure" to "Unspecified Procedure",
+        "providerDirectoryTitle" to "Provider Directory",
+        "providerDirectorySubtitle" to "Facilities and clinicians extracted from your synced EOB history.",
+        "providerDirectoryEmpty" to "Providers will appear here after EOBs are scanned and saved to Firestore.",
+        "providerEobSummary" to "EOBs: %1\$d • Last service: %2\$s",
+        "providerBilledPaid" to "Billed: %1\$s • Paid: %2\$s",
+        "yearlyExpenseTitle" to "Yearly Expense",
+        "yearlyHealthCostDashboard" to "Yearly Health Cost Dashboard",
+        "yearlyNoEobs" to "No EOBs yet",
+        "yearLabel" to "Year: %s • EOBs: %d",
+        "totalBilled" to "Total billed",
+        "totalInsurancePaid" to "Insurance paid",
+        "contractualAdjustments" to "Contractual adjustments",
+        "copays" to "Copays",
+        "deductibles" to "Deductibles",
+        "coinsuranceLabel" to "Coinsurance",
+        "datePlaceholder" to "MM/DD/YYYY",
+        "previous" to "Previous",
+        "nextPage" to "Next"
     )
 
     private val spanish = english + mapOf(
+        "patientResponsibility" to "Responsabilidad del paciente",
+        "firebaseNotConfigured" to "Firebase no está configurado en esta compilación.",
+        "firebaseActive" to "Sincronización de Firebase activa",
+        "firebaseConfigured" to "Firebase configurado — inicie sesión para sincronizar",
+        "welcomeUser" to "Bienvenido, %s",
+        "featuresSection" to "Funciones",
+        "bottomDashboard" to "Panel",
+        "bottomScanEob" to "Escanear EOB",
+        "bottomProfile" to "Perfil",
+        "calendarExpand" to "Expandir",
+        "calendarWeekView" to "Vista semanal",
+        "closeReader" to "Cerrar lector",
+        "signInBeforeUpload" to "Inicie sesión antes de subir un EOB.",
         "next" to "Siguiente",
         "createAccount" to "Crear cuenta",
         "login" to "Iniciar sesión",
@@ -199,6 +298,19 @@ object EobStrings {
     )
 
     private val french = english + mapOf(
+        "patientResponsibility" to "Responsabilité du patient",
+        "firebaseNotConfigured" to "Firebase n'est pas configuré pour cette version.",
+        "firebaseActive" to "Synchronisation Firebase active",
+        "firebaseConfigured" to "Firebase configuré — connectez-vous pour synchroniser",
+        "welcomeUser" to "Bienvenue, %s",
+        "featuresSection" to "Fonctions",
+        "bottomDashboard" to "Tableau de bord",
+        "bottomScanEob" to "Scanner EOB",
+        "bottomProfile" to "Profil",
+        "calendarExpand" to "Développer",
+        "calendarWeekView" to "Vue semaine",
+        "closeReader" to "Fermer le lecteur",
+        "signInBeforeUpload" to "Connectez-vous avant de téléverser un EOB.",
         "next" to "Suivant",
         "createAccount" to "Créer un compte",
         "login" to "Connexion",
@@ -219,6 +331,19 @@ object EobStrings {
     )
 
     private val chinese = english + mapOf(
+        "patientResponsibility" to "患者责任",
+        "firebaseNotConfigured" to "此版本未配置 Firebase。",
+        "firebaseActive" to "Firebase 同步已启用",
+        "firebaseConfigured" to "Firebase 已配置 — 登录以同步",
+        "welcomeUser" to "欢迎，%s",
+        "featuresSection" to "功能",
+        "bottomDashboard" to "仪表板",
+        "bottomScanEob" to "扫描 EOB",
+        "bottomProfile" to "资料",
+        "calendarExpand" to "展开",
+        "calendarWeekView" to "周视图",
+        "closeReader" to "关闭阅读器",
+        "signInBeforeUpload" to "上传 EOB 前请先登录。",
         "next" to "下一步",
         "createAccount" to "创建账户",
         "login" to "登录",

@@ -17,10 +17,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorAppointment
+import app.eob.me.data.EobStrings
 import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.HubBentoDestination
@@ -69,13 +71,27 @@ fun HomeScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "Welcome, ${profile.firstName.ifBlank { "Member" }}",
+                        text = EobStrings.tf(
+                            language,
+                            "welcomeUser",
+                            profile.firstName.ifBlank { EobStrings.t(language, "member") }
+                        ),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "$recordCount ${if (recordCount == 1) "EOB" else "EOBs"} • $firebaseStatusLine",
+                        text = EobStrings.tf(
+                            language,
+                            "homeRecordSummary",
+                            recordCount,
+                            if (recordCount == 1) {
+                                EobStrings.t(language, "eobSingular")
+                            } else {
+                                EobStrings.t(language, "eobs")
+                            },
+                            firebaseStatusLine
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -125,6 +141,7 @@ fun HomeScreen(
 
             item {
                 HomeInsuranceNewsSection(
+                    language = language,
                     articles = insuranceArticles,
                     year = currentNewsYear(),
                     onArticleSelected = onInsuranceArticleSelected,
@@ -134,7 +151,7 @@ fun HomeScreen(
 
             item {
                 Text(
-                    text = "Features",
+                    text = EobStrings.t(language, "featuresSection"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -150,6 +167,7 @@ fun HomeScreen(
                     ) {
                         row.forEach { destination ->
                             BentoGridCell(
+                                language = language,
                                 destination = destination,
                                 onClick = { onBentoSelected(destination) },
                                 modifier = Modifier.weight(1f)
@@ -162,6 +180,7 @@ fun HomeScreen(
 
         selectedInsuranceArticle?.let { article ->
             InsuranceArticleReaderOverlay(
+                language = language,
                 article = article,
                 onDismiss = onDismissInsuranceArticle,
                 modifier = Modifier.fillMaxSize()

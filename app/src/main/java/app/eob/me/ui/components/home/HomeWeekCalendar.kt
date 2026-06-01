@@ -68,13 +68,23 @@ fun HomeWeekCalendar(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = if (expanded) "Full month view" else weekRangeLabel,
+                        text = if (expanded) {
+                            EobStrings.t(language, "calendarFullMonthView")
+                        } else {
+                            weekRangeLabel
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
                     )
                 }
                 OutlinedButton(onClick = { onExpandedChange(!expanded) }) {
-                    Text(if (expanded) "Week view" else "Expand")
+                    Text(
+                        if (expanded) {
+                            EobStrings.t(language, "calendarWeekView")
+                        } else {
+                            EobStrings.t(language, "calendarExpand")
+                        }
+                    )
                 }
             }
 

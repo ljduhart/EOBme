@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 import app.eob.me.data.NewsRelease
 import app.eob.me.ui.components.HolographicGlassCard
 
@@ -48,12 +49,12 @@ fun NewsScreen(
         item {
             Column(modifier = Modifier.padding(top = 8.dp)) {
                 Text(
-                    text = "Insurance Intelligence",
+                    text = EobStrings.t(language, "insuranceIntelligence"),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Policy updates, coverage warnings, and carrier alerts",
+                    text = EobStrings.t(language, "insuranceIntelligenceSubtitle"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -75,7 +76,7 @@ fun NewsScreen(
                 ) {
                     Text("💡", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        text = "EOBme cross-references your uploaded provider networks with regional policy changes to flag unexpected coverage adjustments.",
+                        text = EobStrings.t(language, "insuranceIntelligenceTip"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -92,7 +93,7 @@ fun NewsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "All clear! No pending network alerts or updates.",
+                        text = EobStrings.t(language, "insuranceNewsAllClear"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )

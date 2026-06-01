@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.CptCategory
 import app.eob.me.data.EobRecord
+import app.eob.me.data.EobStrings
 import java.util.Locale
 
 private val BrandBlue = Color(0xFF2498EA)
@@ -53,7 +54,8 @@ fun CptCountScreen(
             .map { (code, chargesGroup) ->
                 CptSummaryRow(
                     cptCode = code,
-                    description = chargesGroup.firstOrNull()?.cptDescription ?: "Unspecified Procedure",
+                    description = chargesGroup.firstOrNull()?.cptDescription
+                        ?: EobStrings.t(language, "unspecifiedProcedure"),
                     count = chargesGroup.size,
                     totalBilledValue = chargesGroup.sumOf { it.billedAmount }
                 )
@@ -71,12 +73,12 @@ fun CptCountScreen(
         item {
             Column(modifier = Modifier.padding(top = 8.dp)) {
                 Text(
-                    text = "Medical Code Tracking",
+                    text = EobStrings.t(language, "cptTrackingTitle"),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Analyze procedural frequency and billing distributions",
+                    text = EobStrings.t(language, "cptTrackingSubtitle"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -95,7 +97,7 @@ fun CptCountScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = { onCategorySelected(category) },
-                        label = { Text(category.displayName) },
+                        label = { Text(EobStrings.cptCategoryLabel(language, category)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = BrandBlue,
                             selectedLabelColor = Color.White
@@ -115,20 +117,20 @@ fun CptCountScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Code / Description",
+                        text = EobStrings.t(language, "cptCodeDescriptionHeader"),
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.Gray,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = "Frequency",
+                        text = EobStrings.t(language, "cptFrequencyHeader"),
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.Gray,
                         modifier = Modifier.width(80.dp),
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Billed Total",
+                        text = EobStrings.t(language, "cptBilledTotalHeader"),
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.Gray,
                         modifier = Modifier.width(90.dp),
@@ -147,7 +149,7 @@ fun CptCountScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No recorded procedures match this category footprint.",
+                        text = EobStrings.t(language, "cptNoProcedures"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
@@ -170,7 +172,7 @@ fun CptCountScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "CPT ${record.cptCode}",
+                                text = EobStrings.tf(language, "cptCodeLabel", record.cptCode),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold
                             )

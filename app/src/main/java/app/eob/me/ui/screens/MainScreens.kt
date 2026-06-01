@@ -11,22 +11,38 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.asCurrency
 
 @Composable
-fun YearlyHealthCostDashboard(summary: YearlyHealthCostSummary) {
+fun YearlyHealthCostDashboard(language: AppLanguage, summary: YearlyHealthCostSummary) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Yearly Health Cost Dashboard", style = MaterialTheme.typography.titleLarge)
-            Text("Year: ${if (summary.year == 0) "No EOBs yet" else summary.year} • EOBs: ${summary.eobCount}")
-            AmountRow("Total billed", summary.totalBilled)
-            AmountRow("Insurance paid", summary.totalInsurancePaid)
-            AmountRow("Contractual adjustments", summary.totalContractualAdjustment)
-            AmountRow("Patient responsibility", summary.totalPatientResponsibility)
-            AmountRow("Copays", summary.totalCopay)
-            AmountRow("Deductibles", summary.totalDeductible)
-            AmountRow("Coinsurance", summary.totalCoinsurance)
+            Text(
+                EobStrings.t(language, "yearlyHealthCostDashboard"),
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                EobStrings.tf(
+                    language,
+                    "yearLabel",
+                    if (summary.year == 0) {
+                        EobStrings.t(language, "yearlyNoEobs")
+                    } else {
+                        summary.year.toString()
+                    },
+                    summary.eobCount
+                )
+            )
+            AmountRow(EobStrings.t(language, "totalBilled"), summary.totalBilled)
+            AmountRow(EobStrings.t(language, "totalInsurancePaid"), summary.totalInsurancePaid)
+            AmountRow(EobStrings.t(language, "contractualAdjustments"), summary.totalContractualAdjustment)
+            AmountRow(EobStrings.t(language, "patientResponsibility"), summary.totalPatientResponsibility)
+            AmountRow(EobStrings.t(language, "copays"), summary.totalCopay)
+            AmountRow(EobStrings.t(language, "deductibles"), summary.totalDeductible)
+            AmountRow(EobStrings.t(language, "coinsuranceLabel"), summary.totalCoinsurance)
         }
     }
 }

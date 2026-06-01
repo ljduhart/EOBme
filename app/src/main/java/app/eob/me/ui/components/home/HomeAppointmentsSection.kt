@@ -130,7 +130,7 @@ fun HomeAppointmentsSection(
                         label = { Text(EobStrings.t(language, "appointmentDate")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text("MM/DD/YYYY") }
+                        placeholder = { Text(EobStrings.t(language, "datePlaceholder")) }
                     )
                     OutlinedTextField(
                         value = time,

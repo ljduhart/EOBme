@@ -192,7 +192,7 @@ private fun MainHubNavHost(
     fun prepareAndUpload(uri: Uri, sourceName: String) {
         val uid = firebaseUser?.uid.orEmpty()
         if (uid.isBlank()) {
-            Toast.makeText(context, "Please sign in before uploading an EOB.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, EobStrings.t(language, "signInBeforeUpload"), Toast.LENGTH_SHORT).show()
             return
         }
         scope.launch {
@@ -280,6 +280,7 @@ private fun MainHubNavHost(
         bottomBar = {
             if (showBottomBar) {
                 HubBottomBar(
+                    language = language,
                     selectedTab = selectedBottomTab,
                     scanEnabled = userId.isNotBlank(),
                     onTabSelected = { tab ->

@@ -9,10 +9,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 import app.eob.me.navigation.HubBottomTab
 
 @Composable
 fun HubBottomBar(
+    language: AppLanguage,
     selectedTab: HubBottomTab?,
     onTabSelected: (HubBottomTab) -> Unit,
     scanEnabled: Boolean
@@ -30,10 +33,10 @@ fun HubBottomBar(
                 icon = {
                     Icon(
                         imageVector = tab.icon,
-                        contentDescription = tab.label
+                        contentDescription = EobStrings.t(language, tab.labelKey)
                     )
                 },
-                label = { Text(tab.label) },
+                label = { Text(EobStrings.t(language, tab.labelKey)) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,

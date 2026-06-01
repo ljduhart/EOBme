@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobRecord
+import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
 
 private val BrandBlue = Color(0xFF2498EA)
@@ -56,7 +57,7 @@ fun AppealScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Appeal Generator",
+            text = EobStrings.t(language, "appealGeneratorTitle"),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
@@ -71,7 +72,7 @@ fun AppealScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "📋", fontSize = 48.sp)
                     Text(
-                        text = "Select a claim from the History tab to generate an appeal letter.",
+                        text = EobStrings.t(language, "appealSelectClaimHint"),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Gray,
                         textAlign = TextAlign.Center,
@@ -94,12 +95,12 @@ fun AppealScreen(
                     Text(text = "📄", fontSize = 20.sp)
                     Column {
                         Text(
-                            text = "Appealing: ${selectedRecord.providerName}",
+                            text = EobStrings.tf(language, "appealingProvider", selectedRecord.providerName),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Service Date: ${selectedRecord.serviceDate}",
+                            text = EobStrings.tf(language, "appealServiceDate", selectedRecord.serviceDate),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -133,7 +134,7 @@ fun AppealScreen(
                         focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White
                     ),
-                    placeholder = { Text("Drafting your appeal...") }
+                    placeholder = { Text(EobStrings.t(language, "appealDraftPlaceholder")) }
                 )
             }
 
@@ -147,7 +148,7 @@ fun AppealScreen(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
                 ) {
-                    Text("🔄 Regenerate")
+                    Text("🔄 ${EobStrings.t(language, "appealRegenerate")}")
                 }
 
                 OutlinedButton(
@@ -155,7 +156,7 @@ fun AppealScreen(
                     modifier = Modifier.weight(1f),
                     enabled = appealLetter.isNotBlank()
                 ) {
-                    Text("📋 Copy")
+                    Text("📋 ${EobStrings.t(language, "appealCopy")}")
                 }
 
                 IconButton(

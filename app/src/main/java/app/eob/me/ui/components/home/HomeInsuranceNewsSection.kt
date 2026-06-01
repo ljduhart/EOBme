@@ -21,6 +21,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.MajorInsuranceCarrier
 import java.util.Calendar
@@ -28,6 +30,7 @@ import java.util.Calendar
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeInsuranceNewsSection(
+    language: AppLanguage,
     articles: List<InsuranceArticle>,
     year: Int,
     onArticleSelected: (InsuranceArticle) -> Unit,
@@ -46,13 +49,13 @@ fun HomeInsuranceNewsSection(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Insurance news • $year",
+                text = EobStrings.tf(language, "insuranceNewsTitle", year),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Updates from United Healthcare, Medicare, Aetna, Blue Cross, and Medicaid.",
+                text = EobStrings.t(language, "insuranceNewsSubtitle"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
@@ -83,7 +86,7 @@ fun HomeInsuranceNewsSection(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Tap to read • 12 monthly briefings",
+                            text = EobStrings.t(language, "insuranceNewsMonthlyBriefings"),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             modifier = Modifier.clickable {

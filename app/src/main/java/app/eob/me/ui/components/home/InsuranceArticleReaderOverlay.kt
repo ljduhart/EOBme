@@ -24,10 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 import app.eob.me.data.InsuranceArticle
 
 @Composable
 fun InsuranceArticleReaderOverlay(
+    language: AppLanguage,
     article: InsuranceArticle,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
@@ -83,7 +86,7 @@ fun InsuranceArticleReaderOverlay(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Close reader")
+                    Text(EobStrings.t(language, "closeReader"))
                 }
             }
         }

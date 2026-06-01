@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobRecord
+import app.eob.me.data.EobStrings
 import app.eob.me.ui.components.HolographicGlassCard
 import java.util.Locale
 
@@ -63,7 +64,7 @@ fun DashboardScreen(
         records.groupBy { it.providerName }
             .map { (provider, recordList) ->
                 ProviderCostRow(
-                    name = provider.ifBlank { "Unknown Provider" },
+                    name = provider.ifBlank { EobStrings.t(language, "unknownProvider") },
                     totalAmount = recordList.sumOf { it.totalBilledAmount },
                     patientAmount = recordList.sumOf { it.totalPatientResponsibility }
                 )
@@ -80,7 +81,7 @@ fun DashboardScreen(
     ) {
         item {
             Text(
-                text = "Expense Analytics",
+                text = EobStrings.t(language, "expenseAnalytics"),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 8.dp)
@@ -96,7 +97,7 @@ fun DashboardScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Upload an EOB invoice to view analytics charting summaries.",
+                        text = EobStrings.t(language, "dashboardUploadHint"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
@@ -109,13 +110,13 @@ fun DashboardScreen(
                     cornerRadius = 16.dp
                 ) {
                     Text(
-                        text = "Claim Allocation Profile",
+                        text = EobStrings.t(language, "claimAllocationProfile"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = String.format(Locale.US, "Total Aggregated Claims: $%.2f", metrics.grossBilled),
+                        text = EobStrings.tf(language, "totalAggregatedClaims", metrics.grossBilled),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -158,17 +159,17 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     LegendItem(
-                        label = "Network Savings Adjustments",
+                        label = EobStrings.t(language, "networkSavingsAdjustments"),
                         amount = metrics.adjustments,
                         color = AdjustmentGreen
                     )
                     LegendItem(
-                        label = "Covered By Carrier Plan",
+                        label = EobStrings.t(language, "coveredByCarrierPlan"),
                         amount = metrics.insurancePaid,
                         color = BilledBlue
                     )
                     LegendItem(
-                        label = "Your Patient Responsibility",
+                        label = EobStrings.t(language, "yourPatientResponsibility"),
                         amount = metrics.patientDue,
                         color = PatientRed
                     )
@@ -177,7 +178,7 @@ fun DashboardScreen(
 
             item {
                 Text(
-                    text = "Spending by Medical Facility",
+                    text = EobStrings.t(language, "spendingByFacility"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

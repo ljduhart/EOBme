@@ -18,10 +18,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppLanguage
 import app.eob.me.navigation.HubBentoDestination
 
 @Composable
 fun BentoGridCell(
+    language: AppLanguage,
     destination: HubBentoDestination,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -49,7 +51,7 @@ fun BentoGridCell(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Text(
-                text = destination.title,
+                text = destination.title(language),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,

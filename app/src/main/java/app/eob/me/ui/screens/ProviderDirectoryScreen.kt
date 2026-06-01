@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 import app.eob.me.data.ProviderSummary
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.components.HolographicGlassCard
@@ -38,13 +39,13 @@ fun ProviderDirectoryScreen(
     ) {
         item {
             Text(
-                text = "Provider Directory",
+                text = EobStrings.t(language, "providerDirectoryTitle"),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Facilities and clinicians extracted from your synced EOB history.",
+                text = EobStrings.t(language, "providerDirectorySubtitle"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray
             )
@@ -54,7 +55,7 @@ fun ProviderDirectoryScreen(
             item {
                 HolographicGlassCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Providers will appear here after EOBs are scanned and saved to Firestore.",
+                        text = EobStrings.t(language, "providerDirectoryEmpty"),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -72,10 +73,26 @@ fun ProviderDirectoryScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(provider.providerName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("EOBs: ${provider.eobCount} • Last service: ${provider.lastServiceDate}")
-                        Text("Billed: ${provider.totalBilled.asCurrency()} • Paid: ${provider.totalInsurancePaid.asCurrency()}")
                         Text(
-                            text = "Patient responsibility: ${provider.totalPatientResponsibility.asCurrency()}",
+                            EobStrings.tf(
+                                language,
+                                "providerEobSummary",
+                                provider.eobCount,
+                                provider.lastServiceDate
+                            )
+                        )
+                        Text(
+                            EobStrings.tf(
+                                language,
+                                "providerBilledPaid",
+                                provider.totalBilled.asCurrency(),
+                                provider.totalInsurancePaid.asCurrency()
+                            )
+                        )
+                        Text(
+                            text = "${EobStrings.t(language, "patientResponsibility")}: ${
+                                provider.totalPatientResponsibility.asCurrency()
+                            }",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium
                         )

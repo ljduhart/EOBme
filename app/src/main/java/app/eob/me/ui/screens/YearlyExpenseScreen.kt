@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobStrings
 import app.eob.me.data.EobRecord
 import app.eob.me.ui.components.HolographicGlassCard
 
@@ -35,7 +36,7 @@ fun YearlyExpenseScreen(
     ) {
         item {
             Text(
-                text = "Yearly Expense",
+                text = EobStrings.t(language, "yearlyExpenseTitle"),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -43,7 +44,7 @@ fun YearlyExpenseScreen(
         }
         item {
             HolographicGlassCard(modifier = Modifier.fillMaxWidth()) {
-                YearlyHealthCostDashboard(summary)
+                YearlyHealthCostDashboard(language = language, summary = summary)
             }
         }
     }

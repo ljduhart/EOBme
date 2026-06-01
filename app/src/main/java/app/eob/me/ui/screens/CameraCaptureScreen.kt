@@ -294,7 +294,13 @@ private fun CameraControlHudElements(
             enabled = isCameraReady && !isCapturing,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (isCapturing) "Capturing..." else EobStrings.t(language, "scanBill"))
+            Text(
+                if (isCapturing) {
+                    EobStrings.t(language, "capturing")
+                } else {
+                    EobStrings.t(language, "scanBill")
+                }
+            )
         }
         Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "close"))

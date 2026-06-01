@@ -5,12 +5,12 @@ import app.eob.me.ui.components.hubBottomIcons
 
 enum class HubBottomTab(
     val route: String?,
-    val label: String,
+    val labelKey: String,
     val icon: ImageVector
 ) {
-    Dashboard(EobRoute.Dashboard.route, "Dashboard", hubBottomIcons.Dashboard),
-    ScanEob(null, "Scan EOB", hubBottomIcons.ScanEob),
-    Profile(EobRoute.Profile.route, "Profile", hubBottomIcons.Profile);
+    Dashboard(EobRoute.Dashboard.route, "bottomDashboard", hubBottomIcons.Dashboard),
+    ScanEob(null, "bottomScanEob", hubBottomIcons.ScanEob),
+    Profile(EobRoute.Profile.route, "bottomProfile", hubBottomIcons.Profile);
 
     companion object {
         fun fromRoute(route: String?): HubBottomTab? = when (route) {
