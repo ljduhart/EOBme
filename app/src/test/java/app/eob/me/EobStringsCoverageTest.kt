@@ -2,8 +2,13 @@ package app.eob.me
 
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
+import app.eob.me.navigation.EobRoute
+import app.eob.me.navigation.HubBentoDestination
+import app.eob.me.navigation.HubBottomTab
+import app.eob.me.navigation.Screen
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
@@ -34,12 +39,88 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun bentoAndBottomBarTitleKeysExist() {
+        val keys = EobStrings.allEnglishKeys
+        HubBentoDestination.entries.forEach { destination ->
+            assertTrue(
+                "Missing bento titleKey ${destination.titleKey}",
+                destination.titleKey in keys
+            )
+        }
+        HubBottomTab.entries.forEach { tab ->
+            assertTrue(
+                "Missing bottom tab labelKey ${tab.labelKey}",
+                tab.labelKey in keys
+            )
+        }
+    }
+
+    @Test
+    fun hubBentoRoutesMatchEobRouteDefinitions() {
+        val registeredRoutes = setOf(
+            EobRoute.Home.route,
+            EobRoute.History.route,
+            EobRoute.Dashboard.route,
+            EobRoute.YearlyExpense.route,
+            EobRoute.CptCount.route,
+            EobRoute.News.route,
+            EobRoute.Appeal.route,
+            EobRoute.Profile.route,
+            EobRoute.CameraCapture.route,
+            EobRoute.ProviderDirectory.route
+        )
+        HubBentoDestination.entries.forEach { destination ->
+            assertTrue(
+                "Bento route ${destination.route} is not defined in EobRoute",
+                destination.route in registeredRoutes
+            )
+        }
+    }
+
+    @Test
+    fun mainHubNavHostRegistersAllEobRoutes() {
+        val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
+        val routeNames = listOf(
+            "Home", "History", "Dashboard", "YearlyExpense", "CptCount",
+            "News", "Appeal", "Profile", "CameraCapture", "ProviderDirectory"
+        )
+        routeNames.forEach { name ->
+            assertTrue(
+                "EobNavHost missing composable for EobRoute.$name",
+                navHostSource.contains("composable(EobRoute.$name.route)")
+            )
+        }
+    }
+
+    @Test
+    fun outerNavHostRegistersAllScreenRoutes() {
+        val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
+        val screenNames = listOf("Splash", "Language", "Intro", "AuthChoice", "Auth", "MainHub")
+        screenNames.forEach { name ->
+            assertTrue(
+                "EobNavHost missing composable for Screen.$name",
+                navHostSource.contains("composable(Screen.$name.route)")
+            )
+        }
+    }
+
+    @Test
     fun firebaseStatusKeysResolveForEveryLanguage() {
         AppLanguage.entries.forEach { language ->
             listOf("firebaseNotConfigured", "firebaseActive", "firebaseConfigured").forEach { key ->
                 val value = EobStrings.t(language, key)
                 assertNotEquals(key, value)
             }
+        }
+    }
+
+    @Test
+    fun repositoryMessagesLocalizeWithoutReturningRawKeys() {
+        val sample = "EOB uploaded. Veryfi processing started."
+        AppLanguage.entries.forEach { language ->
+            val localized = EobStrings.localizeRepositoryMessage(language, sample)
+            assertTrue(localized.isNotBlank())
+            assertFalse("Returned dictionary key instead of text", localized == "eobUploadVeryfiStarted")
         }
     }
 }
