@@ -185,6 +185,7 @@ private fun MainHubNavHost(
     val eobRepository: EobRepository = appViewModel.eobRepository
 
     val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
+    val insuranceArticles by eobViewModel.insuranceArticles.collectAsStateWithLifecycle()
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
 
@@ -344,6 +345,21 @@ private fun MainHubNavHost(
                             eobViewModel.firebaseStatus
                         ),
                         uploadNotice = uiState.uploadNotice,
+                        appointments = uiState.appointments,
+                        calendarExpanded = uiState.calendarExpanded,
+                        insuranceArticles = insuranceArticles,
+                        selectedInsuranceArticle = uiState.selectedInsuranceArticle,
+                        onCalendarExpandedChange = eobViewModel::setCalendarExpanded,
+                        onAddAppointment = { date, provider, time, notes ->
+                            eobViewModel.addAppointment(date, provider, time, notes)
+                            onActivity()
+                        },
+                        onRemoveAppointment = { appointment ->
+                            eobViewModel.removeAppointment(appointment)
+                            onActivity()
+                        },
+                        onInsuranceArticleSelected = eobViewModel::openInsuranceArticle,
+                        onDismissInsuranceArticle = eobViewModel::dismissInsuranceArticle,
                         onBentoSelected = { destination ->
                             navController.navigate(destination.route) { launchSingleTop = true }
                             onActivity()

@@ -19,7 +19,7 @@ fun HubBentoIcon(
     tint: Color,
     modifier: Modifier = Modifier
 ) {
-    Canvas(modifier = modifier.size(32.dp)) {
+    Canvas(modifier = modifier.size(26.dp)) {
         val stroke = Stroke(width = size.minDimension * 0.07f)
         when (destination) {
             HubBentoDestination.ProviderDirectory -> drawProviderIcon(tint, stroke)

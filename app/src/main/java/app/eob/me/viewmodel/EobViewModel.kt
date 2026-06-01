@@ -12,8 +12,10 @@ import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.CptCategory
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobInsuranceNews
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
+import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
@@ -37,7 +39,9 @@ data class HubUiState(
     val appealLetter: String = "",
     val appointments: List<DoctorAppointment> = emptyList(),
     val isLoadingInvoice: Boolean = false,
-    val historyPage: Int = 0
+    val historyPage: Int = 0,
+    val calendarExpanded: Boolean = false,
+    val selectedInsuranceArticle: InsuranceArticle? = null
 )
 
 /**
@@ -65,6 +69,10 @@ class EobViewModel : ViewModel() {
     var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
     private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
     private var eobListener: ListenerRegistration? = null
+
+    private val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+    private val _insuranceArticles = MutableStateFlow(EobInsuranceNews.articlesForYear(currentYear))
+    val insuranceArticles: StateFlow<List<InsuranceArticle>> = _insuranceArticles.asStateFlow()
 
     fun attachRepository(repo: EobRepository) {
         repository = repo
@@ -219,6 +227,18 @@ class EobViewModel : ViewModel() {
         _uiState.update { state ->
             state.copy(appointments = state.appointments.filterNot { it.id == appointment.id })
         }
+    }
+
+    fun setCalendarExpanded(expanded: Boolean) {
+        _uiState.update { it.copy(calendarExpanded = expanded) }
+    }
+
+    fun openInsuranceArticle(article: InsuranceArticle?) {
+        _uiState.update { it.copy(selectedInsuranceArticle = article) }
+    }
+
+    fun dismissInsuranceArticle() {
+        _uiState.update { it.copy(selectedInsuranceArticle = null) }
     }
 
     fun updateAppeal(text: String) {
