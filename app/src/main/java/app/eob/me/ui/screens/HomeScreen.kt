@@ -3,6 +3,7 @@ package app.eob.me.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,20 @@ import app.eob.me.ui.components.bento.BentoGridCell
 import app.eob.me.ui.components.home.HomeAppointmentsSection
 import app.eob.me.ui.components.home.HomeWeekCalendar
 
+private val MetallicMedicalBlue = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFF0A4D73),
+        Color(0xFF1565A8),
+        Color(0xFF1B7BBD),
+        Color(0xFF2498EA),
+        Color(0xFF1565A8),
+        Color(0xFF0C3D5E)
+    )
+)
+
+private val HomeOnBluePrimary = Color(0xFFFFFFFF)
+private val HomeOnBlueSecondary = Color(0xFFD8ECFA)
+
 /**
  * Scrollable main hub — state from [app.eob.me.viewmodel.EobViewModel].
  */
@@ -55,114 +70,120 @@ fun HomeScreen(
     var appointmentPrefillDate by remember { mutableStateOf("") }
     var openAppointmentDialog by remember { mutableStateOf(false) }
 
-    LazyColumn(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(28.dp)
+            .background(MetallicMedicalBlue)
     ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = EobStrings.tf(
-                        language,
-                        "welcomeUser",
-                        profile.firstName.ifBlank { EobStrings.t(language, "member") }
-                    ),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = EobStrings.tf(
-                        language,
-                        "homeRecordSummary",
-                        recordCount,
-                        if (recordCount == 1) {
-                            EobStrings.t(language, "eobSingular")
-                        } else {
-                            EobStrings.t(language, "eobs")
-                        },
-                        firebaseStatusLine
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
+            verticalArrangement = Arrangement.spacedBy(28.dp)
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = EobStrings.tf(
+                            language,
+                            "welcomeUser",
+                            profile.firstName.ifBlank { EobStrings.t(language, "member") }
+                        ),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = HomeOnBluePrimary
+                    )
+                    Text(
+                        text = EobStrings.tf(
+                            language,
+                            "homeRecordSummary",
+                            recordCount,
+                            if (recordCount == 1) {
+                                EobStrings.t(language, "eobSingular")
+                            } else {
+                                EobStrings.t(language, "eobs")
+                            },
+                            firebaseStatusLine
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = HomeOnBlueSecondary
+                    )
+                }
             }
-        }
 
-        item {
-            HomeInsuranceCard(language = language, profile = profile, modifier = Modifier.fillMaxWidth())
-        }
+            item {
+                HomeInsuranceCard(language = language, profile = profile, modifier = Modifier.fillMaxWidth())
+            }
 
-        if (uploadNotice.isNotBlank()) {
+            if (uploadNotice.isNotBlank()) {
+                item {
+                    Text(
+                        text = uploadNotice,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = HomeOnBluePrimary,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
             item {
                 Text(
-                    text = uploadNotice,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxWidth()
+                    text = EobStrings.t(language, "featuresSection"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = HomeOnBluePrimary,
+                    modifier = Modifier.padding(bottom = 4.dp)
                 )
             }
-        }
 
-        item {
-            Text(
-                text = EobStrings.t(language, "featuresSection"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-        }
-
-        HubBentoDestination.gridRows.forEach { row ->
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(28.dp)
-                ) {
-                    row.forEach { destination ->
-                        BentoGridCell(
-                            language = language,
-                            destination = destination,
-                            onClick = { onBentoSelected(destination) },
-                            modifier = Modifier.weight(1f)
-                        )
+            HubBentoDestination.gridRows.forEach { row ->
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(28.dp)
+                    ) {
+                        row.forEach { destination ->
+                            BentoGridCell(
+                                language = language,
+                                destination = destination,
+                                onClick = { onBentoSelected(destination) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        item {
-            HomeWeekCalendar(
-                language = language,
-                appointments = appointments,
-                expanded = calendarExpanded,
-                onExpandedChange = onCalendarExpandedChange,
-                onDateSelected = { date ->
-                    appointmentPrefillDate = date
-                    openAppointmentDialog = true
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            item {
+                HomeWeekCalendar(
+                    language = language,
+                    appointments = appointments,
+                    expanded = calendarExpanded,
+                    onExpandedChange = onCalendarExpandedChange,
+                    onDateSelected = { date ->
+                        appointmentPrefillDate = date
+                        openAppointmentDialog = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
-        item {
-            HomeAppointmentsSection(
-                language = language,
-                appointments = appointments,
-                prefillDate = if (openAppointmentDialog) appointmentPrefillDate else "",
-                onPrefillHandled = { openAppointmentDialog = false },
-                onAddAppointment = { date, provider, time, notes ->
-                    onAddAppointment(date, provider, time, notes)
-                    appointmentPrefillDate = ""
-                    openAppointmentDialog = false
-                },
-                onRemoveAppointment = onRemoveAppointment,
-                modifier = Modifier.fillMaxWidth()
-            )
+            item {
+                HomeAppointmentsSection(
+                    language = language,
+                    appointments = appointments,
+                    prefillDate = if (openAppointmentDialog) appointmentPrefillDate else "",
+                    onPrefillHandled = { openAppointmentDialog = false },
+                    onAddAppointment = { date, provider, time, notes ->
+                        onAddAppointment(date, provider, time, notes)
+                        appointmentPrefillDate = ""
+                        openAppointmentDialog = false
+                    },
+                    onRemoveAppointment = onRemoveAppointment,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -173,66 +194,79 @@ private fun HomeInsuranceCard(
     profile: UserProfile,
     modifier: Modifier = Modifier
 ) {
-    val silverBlueBorder = Brush.linearGradient(
+    val shinySilverBorder = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFE8EEF5),
+            Color(0xFFF5F9FC),
+            Color(0xFFE2EBF5),
+            Color(0xFFB8CDE0),
+            Color(0xFF8FAFC8),
+            Color(0xFFD4E3F0),
+            Color(0xFFF0F6FB),
+            Color(0xFFFFFFFF),
+            Color(0xFFC5D6E8),
             Color(0xFF9BB8D9),
-            Color(0xFF5B8DEF),
-            Color(0xFFC0D4E8),
-            Color(0xFFE8EEF5)
+            Color(0xFFE8F0F8)
         )
     )
+    val cardShape = RoundedCornerShape(20.dp)
     val memberName = profile.fullName.ifBlank { EobStrings.t(language, "member") }
     val insuranceName = profile.insuranceName.ifBlank { EobStrings.t(language, "addInsuranceInfo") }
     val notSet = EobStrings.t(language, "valueNotSet")
     val insuranceId = profile.insuranceId.ifBlank { notSet }
     val groupNumber = profile.groupName.ifBlank { notSet }
 
-    Card(
+    Box(
         modifier = modifier
-            .border(width = 2.5.dp, brush = silverBlueBorder, shape = RoundedCornerShape(18.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .fillMaxWidth()
+            .border(width = 6.dp, brush = shinySilverBorder, shape = cardShape)
+            .padding(3.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFF8FAFC),
-                            Color(0xFFEEF4FA)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = cardShape,
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFF8FAFC).copy(alpha = 0.98f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFFFFFFF),
+                                Color(0xFFF0F6FC),
+                                Color(0xFFE8F2FA)
+                            )
                         )
                     )
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = EobStrings.t(language, "homeInsuranceCardTitle"),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = EobStrings.t(language, "homeInsuranceCardTitle"),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            InsuranceCardLine(
-                label = EobStrings.t(language, "insuranceCardMemberLabel"),
-                value = memberName
-            )
-            InsuranceCardLine(
-                label = EobStrings.t(language, "insuranceNameField"),
-                value = insuranceName
-            )
-            InsuranceCardLine(
-                label = EobStrings.t(language, "insuranceId"),
-                value = insuranceId
-            )
-            InsuranceCardLine(
-                label = EobStrings.t(language, "groupName"),
-                value = groupNumber
-            )
+                InsuranceCardLine(
+                    label = EobStrings.t(language, "insuranceCardMemberLabel"),
+                    value = memberName
+                )
+                InsuranceCardLine(
+                    label = EobStrings.t(language, "insuranceNameField"),
+                    value = insuranceName
+                )
+                InsuranceCardLine(
+                    label = EobStrings.t(language, "insuranceId"),
+                    value = insuranceId
+                )
+                InsuranceCardLine(
+                    label = EobStrings.t(language, "groupName"),
+                    value = groupNumber
+                )
+            }
         }
     }
 }
