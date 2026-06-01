@@ -478,8 +478,8 @@ private fun MainHubNavHost(
                         onProfileChanged = onProfileChanged,
                         onCredentialsChanged = onCredentialsChanged,
                         onEditingChanged = appViewModel::setProfileEditing,
-                        onSave = {
-                            appViewModel.saveProfileAndCredentials(profile, credentials) { message ->
+                        onSave = { savedProfile, savedCredentials ->
+                            appViewModel.saveProfileAndCredentials(savedProfile, savedCredentials) { message ->
                                 profileSaveMessage = message
                             }
                         },

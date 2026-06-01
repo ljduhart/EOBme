@@ -401,6 +401,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onLogout() {
+        _profileEditing.value = false
         firebaseRepository.signOut()
         _introStep.value = 0
         _registrationCredentials.value = RegistrationCredentials()

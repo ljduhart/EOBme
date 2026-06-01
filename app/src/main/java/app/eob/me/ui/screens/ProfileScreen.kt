@@ -41,7 +41,7 @@ fun ProfileScreen(
     onProfileChanged: (UserProfile) -> Unit,
     onCredentialsChanged: (RegistrationCredentials) -> Unit,
     onEditingChanged: (Boolean) -> Unit = {},
-    onSave: () -> Unit,
+    onSave: (UserProfile, RegistrationCredentials) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onLogout: () -> Unit,
     openSupportInitially: Boolean = false
@@ -138,7 +138,7 @@ fun ProfileScreen(
                     val credentialsToSave = draftCredentials.copy(email = profileToSave.email)
                     onProfileChanged(profileToSave)
                     onCredentialsChanged(credentialsToSave)
-                    onSave()
+                    onSave(profileToSave, credentialsToSave)
                     isEditing = false
                 },
                 modifier = Modifier.weight(1f),

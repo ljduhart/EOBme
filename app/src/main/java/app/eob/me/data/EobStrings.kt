@@ -377,7 +377,7 @@ object EobStrings {
         "scanWithCamera" to "Escanear con cámara",
         "yearlyExpenseChartTitle" to "Desglose de costos anuales",
         "yearlyExpenseChartEmpty" to "Suba EOBs para completar este gráfico.",
-        "providerShowEobs" to "Ver %d EOB",
+        "providerShowEobs" to "Ver %d EOBs",
         "providerHideEobs" to "Ocultar EOB",
         "editAppointment" to "Editar cita",
         "updateAppointment" to "Actualizar cita",

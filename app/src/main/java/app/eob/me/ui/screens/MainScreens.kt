@@ -67,7 +67,7 @@ internal fun AmountRow(label: String, amount: Double) {
 
 @Composable
 fun YearlyHealthCostBarChart(language: AppLanguage, summary: YearlyHealthCostSummary) {
-    val segments = remember(summary) {
+    val segments = remember(summary, language) {
         listOf(
             EobStrings.t(language, "totalBilled") to summary.totalBilled,
             EobStrings.t(language, "totalInsurancePaid") to summary.totalInsurancePaid,
