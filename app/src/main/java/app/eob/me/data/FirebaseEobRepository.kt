@@ -39,19 +39,20 @@ class FirebaseEobRepository(private val context: Context) {
 
     fun signInOrCreate(
         profile: UserProfile,
+        credentials: RegistrationCredentials,
         onResult: (FirebaseSyncStatus) -> Unit
     ) {
         if (!configured) {
             onResult(status())
             return
         }
-        if (profile.email.isBlank() || profile.password.isBlank()) {
+        if (credentials.email.isBlank() || credentials.password.isBlank()) {
             onResult(FirebaseSyncStatus(true, message = "Enter email and password to sync with Firebase."))
             return
         }
 
         val auth = FirebaseAuth.getInstance()
-        auth.signInWithEmailAndPassword(profile.email, profile.password)
+        auth.signInWithEmailAndPassword(credentials.email, credentials.password)
             .addOnSuccessListener {
                 val userId = it.user?.uid.orEmpty()
                 saveProfile(userId, profile) {}
@@ -59,7 +60,7 @@ class FirebaseEobRepository(private val context: Context) {
                 onResult(FirebaseSyncStatus(true, userId, "Firebase sync is active."))
             }
             .addOnFailureListener {
-                auth.createUserWithEmailAndPassword(profile.email, profile.password)
+                auth.createUserWithEmailAndPassword(credentials.email, credentials.password)
                     .addOnSuccessListener { result ->
                         val userId = result.user?.uid.orEmpty()
                         saveProfile(userId, profile) {}
@@ -102,12 +103,16 @@ class FirebaseEobRepository(private val context: Context) {
             .addOnFailureListener { onResult("Password reset failed: ${it.localizedMessage}") }
     }
 
-    fun createAccount(profile: UserProfile, onResult: (FirebaseSyncStatus) -> Unit) {
+    fun createAccount(
+        profile: UserProfile,
+        credentials: RegistrationCredentials,
+        onResult: (FirebaseSyncStatus) -> Unit
+    ) {
         if (!configured) {
             onResult(status())
             return
         }
-        FirebaseAuth.getInstance().createUserWithEmailAndPassword(profile.email, profile.password)
+        FirebaseAuth.getInstance().createUserWithEmailAndPassword(credentials.email, credentials.password)
             .addOnSuccessListener {
                 val userId = it.user?.uid.orEmpty()
                 saveProfile(userId, profile) {}
@@ -125,7 +130,6 @@ class FirebaseEobRepository(private val context: Context) {
 
     fun observeProfile(
         userId: String,
-        currentPassword: String,
         onProfile: (UserProfile) -> Unit,
         onError: (String) -> Unit
     ): ListenerRegistration? {
@@ -137,7 +141,7 @@ class FirebaseEobRepository(private val context: Context) {
                     return@addSnapshotListener
                 }
                 val data = snapshot?.data ?: return@addSnapshotListener
-                onProfile(FirebaseEobMapper.profileFromMap(data, currentPassword))
+                onProfile(FirebaseEobMapper.profileFromMap(data))
             }
     }
 
@@ -147,31 +151,20 @@ class FirebaseEobRepository(private val context: Context) {
         onError: (String) -> Unit
     ): ListenerRegistration? {
         if (!configured || userId.isBlank()) return null
-        val recordsByCollection = mutableMapOf<String, List<EobRecord>>()
-        fun publishRecords() {
-            onRecords(
-                recordsByCollection.values
-                    .flatten()
-                    .distinctBy { "${it.insuranceName}|${it.providerName}|${it.serviceDate}|${it.charges.joinToString { charge -> charge.cptCode }}" }
-                    .sortedBy { it.serviceDateSortKey }
-            )
-        }
-
-        val listeners = listOf(EOBS, EOB_RECORDS).map { collectionName ->
-            firestore().collection(USERS).document(userId).collection(collectionName)
-                .addSnapshotListener { snapshot, error ->
+        return firestore().collection(USERS).document(userId).collection(EOBS)
+            .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    onError("$collectionName sync failed: ${error.localizedMessage}")
+                    onError("EOB sync failed: ${error.localizedMessage}")
                     return@addSnapshotListener
                 }
                 val records = snapshot?.documents
-                    ?.mapNotNull { document -> document.data?.let { data -> FirebaseEobMapper.eobFromMap(data, document.id) } }
+                    ?.mapNotNull { document ->
+                        document.data?.let { data -> FirebaseEobMapper.eobFromMap(data, document.id) }
+                    }
                     .orEmpty()
-                recordsByCollection[collectionName] = records
-                publishRecords()
-                }
-        }
-        return CombinedListenerRegistration(listeners)
+                    .sortedByDescending { it.serviceDateSortKey }
+                onRecords(records)
+            }
     }
 
     fun observeInsuranceNews(
@@ -195,7 +188,10 @@ class FirebaseEobRepository(private val context: Context) {
     }
 
     fun saveProfile(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
-        if (!configured || userId.isBlank()) return
+        if (!configured || userId.isBlank()) {
+            onComplete(if (userId.isBlank()) "Please sign in to save your profile." else status().message)
+            return
+        }
         firestore().collection(USERS).document(userId)
             .set(FirebaseEobMapper.profileToMap(profile))
             .addOnSuccessListener { onComplete("Profile saved to Firebase.") }
@@ -203,7 +199,10 @@ class FirebaseEobRepository(private val context: Context) {
     }
 
     fun saveInsuranceCardMetadata(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
-        if (!configured || userId.isBlank()) return
+        if (!configured || userId.isBlank()) {
+            onComplete("")
+            return
+        }
         firestore().collection(USERS).document(userId).collection("insurance-cards")
             .document("current")
             .set(
@@ -220,23 +219,27 @@ class FirebaseEobRepository(private val context: Context) {
     }
 
     fun saveEob(userId: String, record: EobRecord, onComplete: (String) -> Unit) {
-        if (!configured || userId.isBlank()) return
+        if (!configured || userId.isBlank()) {
+            onComplete("Please sign in to save EOBs.")
+            return
+        }
         val payload = FirebaseEobMapper.eobToMap(record)
+        val docId = record.firestoreId.takeIf { it.isNotBlank() } ?: record.id.toString()
         firestore().collection(USERS).document(userId).collection(EOBS)
-            .document(record.id.toString())
-            .set(payload)
-        firestore().collection(USERS).document(userId).collection(EOB_RECORDS)
-            .document(record.id.toString())
+            .document(docId)
             .set(payload)
             .addOnSuccessListener { onComplete("EOB saved to Firebase.") }
             .addOnFailureListener { onComplete("EOB save failed: ${it.localizedMessage}") }
     }
 
     fun deleteEob(userId: String, record: EobRecord, onComplete: (String) -> Unit) {
-        if (!configured || userId.isBlank()) return
-        val docId = record.id.toString()
-        firestore().collection(USERS).document(userId).collection(EOBS).document(docId).delete()
-        firestore().collection(USERS).document(userId).collection(EOB_RECORDS).document(docId).delete()
+        if (!configured || userId.isBlank()) {
+            onComplete("Please sign in to delete EOBs.")
+            return
+        }
+        val docId = record.firestoreId.takeIf { it.isNotBlank() } ?: record.id.toString()
+        firestore().collection(USERS).document(userId).collection(EOBS).document(docId)
+            .delete()
             .addOnSuccessListener { onComplete("EOB deleted.") }
             .addOnFailureListener { onComplete("EOB delete failed: ${it.localizedMessage}") }
     }
@@ -312,10 +315,3 @@ class FirebaseEobRepository(private val context: Context) {
     }
 }
 
-private class CombinedListenerRegistration(
-    private val listeners: List<ListenerRegistration>
-) : ListenerRegistration {
-    override fun remove() {
-        listeners.forEach { it.remove() }
-    }
-}

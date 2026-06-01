@@ -41,9 +41,12 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
     fileName,
     contentType: event.data.contentType || "application/octet-stream"
   });
+  const storageMetadata = event.data.metadata || {};
+  const customMetadata = storageMetadata.metadata || storageMetadata.customMetadata || {};
+  const uploadSourceName = customMetadata.sourceName || storageMetadata.sourceName || "Veryfi";
   const normalized = veryfiToEobDocument(veryfiResponse, {
     documentId: fileName.replace(/[^A-Za-z0-9_-]/g, "_"),
-    sourceName: "Veryfi",
+    sourceName: uploadSourceName,
     sourceFilePath: objectName
   });
   const docId = String(normalized.id);

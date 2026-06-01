@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
+import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 
 @Composable
@@ -47,11 +48,13 @@ fun AuthChoiceScreen(
 fun AuthScreen(
     language: AppLanguage,
     profile: UserProfile,
+    credentials: RegistrationCredentials,
     isSignUp: Boolean,
     awaitingEmailVerification: Boolean = false,
     authMessage: String,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
+    onCredentialsChanged: (RegistrationCredentials) -> Unit,
     onToggleMode: () -> Unit,
     onSubmit: () -> Unit,
     onForgotPassword: () -> Unit = {},
@@ -72,10 +75,12 @@ fun AuthScreen(
     RegistrationScreen(
         language = language,
         profile = profile,
+        credentials = credentials,
         isSignUp = isSignUp,
         authMessage = authMessage,
         modifier = modifier,
         onProfileChanged = onProfileChanged,
+        onCredentialsChanged = onCredentialsChanged,
         onToggleMode = onToggleMode,
         onSubmit = onSubmit,
         onForgotPassword = onForgotPassword,
@@ -102,7 +107,10 @@ private fun EmailVerificationScreen(
         if (authMessage.isNotBlank()) {
             Text(authMessage, color = MaterialTheme.colorScheme.error)
         }
-        Button(onClick = onRefreshVerification, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onResendVerification, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "resendVerification"))
+        }
+        OutlinedButton(onClick = onRefreshVerification, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "iVerifiedEmail"))
         }
     }
@@ -112,10 +120,12 @@ private fun EmailVerificationScreen(
 fun RegistrationScreen(
     language: AppLanguage,
     profile: UserProfile,
+    credentials: RegistrationCredentials,
     isSignUp: Boolean,
     authMessage: String,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
+    onCredentialsChanged: (RegistrationCredentials) -> Unit,
     onToggleMode: () -> Unit,
     onSubmit: () -> Unit,
     onForgotPassword: () -> Unit = {},
@@ -135,21 +145,24 @@ fun RegistrationScreen(
         Text(EobStrings.t(language, "profileRequiredHelp"))
         if (isSignUp) {
             ProfileFields(language, profile, onProfileChanged)
-        } else {
-            OutlinedTextField(
-                value = profile.email,
-                onValueChange = { onProfileChanged(profile.copy(email = it)) },
-                label = { Text(EobStrings.t(language, "email")) },
-                modifier = Modifier.fillMaxWidth()
+            PasswordField(
+                language = language,
+                password = credentials.password,
+                onPasswordChanged = { onCredentialsChanged(credentials.copy(email = profile.email, password = it)) }
             )
-            OutlinedTextField(
-                value = profile.password,
-                onValueChange = { onProfileChanged(profile.copy(password = it)) },
-                label = { Text(EobStrings.t(language, "password")) },
-                modifier = Modifier.fillMaxWidth()
+        } else {
+            CredentialFields(
+                language = language,
+                credentials = credentials,
+                onCredentialsChanged = { updated ->
+                    onCredentialsChanged(updated)
+                    if (updated.email != profile.email) {
+                        onProfileChanged(profile.copy(email = updated.email))
+                    }
+                }
             )
         }
-        if (profile.password.isNotBlank() && !profile.isPasswordValid) {
+        if (credentials.password.isNotBlank() && !credentials.isPasswordValid) {
             Text(EobStrings.t(language, "passwordRule"), color = MaterialTheme.colorScheme.error)
         }
         if (authMessage.isNotBlank()) {
@@ -157,7 +170,11 @@ fun RegistrationScreen(
         }
         Button(
             onClick = onSubmit,
-            enabled = if (isSignUp) profile.isComplete else profile.email.isNotBlank() && profile.password.isNotBlank(),
+            enabled = if (isSignUp) {
+                credentials.isReadyForSignUp(profile)
+            } else {
+                credentials.isReadyForSignIn()
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (isSignUp) EobStrings.t(language, "createAccount") else EobStrings.t(language, "login"))
@@ -196,12 +213,6 @@ fun ProfileFields(language: AppLanguage, profile: UserProfile, onProfileChanged:
         label = { Text(EobStrings.t(language, "email")) },
         modifier = Modifier.fillMaxWidth()
     )
-    OutlinedTextField(
-        value = profile.password,
-        onValueChange = { onProfileChanged(profile.copy(password = it)) },
-        label = { Text(EobStrings.t(language, "password")) },
-        modifier = Modifier.fillMaxWidth()
-    )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = profile.city,
@@ -232,6 +243,39 @@ fun ProfileFields(language: AppLanguage, profile: UserProfile, onProfileChanged:
         value = profile.groupName,
         onValueChange = { onProfileChanged(profile.copy(groupName = it)) },
         label = { Text(EobStrings.t(language, "groupName")) },
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun CredentialFields(
+    language: AppLanguage,
+    credentials: RegistrationCredentials,
+    onCredentialsChanged: (RegistrationCredentials) -> Unit
+) {
+    OutlinedTextField(
+        value = credentials.email,
+        onValueChange = { onCredentialsChanged(credentials.copy(email = it)) },
+        label = { Text(EobStrings.t(language, "email")) },
+        modifier = Modifier.fillMaxWidth()
+    )
+    PasswordField(
+        language = language,
+        password = credentials.password,
+        onPasswordChanged = { onCredentialsChanged(credentials.copy(password = it)) }
+    )
+}
+
+@Composable
+private fun PasswordField(
+    language: AppLanguage,
+    password: String,
+    onPasswordChanged: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = password,
+        onValueChange = onPasswordChanged,
+        label = { Text(EobStrings.t(language, "password")) },
         modifier = Modifier.fillMaxWidth()
     )
 }

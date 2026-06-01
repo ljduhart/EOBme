@@ -4,6 +4,7 @@ import app.eob.me.data.CptCategory
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.FirebaseEobMapper
+import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.BillingIssueType
@@ -123,7 +124,6 @@ class ExampleUnitTest {
             firstName = "Lester",
             lastName = "Duhart",
             email = "member@example.com",
-            password = "password1",
             city = "Atlanta",
             state = "GA"
         )
@@ -256,19 +256,22 @@ class ExampleUnitTest {
     }
 
     @Test
-    fun profileRequiresCityStateAndStrongPassword() {
-        val weakProfile = UserProfile(
+    fun profileRequiresCityStateAndRegistrationPasswordRules() {
+        val incompleteProfile = UserProfile(
             firstName = "Lester",
             lastName = "Duhart",
             email = "member@example.com",
-            password = "password",
-            city = "Atlanta",
+            city = "",
             state = "GA"
         )
-        val completeProfile = weakProfile.copy(password = "password1")
+        val completeProfile = incompleteProfile.copy(city = "Atlanta")
+        val weakCredentials = RegistrationCredentials(email = "member@example.com", password = "password")
+        val strongCredentials = RegistrationCredentials(email = "member@example.com", password = "password1")
 
-        assertFalse(weakProfile.isComplete)
+        assertFalse(incompleteProfile.isComplete)
         assertTrue(completeProfile.isComplete)
+        assertFalse(weakCredentials.isPasswordValid)
+        assertTrue(strongCredentials.isReadyForSignUp(completeProfile))
     }
 
     @Test
@@ -284,7 +287,6 @@ class ExampleUnitTest {
             firstName = "Lester",
             lastName = "Duhart",
             email = "member@example.com",
-            password = "private",
             city = "Atlanta",
             state = "GA",
             insuranceName = "Aetna",
@@ -293,7 +295,7 @@ class ExampleUnitTest {
             insuranceCardDownloadUrl = "https://firebasestorage.example/card.jpg"
         )
         val profileMap = FirebaseEobMapper.profileToMap(profile)
-        val restoredProfile = FirebaseEobMapper.profileFromMap(profileMap, currentPassword = profile.password)
+        val restoredProfile = FirebaseEobMapper.profileFromMap(profileMap)
         val record = EobAnalyzer.analyze(
             """
                 Aetna

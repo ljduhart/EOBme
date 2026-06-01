@@ -20,12 +20,11 @@ object FirebaseEobMapper {
         )
     }
 
-    fun profileFromMap(data: Map<String, Any?>, currentPassword: String = ""): UserProfile {
+    fun profileFromMap(data: Map<String, Any?>): UserProfile {
         return UserProfile(
             firstName = data.stringValue("firstName", "first_name"),
             lastName = data.stringValue("lastName", "last_name"),
             email = data.stringValue("email"),
-            password = currentPassword,
             city = data.stringValue("city"),
             state = data.stringValue("state"),
             insuranceName = data.stringValue("insuranceName", "insurance_name", "insuranceCardSummary", "insurance_card_summary"),
@@ -85,6 +84,7 @@ object FirebaseEobMapper {
 
         return EobRecord(
             id = data.longValue("id").toInt().takeUnless { it == 0 } ?: stableId(documentId, data, serviceDate),
+            firestoreId = documentId,
             sourceName = data.stringValue("sourceName", "source_name", "source").ifBlank { "Firebase" },
             providerName = data.stringValue("providerName", "provider_name", "provider").ifBlank { EobAnalyzer.findProviderName(rawText) },
             insuranceName = data.stringValue("insuranceName", "insurance_name", "insurance", "payerName", "payer_name").ifBlank { EobAnalyzer.findInsuranceName(rawText) },
