@@ -2,10 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Firebase sync, news, profile, and EOB upload (EobRepository / EobViewModel) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Hub bottom bar Scan EOB → CameraCaptureScreen (CameraX) -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- FCM push (EobFirebaseMessagingService); requested at runtime on API 33+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Play billing (reserved for in-app purchases) -->
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-feature
         android:name="android.hardware.camera"

@@ -36,17 +36,49 @@ fun HomeAppointmentsSection(
     prefillDate: String,
     onPrefillHandled: () -> Unit,
     onAddAppointment: (String, String, String, String) -> Unit,
+    onUpdateAppointment: (Int, String, String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    var editingAppointmentId by remember { mutableStateOf<Int?>(null) }
     var selectedDate by remember { mutableStateOf("") }
     var provider by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
+    val isEditing = editingAppointmentId != null
+
+    fun openAddDialog() {
+        editingAppointmentId = null
+        provider = ""
+        time = ""
+        notes = ""
+        selectedDate = ""
+        showDialog = true
+    }
+
+    fun openEditDialog(appointment: DoctorAppointment) {
+        editingAppointmentId = appointment.id
+        selectedDate = appointment.date
+        provider = appointment.providerName
+        time = appointment.time
+        notes = appointment.notes
+        showDialog = true
+    }
+
+    fun closeDialog() {
+        showDialog = false
+        editingAppointmentId = null
+        provider = ""
+        time = ""
+        notes = ""
+        selectedDate = ""
+    }
+
     LaunchedEffect(prefillDate) {
         if (prefillDate.isNotBlank()) {
+            editingAppointmentId = null
             selectedDate = prefillDate
             showDialog = true
             onPrefillHandled()
@@ -65,7 +97,7 @@ fun HomeAppointmentsSection(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
-            OutlinedButton(onClick = { showDialog = true }) {
+            OutlinedButton(onClick = { openAddDialog() }) {
                 Text(EobStrings.t(language, "addAppointment"))
             }
         }
@@ -99,11 +131,22 @@ fun HomeAppointmentsSection(
                         if (appointment.notes.isNotBlank()) {
                             Text(appointment.notes, style = MaterialTheme.typography.bodySmall)
                         }
-                        OutlinedButton(
-                            onClick = { onRemoveAppointment(appointment) },
-                            modifier = Modifier.fillMaxWidth()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(EobStrings.t(language, "removeAppointment"))
+                            OutlinedButton(
+                                onClick = { openEditDialog(appointment) },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(EobStrings.t(language, "editAppointment"))
+                            }
+                            OutlinedButton(
+                                onClick = { onRemoveAppointment(appointment) },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(EobStrings.t(language, "removeAppointment"))
+                            }
                         }
                     }
                 }
@@ -113,8 +156,16 @@ fun HomeAppointmentsSection(
 
     if (showDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(EobStrings.t(language, "addAppointment")) },
+            onDismissRequest = { closeDialog() },
+            title = {
+                Text(
+                    if (isEditing) {
+                        EobStrings.t(language, "editAppointment")
+                    } else {
+                        EobStrings.t(language, "addAppointment")
+                    }
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
@@ -150,20 +201,32 @@ fun HomeAppointmentsSection(
             confirmButton = {
                 Button(
                     onClick = {
-                        onAddAppointment(selectedDate, provider, time, notes)
-                        provider = ""
-                        time = ""
-                        notes = ""
-                        selectedDate = ""
-                        showDialog = false
+                        if (isEditing) {
+                            onUpdateAppointment(
+                                editingAppointmentId!!,
+                                selectedDate,
+                                provider,
+                                time,
+                                notes
+                            )
+                        } else {
+                            onAddAppointment(selectedDate, provider, time, notes)
+                        }
+                        closeDialog()
                     },
                     enabled = selectedDate.isNotBlank() && provider.isNotBlank()
                 ) {
-                    Text(EobStrings.t(language, "saveAppointment"))
+                    Text(
+                        if (isEditing) {
+                            EobStrings.t(language, "updateAppointment")
+                        } else {
+                            EobStrings.t(language, "saveAppointment")
+                        }
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
+                TextButton(onClick = { closeDialog() }) {
                     Text(EobStrings.t(language, "close"))
                 }
             }

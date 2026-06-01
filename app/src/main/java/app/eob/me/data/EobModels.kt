@@ -1,10 +1,19 @@
 package app.eob.me.data
 
+import java.util.Locale
+
 enum class AppLanguage(val displayName: String) {
     English("English"),
     Spanish("Español"),
     French("Français"),
-    Chinese("中文")
+    Chinese("中文");
+
+    fun locale(): Locale = when (this) {
+        English -> Locale.ENGLISH
+        Spanish -> Locale.forLanguageTag("es")
+        French -> Locale.FRENCH
+        Chinese -> Locale.SIMPLIFIED_CHINESE
+    }
 }
 
 enum class CptCategory(val displayName: String) {

@@ -200,7 +200,10 @@ private fun EobSmartCardDetailPanel(language: AppLanguage, record: EobRecord) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         DetailMetricRow(EobStrings.t(language, "billed"), record.totalBilledAmount.asCurrency())
-        DetailMetricRow("Contractual adj.", record.totalContractualAdjustmentAmount.asCurrency())
+        DetailMetricRow(
+            EobStrings.t(language, "contractualAdjustment"),
+            record.totalContractualAdjustmentAmount.asCurrency()
+        )
         DetailMetricRow(EobStrings.t(language, "patientResponsibility"), record.totalPatientResponsibility.asCurrency())
         DetailMetricRow(EobStrings.t(language, "paid"), record.totalInsurancePaidAmount.asCurrency())
     }

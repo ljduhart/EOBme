@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -64,6 +65,7 @@ fun HomeScreen(
     onCalendarExpandedChange: (Boolean) -> Unit,
     onAddAppointment: (String, String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
+    onUpdateAppointment: (Int, String, String, String, String) -> Unit,
     onBentoSelected: (HubBentoDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -113,7 +115,16 @@ fun HomeScreen(
             }
 
             item {
-                HomeInsuranceCard(language = language, profile = profile, modifier = Modifier.fillMaxWidth())
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    HomeInsuranceCard(
+                        language = language,
+                        profile = profile,
+                        modifier = Modifier.fillMaxWidth(0.85f)
+                    )
+                }
             }
 
             if (uploadNotice.isNotBlank()) {
@@ -181,6 +192,7 @@ fun HomeScreen(
                         openAppointmentDialog = false
                     },
                     onRemoveAppointment = onRemoveAppointment,
+                    onUpdateAppointment = onUpdateAppointment,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -194,18 +206,18 @@ private fun HomeInsuranceCard(
     profile: UserProfile,
     modifier: Modifier = Modifier
 ) {
-    val shinySilverBorder = Brush.linearGradient(
+    val darkSilverBlueBorder = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFF5F9FC),
-            Color(0xFFE2EBF5),
-            Color(0xFFB8CDE0),
-            Color(0xFF8FAFC8),
-            Color(0xFFD4E3F0),
-            Color(0xFFF0F6FB),
-            Color(0xFFFFFFFF),
-            Color(0xFFC5D6E8),
-            Color(0xFF9BB8D9),
-            Color(0xFFE8F0F8)
+            Color(0xFF2C4A63),
+            Color(0xFF4A6B85),
+            Color(0xFF5A7A94),
+            Color(0xFF3D5F75),
+            Color(0xFF6B8FA8),
+            Color(0xFF2A4558),
+            Color(0xFF4D7290),
+            Color(0xFF3A566C),
+            Color(0xFF5C7E9A),
+            Color(0xFF2C4A63)
         )
     )
     val cardShape = RoundedCornerShape(20.dp)
@@ -218,8 +230,8 @@ private fun HomeInsuranceCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .border(width = 6.dp, brush = shinySilverBorder, shape = cardShape)
-            .padding(3.dp)
+            .border(width = 5.dp, brush = darkSilverBlueBorder, shape = cardShape)
+            .padding(2.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -241,7 +253,7 @@ private fun HomeInsuranceCard(
                             )
                         )
                     )
-                    .padding(20.dp),
+                    .padding(17.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
