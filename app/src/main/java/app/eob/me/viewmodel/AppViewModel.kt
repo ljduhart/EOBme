@@ -343,7 +343,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val profileMessage = suspendCancellableCoroutine { continuation ->
                     firebaseRepository.saveProfile(userId, profile) { message ->
-                        continuation.resume(message)
+                        continuation.resume(EobStrings.localizeRepositoryMessage(language, message))
                     }
                 }
                 firebaseRepository.saveInsuranceCardMetadata(userId, profile) {}

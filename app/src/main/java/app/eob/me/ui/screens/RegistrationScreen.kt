@@ -194,56 +194,77 @@ fun RegistrationScreen(
 }
 
 @Composable
-fun ProfileFields(language: AppLanguage, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
+fun ProfileFields(
+    language: AppLanguage,
+    profile: UserProfile,
+    onProfileChanged: (UserProfile) -> Unit,
+    fieldsEnabled: Boolean = true
+) {
     OutlinedTextField(
         value = profile.firstName,
         onValueChange = { onProfileChanged(profile.copy(firstName = it)) },
         label = { Text(EobStrings.t(language, "firstName")) },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled
     )
     OutlinedTextField(
         value = profile.lastName,
         onValueChange = { onProfileChanged(profile.copy(lastName = it)) },
         label = { Text(EobStrings.t(language, "lastName")) },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled
     )
     OutlinedTextField(
         value = profile.email,
         onValueChange = { onProfileChanged(profile.copy(email = it)) },
         label = { Text(EobStrings.t(language, "email")) },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled
     )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = profile.city,
             onValueChange = { onProfileChanged(profile.copy(city = it)) },
             label = { Text(EobStrings.t(language, "city")) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            readOnly = !fieldsEnabled,
+            enabled = fieldsEnabled
         )
         OutlinedTextField(
             value = profile.state,
             onValueChange = { onProfileChanged(profile.copy(state = it)) },
             label = { Text(EobStrings.t(language, "state")) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            readOnly = !fieldsEnabled,
+            enabled = fieldsEnabled
         )
     }
     OutlinedTextField(
         value = profile.insuranceName,
         onValueChange = { onProfileChanged(profile.copy(insuranceName = it)) },
         label = { Text(EobStrings.t(language, "insuranceNameField")) },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled
     )
     OutlinedTextField(
         value = profile.insuranceId,
         onValueChange = { onProfileChanged(profile.copy(insuranceId = it)) },
         label = { Text(EobStrings.t(language, "insuranceId")) },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled
     )
     OutlinedTextField(
         value = profile.groupName,
         onValueChange = { onProfileChanged(profile.copy(groupName = it)) },
         label = { Text(EobStrings.t(language, "groupName")) },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled
     )
 }
 

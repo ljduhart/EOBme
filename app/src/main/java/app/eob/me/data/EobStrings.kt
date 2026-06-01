@@ -280,8 +280,57 @@ object EobStrings {
         "calendarThisWeek" to "This week",
         "patientOutOfPocketShare" to "Patient Out-of-Pocket Share: $%.2f",
         "providerNameMissing" to "—",
-        "cptCountTimes" to "%dx"
+        "cptCountTimes" to "%dx",
+        "editProfile" to "Edit",
+        "profileSavedButton" to "Saved",
+        "homeInsuranceCardTitle" to "Insurance card",
+        "insuranceCardMemberLabel" to "Member name",
+        "valueNotSet" to "—",
+        "profileSavedFirebase" to "Profile saved to Firebase.",
+        "profileSaveFailed" to "Profile save failed: %s",
+        "insuranceMetadataSaved" to "Insurance card metadata saved.",
+        "insuranceMetadataSaveFailed" to "Insurance card metadata save failed: %s",
+        "signInToSaveEob" to "Please sign in to save EOBs.",
+        "signInToDeleteEobsShort" to "Please sign in to delete EOBs.",
+        "eobSavedFirebase" to "EOB saved to Firebase.",
+        "eobSaveFailed" to "EOB save failed: %s",
+        "eobDeleted" to "EOB deleted.",
+        "eobDeleteFailed" to "EOB delete failed: %s",
+        "eobUploadVeryfiStarted" to "EOB uploaded. Veryfi processing started.",
+        "eobUploadFailed" to "EOB upload failed: %s"
     )
+
+    private val exactRepositoryMessages = mapOf(
+        "Please sign in to save your profile." to "signInToSaveProfile",
+        "Profile saved to Firebase." to "profileSavedFirebase",
+        "Insurance card metadata saved." to "insuranceMetadataSaved",
+        "Please sign in to save EOBs." to "signInToSaveEob",
+        "EOB saved to Firebase." to "eobSavedFirebase",
+        "Please sign in to delete EOBs." to "signInToDeleteEobsShort",
+        "EOB deleted." to "eobDeleted",
+        "Please sign in before uploading an EOB." to "signInBeforeUpload",
+        "Please sign in before scanning an EOB." to "signInBeforeScan",
+        "EOB uploaded. Veryfi processing started." to "eobUploadVeryfiStarted"
+    )
+
+    fun localizeRepositoryMessage(language: AppLanguage, message: String): String {
+        val trimmed = message.trim()
+        if (trimmed.isBlank()) return ""
+        exactRepositoryMessages[trimmed]?.let { return t(language, it) }
+        return when {
+            trimmed.startsWith("Profile save failed:") ->
+                tf(language, "profileSaveFailed", trimmed.substringAfter(":").trim())
+            trimmed.startsWith("Insurance card metadata save failed:") ->
+                tf(language, "insuranceMetadataSaveFailed", trimmed.substringAfter(":").trim())
+            trimmed.startsWith("EOB save failed:") ->
+                tf(language, "eobSaveFailed", trimmed.substringAfter(":").trim())
+            trimmed.startsWith("EOB delete failed:") ->
+                tf(language, "eobDeleteFailed", trimmed.substringAfter(":").trim())
+            trimmed.startsWith("EOB upload failed:") ->
+                tf(language, "eobUploadFailed", trimmed.substringAfter(":").trim())
+            else -> trimmed
+        }
+    }
 
     fun firebaseConfigMessage(language: AppLanguage): String = t(language, "firebaseConfigMissing")
 

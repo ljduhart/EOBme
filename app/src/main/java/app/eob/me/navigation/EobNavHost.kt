@@ -269,6 +269,12 @@ private fun MainHubNavHost(
     val showBottomBar = currentRoute !in hubRoutesWithoutBottomBar
     val selectedBottomTab = HubBottomTab.fromRoute(currentRoute)
 
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != EobRoute.News.route && uiState.selectedInsuranceArticle != null) {
+            eobViewModel.dismissInsuranceArticle()
+        }
+    }
+
     fun deleteEob(record: EobRecord) {
         eobViewModel.deleteRecordRemote(userId, record, profile, language) { message ->
             if (message.isNotBlank()) eobViewModel.updateUploadNotice(message)
@@ -348,8 +354,6 @@ private fun MainHubNavHost(
                         uploadNotice = uiState.uploadNotice,
                         appointments = uiState.appointments,
                         calendarExpanded = uiState.calendarExpanded,
-                        insuranceArticles = insuranceArticles,
-                        selectedInsuranceArticle = uiState.selectedInsuranceArticle,
                         onCalendarExpandedChange = eobViewModel::setCalendarExpanded,
                         onAddAppointment = { date, provider, time, notes ->
                             eobViewModel.addAppointment(date, provider, time, notes)
@@ -359,8 +363,6 @@ private fun MainHubNavHost(
                             eobViewModel.removeAppointment(appointment)
                             onActivity()
                         },
-                        onInsuranceArticleSelected = eobViewModel::openInsuranceArticle,
-                        onDismissInsuranceArticle = eobViewModel::dismissInsuranceArticle,
                         onBentoSelected = { destination ->
                             navController.navigate(destination.route) { launchSingleTop = true }
                             onActivity()
@@ -433,6 +435,10 @@ private fun MainHubNavHost(
                 composable(EobRoute.News.route) {
                     NewsScreen(
                         language = language,
+                        insuranceArticles = insuranceArticles,
+                        selectedInsuranceArticle = uiState.selectedInsuranceArticle,
+                        onInsuranceArticleSelected = eobViewModel::openInsuranceArticle,
+                        onDismissInsuranceArticle = eobViewModel::dismissInsuranceArticle,
                         newsItems = EobKnowledgeBase.currentNewsReleases(
                             eobViewModel.visibleNews(EobKnowledgeBase.newsReleases)
                         ),

@@ -200,7 +200,9 @@ class EobViewModel : ViewModel() {
         deleteRecord(record, profile)
         val repo = repository
         if (userId.isNotBlank() && repo != null) {
-            repo.deleteEob(userId, record, onComplete)
+            repo.deleteEob(userId, record) { message ->
+                onComplete(EobStrings.localizeRepositoryMessage(language, message))
+            }
         } else if (userId.isBlank()) {
             onComplete(EobStrings.t(language, "signInToDeleteEob"))
         }
@@ -272,7 +274,8 @@ class EobViewModel : ViewModel() {
         }
         setLoadingInvoice(true)
         repo.uploadEobFile(userId, uri, sourceName) { message ->
-            val notice = message.ifBlank { EobStrings.t(language, "libraryUploadStarted") }
+            val notice = EobStrings.localizeRepositoryMessage(language, message)
+                .ifBlank { EobStrings.t(language, "libraryUploadStarted") }
             updateUploadNotice(notice)
             if (message.contains("failed", ignoreCase = true)) {
                 setLoadingInvoice(false)
@@ -289,7 +292,8 @@ class EobViewModel : ViewModel() {
         }
         setLoadingInvoice(true)
         repo.uploadEobBitmap(userId, bitmap, sourceName) { message ->
-            val notice = message.ifBlank { EobStrings.t(language, "cameraScanStarted") }
+            val notice = EobStrings.localizeRepositoryMessage(language, message)
+                .ifBlank { EobStrings.t(language, "cameraScanStarted") }
             updateUploadNotice(notice)
             if (message.contains("failed", ignoreCase = true)) {
                 setLoadingInvoice(false)
@@ -319,7 +323,9 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(uploadNotice = notice) }
         replaceRecords(updatedRecords, profile)
         if (userId.isNotBlank()) {
-            repo.saveEob(userId, record) { updateUploadNotice(it) }
+            repo.saveEob(userId, record) { message ->
+                updateUploadNotice(EobStrings.localizeRepositoryMessage(language, message))
+            }
         }
         uploadText = ""
     }
