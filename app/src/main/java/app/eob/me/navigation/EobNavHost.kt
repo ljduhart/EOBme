@@ -13,15 +13,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -50,6 +50,7 @@ import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.components.EobDeleteBar
 import app.eob.me.ui.components.HubBottomBar
+import app.eob.me.ui.components.hubBottomIcons
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.navigation.HubBottomTab
 import app.eob.me.ui.screens.AppealScreen
@@ -288,30 +289,44 @@ private fun MainHubNavHost(
                 HubBottomBar(
                     language = language,
                     selectedTab = selectedBottomTab,
-                    scanEnabled = userId.isNotBlank(),
                     onTabSelected = { tab ->
-                        when (tab) {
-                            HubBottomTab.Dashboard -> {
-                                navController.navigate(EobRoute.Dashboard.route) {
-                                    launchSingleTop = true
-                                }
-                                onActivity()
-                            }
-                            HubBottomTab.ScanEob -> {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                            HubBottomTab.Profile -> {
-                                openProfileSupport = false
-                                navController.navigate(EobRoute.Profile.route) {
-                                    launchSingleTop = true
-                                }
-                                onActivity()
-                            }
+                        navController.navigate(tab.route) {
+                            launchSingleTop = true
                         }
+                        if (tab == HubBottomTab.Profile) {
+                            openProfileSupport = false
+                        }
+                        onActivity()
                     }
                 )
             }
-        }
+        },
+        floatingActionButton = {
+            if (showBottomBar) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        if (userId.isNotBlank()) {
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        } else {
+                            Toast.makeText(
+                                context,
+                                EobStrings.t(language, "signInBeforeUpload"),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = hubBottomIcons.ScanEob,
+                            contentDescription = EobStrings.t(language, "bottomScanEob")
+                        )
+                    },
+                    text = { Text(EobStrings.t(language, "bottomScanEob")) },
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center
     ) { padding ->
         Column(
             modifier = Modifier
@@ -327,18 +342,6 @@ private fun MainHubNavHost(
                         launchSingleTop = true
                     }
                     onActivity()
-                },
-                onProfile = {
-                    openProfileSupport = false
-                    navController.navigate(EobRoute.Profile.route)
-                },
-                onSupport = {
-                    openProfileSupport = true
-                    navController.navigate(EobRoute.Profile.route)
-                },
-                onLogout = {
-                    eobViewModel.resetHubState()
-                    onLogout()
                 }
             )
             NavHost(navController = navController, startDestination = EobRoute.Home.route) {
@@ -587,53 +590,23 @@ private fun HistoryRoute(
 private fun HubHeader(
     language: AppLanguage,
     showBack: Boolean,
-    onBack: () -> Unit,
-    onProfile: () -> Unit,
-    onSupport: () -> Unit,
-    onLogout: () -> Unit
+    onBack: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (showBack) {
-                TextButton(onClick = onBack) {
-                    Text("← ${EobStrings.t(language, "home")}")
-                }
+        if (showBack) {
+            TextButton(onClick = onBack) {
+                Text("← ${EobStrings.t(language, "home")}")
             }
-            Text(
-                "EOBme",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(top = 8.dp)
-            )
         }
-        OutlinedButton(onClick = { expanded = true }) { Text("👤") }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(EobStrings.t(language, "profile")) },
-                onClick = {
-                    expanded = false
-                    onProfile()
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(EobStrings.t(language, "support")) },
-                onClick = {
-                    expanded = false
-                    onSupport()
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(EobStrings.t(language, "logout")) },
-                onClick = {
-                    expanded = false
-                    onLogout()
-                }
-            )
-        }
+        Text(
+            text = "EOBme",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(top = 8.dp)
+        )
     }
 }
