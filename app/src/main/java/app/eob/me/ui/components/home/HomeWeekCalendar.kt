@@ -1,12 +1,13 @@
 package app.eob.me.ui.components.home
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,8 +21,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
@@ -42,7 +43,6 @@ fun HomeWeekCalendar(
     modifier: Modifier = Modifier
 ) {
     var visibleMonth by remember { mutableStateOf(Calendar.getInstance()) }
-    val appointmentDates = remember(appointments) { appointments.map { it.date }.toSet() }
     val weekDays = remember { currentWeekDays() }
     val weekRangeLabel = remember(weekDays, language) { weekRangeLabel(weekDays, language) }
 
@@ -58,7 +58,7 @@ fun HomeWeekCalendar(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
             ) {
                 Column {
                     Text(
@@ -118,42 +118,60 @@ fun HomeWeekCalendar(
                             Calendar.SHORT,
                             language.locale()
                         ).orEmpty()
-                        val hasAppointment = appointmentDates.contains(dateLabel)
+                        val typesOnDay = appointmentTypesOnDate(appointments, dateLabel)
+                        val hasAppointment = typesOnDay.isNotEmpty()
                         val isToday = isSameDay(day, Calendar.getInstance())
+                        val cellTextColor = when {
+                            hasAppointment -> Color.White
+                            isToday -> MaterialTheme.colorScheme.onPrimary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
 
                         Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(0.72f)
+                                .then(
+                                    if (isToday) {
+                                        Modifier.border(
+                                            2.dp,
+                                            MaterialTheme.colorScheme.primary,
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                    } else {
+                                        Modifier
+                                    }
+                                )
                                 .clickable { onDateSelected(dateLabel) },
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
+                                    hasAppointment -> Color.Transparent
                                     isToday -> MaterialTheme.colorScheme.primary
-                                    hasAppointment -> MaterialTheme.colorScheme.primaryContainer
                                     else -> MaterialTheme.colorScheme.background
                                 }
                             )
                         ) {
-                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Box(Modifier.fillMaxSize()) {
+                                if (hasAppointment) {
+                                    AppointmentDayColorBackground(
+                                        types = typesOnDay,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
                                     Text(
                                         text = dayName.take(3),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = if (isToday) {
-                                            MaterialTheme.colorScheme.onPrimary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                        }
+                                        color = cellTextColor.copy(alpha = 0.9f)
                                     )
-                                    Text(
-                                        text = if (hasAppointment) "$dayOfMonth •" else dayOfMonth.toString(),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isToday) {
-                                            MaterialTheme.colorScheme.onPrimary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        }
+                                    CalendarDayCellContent(
+                                        dayNumber = dayOfMonth,
+                                        hasAppointmentMarker = hasAppointment,
+                                        textColor = cellTextColor
                                     )
                                 }
                             }

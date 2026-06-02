@@ -115,12 +115,32 @@ data class CptUsage(
     val count: Int
 )
 
+enum class CareTeamProviderType {
+    Pcp,
+    Dentist,
+    Specialist,
+    Therapist;
+
+    companion object {
+        val displayOrder: List<CareTeamProviderType> = listOf(Pcp, Dentist, Specialist, Therapist)
+    }
+}
+
+data class PreferredDoctor(
+    val type: CareTeamProviderType,
+    val name: String = "",
+    val specialty: String = "",
+    val address: String = "",
+    val phone: String = ""
+)
+
 data class DoctorAppointment(
     val id: Int,
     val date: String,
     val providerName: String,
     val time: String,
-    val notes: String
+    val notes: String,
+    val providerType: CareTeamProviderType = CareTeamProviderType.Pcp
 )
 
 data class EobFieldConfidence(

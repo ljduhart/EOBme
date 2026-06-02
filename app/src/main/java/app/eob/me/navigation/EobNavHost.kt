@@ -346,18 +346,23 @@ private fun MainHubNavHost(
                         ),
                         uploadNotice = uiState.uploadNotice,
                         appointments = uiState.appointments,
+                        preferredDoctors = uiState.preferredDoctors,
                         calendarExpanded = uiState.calendarExpanded,
                         onCalendarExpandedChange = eobViewModel::setCalendarExpanded,
-                        onAddAppointment = { date, provider, time, notes ->
-                            eobViewModel.addAppointment(date, provider, time, notes)
+                        onSavePreferredDoctor = { doctor ->
+                            eobViewModel.updatePreferredDoctor(doctor)
+                            onActivity()
+                        },
+                        onAddAppointment = { date, provider, time, notes, providerType ->
+                            eobViewModel.addAppointment(date, provider, time, notes, providerType)
                             onActivity()
                         },
                         onRemoveAppointment = { appointment ->
                             eobViewModel.removeAppointment(appointment)
                             onActivity()
                         },
-                        onUpdateAppointment = { id, date, provider, time, notes ->
-                            eobViewModel.updateAppointment(id, date, provider, time, notes)
+                        onUpdateAppointment = { id, date, provider, time, notes, providerType ->
+                            eobViewModel.updateAppointment(id, date, provider, time, notes, providerType)
                             onActivity()
                         },
                         onBentoSelected = { destination ->

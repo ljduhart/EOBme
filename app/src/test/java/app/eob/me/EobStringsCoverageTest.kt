@@ -149,6 +149,29 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun careTeamKeysResolveForEveryLanguage() {
+        val keys = listOf(
+            "careTeamPcp",
+            "careTeamDentist",
+            "careTeamSpecialist",
+            "careTeamTherapist",
+            "careTeamTapToEdit",
+            "careTeamDoctorName",
+            "careTeamSpecialty",
+            "careTeamAddress",
+            "careTeamPhone",
+            "careTeamSaveDoctor"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                assertNotEquals(key, EobStrings.t(language, key))
+            }
+            val title = EobStrings.tf(language, "careTeamEditTitle", "PCP")
+            assertTrue(title.isNotBlank())
+        }
+    }
+
+    @Test
     fun providerAndYearlyChartKeysResolveForEveryLanguage() {
         val keys = listOf(
             "yearlyExpenseChartTitle",

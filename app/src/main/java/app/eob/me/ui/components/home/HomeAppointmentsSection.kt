@@ -1,10 +1,14 @@
 package app.eob.me.ui.components.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -21,11 +25,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobStrings
 
@@ -35,8 +40,8 @@ fun HomeAppointmentsSection(
     appointments: List<DoctorAppointment>,
     prefillDate: String,
     onPrefillHandled: () -> Unit,
-    onAddAppointment: (String, String, String, String) -> Unit,
-    onUpdateAppointment: (Int, String, String, String, String) -> Unit,
+    onAddAppointment: (String, String, String, String, CareTeamProviderType) -> Unit,
+    onUpdateAppointment: (Int, String, String, String, String, CareTeamProviderType) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -46,17 +51,9 @@ fun HomeAppointmentsSection(
     var provider by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
+    var selectedProviderType by remember { mutableStateOf(CareTeamProviderType.Pcp) }
 
     val isEditing = editingAppointmentId != null
-
-    fun openAddDialog() {
-        editingAppointmentId = null
-        provider = ""
-        time = ""
-        notes = ""
-        selectedDate = ""
-        showDialog = true
-    }
 
     fun openEditDialog(appointment: DoctorAppointment) {
         editingAppointmentId = appointment.id
@@ -64,6 +61,7 @@ fun HomeAppointmentsSection(
         provider = appointment.providerName
         time = appointment.time
         notes = appointment.notes
+        selectedProviderType = appointment.providerType
         showDialog = true
     }
 
@@ -74,33 +72,26 @@ fun HomeAppointmentsSection(
         time = ""
         notes = ""
         selectedDate = ""
+        selectedProviderType = CareTeamProviderType.Pcp
     }
 
     LaunchedEffect(prefillDate) {
         if (prefillDate.isNotBlank()) {
             editingAppointmentId = null
             selectedDate = prefillDate
+            selectedProviderType = CareTeamProviderType.Pcp
             showDialog = true
             onPrefillHandled()
         }
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = EobStrings.t(language, "quickActions"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            OutlinedButton(onClick = { openAddDialog() }) {
-                Text(EobStrings.t(language, "addAppointment"))
-            }
-        }
+        Text(
+            text = EobStrings.t(language, "quickActions"),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
 
         if (appointments.isEmpty()) {
             Text(
@@ -118,19 +109,48 @@ fun HomeAppointmentsSection(
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "${appointment.date} • ${appointment.providerName}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(10.dp)
+                                    .background(
+                                        CareTeamColors.colorFor(appointment.providerType),
+                                        CircleShape
+                                    )
+                            )
+                            Text(
+                                text = "${appointment.date} • ${appointment.providerName}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                         if (appointment.time.isNotBlank()) {
                             Text(appointment.time, style = MaterialTheme.typography.bodySmall)
                         }
                         if (appointment.notes.isNotBlank()) {
                             Text(appointment.notes, style = MaterialTheme.typography.bodySmall)
                         }
+                        ProviderTypeChipBar(
+                            language = language,
+                            selected = appointment.providerType,
+                            onSelected = { type ->
+                                onUpdateAppointment(
+                                    appointment.id,
+                                    appointment.date,
+                                    appointment.providerName,
+                                    appointment.time,
+                                    appointment.notes,
+                                    type
+                                )
+                            }
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -196,6 +216,11 @@ fun HomeAppointmentsSection(
                         label = { Text(EobStrings.t(language, "appointmentNotes")) },
                         modifier = Modifier.fillMaxWidth()
                     )
+                    ProviderTypeChipBar(
+                        language = language,
+                        selected = selectedProviderType,
+                        onSelected = { selectedProviderType = it }
+                    )
                 }
             },
             confirmButton = {
@@ -207,10 +232,17 @@ fun HomeAppointmentsSection(
                                 selectedDate,
                                 provider,
                                 time,
-                                notes
+                                notes,
+                                selectedProviderType
                             )
                         } else {
-                            onAddAppointment(selectedDate, provider, time, notes)
+                            onAddAppointment(
+                                selectedDate,
+                                provider,
+                                time,
+                                notes,
+                                selectedProviderType
+                            )
                         }
                         closeDialog()
                     },

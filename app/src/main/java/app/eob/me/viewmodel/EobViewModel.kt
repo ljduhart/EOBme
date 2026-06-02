@@ -10,7 +10,9 @@ import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.CptCategory
+import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
+import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobInsuranceNews
 import app.eob.me.data.EobRecord
@@ -38,6 +40,8 @@ data class HubUiState(
     val uploadNotice: String = "",
     val appealLetter: String = "",
     val appointments: List<DoctorAppointment> = emptyList(),
+    val preferredDoctors: Map<CareTeamProviderType, PreferredDoctor> = CareTeamProviderType.displayOrder
+        .associateWith { PreferredDoctor(type = it) },
     val isLoadingInvoice: Boolean = false,
     val historyPage: Int = 0,
     val calendarExpanded: Boolean = false,
@@ -217,11 +221,30 @@ class EobViewModel : ViewModel() {
         return firebaseNews.ifEmpty { fallbackNews }.filterNot { it.key() in deletedNewsKeys }
     }
 
-    fun addAppointment(date: String, provider: String, time: String, notes: String) {
+    fun updatePreferredDoctor(doctor: PreferredDoctor) {
+        _uiState.update { state ->
+            state.copy(preferredDoctors = state.preferredDoctors + (doctor.type to doctor))
+        }
+    }
+
+    fun addAppointment(
+        date: String,
+        provider: String,
+        time: String,
+        notes: String,
+        providerType: CareTeamProviderType
+    ) {
         _uiState.update { state ->
             val nextId = (state.appointments.maxOfOrNull { it.id } ?: 0) + 1
             state.copy(
-                appointments = state.appointments + DoctorAppointment(nextId, date, provider, time, notes)
+                appointments = state.appointments + DoctorAppointment(
+                    id = nextId,
+                    date = date,
+                    providerName = provider,
+                    time = time,
+                    notes = notes,
+                    providerType = providerType
+                )
             )
         }
     }
@@ -237,13 +260,21 @@ class EobViewModel : ViewModel() {
         date: String,
         provider: String,
         time: String,
-        notes: String
+        notes: String,
+        providerType: CareTeamProviderType
     ) {
         _uiState.update { state ->
             state.copy(
                 appointments = state.appointments.map { existing ->
                     if (existing.id == appointmentId) {
-                        DoctorAppointment(appointmentId, date, provider, time, notes)
+                        DoctorAppointment(
+                            appointmentId,
+                            date,
+                            provider,
+                            time,
+                            notes,
+                            providerType
+                        )
                     } else {
                         existing
                     }
