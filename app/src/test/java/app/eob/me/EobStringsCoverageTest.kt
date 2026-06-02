@@ -149,6 +149,48 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun homeRouteWiresCareTeamAndAppointmentsThroughEobViewModel() {
+        val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
+        listOf(
+            "preferredDoctors = uiState.preferredDoctors",
+            "updatePreferredDoctor",
+            "eobViewModel.addAppointment",
+            "eobViewModel.updateAppointment",
+            "providerType"
+        ).forEach { snippet ->
+            assertTrue(
+                "EobNavHost missing care team / appointment wiring: $snippet",
+                navHostSource.contains(snippet)
+            )
+        }
+    }
+
+    @Test
+    fun careTeamKeysResolveForEveryLanguage() {
+        val keys = listOf(
+            "careTeamPcp",
+            "careTeamDentist",
+            "careTeamSpecialist",
+            "careTeamTherapist",
+            "careTeamTapToEdit",
+            "careTeamEditTitle",
+            "careTeamDoctorName",
+            "careTeamSpecialty",
+            "careTeamAddress",
+            "careTeamPhone",
+            "careTeamSaveDoctor",
+            "selectAppointmentDate"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                assertNotEquals(key, EobStrings.t(language, key))
+            }
+            val title = EobStrings.tf(language, "careTeamEditTitle", "PCP")
+            assertTrue(title.isNotBlank())
+        }
+    }
+
+    @Test
     fun providerAndYearlyChartKeysResolveForEveryLanguage() {
         val keys = listOf(
             "yearlyExpenseChartTitle",

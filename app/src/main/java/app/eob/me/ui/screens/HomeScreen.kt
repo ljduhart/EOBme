@@ -28,12 +28,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobStrings
+import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.bento.BentoGridCell
 import app.eob.me.ui.components.home.HomeAppointmentsSection
+import app.eob.me.ui.components.home.HomeCareTeamCards
 import app.eob.me.ui.components.home.HomeWeekCalendar
 
 private val MetallicMedicalBlue = Brush.verticalGradient(
@@ -61,11 +64,13 @@ fun HomeScreen(
     firebaseStatusLine: String,
     uploadNotice: String,
     appointments: List<DoctorAppointment>,
+    preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>,
     calendarExpanded: Boolean,
     onCalendarExpandedChange: (Boolean) -> Unit,
-    onAddAppointment: (String, String, String, String) -> Unit,
+    onSavePreferredDoctor: (PreferredDoctor) -> Unit,
+    onAddAppointment: (String, String, String, String, CareTeamProviderType) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
-    onUpdateAppointment: (Int, String, String, String, String) -> Unit,
+    onUpdateAppointment: (Int, String, String, String, String, CareTeamProviderType) -> Unit,
     onBentoSelected: (HubBentoDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -139,6 +144,15 @@ fun HomeScreen(
             }
 
             item {
+                HomeCareTeamCards(
+                    language = language,
+                    preferredDoctors = preferredDoctors,
+                    onSaveDoctor = onSavePreferredDoctor,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
                 Text(
                     text = EobStrings.t(language, "featuresSection"),
                     style = MaterialTheme.typography.titleMedium,
@@ -184,10 +198,11 @@ fun HomeScreen(
                 HomeAppointmentsSection(
                     language = language,
                     appointments = appointments,
+                    preferredDoctors = preferredDoctors,
                     prefillDate = if (openAppointmentDialog) appointmentPrefillDate else "",
                     onPrefillHandled = { openAppointmentDialog = false },
-                    onAddAppointment = { date, provider, time, notes ->
-                        onAddAppointment(date, provider, time, notes)
+                    onAddAppointment = { date, provider, time, notes, providerType ->
+                        onAddAppointment(date, provider, time, notes, providerType)
                         appointmentPrefillDate = ""
                         openAppointmentDialog = false
                     },
