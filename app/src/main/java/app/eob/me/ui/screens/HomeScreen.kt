@@ -198,6 +198,7 @@ fun HomeScreen(
                 HomeAppointmentsSection(
                     language = language,
                     appointments = appointments,
+                    preferredDoctors = preferredDoctors,
                     prefillDate = if (openAppointmentDialog) appointmentPrefillDate else "",
                     onPrefillHandled = { openAppointmentDialog = false },
                     onAddAppointment = { date, provider, time, notes, providerType ->

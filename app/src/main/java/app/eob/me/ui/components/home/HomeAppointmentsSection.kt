@@ -33,11 +33,13 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobStrings
+import app.eob.me.data.PreferredDoctor
 
 @Composable
 fun HomeAppointmentsSection(
     language: AppLanguage,
     appointments: List<DoctorAppointment>,
+    preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>,
     prefillDate: String,
     onPrefillHandled: () -> Unit,
     onAddAppointment: (String, String, String, String, CareTeamProviderType) -> Unit,
@@ -75,13 +77,27 @@ fun HomeAppointmentsSection(
         selectedProviderType = CareTeamProviderType.Pcp
     }
 
+    fun preferredNameFor(type: CareTeamProviderType): String {
+        return preferredDoctors[type]?.name.orEmpty()
+    }
+
     LaunchedEffect(prefillDate) {
         if (prefillDate.isNotBlank()) {
             editingAppointmentId = null
             selectedDate = prefillDate
             selectedProviderType = CareTeamProviderType.Pcp
+            provider = preferredNameFor(CareTeamProviderType.Pcp)
             showDialog = true
             onPrefillHandled()
+        }
+    }
+
+    LaunchedEffect(selectedProviderType, showDialog) {
+        if (showDialog && editingAppointmentId == null) {
+            val preferredName = preferredNameFor(selectedProviderType)
+            if (preferredName.isNotBlank()) {
+                provider = preferredName
+            }
         }
     }
 

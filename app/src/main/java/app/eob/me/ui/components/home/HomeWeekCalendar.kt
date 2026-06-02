@@ -76,6 +76,11 @@ fun HomeWeekCalendar(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
                     )
+                    Text(
+                        text = EobStrings.t(language, "selectAppointmentDate"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
                 }
                 OutlinedButton(onClick = { onExpandedChange(!expanded) }) {
                     Text(
