@@ -2,18 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Firebase sync, news, profile, and EOB upload (EobRepository / EobViewModel) -->
+    <!-- INTERNET — Firebase Auth, Firestore, Storage; EOB upload/sync (EobRepository / EobViewModel) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- ACCESS_NETWORK_STATE — connectivity checks before remote operations -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Hub bottom bar Scan EOB → CameraCaptureScreen (CameraX) -->
+    <!-- CAMERA — hub Scan EOB → EobRoute.CameraCapture (CameraX); runtime request in EobNavHost -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- FCM push (EobFirebaseMessagingService); requested at runtime on API 33+ -->
+    <!-- POST_NOTIFICATIONS — EobFirebaseMessagingService; runtime request API 33+ in EobNavHost -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Play billing (reserved for in-app purchases) -->
+    <!-- BILLING — Play Billing Client (com.android.billingclient:billing) -->
     <uses-permission android:name="com.android.vending.BILLING" />
-
-    <!-- Home hub: care team smart cards (flip/press animations), appointment calendar — EobViewModel
-         HubUiState (device-local; no extra permissions). Camera, network, notifications above. -->
+    <!-- Care team smart cards + appointment calendar: EobViewModel HubUiState (device-local; no extra permissions).
+         Library EOB upload uses Storage Access Framework (no READ_MEDIA_* required). -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />

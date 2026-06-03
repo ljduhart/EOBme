@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -116,6 +117,10 @@ private fun CareTeamSmartCard(
     var isFlipped by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
     val density = LocalDensity.current
+
+    LaunchedEffect(doctor) {
+        isFlipped = false
+    }
 
     val pressScale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
@@ -213,10 +218,20 @@ private fun CareTeamCardFront(
                 style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF3D3220),
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 9.sp,
                 lineHeight = 11.sp
+            )
+            Text(
+                text = EobStrings.t(language, "careTeamLongPressEdit"),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF5C4A1F).copy(alpha = 0.75f),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 7.sp,
+                lineHeight = 8.sp
             )
         }
     }

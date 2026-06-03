@@ -151,12 +151,19 @@ class EobStringsCoverageTest {
     @Test
     fun homeRouteWiresCareTeamAndAppointmentsThroughEobViewModel() {
         val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
+        val homeScreenSource = File("src/main/java/app/eob/me/ui/screens/HomeScreen.kt").readText()
+        assertTrue(
+            "HomeScreen must pass preferredDoctors and onSavePreferredDoctor",
+            homeScreenSource.contains("preferredDoctors = preferredDoctors") &&
+                homeScreenSource.contains("onSaveDoctor = onSavePreferredDoctor")
+        )
         listOf(
             "preferredDoctors = uiState.preferredDoctors",
             "updatePreferredDoctor",
             "eobViewModel.addAppointment",
             "eobViewModel.updateAppointment",
-            "providerType"
+            "providerType",
+            "onSavePreferredDoctor"
         ).forEach { snippet ->
             assertTrue(
                 "EobNavHost missing care team / appointment wiring: $snippet",
@@ -227,6 +234,24 @@ class EobStringsCoverageTest {
                 val value = EobStrings.t(language, key)
                 assertNotEquals(key, value)
             }
+        }
+    }
+
+    @Test
+    fun hubUiStateExposesCareTeamDefaultsFromEobViewModel() {
+        val viewModelSource = File("src/main/java/app/eob/me/viewmodel/EobViewModel.kt").readText()
+        listOf(
+            "preferredDoctors",
+            "updatePreferredDoctor",
+            "addAppointment",
+            "updateAppointment",
+            "providerType: CareTeamProviderType",
+            "fun addAppointment"
+        ).forEach { snippet ->
+            assertTrue(
+                "EobViewModel missing hub care team API: $snippet",
+                viewModelSource.contains(snippet)
+            )
         }
     }
 
