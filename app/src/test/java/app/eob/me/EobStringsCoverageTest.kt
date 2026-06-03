@@ -173,6 +173,8 @@ class EobStringsCoverageTest {
             "careTeamSpecialist",
             "careTeamTherapist",
             "careTeamTapToEdit",
+            "careTeamTapToFlip",
+            "careTeamLongPressEdit",
             "careTeamEditTitle",
             "careTeamDoctorName",
             "careTeamSpecialty",

@@ -12,8 +12,8 @@
     <!-- Play billing (reserved for in-app purchases) -->
     <uses-permission android:name="com.android.vending.BILLING" />
 
-    <!-- Home hub care team cards and appointment calendar use EobViewModel HubUiState (device-local;
-         no extra permissions). Camera, network, and notifications permissions above remain required. -->
+    <!-- Home hub: care team smart cards (flip/press animations), appointment calendar — EobViewModel
+         HubUiState (device-local; no extra permissions). Camera, network, notifications above. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
