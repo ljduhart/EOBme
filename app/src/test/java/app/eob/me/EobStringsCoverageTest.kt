@@ -238,6 +238,20 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun homeScreenPassesBentoHubStateFromViewModel() {
+        val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
+        listOf(
+            "historySnapshot = historySnapshot",
+            "processingPhase = uiState.invoiceProcessingPhase",
+            "providerAvatars = providerAvatars",
+            "setHistoryBentoFilter",
+            "acknowledgeInvoiceFileDropAnimation"
+        ).forEach { snippet ->
+            assertTrue("EobNavHost missing bento hub wiring: $snippet", navHostSource.contains(snippet))
+        }
+    }
+
+    @Test
     fun hubUiStateExposesCareTeamDefaultsFromEobViewModel() {
         val viewModelSource = File("src/main/java/app/eob/me/viewmodel/EobViewModel.kt").readText()
         listOf(

@@ -19,10 +19,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.HistoryBentoSnapshot
+import app.eob.me.data.InvoiceProcessingPhase
+import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.navigation.HubBentoDestination
 
 @Composable
 fun BentoGridCell(
+    language: AppLanguage,
+    destination: HubBentoDestination,
+    historySnapshot: HistoryBentoSnapshot,
+    processingPhase: InvoiceProcessingPhase,
+    isLoadingInvoice: Boolean,
+    historyFilter: HistoryBentoFilter,
+    providerAvatars: List<ProviderAvatarPreview>,
+    onClick: () -> Unit,
+    onHistoryFilterSelected: (HistoryBentoFilter) -> Unit,
+    onInvoiceFileDropFinished: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when (destination) {
+        HubBentoDestination.EobHistory -> {
+            HistoryBentoCell(
+                language = language,
+                snapshot = historySnapshot,
+                processingPhase = processingPhase,
+                isLoadingInvoice = isLoadingInvoice,
+                activeFilter = historyFilter,
+                onClick = onClick,
+                onFilterSelected = onHistoryFilterSelected,
+                onFileDropAnimationFinished = onInvoiceFileDropFinished,
+                modifier = modifier
+            )
+        }
+        HubBentoDestination.ProviderDirectory -> {
+            ProviderDirectoryBentoCell(
+                language = language,
+                avatars = providerAvatars,
+                onClick = onClick,
+                modifier = modifier
+            )
+        }
+        else -> {
+            DefaultBentoGridCell(
+                language = language,
+                destination = destination,
+                onClick = onClick,
+                modifier = modifier
+            )
+        }
+    }
+}
+
+@Composable
+private fun DefaultBentoGridCell(
     language: AppLanguage,
     destination: HubBentoDestination,
     onClick: () -> Unit,

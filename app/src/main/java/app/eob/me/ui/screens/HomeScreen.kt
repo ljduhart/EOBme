@@ -31,7 +31,11 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobStrings
+import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.HistoryBentoSnapshot
+import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.PreferredDoctor
+import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.bento.BentoGridCell
@@ -71,6 +75,13 @@ fun HomeScreen(
     onAddAppointment: (String, String, String, String, CareTeamProviderType) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
     onUpdateAppointment: (Int, String, String, String, String, CareTeamProviderType) -> Unit,
+    historySnapshot: HistoryBentoSnapshot,
+    processingPhase: InvoiceProcessingPhase,
+    isLoadingInvoice: Boolean,
+    historyFilter: HistoryBentoFilter,
+    providerAvatars: List<ProviderAvatarPreview>,
+    onHistoryFilterSelected: (HistoryBentoFilter) -> Unit,
+    onInvoiceFileDropFinished: () -> Unit,
     onBentoSelected: (HubBentoDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -172,7 +183,14 @@ fun HomeScreen(
                             BentoGridCell(
                                 language = language,
                                 destination = destination,
+                                historySnapshot = historySnapshot,
+                                processingPhase = processingPhase,
+                                isLoadingInvoice = isLoadingInvoice,
+                                historyFilter = historyFilter,
+                                providerAvatars = providerAvatars,
                                 onClick = { onBentoSelected(destination) },
+                                onHistoryFilterSelected = onHistoryFilterSelected,
+                                onInvoiceFileDropFinished = onInvoiceFileDropFinished,
                                 modifier = Modifier.weight(1f)
                             )
                         }
