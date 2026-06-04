@@ -12,8 +12,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- BILLING — Play Billing Client (com.android.billingclient:billing) -->
     <uses-permission android:name="com.android.vending.BILLING" />
-    <!-- Care team cards, smart bento (history spend / provider fan), calendar: EobViewModel HubUiState
-         (device-local; no extra permissions). Library upload uses SAF (no READ_MEDIA_*). -->
+    <!-- Care team, smart bento (EOB History filters / 3-mo chart / OCR pulse, Provider Directory fan),
+         calendar & appointments: EobViewModel HubUiState (device-local; no extra permissions).
+         Library EOB upload uses SAF — no READ_MEDIA_* / READ_EXTERNAL_STORAGE. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />

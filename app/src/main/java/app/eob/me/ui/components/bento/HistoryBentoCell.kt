@@ -175,12 +175,27 @@ fun HistoryBentoCell(
                             .weight(0.42f)
                             .aspectRatio(1f)
                     )
-                    SpendingGlowChart(
-                        monthlySpend = snapshot.monthlySpend,
+                    Column(
                         modifier = Modifier
                             .weight(0.58f)
-                            .fillMaxSize()
-                    )
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = EobStrings.t(language, "historySpendingPreview"),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 7.sp,
+                            color = GlowBlue,
+                            maxLines = 1,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        SpendingGlowChart(
+                            monthlySpend = snapshot.monthlySpend,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                        )
+                    }
                 }
             }
 

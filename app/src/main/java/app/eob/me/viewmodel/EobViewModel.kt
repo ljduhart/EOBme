@@ -143,7 +143,17 @@ class EobViewModel : ViewModel() {
             userId = userId,
             onRecords = { records -> applyRemoteRecords(records, profile) },
             onError = { message ->
-                _uiState.update { it.copy(uploadNotice = message, isLoadingInvoice = false) }
+                _uiState.update { state ->
+                    state.copy(
+                        uploadNotice = message,
+                        isLoadingInvoice = false,
+                        invoiceProcessingPhase = when {
+                            state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing ->
+                                InvoiceProcessingPhase.Idle
+                            else -> state.invoiceProcessingPhase
+                        }
+                    )
+                }
             }
         )
     }

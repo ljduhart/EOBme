@@ -535,10 +535,11 @@ private fun HistoryRoute(
     val records by eobViewModel.eobRecords.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredRecords by remember {
+    val historyBentoFilter = uiState.historyBentoFilter
+    val filteredRecords by remember(records, searchQuery, historyBentoFilter) {
         derivedStateOf {
             val sorted = records.sortedByDescending { it.serviceDateSortKey }
-            val byFilter = when (uiState.historyBentoFilter) {
+            val byFilter = when (historyBentoFilter) {
                 HistoryBentoFilter.All -> sorted
                 HistoryBentoFilter.Flagged -> EobAnalyzer.recordsWithFlaggedBillingErrors(sorted)
             }
@@ -553,7 +554,7 @@ private fun HistoryRoute(
         }
     }
 
-    val totalBillingErrors by remember {
+    val totalBillingErrors by remember(filteredRecords) {
         derivedStateOf {
             filteredRecords.sumOf { record ->
                 EobAnalyzer.detectBillingIssues(record).count { it.severity != BillingIssueSeverity.Info }
