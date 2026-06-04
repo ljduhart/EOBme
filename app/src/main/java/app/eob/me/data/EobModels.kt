@@ -132,6 +132,52 @@ data class PreferredDoctor(
     val specialty: String = "",
     val address: String = "",
     val phone: String = ""
+) {
+    val isAssigned: Boolean
+        get() = name.isNotBlank()
+}
+
+/** Network assurance for provider directory and care-team cards (derived from EOB + upload state). */
+enum class NetworkAssuranceState {
+    FullyAssured,
+    VerificationPending,
+    OutOfNetworkAlert
+}
+
+enum class TherapistNetworkStatus {
+    Unknown,
+    InNetwork,
+    OutOfNetwork
+}
+
+/** Compact metrics shown on each gold care-team card. */
+data class CareTeamMicroMetrics(
+    val relatedEobCount: Int = 0,
+    val upcomingAppointments: Int = 0,
+    val flaggedIssueCount: Int = 0
+)
+
+/**
+ * UI-ready care-team card model built by [CareTeamStateExtractor] from hub state + EOB records.
+ */
+data class CareTeamCardDisplayState(
+    val type: CareTeamProviderType,
+    val isAssigned: Boolean,
+    val assuranceState: NetworkAssuranceState,
+    val metrics: CareTeamMicroMetrics,
+    val primaryLine: String,
+    val secondaryLine: String,
+    val tertiaryLine: String? = null,
+    val phoneDialUri: String? = null,
+    val specialistReferralActive: Boolean = false,
+    val therapistNetworkStatus: TherapistNetworkStatus = TherapistNetworkStatus.Unknown
+)
+
+/** Provider-directory bento network badge snapshot. */
+data class ProviderDirectoryAssurance(
+    val state: NetworkAssuranceState,
+    val statusLabel: String,
+    val showWarningDot: Boolean
 )
 
 data class DoctorAppointment(

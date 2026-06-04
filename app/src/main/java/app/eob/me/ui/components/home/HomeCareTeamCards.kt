@@ -1,8 +1,17 @@
 package app.eob.me.ui.components.home
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -34,10 +43,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,9 +57,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.EobStrings
+import app.eob.me.data.NetworkAssuranceState
 import app.eob.me.data.PreferredDoctor
+import app.eob.me.ui.components.AssuranceCrimson
+import app.eob.me.ui.components.AssuranceCyan
+import app.eob.me.ui.components.AssuranceGold
+import app.eob.me.ui.components.NetworkAssuranceBadge
 
 private val GoldCardGradient = Brush.linearGradient(
     colors = listOf(
@@ -59,19 +77,12 @@ private val GoldCardGradient = Brush.linearGradient(
     )
 )
 
-private val GoldBorderGradient = Brush.linearGradient(
-    colors = listOf(
-        Color(0xFFB8860B),
-        Color(0xFFFFD700),
-        Color(0xFFB8860B)
-    )
-)
-
-private const val CARD_HEIGHT_DP = 88
+private const val CARD_HEIGHT_DP = 96
 
 @Composable
 fun HomeCareTeamCards(
     language: AppLanguage,
+    careTeamCards: List<CareTeamCardDisplayState>,
     preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>,
     onSaveDoctor: (PreferredDoctor) -> Unit,
     modifier: Modifier = Modifier
@@ -82,12 +93,12 @@ fun HomeCareTeamCards(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        CareTeamProviderType.displayOrder.forEach { type ->
-            val doctor = preferredDoctors[type] ?: PreferredDoctor(type = type)
+        careTeamCards.forEach { cardState ->
             CareTeamSmartCard(
                 language = language,
-                doctor = doctor,
-                onEdit = { editingType = type },
+                cardState = cardState,
+                doctor = preferredDoctors[cardState.type] ?: PreferredDoctor(type = cardState.type),
+                onEdit = { editingType = cardState.type },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -110,15 +121,17 @@ fun HomeCareTeamCards(
 @Composable
 private fun CareTeamSmartCard(
     language: AppLanguage,
+    cardState: CareTeamCardDisplayState,
     doctor: PreferredDoctor,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var isFlipped by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
     val density = LocalDensity.current
 
-    LaunchedEffect(doctor) {
+    LaunchedEffect(cardState.type, cardState.primaryLine) {
         isFlipped = false
     }
 
@@ -136,6 +149,9 @@ private fun CareTeamSmartCard(
         label = "careTeamFlipRotation"
     )
 
+    val assuranceBorder = assuranceAccent(cardState.assuranceState)
+    val showAssuranceChrome = cardState.isAssigned
+
     Card(
         modifier = modifier
             .height(CARD_HEIGHT_DP.dp)
@@ -143,6 +159,13 @@ private fun CareTeamSmartCard(
                 scaleX = pressScale
                 scaleY = pressScale
             }
+            .then(
+                if (showAssuranceChrome) {
+                    Modifier.border(1.5.dp, assuranceBorder, RoundedCornerShape(12.dp))
+                } else {
+                    Modifier
+                }
+            )
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
@@ -151,37 +174,65 @@ private fun CareTeamSmartCard(
                     isPressed = false
                 }
             }
-            .pointerInput(Unit) {
+            .pointerInput(cardState.phoneDialUri) {
                 detectTapGestures(
                     onTap = { isFlipped = !isFlipped },
                     onLongPress = { onEdit() }
                 )
-            }
-            .border(width = 1.5.dp, brush = GoldBorderGradient, shape = RoundedCornerShape(12.dp)),
+            },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 6.dp)
-                .graphicsLayer {
-                    rotationY = flipRotation
-                    cameraDistance = 8f * density.density
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            if (flipRotation <= 90f) {
-                CareTeamCardFront(language = language, doctor = doctor)
-            } else {
-                Box(
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (cardState.isAssigned && cardState.assuranceState == NetworkAssuranceState.FullyAssured) {
+                NetworkAssuranceBadge(
+                    state = NetworkAssuranceState.FullyAssured,
+                    statusLabel = "",
+                    compact = true,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer { rotationY = 180f }
-                ) {
-                    CareTeamCardBack(language = language, doctor = doctor)
+                        .padding(2.dp)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                    .graphicsLayer {
+                        rotationY = flipRotation
+                        cameraDistance = 8f * density.density
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (flipRotation <= 90f) {
+                    CareTeamCardFront(
+                        language = language,
+                        cardState = cardState,
+                        onCall = cardState.phoneDialUri?.let { uri ->
+                            {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_DIAL, Uri.parse(uri))
+                                )
+                            }
+                        }
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { rotationY = 180f }
+                    ) {
+                        CareTeamCardBack(language = language, doctor = doctor)
+                    }
                 }
+            }
+            if (!cardState.isAssigned) {
+                GoldCardShimmerOverlay(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp))
+                )
             }
         }
     }
@@ -190,50 +241,118 @@ private fun CareTeamSmartCard(
 @Composable
 private fun CareTeamCardFront(
     language: AppLanguage,
-    doctor: PreferredDoctor
+    cardState: CareTeamCardDisplayState,
+    onCall: (() -> Unit)?
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(GoldCardGradient, RoundedCornerShape(8.dp))
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 4.dp, vertical = 5.dp)
     ) {
         Column(
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = careTeamLabel(language, doctor.type),
+                text = careTeamLabel(language, cardState.type),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF5C4A1F),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                fontSize = 11.sp
+                fontSize = 10.sp
             )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                Text(
+                    text = cardState.primaryLine,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF3D3220),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 9.sp
+                )
+                val secondaryColor = when (cardState.assuranceState) {
+                    NetworkAssuranceState.OutOfNetworkAlert -> AssuranceCrimson
+                    NetworkAssuranceState.FullyAssured -> Color(0xFF1565A8)
+                    NetworkAssuranceState.VerificationPending -> Color(0xFF5C4A1F)
+                }
+                Text(
+                    text = cardState.secondaryLine,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = secondaryColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 8.sp,
+                    modifier = Modifier.pointerInput(onCall) {
+                        if (onCall != null) {
+                            detectTapGestures(onTap = { onCall() })
+                        }
+                    }
+                )
+                cardState.tertiaryLine?.let { tertiary ->
+                    Text(
+                        text = tertiary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF5C4A1F).copy(alpha = 0.85f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 7.sp
+                    )
+                }
+            }
             Text(
-                text = doctor.name.ifBlank { EobStrings.t(language, "careTeamTapToFlip") },
+                text = formatMicroMetrics(language, cardState),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF3D3220),
+                color = Color(0xFF5C4A1F).copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 9.sp,
-                lineHeight = 11.sp
-            )
-            Text(
-                text = EobStrings.t(language, "careTeamLongPressEdit"),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF5C4A1F).copy(alpha = 0.75f),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 fontSize = 7.sp,
                 lineHeight = 8.sp
             )
         }
+    }
+}
+
+@Composable
+private fun GoldCardShimmerOverlay(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "goldShimmer")
+    val progress by transition.animateFloat(
+        initialValue = -0.4f,
+        targetValue = 1.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+            initialStartOffset = androidx.compose.animation.core.StartOffset(400)
+        ),
+        label = "goldShimmerProgress"
+    )
+    Canvas(modifier = modifier) {
+        val streakWidth = size.width * 0.42f
+        val x = size.width * progress - streakWidth / 2f
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color(0xFFFFFBF0).copy(alpha = 0.15f),
+                    Color(0xFFFFE082).copy(alpha = 0.42f),
+                    Color(0xFFD4AF37).copy(alpha = 0.28f),
+                    Color.Transparent
+                ),
+                start = Offset(x, 0f),
+                end = Offset(x + streakWidth, size.height)
+            ),
+            size = size
+        )
     }
 }
 
@@ -243,7 +362,6 @@ private fun CareTeamCardBack(
     doctor: PreferredDoctor
 ) {
     val notSet = EobStrings.t(language, "valueNotSet")
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -261,29 +379,12 @@ private fun CareTeamCardBack(
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF5C4A1F),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 fontSize = 9.sp
             )
-            CareTeamDetailLine(
-                doctor.name.ifBlank { notSet },
-                fontSize = 8.sp,
-                maxLines = 1
-            )
-            CareTeamDetailLine(
-                doctor.specialty.ifBlank { notSet },
-                fontSize = 8.sp,
-                maxLines = 1
-            )
-            CareTeamDetailLine(
-                doctor.address.ifBlank { notSet },
-                fontSize = 7.sp,
-                maxLines = 2
-            )
-            CareTeamDetailLine(
-                doctor.phone.ifBlank { notSet },
-                fontSize = 8.sp,
-                maxLines = 1
-            )
+            CareTeamDetailLine(doctor.name.ifBlank { notSet }, fontSize = 8.sp, maxLines = 1)
+            CareTeamDetailLine(doctor.specialty.ifBlank { notSet }, fontSize = 8.sp, maxLines = 1)
+            CareTeamDetailLine(doctor.address.ifBlank { notSet }, fontSize = 7.sp, maxLines = 2)
+            CareTeamDetailLine(doctor.phone.ifBlank { notSet }, fontSize = 8.sp, maxLines = 1)
         }
     }
 }
@@ -300,7 +401,6 @@ private fun CareTeamDetailLine(
         color = Color(0xFF3D3220),
         textAlign = TextAlign.Center,
         fontSize = fontSize,
-        lineHeight = fontSize * 1.15f,
         maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth()
@@ -322,9 +422,7 @@ private fun PreferredDoctorDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                EobStrings.tf(language, "careTeamEditTitle", careTeamLabel(language, doctor.type))
-            )
+            Text(EobStrings.tf(language, "careTeamEditTitle", careTeamLabel(language, doctor.type)))
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -379,4 +477,26 @@ private fun PreferredDoctorDialog(
             }
         }
     )
+}
+
+private fun assuranceAccent(state: NetworkAssuranceState): Color = when (state) {
+    NetworkAssuranceState.FullyAssured -> AssuranceCyan
+    NetworkAssuranceState.VerificationPending -> AssuranceGold
+    NetworkAssuranceState.OutOfNetworkAlert -> AssuranceCrimson
+}
+
+private fun formatMicroMetrics(language: AppLanguage, card: CareTeamCardDisplayState): String {
+    val parts = mutableListOf<String>()
+    if (card.metrics.relatedEobCount > 0) {
+        parts += EobStrings.tf(language, "careTeamMicroEobs", card.metrics.relatedEobCount)
+    }
+    if (card.metrics.upcomingAppointments > 0) {
+        parts += EobStrings.tf(language, "careTeamMicroAppts", card.metrics.upcomingAppointments)
+    }
+    if (card.metrics.flaggedIssueCount > 0) {
+        parts += EobStrings.tf(language, "careTeamMicroFlags", card.metrics.flaggedIssueCount)
+    }
+    return parts.joinToString(" · ").ifBlank {
+        EobStrings.t(language, "careTeamTapToFlip")
+    }
 }

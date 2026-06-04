@@ -249,6 +249,24 @@ object EobAnalyzer {
         return issues.distinctBy { it.type }
     }
 
+    private val outOfNetworkPattern = Regex(
+        "(?i)(out[-\\s]?of[-\\s]?network|non[-\\s]?participating|not\\s+in\\s+network|\\boon\\b)"
+    )
+
+    fun recordSignalsOutOfNetwork(record: EobRecord): Boolean {
+        return outOfNetworkPattern.containsMatchIn(record.rawText)
+    }
+
+    fun providerNameMatchesCareTeam(recordProvider: String, careTeamName: String): Boolean {
+        if (careTeamName.isBlank() || recordProvider.isBlank()) return false
+        if (recordProvider.contains("not recognized", ignoreCase = true)) return false
+        val normalizedRecord = recordProvider.trim().lowercase()
+        val normalizedCare = careTeamName.trim().lowercase()
+        return normalizedRecord == normalizedCare ||
+            normalizedRecord.contains(normalizedCare) ||
+            normalizedCare.contains(normalizedRecord)
+    }
+
     fun historyBentoSnapshot(records: List<EobRecord>): HistoryBentoSnapshot {
         val monthlySpend = monthlyPatientSpendLastMonths(records, monthCount = 3)
         val rawQuadrants = listOf(

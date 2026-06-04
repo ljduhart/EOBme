@@ -34,7 +34,9 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
+import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.PreferredDoctor
+import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.HubBentoDestination
@@ -69,6 +71,8 @@ fun HomeScreen(
     uploadNotice: String,
     appointments: List<DoctorAppointment>,
     preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>,
+    careTeamCards: List<CareTeamCardDisplayState>,
+    providerDirectoryAssurance: ProviderDirectoryAssurance,
     calendarExpanded: Boolean,
     onCalendarExpandedChange: (Boolean) -> Unit,
     onSavePreferredDoctor: (PreferredDoctor) -> Unit,
@@ -157,6 +161,7 @@ fun HomeScreen(
             item {
                 HomeCareTeamCards(
                     language = language,
+                    careTeamCards = careTeamCards,
                     preferredDoctors = preferredDoctors,
                     onSaveDoctor = onSavePreferredDoctor,
                     modifier = Modifier.fillMaxWidth()
@@ -188,6 +193,7 @@ fun HomeScreen(
                                 isLoadingInvoice = isLoadingInvoice,
                                 historyFilter = historyFilter,
                                 providerAvatars = providerAvatars,
+                                providerDirectoryAssurance = providerDirectoryAssurance,
                                 onClick = { onBentoSelected(destination) },
                                 onHistoryFilterSelected = onHistoryFilterSelected,
                                 onInvoiceFileDropFinished = onInvoiceFileDropFinished,

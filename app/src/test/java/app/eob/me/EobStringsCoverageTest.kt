@@ -254,6 +254,33 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun allMajorHubScreensHaveKotlinSources() {
+        val screens = listOf(
+            "HomeScreen.kt",
+            "HistoryGridScreen.kt",
+            "DashboardScreen.kt",
+            "YearlyExpenseScreen.kt",
+            "CptCountScreen.kt",
+            "NewsScreen.kt",
+            "AppealScreen.kt",
+            "ProfileScreen.kt",
+            "CameraCaptureScreen.kt",
+            "ProviderDirectoryScreen.kt"
+        )
+        val root = File("src/main/java/app/eob/me/ui/screens").let { dir ->
+            when {
+                dir.isDirectory -> dir
+                File("app/src/main/java/app/eob/me/ui/screens").isDirectory ->
+                    File("app/src/main/java/app/eob/me/ui/screens")
+                else -> error("ui/screens not found")
+            }
+        }
+        screens.forEach { name ->
+            assertTrue("Missing screen $name", File(root, name).isFile)
+        }
+    }
+
+    @Test
     fun historyRouteUsesBentoFilterFromUiState() {
         val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
         assertTrue(
