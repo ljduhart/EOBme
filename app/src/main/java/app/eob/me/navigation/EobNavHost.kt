@@ -39,6 +39,7 @@ import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.BillingIssueSeverity
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
@@ -336,6 +337,12 @@ private fun MainHubNavHost(
             )
             NavHost(navController = navController, startDestination = EobRoute.Home.route) {
                 composable(EobRoute.Home.route) {
+                    val historySnapshot = remember(sortedEobRecords) {
+                        EobAnalyzer.historyBentoSnapshot(sortedEobRecords)
+                    }
+                    val providerAvatars = remember(sortedEobRecords, language) {
+                        EobAnalyzer.providerAvatarPreviews(sortedEobRecords, language)
+                    }
                     HomeScreen(
                         language = language,
                         profile = profile,
@@ -364,6 +371,19 @@ private fun MainHubNavHost(
                         onUpdateAppointment = { id, date, provider, time, notes, providerType ->
                             eobViewModel.updateAppointment(id, date, provider, time, notes, providerType)
                             onActivity()
+                        },
+                        historySnapshot = historySnapshot,
+                        processingPhase = uiState.invoiceProcessingPhase,
+                        isLoadingInvoice = uiState.isLoadingInvoice,
+                        historyFilter = uiState.historyBentoFilter,
+                        providerAvatars = providerAvatars,
+                        onHistoryFilterSelected = { filter ->
+                            eobViewModel.setHistoryBentoFilter(filter)
+                            navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+                            onActivity()
+                        },
+                        onInvoiceFileDropFinished = {
+                            eobViewModel.acknowledgeInvoiceFileDropAnimation()
                         },
                         onBentoSelected = { destination ->
                             navController.navigate(destination.route) { launchSingleTop = true }
@@ -515,13 +535,18 @@ private fun HistoryRoute(
     val records by eobViewModel.eobRecords.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredRecords by remember {
+    val historyBentoFilter = uiState.historyBentoFilter
+    val filteredRecords by remember(records, searchQuery, historyBentoFilter) {
         derivedStateOf {
             val sorted = records.sortedByDescending { it.serviceDateSortKey }
+            val byFilter = when (historyBentoFilter) {
+                HistoryBentoFilter.All -> sorted
+                HistoryBentoFilter.Flagged -> EobAnalyzer.recordsWithFlaggedBillingErrors(sorted)
+            }
             if (searchQuery.isBlank()) {
-                sorted
+                byFilter
             } else {
-                sorted.filter { record ->
+                byFilter.filter { record ->
                     record.providerName.contains(searchQuery, ignoreCase = true) ||
                         record.insuranceCompany.contains(searchQuery, ignoreCase = true)
                 }
@@ -529,7 +554,7 @@ private fun HistoryRoute(
         }
     }
 
-    val totalBillingErrors by remember {
+    val totalBillingErrors by remember(filteredRecords) {
         derivedStateOf {
             filteredRecords.sumOf { record ->
                 EobAnalyzer.detectBillingIssues(record).count { it.severity != BillingIssueSeverity.Info }

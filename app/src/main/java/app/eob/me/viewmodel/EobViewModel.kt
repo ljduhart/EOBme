@@ -17,6 +17,9 @@ import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobInsuranceNews
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
+import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.HistoryBentoSnapshot
+import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
@@ -43,6 +46,8 @@ data class HubUiState(
     val preferredDoctors: Map<CareTeamProviderType, PreferredDoctor> = CareTeamProviderType.displayOrder
         .associateWith { PreferredDoctor(type = it) },
     val isLoadingInvoice: Boolean = false,
+    val invoiceProcessingPhase: InvoiceProcessingPhase = InvoiceProcessingPhase.Idle,
+    val historyBentoFilter: HistoryBentoFilter = HistoryBentoFilter.All,
     val historyPage: Int = 0,
     val calendarExpanded: Boolean = false,
     val selectedInsuranceArticle: InsuranceArticle? = null
@@ -138,7 +143,17 @@ class EobViewModel : ViewModel() {
             userId = userId,
             onRecords = { records -> applyRemoteRecords(records, profile) },
             onError = { message ->
-                _uiState.update { it.copy(uploadNotice = message, isLoadingInvoice = false) }
+                _uiState.update { state ->
+                    state.copy(
+                        uploadNotice = message,
+                        isLoadingInvoice = false,
+                        invoiceProcessingPhase = when {
+                            state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing ->
+                                InvoiceProcessingPhase.Idle
+                            else -> state.invoiceProcessingPhase
+                        }
+                    )
+                }
             }
         )
     }
@@ -152,6 +167,7 @@ class EobViewModel : ViewModel() {
             withContext(Dispatchers.Main) {
                 _eobRecords.value = compacted
                 val currentSelection = _uiState.value.selectedRecord
+                val wasProcessing = _uiState.value.isLoadingInvoice
                 val nextSelection = if (currentSelection == null || compacted.none { it.id == currentSelection.id }) {
                     compacted.firstOrNull()
                 } else {
@@ -161,7 +177,12 @@ class EobViewModel : ViewModel() {
                     it.copy(
                         selectedRecord = nextSelection,
                         appealLetter = AppealLetterGenerator.generate(profile, nextSelection),
-                        isLoadingInvoice = false
+                        isLoadingInvoice = false,
+                        invoiceProcessingPhase = if (wasProcessing) {
+                            InvoiceProcessingPhase.FileDropReveal
+                        } else {
+                            it.invoiceProcessingPhase
+                        }
                     )
                 }
             }
@@ -304,7 +325,30 @@ class EobViewModel : ViewModel() {
     }
 
     fun setLoadingInvoice(loading: Boolean) {
-        _uiState.update { it.copy(isLoadingInvoice = loading) }
+        _uiState.update { state ->
+            state.copy(
+                isLoadingInvoice = loading,
+                invoiceProcessingPhase = when {
+                    loading -> InvoiceProcessingPhase.Processing
+                    state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing -> InvoiceProcessingPhase.Idle
+                    else -> state.invoiceProcessingPhase
+                }
+            )
+        }
+    }
+
+    fun acknowledgeInvoiceFileDropAnimation() {
+        _uiState.update {
+            it.copy(invoiceProcessingPhase = InvoiceProcessingPhase.Idle)
+        }
+    }
+
+    fun setHistoryBentoFilter(filter: HistoryBentoFilter) {
+        _uiState.update { it.copy(historyBentoFilter = filter) }
+    }
+
+    fun historyBentoSnapshot(): HistoryBentoSnapshot {
+        return EobAnalyzer.historyBentoSnapshot(_eobRecords.value)
     }
 
     fun setHistoryPage(page: Int) {

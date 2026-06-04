@@ -249,6 +249,94 @@ object EobAnalyzer {
         return issues.distinctBy { it.type }
     }
 
+    fun historyBentoSnapshot(records: List<EobRecord>): HistoryBentoSnapshot {
+        val monthlySpend = monthlyPatientSpendLastMonths(records, monthCount = 3)
+        val rawQuadrants = listOf(
+            records.sumOf { it.totalBilledAmount }.toFloat(),
+            records.sumOf { it.totalInsurancePaidAmount }.toFloat(),
+            records.sumOf { it.totalPatientResponsibility }.toFloat(),
+            records.size.toFloat().coerceAtLeast(1f)
+        )
+        val peak = rawQuadrants.maxOrNull()?.coerceAtLeast(1f) ?: 1f
+        val cornerstoneQuadrants = rawQuadrants.map { (it / peak).coerceIn(0.2f, 1f) }
+        return HistoryBentoSnapshot(
+            monthlySpend = monthlySpend,
+            cornerstoneQuadrants = cornerstoneQuadrants,
+            flaggedBillingErrorCount = flaggedBillingErrorCount(records)
+        )
+    }
+
+    fun monthlyPatientSpendLastMonths(records: List<EobRecord>, monthCount: Int): List<Double> {
+        val calendar = java.util.Calendar.getInstance()
+        val monthKeys = (0 until monthCount).map { offset ->
+            val month = (calendar.clone() as java.util.Calendar).apply {
+                add(java.util.Calendar.MONTH, -(monthCount - 1 - offset))
+            }
+            month.get(java.util.Calendar.YEAR) * 100 + (month.get(java.util.Calendar.MONTH) + 1)
+        }
+        return monthKeys.map { key ->
+            records.filter { record -> recordMonthKey(record) == key }
+                .sumOf { it.totalPatientResponsibility }
+        }
+    }
+
+    fun flaggedBillingErrorCount(records: List<EobRecord>): Int {
+        return records.count { record ->
+            detectBillingIssues(record).any { issue -> issue.severity != BillingIssueSeverity.Info }
+        }
+    }
+
+    fun recordsWithFlaggedBillingErrors(records: List<EobRecord>): List<EobRecord> {
+        return records.filter { record ->
+            detectBillingIssues(record).any { issue -> issue.severity != BillingIssueSeverity.Info }
+        }
+    }
+
+    fun providerAvatarPreviews(records: List<EobRecord>, language: AppLanguage, limit: Int = 3): List<ProviderAvatarPreview> {
+        return providerDirectory(records).take(limit).map { summary ->
+            val sampleRecord = records.firstOrNull { it.providerName == summary.providerName }
+            ProviderAvatarPreview(
+                initials = providerInitials(summary.providerName),
+                displayName = summary.providerName.uppercase(),
+                specialtyLabel = sampleRecord?.let { providerSpecialtyLabel(it, language) }
+                    ?: EobStrings.t(language, "provider")
+            )
+        }
+    }
+
+    private fun recordMonthKey(record: EobRecord): Int? {
+        val sortKey = record.serviceDateSortKey
+        if (sortKey == Int.MAX_VALUE) return null
+        val year = sortKey / 10000
+        val month = (sortKey % 10000) / 100
+        return year * 100 + month
+    }
+
+    private fun providerInitials(providerName: String): String {
+        val parts = providerName.split(Regex("\\s+")).filter { it.isNotBlank() }
+        return when {
+            parts.isEmpty() -> "?"
+            parts.size == 1 -> parts.first().take(2).uppercase()
+            else -> "${parts.first().first()}${parts.last().first()}".uppercase()
+        }
+    }
+
+    private fun providerSpecialtyLabel(record: EobRecord, language: AppLanguage): String {
+        val dominant = record.charges
+            .groupingBy { it.category }
+            .eachCount()
+            .maxByOrNull { it.value }
+            ?.key
+        return when (dominant) {
+            CptCategory.OfficeVisit -> EobStrings.t(language, "categoryOfficeVisit")
+            CptCategory.Lab -> EobStrings.t(language, "categoryLab")
+            CptCategory.Hospital -> EobStrings.t(language, "categoryHospital")
+            CptCategory.Dme -> EobStrings.t(language, "categoryDme")
+            CptCategory.Injection -> EobStrings.t(language, "categoryInjection")
+            CptCategory.Other, null -> EobStrings.t(language, "provider")
+        }
+    }
+
     fun providerDirectory(records: List<EobRecord>): List<ProviderSummary> {
         return records
             .filter { it.providerName.isNotBlank() && !it.providerName.contains("not recognized", ignoreCase = true) }

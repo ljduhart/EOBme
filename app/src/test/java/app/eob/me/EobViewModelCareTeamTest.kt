@@ -2,9 +2,11 @@ package app.eob.me
 
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.PreferredDoctor
+import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.HubUiState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -46,6 +48,23 @@ class EobViewModelCareTeamTest {
         val appointment = viewModel.uiState.value.appointments.single()
         assertEquals(CareTeamProviderType.Specialist, appointment.providerType)
         assertTrue(appointment.providerName.isNotBlank())
+    }
+
+    @Test
+    fun setLoadingInvoiceSetsProcessingPhase() {
+        val viewModel = EobViewModel()
+        viewModel.setLoadingInvoice(true)
+        assertEquals(InvoiceProcessingPhase.Processing, viewModel.uiState.value.invoiceProcessingPhase)
+        assertTrue(viewModel.uiState.value.isLoadingInvoice)
+    }
+
+    @Test
+    fun setLoadingInvoiceFalseClearsProcessingPhase() {
+        val viewModel = EobViewModel()
+        viewModel.setLoadingInvoice(true)
+        viewModel.setLoadingInvoice(false)
+        assertEquals(InvoiceProcessingPhase.Idle, viewModel.uiState.value.invoiceProcessingPhase)
+        assertFalse(viewModel.uiState.value.isLoadingInvoice)
     }
 
     @Test

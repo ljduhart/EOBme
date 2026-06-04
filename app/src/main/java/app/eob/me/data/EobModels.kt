@@ -143,6 +143,29 @@ data class DoctorAppointment(
     val providerType: CareTeamProviderType = CareTeamProviderType.Pcp
 )
 
+enum class HistoryBentoFilter {
+    All,
+    Flagged
+}
+
+enum class InvoiceProcessingPhase {
+    Idle,
+    Processing,
+    FileDropReveal
+}
+
+data class HistoryBentoSnapshot(
+    val monthlySpend: List<Double>,
+    val cornerstoneQuadrants: List<Float>,
+    val flaggedBillingErrorCount: Int
+)
+
+data class ProviderAvatarPreview(
+    val initials: String,
+    val displayName: String,
+    val specialtyLabel: String
+)
+
 data class EobFieldConfidence(
     val fieldName: String,
     val value: String,

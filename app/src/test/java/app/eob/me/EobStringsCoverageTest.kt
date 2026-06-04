@@ -238,6 +238,45 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun historyBentoKeysResolveForEveryLanguage() {
+        val keys = listOf(
+            "historyFilterAll",
+            "historyFilterFlagged",
+            "historySpendingPreview"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                assertNotEquals(key, EobStrings.t(language, key))
+            }
+            val countLabel = EobStrings.tf(language, "historyFilterCount", 2, EobStrings.t(language, "historyFilterFlagged"))
+            assertTrue(countLabel.contains("2"))
+        }
+    }
+
+    @Test
+    fun historyRouteUsesBentoFilterFromUiState() {
+        val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
+        assertTrue(
+            navHostSource.contains("val historyBentoFilter = uiState.historyBentoFilter") &&
+                navHostSource.contains("remember(records, searchQuery, historyBentoFilter)")
+        )
+    }
+
+    @Test
+    fun homeScreenPassesBentoHubStateFromViewModel() {
+        val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
+        listOf(
+            "historySnapshot = historySnapshot",
+            "processingPhase = uiState.invoiceProcessingPhase",
+            "providerAvatars = providerAvatars",
+            "setHistoryBentoFilter",
+            "acknowledgeInvoiceFileDropAnimation"
+        ).forEach { snippet ->
+            assertTrue("EobNavHost missing bento hub wiring: $snippet", navHostSource.contains(snippet))
+        }
+    }
+
+    @Test
     fun hubUiStateExposesCareTeamDefaultsFromEobViewModel() {
         val viewModelSource = File("src/main/java/app/eob/me/viewmodel/EobViewModel.kt").readText()
         listOf(
