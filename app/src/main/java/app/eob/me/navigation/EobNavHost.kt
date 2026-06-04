@@ -343,6 +343,25 @@ private fun MainHubNavHost(
                     val providerAvatars = remember(sortedEobRecords, language) {
                         EobAnalyzer.providerAvatarPreviews(sortedEobRecords, language)
                     }
+                    val careTeamCards = remember(
+                        uiState.preferredDoctors,
+                        uiState.appointments,
+                        sortedEobRecords,
+                        uiState.isLoadingInvoice,
+                        uiState.invoiceProcessingPhase,
+                        language
+                    ) {
+                        eobViewModel.careTeamCardStates(language)
+                    }
+                    val providerDirectoryAssurance = remember(
+                        uiState.preferredDoctors,
+                        sortedEobRecords,
+                        uiState.isLoadingInvoice,
+                        uiState.invoiceProcessingPhase,
+                        language
+                    ) {
+                        eobViewModel.providerDirectoryAssurance(language)
+                    }
                     HomeScreen(
                         language = language,
                         profile = profile,
@@ -354,6 +373,8 @@ private fun MainHubNavHost(
                         uploadNotice = uiState.uploadNotice,
                         appointments = uiState.appointments,
                         preferredDoctors = uiState.preferredDoctors,
+                        careTeamCards = careTeamCards,
+                        providerDirectoryAssurance = providerDirectoryAssurance,
                         calendarExpanded = uiState.calendarExpanded,
                         onCalendarExpandedChange = eobViewModel::setCalendarExpanded,
                         onSavePreferredDoctor = { doctor ->

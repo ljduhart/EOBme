@@ -42,8 +42,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.NetworkAssuranceState
 import app.eob.me.data.ProviderAvatarPreview
+import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.navigation.HubBentoDestination
+import app.eob.me.ui.components.NetworkAssuranceBadge
+import app.eob.me.ui.components.NetworkAssuranceWarningDot
 
 private val NeonCyan = Color(0xFF00E5FF)
 private val NeonCyanDim = Color(0x6600E5FF)
@@ -52,6 +56,7 @@ private val NeonCyanDim = Color(0x6600E5FF)
 fun ProviderDirectoryBentoCell(
     language: AppLanguage,
     avatars: List<ProviderAvatarPreview>,
+    directoryAssurance: ProviderDirectoryAssurance,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -74,6 +79,12 @@ fun ProviderDirectoryBentoCell(
         label = "providerFanProgress"
     )
 
+    val assuranceAccent = when (directoryAssurance.state) {
+        NetworkAssuranceState.FullyAssured -> NeonCyan
+        NetworkAssuranceState.VerificationPending -> Color(0xFFD4AF37)
+        NetworkAssuranceState.OutOfNetworkAlert -> Color(0xFFEF4444)
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -88,21 +99,52 @@ fun ProviderDirectoryBentoCell(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 6.dp, vertical = 8.dp),
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (directoryAssurance.state == NetworkAssuranceState.FullyAssured) {
+                NetworkAssuranceBadge(
+                    state = directoryAssurance.state,
+                    statusLabel = directoryAssurance.statusLabel,
+                    compact = true,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(4.dp)
+                )
+            }
+            if (directoryAssurance.showWarningDot) {
+                NetworkAssuranceWarningDot(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 6.dp, end = 6.dp)
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 6.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = HubBentoDestination.ProviderDirectory.title(language),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                maxLines = 2
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = HubBentoDestination.ProviderDirectory.title(language),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
+                )
+                if (directoryAssurance.state != NetworkAssuranceState.FullyAssured) {
+                    Text(
+                        text = directoryAssurance.statusLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = assuranceAccent,
+                        fontSize = 7.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
+            }
 
             Box(
                 modifier = Modifier
@@ -124,6 +166,7 @@ fun ProviderDirectoryBentoCell(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+            }
             }
         }
     }

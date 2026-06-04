@@ -23,6 +23,7 @@ import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.ProviderAvatarPreview
+import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.navigation.HubBentoDestination
 
 @Composable
@@ -34,6 +35,7 @@ fun BentoGridCell(
     isLoadingInvoice: Boolean,
     historyFilter: HistoryBentoFilter,
     providerAvatars: List<ProviderAvatarPreview>,
+    providerDirectoryAssurance: ProviderDirectoryAssurance,
     onClick: () -> Unit,
     onHistoryFilterSelected: (HistoryBentoFilter) -> Unit,
     onInvoiceFileDropFinished: () -> Unit,
@@ -57,6 +59,7 @@ fun BentoGridCell(
             ProviderDirectoryBentoCell(
                 language = language,
                 avatars = providerAvatars,
+                directoryAssurance = providerDirectoryAssurance,
                 onClick = onClick,
                 modifier = modifier
             )

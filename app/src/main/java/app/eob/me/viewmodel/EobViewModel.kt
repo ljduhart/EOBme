@@ -17,9 +17,12 @@ import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobInsuranceNews
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
+import app.eob.me.data.CareTeamCardDisplayState
+import app.eob.me.data.CareTeamStateExtractor
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
+import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
@@ -349,6 +352,32 @@ class EobViewModel : ViewModel() {
 
     fun historyBentoSnapshot(): HistoryBentoSnapshot {
         return EobAnalyzer.historyBentoSnapshot(_eobRecords.value)
+    }
+
+    private fun isInvoicePipelineActive(): Boolean {
+        val state = _uiState.value
+        return state.isLoadingInvoice ||
+            state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing
+    }
+
+    fun careTeamCardStates(language: AppLanguage): List<CareTeamCardDisplayState> {
+        val state = _uiState.value
+        return CareTeamStateExtractor.buildCareTeamCards(
+            language = language,
+            preferredDoctors = state.preferredDoctors,
+            appointments = state.appointments,
+            records = _eobRecords.value,
+            invoiceProcessing = isInvoicePipelineActive()
+        )
+    }
+
+    fun providerDirectoryAssurance(language: AppLanguage): ProviderDirectoryAssurance {
+        return CareTeamStateExtractor.buildProviderDirectoryAssurance(
+            language = language,
+            preferredDoctors = _uiState.value.preferredDoctors,
+            records = _eobRecords.value,
+            invoiceProcessing = isInvoicePipelineActive()
+        )
     }
 
     fun setHistoryPage(page: Int) {
