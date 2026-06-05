@@ -6,6 +6,7 @@ import java.util.Locale
 
 object FirebaseEobMapper {
     fun profileToMap(profile: UserProfile): Map<String, Any?> {
+        val planLimits = profile.sanitizedPlanLimits()
         return mapOf(
             "firstName" to profile.firstName,
             "lastName" to profile.lastName,
@@ -16,6 +17,8 @@ object FirebaseEobMapper {
             "insuranceId" to profile.insuranceId,
             "groupName" to profile.groupName,
             "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
+            "annualDeductibleLimit" to planLimits.annualDeductibleLimit,
+            "annualOutOfPocketMax" to planLimits.annualOutOfPocketMax,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -30,8 +33,10 @@ object FirebaseEobMapper {
             insuranceName = data.stringValue("insuranceName", "insurance_name", "insuranceCardSummary", "insurance_card_summary"),
             insuranceId = data.stringValue("insuranceId", "insurance_id", "subscriberId", "subscriber_id", "memberId", "member_id", "policyId"),
             groupName = data.stringValue("groupName", "group_name", "groupNumber", "group_number"),
-            insuranceCardDownloadUrl = data.stringValue("insuranceCardDownloadUrl", "insurance_card_download_url", "insurance_card_url")
-        )
+            insuranceCardDownloadUrl = data.stringValue("insuranceCardDownloadUrl", "insurance_card_download_url", "insurance_card_url"),
+            annualDeductibleLimit = data.doubleValue("annualDeductibleLimit", "annual_deductible_limit"),
+            annualOutOfPocketMax = data.doubleValue("annualOutOfPocketMax", "annual_out_of_pocket_max")
+        ).sanitizedPlanLimits()
     }
 
     fun eobToMap(record: EobRecord): Map<String, Any?> {

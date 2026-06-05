@@ -12,9 +12,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- BILLING — Play Billing Client (com.android.billingclient:billing) -->
     <uses-permission android:name="com.android.vending.BILLING" />
-    <!-- Care team gold cards (CareTeamStateExtractor / network assurance), smart bento, calendar:
-         EobViewModel HubUiState (device-local). Tap-to-call uses ACTION_DIAL (no CALL_PHONE).
-         Library EOB upload uses SAF — no READ_MEDIA_* / READ_EXTERNAL_STORAGE. -->
+    <!-- Hub smart bento (History, Provider Directory, CPT ring, YTD deductible) via EobViewModel +
+         BentoSnapshotExtractor; care team uses ACTION_DIAL (no CALL_PHONE). Profile plan limits
+         stored in Firestore — no extra permissions. Library EOB upload uses SAF only. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />

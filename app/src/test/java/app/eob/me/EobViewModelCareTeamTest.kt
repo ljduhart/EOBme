@@ -1,6 +1,7 @@
 package app.eob.me
 
 import app.eob.me.data.CareTeamProviderType
+import app.eob.me.data.CptCategory
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.viewmodel.EobViewModel
@@ -65,6 +66,13 @@ class EobViewModelCareTeamTest {
         viewModel.setLoadingInvoice(false)
         assertEquals(InvoiceProcessingPhase.Idle, viewModel.uiState.value.invoiceProcessingPhase)
         assertFalse(viewModel.uiState.value.isLoadingInvoice)
+    }
+
+    @Test
+    fun setSelectedCptCategoryUpdatesHubUiState() {
+        val viewModel = EobViewModel()
+        viewModel.setSelectedCptCategory(CptCategory.Lab)
+        assertEquals(CptCategory.Lab, viewModel.uiState.value.selectedCptCategory)
     }
 
     @Test

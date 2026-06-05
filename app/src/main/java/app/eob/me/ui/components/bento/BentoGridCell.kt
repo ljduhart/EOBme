@@ -19,11 +19,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.CptBentoSnapshot
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderDirectoryAssurance
+import app.eob.me.data.YtdBentoViewMode
+import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.navigation.HubBentoDestination
 
 @Composable
@@ -36,6 +39,10 @@ fun BentoGridCell(
     historyFilter: HistoryBentoFilter,
     providerAvatars: List<ProviderAvatarPreview>,
     providerDirectoryAssurance: ProviderDirectoryAssurance,
+    cptBentoSnapshot: CptBentoSnapshot,
+    ytdBentoSnapshot: YtdDeductibleBentoSnapshot,
+    ytdBentoViewMode: YtdBentoViewMode,
+    onYtdViewModeSelected: (YtdBentoViewMode) -> Unit,
     onClick: () -> Unit,
     onHistoryFilterSelected: (HistoryBentoFilter) -> Unit,
     onInvoiceFileDropFinished: () -> Unit,
@@ -60,6 +67,24 @@ fun BentoGridCell(
                 language = language,
                 avatars = providerAvatars,
                 directoryAssurance = providerDirectoryAssurance,
+                onClick = onClick,
+                modifier = modifier
+            )
+        }
+        HubBentoDestination.CptTracker -> {
+            CptTrackerBentoCell(
+                language = language,
+                snapshot = cptBentoSnapshot,
+                onClick = onClick,
+                modifier = modifier
+            )
+        }
+        HubBentoDestination.YtdExpense -> {
+            YtdExpenseBentoCell(
+                language = language,
+                snapshot = ytdBentoSnapshot,
+                viewMode = ytdBentoViewMode,
+                onViewModeSelected = onYtdViewModeSelected,
                 onClick = onClick,
                 modifier = modifier
             )

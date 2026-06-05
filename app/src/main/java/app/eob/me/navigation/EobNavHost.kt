@@ -362,6 +362,21 @@ private fun MainHubNavHost(
                     ) {
                         eobViewModel.providerDirectoryAssurance(language)
                     }
+                    val cptBentoSnapshot = remember(
+                        sortedEobRecords,
+                        language,
+                        uiState.selectedCptCategory
+                    ) {
+                        eobViewModel.cptBentoSnapshot(language)
+                    }
+                    val ytdBentoSnapshot = remember(
+                        sortedEobRecords,
+                        profile.annualDeductibleLimit,
+                        profile.annualOutOfPocketMax,
+                        uiState.ytdBentoViewMode
+                    ) {
+                        eobViewModel.ytdDeductibleBentoSnapshot(profile)
+                    }
                     HomeScreen(
                         language = language,
                         profile = profile,
@@ -375,6 +390,10 @@ private fun MainHubNavHost(
                         preferredDoctors = uiState.preferredDoctors,
                         careTeamCards = careTeamCards,
                         providerDirectoryAssurance = providerDirectoryAssurance,
+                        cptBentoSnapshot = cptBentoSnapshot,
+                        ytdBentoSnapshot = ytdBentoSnapshot,
+                        ytdBentoViewMode = uiState.ytdBentoViewMode,
+                        onYtdBentoViewModeSelected = eobViewModel::setYtdBentoViewMode,
                         calendarExpanded = uiState.calendarExpanded,
                         onCalendarExpandedChange = eobViewModel::setCalendarExpanded,
                         onSavePreferredDoctor = { doctor ->
@@ -464,9 +483,9 @@ private fun MainHubNavHost(
                         CptCountScreen(
                             language = language,
                             records = sortedEobRecords,
-                            selectedCategory = eobViewModel.selectedCptCategory,
+                            selectedCategory = uiState.selectedCptCategory,
                             onCategorySelected = {
-                                eobViewModel.selectedCptCategory = it
+                                eobViewModel.setSelectedCptCategory(it)
                                 onActivity()
                             },
                             modifier = Modifier.weight(1f)
