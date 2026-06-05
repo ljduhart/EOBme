@@ -73,16 +73,17 @@ object BentoSnapshotExtractor {
         val yearRecords = records.filter { EobAnalyzer.serviceYear(it.serviceDate) == year }
         val summary = EobAnalyzer.yearlyHealthCostSummary(records, preferredYear = year)
 
-        val deductibleLimit = profile.annualDeductibleLimit.takeIf { it > 0 } ?: DEFAULT_DEDUCTIBLE
-        val oopMax = profile.annualOutOfPocketMax.takeIf { it > 0 } ?: DEFAULT_OOP_MAX
+        val safeProfile = profile.sanitizedPlanLimits()
+        val deductibleLimit = safeProfile.annualDeductibleLimit.takeIf { it > 0 } ?: DEFAULT_DEDUCTIBLE
+        val oopMax = safeProfile.annualOutOfPocketMax.takeIf { it > 0 } ?: DEFAULT_OOP_MAX
 
         val deductiblePaid = summary.totalDeductible
         val copayPaid = summary.totalCopay
         val coinsurancePaid = summary.totalCoinsurance
         val patientResp = summary.totalPatientResponsibility
 
-        val deductibleProgress = (deductiblePaid / deductibleLimit).toFloat().coerceIn(0f, 1f)
-        val oopProgress = (patientResp / oopMax).toFloat().coerceIn(0f, 1f)
+        val deductibleProgress = (deductiblePaid / deductibleLimit.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f)
+        val oopProgress = (patientResp / oopMax.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f)
 
         val monthlyBilled = monthlyTotals(yearRecords) { it.totalBilledAmount }
         val monthlyPatient = monthlyTotals(yearRecords) { it.totalPatientResponsibility }

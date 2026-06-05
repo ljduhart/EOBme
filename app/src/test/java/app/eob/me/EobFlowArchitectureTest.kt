@@ -195,9 +195,54 @@ class EobFlowArchitectureTest {
             "invoiceProcessingPhase",
             "historyBentoFilter",
             "preferredDoctors",
-            "applyRemoteRecords"
+            "applyRemoteRecords",
+            "selectedCptCategory",
+            "ytdBentoViewMode",
+            "cptBentoSnapshot",
+            "ytdDeductibleBentoSnapshot",
+            "setSelectedCptCategory",
+            "setYtdBentoViewMode"
         ).forEach { snippet ->
             assertTrue("EobViewModel missing: $snippet", viewModelSource.contains(snippet))
+        }
+    }
+
+    @Test
+    fun cptAndYtdBentoCellsWiredThroughHomeAndNavHost() {
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+        val bentoSource = readSource("ui/components/bento/BentoGridCell.kt")
+        mapOf(
+            "ui/components/bento/CptTrackerBentoCell.kt" to "CptTrackerBentoCell.kt",
+            "ui/components/bento/YtdExpenseBentoCell.kt" to "YtdExpenseBentoCell.kt",
+            "data/BentoSnapshotExtractor.kt" to "BentoSnapshotExtractor.kt",
+            "data/FairHealthPricingIndex.kt" to "FairHealthPricingIndex.kt"
+        ).forEach { (relativePath, label) ->
+            assertTrue("Missing $label", File(appModuleRoot, relativePath).isFile)
+        }
+        listOf(
+            "cptBentoSnapshot",
+            "ytdBentoSnapshot",
+            "ytdBentoViewMode",
+            "onYtdViewModeSelected"
+        ).forEach { snippet ->
+            assertTrue("HomeScreen missing bento param: $snippet", homeSource.contains(snippet))
+        }
+        listOf(
+            "HubBentoDestination.CptTracker",
+            "HubBentoDestination.YtdExpense",
+            "CptTrackerBentoCell",
+            "YtdExpenseBentoCell"
+        ).forEach { snippet ->
+            assertTrue("BentoGridCell missing: $snippet", bentoSource.contains(snippet))
+        }
+        listOf(
+            "eobViewModel.cptBentoSnapshot",
+            "eobViewModel.ytdDeductibleBentoSnapshot",
+            "setYtdBentoViewMode",
+            "uiState.selectedCptCategory",
+            "setSelectedCptCategory"
+        ).forEach { snippet ->
+            assertTrue("EobNavHost missing CPT/YTD wiring: $snippet", navHostSource.contains(snippet))
         }
     }
 

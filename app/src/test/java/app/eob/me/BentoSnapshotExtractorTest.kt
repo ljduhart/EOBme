@@ -65,6 +65,22 @@ class BentoSnapshotExtractorTest {
     }
 
     @Test
+    fun sanitizedPlanLimitsClampInvalidProfileValues() {
+        val profile = UserProfile(
+            firstName = "A",
+            lastName = "B",
+            email = "a@b.com",
+            city = "X",
+            state = "Y",
+            annualDeductibleLimit = -500.0,
+            annualOutOfPocketMax = 999_999.0
+        )
+        val safe = profile.sanitizedPlanLimits()
+        assertEquals(0.0, safe.annualDeductibleLimit, 0.01)
+        assertEquals(200_000.0, safe.annualOutOfPocketMax, 0.01)
+    }
+
+    @Test
     fun highBilledCptTrendsAboveFair() {
         val record = EobAnalyzer.analyze(
             rawText = """

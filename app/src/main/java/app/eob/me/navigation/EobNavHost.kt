@@ -362,10 +362,19 @@ private fun MainHubNavHost(
                     ) {
                         eobViewModel.providerDirectoryAssurance(language)
                     }
-                    val cptBentoSnapshot = remember(sortedEobRecords, language, eobViewModel.selectedCptCategory) {
+                    val cptBentoSnapshot = remember(
+                        sortedEobRecords,
+                        language,
+                        uiState.selectedCptCategory
+                    ) {
                         eobViewModel.cptBentoSnapshot(language)
                     }
-                    val ytdBentoSnapshot = remember(sortedEobRecords, profile) {
+                    val ytdBentoSnapshot = remember(
+                        sortedEobRecords,
+                        profile.annualDeductibleLimit,
+                        profile.annualOutOfPocketMax,
+                        uiState.ytdBentoViewMode
+                    ) {
                         eobViewModel.ytdDeductibleBentoSnapshot(profile)
                     }
                     HomeScreen(
@@ -474,9 +483,9 @@ private fun MainHubNavHost(
                         CptCountScreen(
                             language = language,
                             records = sortedEobRecords,
-                            selectedCategory = eobViewModel.selectedCptCategory,
+                            selectedCategory = uiState.selectedCptCategory,
                             onCategorySelected = {
-                                eobViewModel.selectedCptCategory = it
+                                eobViewModel.setSelectedCptCategory(it)
                                 onActivity()
                             },
                             modifier = Modifier.weight(1f)

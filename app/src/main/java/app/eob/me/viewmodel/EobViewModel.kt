@@ -58,7 +58,8 @@ data class HubUiState(
     val historyPage: Int = 0,
     val calendarExpanded: Boolean = false,
     val selectedInsuranceArticle: InsuranceArticle? = null,
-    val ytdBentoViewMode: YtdBentoViewMode = YtdBentoViewMode.CostOverview
+    val ytdBentoViewMode: YtdBentoViewMode = YtdBentoViewMode.CostOverview,
+    val selectedCptCategory: CptCategory = CptCategory.OfficeVisit
 )
 
 /**
@@ -81,7 +82,6 @@ class EobViewModel : ViewModel() {
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
 
     var uploadText by mutableStateOf("")
-    var selectedCptCategory by mutableStateOf(CptCategory.OfficeVisit)
     var firebaseStatus by mutableStateOf(FirebaseSyncStatus(isConfigured = false))
     var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
     private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
@@ -110,7 +110,6 @@ class EobViewModel : ViewModel() {
         _eobRecords.value = emptyList()
         _uiState.value = HubUiState()
         uploadText = ""
-        selectedCptCategory = CptCategory.OfficeVisit
         firebaseNews = emptyList()
         deletedNewsKeys = emptySet()
     }
@@ -389,15 +388,19 @@ class EobViewModel : ViewModel() {
         return BentoSnapshotExtractor.buildCptBentoSnapshot(
             language = language,
             records = _eobRecords.value,
-            selectedCategory = selectedCptCategory
+            selectedCategory = _uiState.value.selectedCptCategory
         )
     }
 
     fun ytdDeductibleBentoSnapshot(profile: UserProfile): YtdDeductibleBentoSnapshot {
         return BentoSnapshotExtractor.buildYtdDeductibleBentoSnapshot(
             records = _eobRecords.value,
-            profile = profile
+            profile = profile.sanitizedPlanLimits()
         )
+    }
+
+    fun setSelectedCptCategory(category: CptCategory) {
+        _uiState.update { it.copy(selectedCptCategory = category) }
     }
 
     fun setYtdBentoViewMode(mode: YtdBentoViewMode) {

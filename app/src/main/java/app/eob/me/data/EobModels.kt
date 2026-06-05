@@ -47,6 +47,14 @@ data class UserProfile(
 
     val fullName: String
         get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
+
+    /** Clamps plan limits for safe deductible-tracker math (ignores invalid stored values). */
+    fun sanitizedPlanLimits(): UserProfile {
+        return copy(
+            annualDeductibleLimit = annualDeductibleLimit.coerceIn(0.0, 100_000.0),
+            annualOutOfPocketMax = annualOutOfPocketMax.coerceIn(0.0, 200_000.0)
+        )
+    }
 }
 
 data class RegistrationCredentials(val email: String = "", val password: String = "") {
