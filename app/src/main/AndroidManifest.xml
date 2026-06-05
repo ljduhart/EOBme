@@ -12,9 +12,9 @@
     <!-- BILLING — Play Billing Client (com.android.billingclient:billing) -->
     <uses-permission android:name="com.android.vending.BILLING" />
     <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel; no extra permissions. -->
-    <!-- Hub smart bento (History, Provider Directory, CPT ring, YTD deductible) via EobViewModel +
-         BentoSnapshotExtractor; care team uses ACTION_DIAL (no CALL_PHONE). Profile plan limits
-         stored in Firestore — no extra permissions. Library EOB upload uses SAF only. -->
+    <!-- Hub state (records, bento, history, news) via EobViewModel + EobRepository; care team dial uses
+         ACTION_DIAL only (no CALL_PHONE). Profile plan limits in Firestore. Library EOB upload uses SAF
+         (no READ_EXTERNAL_STORAGE). All sensitive permissions requested at runtime in EobNavHost. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />

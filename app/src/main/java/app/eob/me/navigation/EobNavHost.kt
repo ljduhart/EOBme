@@ -37,8 +37,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
-import app.eob.me.data.BillingIssueSeverity
-import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
@@ -262,6 +260,12 @@ private fun MainHubNavHost(
         )
     }
 
+    LaunchedEffect(profile, userId) {
+        if (userId.isNotBlank()) {
+            eobViewModel.updateSyncProfile(profile)
+        }
+    }
+
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: EobRoute.Home.route
     val showBack = currentRoute in hubBackRoutes
@@ -338,11 +342,12 @@ private fun MainHubNavHost(
             )
             NavHost(navController = navController, startDestination = EobRoute.Home.route) {
                 composable(EobRoute.Home.route) {
-                    val historySnapshot = remember(sortedEobRecords) {
-                        EobAnalyzer.historyBentoSnapshot(sortedEobRecords)
+                    val hubTimeKey = eobViewModel.hubTimeKey()
+                    val historySnapshot = remember(sortedEobRecords, hubTimeKey) {
+                        eobViewModel.historyBentoSnapshot()
                     }
                     val providerAvatars = remember(sortedEobRecords, language) {
-                        EobAnalyzer.providerAvatarPreviews(sortedEobRecords, language)
+                        eobViewModel.providerAvatarPreviews(language)
                     }
                     val careTeamCards = remember(
                         uiState.preferredDoctors,
@@ -366,7 +371,8 @@ private fun MainHubNavHost(
                     val cptBentoSnapshot = remember(
                         sortedEobRecords,
                         language,
-                        uiState.selectedCptCategory
+                        uiState.selectedCptCategory,
+                        hubTimeKey
                     ) {
                         eobViewModel.cptBentoSnapshot(language)
                     }
@@ -374,7 +380,7 @@ private fun MainHubNavHost(
                         sortedEobRecords,
                         profile.annualDeductibleLimit,
                         profile.annualOutOfPocketMax,
-                        uiState.ytdBentoViewMode
+                        hubTimeKey
                     ) {
                         eobViewModel.ytdDeductibleBentoSnapshot(profile)
                     }
@@ -384,7 +390,7 @@ private fun MainHubNavHost(
                         recordCount = sortedEobRecords.size,
                         firebaseStatusLine = EobStrings.firebaseStatusText(
                             language,
-                            eobViewModel.firebaseStatus
+                            uiState.firebaseSyncStatus
                         ),
                         uploadNotice = uiState.uploadNotice,
                         appointments = uiState.appointments,
@@ -445,6 +451,7 @@ private fun MainHubNavHost(
                         language = language,
                         profile = profile,
                         uiState = uiState,
+                        sortedEobRecords = sortedEobRecords,
                         eobViewModel = eobViewModel,
                         onDeleteEob = { deleteEob(it) },
                         onLibraryUpload = {
@@ -454,16 +461,22 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.YearlyExpense.route) {
+                    val yearlySummary = remember(sortedEobRecords, eobViewModel.hubTimeKey()) {
+                        eobViewModel.yearlyHealthCostSummary()
+                    }
                     YearlyExpenseScreen(
                         language = language,
-                        records = sortedEobRecords,
+                        summary = yearlySummary,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
                 composable(EobRoute.ProviderDirectory.route) {
+                    val providers = remember(sortedEobRecords) {
+                        eobViewModel.providerDirectory()
+                    }
                     ProviderDirectoryScreen(
                         language = language,
-                        providers = EobAnalyzer.providerDirectory(sortedEobRecords),
+                        providers = providers,
                         records = sortedEobRecords,
                         onDeleteEob = { deleteEob(it) },
                         modifier = Modifier.fillMaxSize()
@@ -505,9 +518,7 @@ private fun MainHubNavHost(
                         selectedInsuranceArticle = uiState.selectedInsuranceArticle,
                         onInsuranceArticleSelected = eobViewModel::openInsuranceArticle,
                         onDismissInsuranceArticle = eobViewModel::dismissInsuranceArticle,
-                        newsItems = EobKnowledgeBase.currentNewsReleases(
-                            eobViewModel.visibleNews(EobKnowledgeBase.newsReleases)
-                        ),
+                        newsItems = eobViewModel.currentNewsReleases(EobKnowledgeBase.newsReleases),
                         onDeleteNews = { eobViewModel.deleteNews(it) }
                     )
                 }
@@ -568,39 +579,23 @@ private fun HistoryRoute(
     language: AppLanguage,
     profile: UserProfile,
     uiState: HubUiState,
+    sortedEobRecords: List<EobRecord>,
     eobViewModel: EobViewModel,
     onDeleteEob: (EobRecord) -> Unit,
     onLibraryUpload: () -> Unit,
     onActivity: () -> Unit
 ) {
-    val records by eobViewModel.eobRecords.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
 
     val historyBentoFilter = uiState.historyBentoFilter
-    val filteredRecords by remember(records, searchQuery, historyBentoFilter) {
+    val filteredRecords by remember(sortedEobRecords, searchQuery, historyBentoFilter) {
         derivedStateOf {
-            val sorted = records.sortedByDescending { it.serviceDateSortKey }
-            val byFilter = when (historyBentoFilter) {
-                HistoryBentoFilter.All -> sorted
-                HistoryBentoFilter.Flagged -> EobAnalyzer.recordsWithFlaggedBillingErrors(sorted)
-            }
-            if (searchQuery.isBlank()) {
-                byFilter
-            } else {
-                byFilter.filter { record ->
-                    record.providerName.contains(searchQuery, ignoreCase = true) ||
-                        record.insuranceCompany.contains(searchQuery, ignoreCase = true)
-                }
-            }
+            eobViewModel.historyRecordsForDisplay(historyBentoFilter, searchQuery)
         }
     }
 
     val totalBillingErrors by remember(filteredRecords) {
-        derivedStateOf {
-            filteredRecords.sumOf { record ->
-                EobAnalyzer.detectBillingIssues(record).count { it.severity != BillingIssueSeverity.Info }
-            }
-        }
+        derivedStateOf { eobViewModel.totalBillingErrors(filteredRecords) }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {

@@ -285,7 +285,8 @@ class EobStringsCoverageTest {
         val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
         assertTrue(
             navHostSource.contains("val historyBentoFilter = uiState.historyBentoFilter") &&
-                navHostSource.contains("remember(records, searchQuery, historyBentoFilter)")
+                navHostSource.contains("remember(sortedEobRecords, searchQuery, historyBentoFilter)") &&
+                navHostSource.contains("historyRecordsForDisplay")
         )
     }
 
