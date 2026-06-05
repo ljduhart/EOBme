@@ -362,6 +362,12 @@ private fun MainHubNavHost(
                     ) {
                         eobViewModel.providerDirectoryAssurance(language)
                     }
+                    val cptBentoSnapshot = remember(sortedEobRecords, language, eobViewModel.selectedCptCategory) {
+                        eobViewModel.cptBentoSnapshot(language)
+                    }
+                    val ytdBentoSnapshot = remember(sortedEobRecords, profile) {
+                        eobViewModel.ytdDeductibleBentoSnapshot(profile)
+                    }
                     HomeScreen(
                         language = language,
                         profile = profile,
@@ -375,6 +381,10 @@ private fun MainHubNavHost(
                         preferredDoctors = uiState.preferredDoctors,
                         careTeamCards = careTeamCards,
                         providerDirectoryAssurance = providerDirectoryAssurance,
+                        cptBentoSnapshot = cptBentoSnapshot,
+                        ytdBentoSnapshot = ytdBentoSnapshot,
+                        ytdBentoViewMode = uiState.ytdBentoViewMode,
+                        onYtdBentoViewModeSelected = eobViewModel::setYtdBentoViewMode,
                         calendarExpanded = uiState.calendarExpanded,
                         onCalendarExpandedChange = eobViewModel::setCalendarExpanded,
                         onSavePreferredDoctor = { doctor ->

@@ -9,7 +9,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealLetterGenerator
+import app.eob.me.data.BentoSnapshotExtractor
+import app.eob.me.data.CptBentoSnapshot
 import app.eob.me.data.CptCategory
+import app.eob.me.data.YtdBentoViewMode
+import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.PreferredDoctor
@@ -53,7 +57,8 @@ data class HubUiState(
     val historyBentoFilter: HistoryBentoFilter = HistoryBentoFilter.All,
     val historyPage: Int = 0,
     val calendarExpanded: Boolean = false,
-    val selectedInsuranceArticle: InsuranceArticle? = null
+    val selectedInsuranceArticle: InsuranceArticle? = null,
+    val ytdBentoViewMode: YtdBentoViewMode = YtdBentoViewMode.CostOverview
 )
 
 /**
@@ -378,6 +383,35 @@ class EobViewModel : ViewModel() {
             records = _eobRecords.value,
             invoiceProcessing = isInvoicePipelineActive()
         )
+    }
+
+    fun cptBentoSnapshot(language: AppLanguage): CptBentoSnapshot {
+        return BentoSnapshotExtractor.buildCptBentoSnapshot(
+            language = language,
+            records = _eobRecords.value,
+            selectedCategory = selectedCptCategory
+        )
+    }
+
+    fun ytdDeductibleBentoSnapshot(profile: UserProfile): YtdDeductibleBentoSnapshot {
+        return BentoSnapshotExtractor.buildYtdDeductibleBentoSnapshot(
+            records = _eobRecords.value,
+            profile = profile
+        )
+    }
+
+    fun setYtdBentoViewMode(mode: YtdBentoViewMode) {
+        _uiState.update { it.copy(ytdBentoViewMode = mode) }
+    }
+
+    fun toggleYtdBentoViewMode() {
+        _uiState.update { state ->
+            val next = when (state.ytdBentoViewMode) {
+                YtdBentoViewMode.CostOverview -> YtdBentoViewMode.DeductibleTracker
+                YtdBentoViewMode.DeductibleTracker -> YtdBentoViewMode.CostOverview
+            }
+            state.copy(ytdBentoViewMode = next)
+        }
     }
 
     fun setHistoryPage(page: Int) {

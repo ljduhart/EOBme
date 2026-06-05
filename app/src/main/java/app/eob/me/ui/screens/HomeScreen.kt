@@ -35,6 +35,9 @@ import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.CareTeamCardDisplayState
+import app.eob.me.data.CptBentoSnapshot
+import app.eob.me.data.YtdBentoViewMode
+import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.ProviderAvatarPreview
@@ -73,6 +76,10 @@ fun HomeScreen(
     preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>,
     careTeamCards: List<CareTeamCardDisplayState>,
     providerDirectoryAssurance: ProviderDirectoryAssurance,
+    cptBentoSnapshot: CptBentoSnapshot,
+    ytdBentoSnapshot: YtdDeductibleBentoSnapshot,
+    ytdBentoViewMode: YtdBentoViewMode,
+    onYtdBentoViewModeSelected: (YtdBentoViewMode) -> Unit,
     calendarExpanded: Boolean,
     onCalendarExpandedChange: (Boolean) -> Unit,
     onSavePreferredDoctor: (PreferredDoctor) -> Unit,
@@ -194,6 +201,10 @@ fun HomeScreen(
                                 historyFilter = historyFilter,
                                 providerAvatars = providerAvatars,
                                 providerDirectoryAssurance = providerDirectoryAssurance,
+                                cptBentoSnapshot = cptBentoSnapshot,
+                                ytdBentoSnapshot = ytdBentoSnapshot,
+                                ytdBentoViewMode = ytdBentoViewMode,
+                                onYtdViewModeSelected = onYtdBentoViewModeSelected,
                                 onClick = { onBentoSelected(destination) },
                                 onHistoryFilterSelected = onHistoryFilterSelected,
                                 onInvoiceFileDropFinished = onInvoiceFileDropFinished,

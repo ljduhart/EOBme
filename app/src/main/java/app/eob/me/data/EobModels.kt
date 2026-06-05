@@ -34,7 +34,9 @@ data class UserProfile(
     val insuranceName: String = "",
     val insuranceId: String = "",
     val groupName: String = "",
-    val insuranceCardDownloadUrl: String = ""
+    val insuranceCardDownloadUrl: String = "",
+    val annualDeductibleLimit: Double = 0.0,
+    val annualOutOfPocketMax: Double = 0.0
 ) {
     val isComplete: Boolean
         get() = firstName.isNotBlank() &&
@@ -171,6 +173,43 @@ data class CareTeamCardDisplayState(
     val phoneDialUri: String? = null,
     val specialistReferralActive: Boolean = false,
     val therapistNetworkStatus: TherapistNetworkStatus = TherapistNetworkStatus.Unknown
+)
+
+enum class YtdBentoViewMode {
+    CostOverview,
+    DeductibleTracker
+}
+
+data class CptBentoSnapshot(
+    val dominantCode: String,
+    val translatorLine: String,
+    val ringProgress: Float,
+    val priceGaugePosition: Float,
+    val priceTrendPoints: List<Float>,
+    val trendDirection: PriceTrendDirection
+)
+
+enum class PriceTrendDirection {
+    BelowFair,
+    NearFair,
+    AboveFair
+}
+
+data class YtdDeductibleBentoSnapshot(
+    val year: Int,
+    val totalBilled: Double,
+    val totalPatientResponsibility: Double,
+    val deductiblePaidYtd: Double,
+    val copayPaidYtd: Double,
+    val coinsurancePaidYtd: Double,
+    val deductibleLimit: Double,
+    val outOfPocketMax: Double,
+    val deductibleProgress: Float,
+    val outOfPocketProgress: Float,
+    val monthlyBilledNormalized: List<Float>,
+    val trajectoryNormalized: List<Float>,
+    val spendingVelocity: Float,
+    val onTrackEarlyDeductible: Boolean
 )
 
 /** Provider-directory bento network badge snapshot. */

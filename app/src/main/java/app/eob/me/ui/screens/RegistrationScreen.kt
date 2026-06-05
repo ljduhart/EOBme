@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +16,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
@@ -269,6 +271,34 @@ fun ProfileFields(
         readOnly = !fieldsEnabled,
         enabled = fieldsEnabled
     )
+    OutlinedTextField(
+        value = profile.annualDeductibleLimit.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
+        onValueChange = { value ->
+            onProfileChanged(profile.copy(annualDeductibleLimit = value.toDoubleOrNull() ?: 0.0))
+        },
+        label = { Text(EobStrings.t(language, "annualDeductibleLimit")) },
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = profile.annualOutOfPocketMax.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
+        onValueChange = { value ->
+            onProfileChanged(profile.copy(annualOutOfPocketMax = value.toDoubleOrNull() ?: 0.0))
+        },
+        label = { Text(EobStrings.t(language, "annualOutOfPocketMax")) },
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true
+    )
+}
+
+private fun formatPlanAmount(amount: Double): String {
+    return if (amount % 1.0 == 0.0) amount.toLong().toString() else amount.toString()
 }
 
 @Composable
