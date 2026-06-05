@@ -87,9 +87,10 @@ fun EobNavHost(viewModel: AppViewModel) {
 
     LaunchedEffect(currentScreen) {
         val targetRoute = currentScreen.route
-        if (navController.currentDestination?.route != targetRoute) {
+        val currentRoute = navController.currentBackStackEntry?.destination?.route
+        if (currentRoute != targetRoute) {
             navController.navigate(targetRoute) {
-                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                popUpTo(Screen.Splash.route) { saveState = true }
                 launchSingleTop = true
                 restoreState = true
             }
@@ -116,7 +117,7 @@ fun EobNavHost(viewModel: AppViewModel) {
         composable(Screen.Intro.route) {
             IntroScreen(
                 language = language,
-                step = introStep,
+                step = introStep.coerceIn(0, AppViewModel.INTRO_SLIDE_COUNT - 1),
                 modifier = Modifier.fillMaxSize(),
                 onNext = viewModel::onIntroNext
             )

@@ -36,6 +36,24 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun authChoiceWiresCreateAccountThroughAppViewModel() {
+        listOf(
+            "onCreateAccountSelected",
+            "onSignInSelected",
+            "onAuthSubmit",
+            "onAuthToggleMode",
+            "AuthChoiceScreen",
+            "AuthScreen"
+        ).forEach { snippet ->
+            assertTrue("Auth onboarding missing: $snippet", navHostSource.contains(snippet))
+        }
+        assertTrue(
+            "Intro step must be clamped while route transitions",
+            navHostSource.contains("introStep.coerceIn(0, AppViewModel.INTRO_SLIDE_COUNT - 1)")
+        )
+    }
+
+    @Test
     fun outerOnboardingScreensAreRegistered() {
         listOf("Splash", "Language", "Intro", "AuthChoice", "Auth", "MainHub").forEach { screen ->
             assertTrue("Missing Screen.$screen", navHostSource.contains("composable(Screen.$screen.route)"))
