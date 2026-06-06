@@ -23,7 +23,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,7 +30,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
-import app.eob.me.data.EobRecord
+import app.eob.me.data.DashboardFinancialMetrics
+import app.eob.me.data.DashboardProviderCostRow
 import app.eob.me.data.EobStrings
 import app.eob.me.ui.components.HolographicGlassCard
 import java.util.Locale
@@ -43,34 +43,11 @@ private val PatientRed = Color(0xFFEF4444)
 @Composable
 fun DashboardScreen(
     language: AppLanguage,
-    records: List<EobRecord>,
+    metrics: DashboardFinancialMetrics,
+    providerBreakdown: List<DashboardProviderCostRow>,
+    recordCount: Int,
     modifier: Modifier = Modifier
 ) {
-    val metrics = remember(records) {
-        val grossBilled = records.sumOf { it.totalBilledAmount }
-        val adjustments = records.sumOf { it.totalContractualAdjustmentAmount }
-        val patientDue = records.sumOf { it.totalPatientResponsibility }
-        val insurancePaid = (grossBilled - adjustments - patientDue).coerceAtLeast(0.0)
-
-        FinancialMetrics(
-            grossBilled = grossBilled,
-            adjustments = adjustments,
-            insurancePaid = insurancePaid,
-            patientDue = patientDue
-        )
-    }
-
-    val providerBreakdown = remember(records) {
-        records.groupBy { it.providerName }
-            .map { (provider, recordList) ->
-                ProviderCostRow(
-                    name = provider.ifBlank { EobStrings.t(language, "unknownProvider") },
-                    totalAmount = recordList.sumOf { it.totalBilledAmount },
-                    patientAmount = recordList.sumOf { it.totalPatientResponsibility }
-                )
-            }
-            .sortedByDescending { it.totalAmount }
-    }
 
     LazyColumn(
         modifier = modifier
@@ -88,7 +65,7 @@ fun DashboardScreen(
             )
         }
 
-        if (records.isEmpty()) {
+        if (recordCount == 0) {
             item {
                 Box(
                     modifier = Modifier
@@ -264,15 +241,3 @@ private fun LegendItem(label: String, amount: Double, color: Color) {
     }
 }
 
-private data class FinancialMetrics(
-    val grossBilled: Double,
-    val adjustments: Double,
-    val insurancePaid: Double,
-    val patientDue: Double
-)
-
-private data class ProviderCostRow(
-    val name: String,
-    val totalAmount: Double,
-    val patientAmount: Double
-)

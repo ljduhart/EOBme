@@ -251,6 +251,9 @@ class EobFlowArchitectureTest {
             "yearlyHealthCostSummary",
             "historyRecordsForDisplay",
             "currentNewsReleases",
+            "cptSummaryRows",
+            "dashboardFinancialMetrics",
+            "dashboardProviderBreakdown",
             "setSelectedCptCategory",
             "setYtdBentoViewMode"
         ).forEach { snippet ->
@@ -268,6 +271,9 @@ class EobFlowArchitectureTest {
             "eobViewModel.historyRecordsForDisplay",
             "eobViewModel.totalBillingErrors",
             "eobViewModel.currentNewsReleases",
+            "eobViewModel.dashboardFinancialMetrics",
+            "eobViewModel.dashboardProviderBreakdown",
+            "eobViewModel.cptSummaryRows",
             "uiState.firebaseSyncStatus",
             "eobViewModel.updateSyncProfile",
             "eobViewModel.hubTimeKey"

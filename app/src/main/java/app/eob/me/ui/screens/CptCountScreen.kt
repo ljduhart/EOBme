@@ -31,7 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.CptCategory
-import app.eob.me.data.EobRecord
+import app.eob.me.data.CptSummaryRow
 import app.eob.me.data.EobStrings
 import java.util.Locale
 
@@ -40,28 +40,12 @@ private val BrandBlue = Color(0xFF2498EA)
 @Composable
 fun CptCountScreen(
     language: AppLanguage,
-    records: List<EobRecord>,
+    itemizedCptList: List<CptSummaryRow>,
     selectedCategory: CptCategory,
     onCategorySelected: (CptCategory) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val chipScrollState = rememberScrollState()
-
-    val itemizedCptList = remember(records, selectedCategory) {
-        records.flatMap { it.charges }
-            .filter { it.category == selectedCategory }
-            .groupBy { it.cptCode }
-            .map { (code, chargesGroup) ->
-                CptSummaryRow(
-                    cptCode = code,
-                    description = chargesGroup.firstOrNull()?.cptDescription
-                        ?: EobStrings.t(language, "unspecifiedProcedure"),
-                    count = chargesGroup.size,
-                    totalBilledValue = chargesGroup.sumOf { it.billedAmount }
-                )
-            }
-            .sortedByDescending { it.count }
-    }
 
     LazyColumn(
         modifier = modifier
@@ -215,10 +199,3 @@ fun CptCountScreen(
         }
     }
 }
-
-private data class CptSummaryRow(
-    val cptCode: String,
-    val description: String,
-    val count: Int,
-    val totalBilledValue: Double
-)

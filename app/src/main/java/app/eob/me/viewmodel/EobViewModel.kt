@@ -2,9 +2,6 @@ package app.eob.me.viewmodel
 
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
@@ -12,6 +9,9 @@ import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.BentoSnapshotExtractor
 import app.eob.me.data.CptBentoSnapshot
 import app.eob.me.data.CptCategory
+import app.eob.me.data.CptSummaryRow
+import app.eob.me.data.DashboardFinancialMetrics
+import app.eob.me.data.DashboardProviderCostRow
 import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.data.CareTeamProviderType
@@ -70,8 +70,9 @@ data class HubUiState(
 )
 
 /**
- * Single source of truth for authenticated hub state: EOB records, selection, appeals, news, uploads.
- * UI layers observe [eobRecords] and [uiState] only; Firestore sync goes through [EobRepository].
+ * Single source of truth for authenticated hub state: EOB records, selection, appeals, news, uploads,
+ * and all hub analytics snapshots. UI layers observe [eobRecords], [sortedEobRecords], [uiState],
+ * and [insuranceArticles] only; Firestore sync goes through [EobRepository].
  */
 class EobViewModel : ViewModel() {
     private var repository: EobRepository? = null
@@ -88,9 +89,9 @@ class EobViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(HubUiState())
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
 
-    var uploadText by mutableStateOf("")
-    var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
-    private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
+    private var uploadText: String = ""
+    private var firebaseNews: List<NewsRelease> = emptyList()
+    private var deletedNewsKeys: Set<String> = emptySet()
     private var syncProfile: UserProfile = UserProfile()
     private var eobListener: ListenerRegistration? = null
 
@@ -423,6 +424,25 @@ class EobViewModel : ViewModel() {
         return EobKnowledgeBase.currentNewsReleases(visibleNews(fallbackNews))
     }
 
+    fun cptSummaryRows(language: AppLanguage, category: CptCategory): List<CptSummaryRow> {
+        return EobAnalyzer.cptSummaryRows(
+            records = _eobRecords.value,
+            category = category,
+            unknownProcedureLabel = EobStrings.t(language, "unspecifiedProcedure")
+        )
+    }
+
+    fun dashboardFinancialMetrics(): DashboardFinancialMetrics {
+        return EobAnalyzer.dashboardFinancialMetrics(_eobRecords.value)
+    }
+
+    fun dashboardProviderBreakdown(language: AppLanguage): List<DashboardProviderCostRow> {
+        return EobAnalyzer.dashboardProviderBreakdown(
+            records = _eobRecords.value,
+            unknownProviderLabel = EobStrings.t(language, "unknownProvider")
+        )
+    }
+
     private fun isInvoicePipelineActive(): Boolean {
         val state = _uiState.value
         return state.isLoadingInvoice ||
@@ -470,16 +490,6 @@ class EobViewModel : ViewModel() {
 
     fun setYtdBentoViewMode(mode: YtdBentoViewMode) {
         _uiState.update { it.copy(ytdBentoViewMode = mode) }
-    }
-
-    fun toggleYtdBentoViewMode() {
-        _uiState.update { state ->
-            val next = when (state.ytdBentoViewMode) {
-                YtdBentoViewMode.CostOverview -> YtdBentoViewMode.DeductibleTracker
-                YtdBentoViewMode.DeductibleTracker -> YtdBentoViewMode.CostOverview
-            }
-            state.copy(ytdBentoViewMode = next)
-        }
     }
 
     fun setHistoryPage(page: Int) {

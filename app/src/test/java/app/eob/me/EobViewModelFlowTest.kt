@@ -1,6 +1,7 @@
 package app.eob.me
 
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.CptCategory
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.InvoiceProcessingPhase
@@ -117,7 +118,6 @@ class EobViewModelFlowTest {
             summary = "Summary",
             date = "2026-01-01"
         )
-        viewModel.firebaseNews = listOf(item)
         viewModel.deleteNews(item)
         assertTrue(viewModel.visibleNews(listOf(item)).isEmpty())
     }
@@ -147,6 +147,23 @@ class EobViewModelFlowTest {
         val source = resolveViewModelSource()
         assertTrue(source.contains("InvoiceProcessingPhase.FileDropReveal"))
         assertTrue(source.contains("acknowledgeInvoiceFileDropAnimation"))
+    }
+
+    @Test
+    fun dashboardAndCptSummariesRouteThroughViewModel() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Flow Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+
+        val metrics = viewModel.dashboardFinancialMetrics()
+        assertTrue(metrics.grossBilled > 0.0)
+
+        val providers = viewModel.dashboardProviderBreakdown(AppLanguage.English)
+        assertEquals(1, providers.size)
+
+        val cptRows = viewModel.cptSummaryRows(AppLanguage.English, CptCategory.OfficeVisit)
+        assertTrue(cptRows.isNotEmpty())
     }
 
     private fun waitForHubRecords(viewModel: EobViewModel) {

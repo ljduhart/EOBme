@@ -328,3 +328,23 @@ data class ProviderSummary(
     val totalPatientResponsibility: Double,
     val lastServiceDate: String
 )
+
+data class CptSummaryRow(
+    val cptCode: String,
+    val description: String,
+    val count: Int,
+    val totalBilledValue: Double
+)
+
+data class DashboardFinancialMetrics(
+    val grossBilled: Double,
+    val adjustments: Double,
+    val insurancePaid: Double,
+    val patientDue: Double
+)
+
+data class DashboardProviderCostRow(
+    val name: String,
+    val totalAmount: Double,
+    val patientAmount: Double
+)

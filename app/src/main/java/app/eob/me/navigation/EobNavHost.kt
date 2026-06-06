@@ -442,9 +442,17 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.Dashboard.route) {
+                    val dashboardMetrics = remember(sortedEobRecords) {
+                        eobViewModel.dashboardFinancialMetrics()
+                    }
+                    val dashboardProviders = remember(sortedEobRecords, language) {
+                        eobViewModel.dashboardProviderBreakdown(language)
+                    }
                     DashboardScreen(
                         language = language,
-                        records = sortedEobRecords,
+                        metrics = dashboardMetrics,
+                        providerBreakdown = dashboardProviders,
+                        recordCount = sortedEobRecords.size,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -495,10 +503,17 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.CptCount.route) {
+                    val cptSummaryRows = remember(
+                        sortedEobRecords,
+                        language,
+                        uiState.selectedCptCategory
+                    ) {
+                        eobViewModel.cptSummaryRows(language, uiState.selectedCptCategory)
+                    }
                     Column(modifier = Modifier.fillMaxSize()) {
                         CptCountScreen(
                             language = language,
-                            records = sortedEobRecords,
+                            itemizedCptList = cptSummaryRows,
                             selectedCategory = uiState.selectedCptCategory,
                             onCategorySelected = {
                                 eobViewModel.setSelectedCptCategory(it)

@@ -497,6 +497,53 @@ object EobAnalyzer {
         return year * 10000 + month * 100 + day
     }
 
+    fun cptSummaryRows(
+        records: List<EobRecord>,
+        category: CptCategory,
+        unknownProcedureLabel: String
+    ): List<CptSummaryRow> {
+        return records.flatMap { it.charges }
+            .filter { it.category == category }
+            .groupBy { it.cptCode }
+            .map { (code, chargesGroup) ->
+                CptSummaryRow(
+                    cptCode = code,
+                    description = chargesGroup.firstOrNull()?.cptDescription ?: unknownProcedureLabel,
+                    count = chargesGroup.size,
+                    totalBilledValue = chargesGroup.sumOf { it.billedAmount }
+                )
+            }
+            .sortedByDescending { it.count }
+    }
+
+    fun dashboardFinancialMetrics(records: List<EobRecord>): DashboardFinancialMetrics {
+        val grossBilled = records.sumOf { it.totalBilledAmount }
+        val adjustments = records.sumOf { it.totalContractualAdjustmentAmount }
+        val patientDue = records.sumOf { it.totalPatientResponsibility }
+        val insurancePaid = (grossBilled - adjustments - patientDue).coerceAtLeast(0.0)
+        return DashboardFinancialMetrics(
+            grossBilled = grossBilled,
+            adjustments = adjustments,
+            insurancePaid = insurancePaid,
+            patientDue = patientDue
+        )
+    }
+
+    fun dashboardProviderBreakdown(
+        records: List<EobRecord>,
+        unknownProviderLabel: String
+    ): List<DashboardProviderCostRow> {
+        return records.groupBy { it.providerName }
+            .map { (provider, recordList) ->
+                DashboardProviderCostRow(
+                    name = provider.ifBlank { unknownProviderLabel },
+                    totalAmount = recordList.sumOf { it.totalBilledAmount },
+                    patientAmount = recordList.sumOf { it.totalPatientResponsibility }
+                )
+            }
+            .sortedByDescending { it.totalAmount }
+    }
+
     fun serviceYear(date: String): Int {
         return max(0, date.split("/").getOrNull(2)?.toIntOrNull() ?: 0)
     }
