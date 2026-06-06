@@ -114,7 +114,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private var authStateListener: FirebaseAuth.AuthStateListener? = null
 
     init {
-        authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val currentUser = firebaseAuth.currentUser
             _awaitingEmailVerification.value = currentUser != null && !currentUser.isEmailVerified
             _firebaseUser.value = currentUser?.takeIf { it.isEmailVerified }
@@ -123,7 +123,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             resetInactivityTimer()
         }
-        auth?.addAuthStateListener(authStateListener!!)
+        authStateListener = listener
+        auth?.addAuthStateListener(listener)
 
         viewModelScope.launch {
             combine(_firebaseUser, _lastActivityAt) { user, _ -> user }
@@ -166,9 +167,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onAuthToggleMode() {
-        _isSignUp.value = null
+        _isSignUp.update { current ->
+            when (current) {
+                true -> false
+                false -> true
+                null -> true
+            }
+        }
         _authMessage.value = ""
-        _registrationCredentials.value = RegistrationCredentials()
+        _registrationCredentials.update { credentials ->
+            credentials.copy(
+                email = credentials.email.ifBlank { _profile.value.email },
+                password = ""
+            )
+        }
     }
 
     fun setProfileEditing(editing: Boolean) {
@@ -206,6 +218,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val isSignUp = _isSignUp.value == true
         val language = _language.value ?: AppLanguage.English
 
+        if (isSignUp && !credentials.isReadyForSignUp(profile)) {
+            _authMessage.value = EobStrings.t(language, "profileRequiredHelp")
+            return
+        }
+        if (!isSignUp && !credentials.isReadyForSignIn()) {
+            _authMessage.value = EobStrings.t(language, "invalidCredentials")
+            return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             if (!firebaseConfigured) {
                 withContext(Dispatchers.Main) {
@@ -226,7 +247,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             continuation.resume(result)
                         }
                     } else {
-                        firebaseRepository.signIn(credentials.email, credentials.password) { result ->
+                        val signInEmail = credentials.email.ifBlank { profile.email }
+                        firebaseRepository.signIn(signInEmail, credentials.password) { result ->
                             continuation.resume(result)
                         }
                     }
@@ -316,10 +338,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onRefreshVerification() {
-        auth?.currentUser?.reload()?.addOnCompleteListener {
+        val firebaseAuth = auth ?: run {
+            val language = _language.value ?: AppLanguage.English
+            _authMessage.value = EobStrings.t(language, "verifyEmailHelp")
+            return
+        }
+        firebaseAuth.currentUser?.reload()?.addOnCompleteListener {
             viewModelScope.launch {
                 withContext(Dispatchers.Main) {
-                    val currentUser = auth.currentUser
+                    val currentUser = firebaseAuth.currentUser
                     _awaitingEmailVerification.value = currentUser != null && !currentUser.isEmailVerified
                     _firebaseUser.value = currentUser?.takeIf { user -> user.isEmailVerified }
                     val language = _language.value ?: AppLanguage.English

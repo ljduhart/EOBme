@@ -53,6 +53,7 @@ class EobFlowArchitectureTest {
 
     @Test
     fun authChoiceWiresCreateAccountThroughAppViewModel() {
+        val appViewModelSource = readSource("viewmodel/AppViewModel.kt")
         listOf(
             "onCreateAccountSelected",
             "onSignInSelected",
@@ -66,6 +67,15 @@ class EobFlowArchitectureTest {
         assertTrue(
             "Intro step must be clamped while route transitions",
             navHostSource.contains("introStep.coerceIn(0, AppViewModel.INTRO_SLIDE_COUNT - 1)")
+        )
+        assertTrue(
+            "Auth toggle should switch sign-up mode in place",
+            appViewModelSource.contains("true -> false") &&
+                appViewModelSource.contains("false -> true")
+        )
+        assertTrue(
+            "Outer nav should guard concurrent navigation",
+            navHostSource.contains("runCatching")
         )
     }
 

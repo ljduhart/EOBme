@@ -87,10 +87,12 @@ fun EobNavHost(viewModel: AppViewModel) {
         val targetRoute = currentScreen.route
         val currentRoute = navController.currentBackStackEntry?.destination?.route
         if (currentRoute != targetRoute) {
-            navController.navigate(targetRoute) {
-                popUpTo(Screen.Splash.route) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
+            runCatching {
+                navController.navigate(targetRoute) {
+                    popUpTo(Screen.Splash.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
             }
         }
     }

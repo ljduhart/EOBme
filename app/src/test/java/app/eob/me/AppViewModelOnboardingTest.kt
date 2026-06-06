@@ -55,13 +55,27 @@ class AppViewModelOnboardingTest {
     }
 
     @Test
-    fun authToggleReturnsToAuthChoice() {
+    fun authToggleSwitchesModeWithoutLeavingAuthScreen() {
         val viewModel = createViewModel()
         completeOnboardingThroughIntro(viewModel)
         viewModel.onCreateAccountSelected()
+        assertEquals(true, viewModel.isSignUp.value)
         viewModel.onAuthToggleMode()
-        assertEquals(Screen.AuthChoice, currentScreen(viewModel))
-        assertNull(viewModel.isSignUp.value)
+        assertEquals(Screen.Auth, currentScreen(viewModel))
+        assertEquals(false, viewModel.isSignUp.value)
+        viewModel.onAuthToggleMode()
+        assertEquals(Screen.Auth, currentScreen(viewModel))
+        assertEquals(true, viewModel.isSignUp.value)
+    }
+
+    @Test
+    fun authSubmitRejectsIncompleteSignInWithoutCrashing() {
+        val viewModel = createViewModel()
+        completeOnboardingThroughIntro(viewModel)
+        viewModel.onSignInSelected()
+        viewModel.onAuthSubmit()
+        assertEquals(Screen.Auth, currentScreen(viewModel))
+        assertTrue(viewModel.authMessage.value.isNotBlank())
     }
 
     @Test
