@@ -9,24 +9,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
-import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobStrings
-import app.eob.me.data.EobRecord
+import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.ui.components.HolographicGlassCard
 
 @Composable
 fun YearlyExpenseScreen(
     language: AppLanguage,
-    records: List<EobRecord>,
+    summary: YearlyHealthCostSummary,
     modifier: Modifier = Modifier
 ) {
-    val summary = remember(records) { EobAnalyzer.yearlyHealthCostSummary(records) }
-
     LazyColumn(
         modifier = modifier
             .fillMaxSize()

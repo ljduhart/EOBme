@@ -29,8 +29,13 @@ import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.FirebaseSyncStatus
+import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.NewsRelease
+import app.eob.me.data.ProviderAvatarPreview
+import app.eob.me.data.ProviderSummary
 import app.eob.me.data.UserProfile
+import app.eob.me.data.YearlyHealthCostSummary
+import app.eob.me.data.BillingIssueSeverity
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
@@ -44,6 +49,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Calendar
 
 data class HubUiState(
     val selectedRecord: EobRecord? = null,
@@ -59,7 +65,8 @@ data class HubUiState(
     val calendarExpanded: Boolean = false,
     val selectedInsuranceArticle: InsuranceArticle? = null,
     val ytdBentoViewMode: YtdBentoViewMode = YtdBentoViewMode.CostOverview,
-    val selectedCptCategory: CptCategory = CptCategory.OfficeVisit
+    val selectedCptCategory: CptCategory = CptCategory.OfficeVisit,
+    val firebaseSyncStatus: FirebaseSyncStatus = FirebaseSyncStatus(isConfigured = false)
 )
 
 /**
@@ -82,9 +89,9 @@ class EobViewModel : ViewModel() {
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
 
     var uploadText by mutableStateOf("")
-    var firebaseStatus by mutableStateOf(FirebaseSyncStatus(isConfigured = false))
     var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
     private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
+    private var syncProfile: UserProfile = UserProfile()
     private var eobListener: ListenerRegistration? = null
 
     private val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
@@ -97,7 +104,23 @@ class EobViewModel : ViewModel() {
     }
 
     fun refreshFirebaseStatus() {
-        repository?.let { firebaseStatus = it.status() }
+        val status = repository?.status() ?: FirebaseSyncStatus(isConfigured = false)
+        _uiState.update { it.copy(firebaseSyncStatus = status) }
+    }
+
+    fun updateSyncProfile(profile: UserProfile) {
+        syncProfile = profile.sanitizedPlanLimits()
+        val selected = _uiState.value.selectedRecord
+        if (selected != null) {
+            _uiState.update {
+                it.copy(appealLetter = AppealLetterGenerator.generate(syncProfile, selected))
+            }
+        }
+    }
+
+    fun hubTimeKey(): Int {
+        val calendar = Calendar.getInstance()
+        return calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.MONTH)
     }
 
     fun resetHubState() {
@@ -109,6 +132,7 @@ class EobViewModel : ViewModel() {
         newsListener = null
         _eobRecords.value = emptyList()
         _uiState.value = HubUiState()
+        syncProfile = UserProfile()
         uploadText = ""
         firebaseNews = emptyList()
         deletedNewsKeys = emptySet()
@@ -116,8 +140,9 @@ class EobViewModel : ViewModel() {
 
     fun startFirestoreSync(userId: String, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
         val repo = repository ?: return
+        updateSyncProfile(profile)
         refreshFirebaseStatus()
-        fetchHistoryFromFirestore(repo, userId, profile)
+        fetchHistoryFromFirestore(repo, userId)
         observeProfile(repo, userId, onProfileChanged)
         observeNews(repo)
     }
@@ -139,7 +164,7 @@ class EobViewModel : ViewModel() {
         )
     }
 
-    fun fetchHistoryFromFirestore(repo: EobRepository, userId: String, profile: UserProfile) {
+    fun fetchHistoryFromFirestore(repo: EobRepository, userId: String) {
         if (userId.isBlank()) {
             resetHubState()
             return
@@ -148,7 +173,7 @@ class EobViewModel : ViewModel() {
         eobListener?.remove()
         eobListener = repo.observeEobs(
             userId = userId,
-            onRecords = { records -> applyRemoteRecords(records, profile) },
+            onRecords = { records -> applyRemoteRecords(records) },
             onError = { message ->
                 _uiState.update { state ->
                     state.copy(
@@ -165,7 +190,8 @@ class EobViewModel : ViewModel() {
         )
     }
 
-    private fun applyRemoteRecords(records: List<EobRecord>, profile: UserProfile) {
+    private fun applyRemoteRecords(records: List<EobRecord>) {
+        val profile = syncProfile
         viewModelScope.launch(Dispatchers.Default) {
             val compacted = EobAnalyzer.compactDuplicateEobs(records)
                 .sortedByDescending { it.serviceDateSortKey }
@@ -197,7 +223,8 @@ class EobViewModel : ViewModel() {
     }
 
     fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
-        applyRemoteRecords(newRecords, profile)
+        updateSyncProfile(profile)
+        applyRemoteRecords(newRecords)
     }
 
     fun selectRecord(record: EobRecord, profile: UserProfile) {
@@ -356,6 +383,44 @@ class EobViewModel : ViewModel() {
 
     fun historyBentoSnapshot(): HistoryBentoSnapshot {
         return EobAnalyzer.historyBentoSnapshot(_eobRecords.value)
+    }
+
+    fun providerAvatarPreviews(language: AppLanguage): List<ProviderAvatarPreview> {
+        return EobAnalyzer.providerAvatarPreviews(_eobRecords.value, language)
+    }
+
+    fun providerDirectory(): List<ProviderSummary> {
+        return EobAnalyzer.providerDirectory(_eobRecords.value)
+    }
+
+    fun yearlyHealthCostSummary(preferredYear: Int? = null): YearlyHealthCostSummary {
+        return EobAnalyzer.yearlyHealthCostSummary(_eobRecords.value, preferredYear)
+    }
+
+    fun historyRecordsForDisplay(
+        filter: HistoryBentoFilter,
+        searchQuery: String
+    ): List<EobRecord> {
+        val sorted = _eobRecords.value.sortedByDescending { it.serviceDateSortKey }
+        val byFilter = when (filter) {
+            HistoryBentoFilter.All -> sorted
+            HistoryBentoFilter.Flagged -> EobAnalyzer.recordsWithFlaggedBillingErrors(sorted)
+        }
+        if (searchQuery.isBlank()) return byFilter
+        return byFilter.filter { record ->
+            record.providerName.contains(searchQuery, ignoreCase = true) ||
+                record.insuranceCompany.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
+    fun totalBillingErrors(records: List<EobRecord>): Int {
+        return records.sumOf { record ->
+            EobAnalyzer.detectBillingIssues(record).count { it.severity != BillingIssueSeverity.Info }
+        }
+    }
+
+    fun currentNewsReleases(fallbackNews: List<NewsRelease>): List<NewsRelease> {
+        return EobKnowledgeBase.currentNewsReleases(visibleNews(fallbackNews))
     }
 
     private fun isInvoicePipelineActive(): Boolean {

@@ -8,6 +8,7 @@ import app.eob.me.navigation.hubFeatureRoutes
 import app.eob.me.navigation.hubRoutesWithoutBottomBar
 import app.eob.me.ui.history.HistoryPagination
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -29,10 +30,43 @@ class EobFlowArchitectureTest {
 
     @Test
     fun manifestDeclaresLauncherActivityAndMessagingService() {
-        assertTrue(manifestSource.contains("android.permission.INTERNET"))
-        assertTrue(manifestSource.contains("android.permission.CAMERA"))
+        listOf(
+            "android.permission.INTERNET",
+            "android.permission.ACCESS_NETWORK_STATE",
+            "android.permission.CAMERA",
+            "android.permission.POST_NOTIFICATIONS",
+            "com.android.vending.BILLING"
+        ).forEach { permission ->
+            assertTrue("Manifest missing $permission", manifestSource.contains(permission))
+        }
         assertTrue(manifestSource.contains("MainActivity"))
         assertTrue(manifestSource.contains("EobFirebaseMessagingService"))
+        assertFalse(
+            "Manifest should not declare CALL_PHONE",
+            manifestSource.contains("android.permission.CALL_PHONE")
+        )
+        assertFalse(
+            "Manifest should not declare legacy storage permission",
+            manifestSource.contains("android.permission.READ_EXTERNAL_STORAGE")
+        )
+    }
+
+    @Test
+    fun authChoiceWiresCreateAccountThroughAppViewModel() {
+        listOf(
+            "onCreateAccountSelected",
+            "onSignInSelected",
+            "onAuthSubmit",
+            "onAuthToggleMode",
+            "AuthChoiceScreen",
+            "AuthScreen"
+        ).forEach { snippet ->
+            assertTrue("Auth onboarding missing: $snippet", navHostSource.contains(snippet))
+        }
+        assertTrue(
+            "Intro step must be clamped while route transitions",
+            navHostSource.contains("introStep.coerceIn(0, AppViewModel.INTRO_SLIDE_COUNT - 1)")
+        )
     }
 
     @Test
@@ -117,7 +151,7 @@ class EobFlowArchitectureTest {
         listOf(
             "setHistoryBentoFilter",
             "historyBentoFilter",
-            "recordsWithFlaggedBillingErrors",
+            "historyRecordsForDisplay",
             "setHistoryPage",
             "deleteRecordRemote",
             "HistoryRoute"
@@ -132,7 +166,7 @@ class EobFlowArchitectureTest {
         listOf(
             "regenerateAppeal",
             "updateAppeal",
-            "visibleNews",
+            "currentNewsReleases",
             "deleteNews",
             "DashboardScreen"
         ).forEach { snippet ->
@@ -198,13 +232,42 @@ class EobFlowArchitectureTest {
             "applyRemoteRecords",
             "selectedCptCategory",
             "ytdBentoViewMode",
+            "firebaseSyncStatus",
             "cptBentoSnapshot",
             "ytdDeductibleBentoSnapshot",
+            "historyBentoSnapshot",
+            "providerAvatarPreviews",
+            "providerDirectory",
+            "yearlyHealthCostSummary",
+            "historyRecordsForDisplay",
+            "currentNewsReleases",
             "setSelectedCptCategory",
             "setYtdBentoViewMode"
         ).forEach { snippet ->
             assertTrue("EobViewModel missing: $snippet", viewModelSource.contains(snippet))
         }
+    }
+
+    @Test
+    fun hubNavRoutesAnalyticsThroughEobViewModel() {
+        listOf(
+            "eobViewModel.historyBentoSnapshot",
+            "eobViewModel.providerAvatarPreviews",
+            "eobViewModel.providerDirectory",
+            "eobViewModel.yearlyHealthCostSummary",
+            "eobViewModel.historyRecordsForDisplay",
+            "eobViewModel.totalBillingErrors",
+            "eobViewModel.currentNewsReleases",
+            "uiState.firebaseSyncStatus",
+            "eobViewModel.updateSyncProfile",
+            "eobViewModel.hubTimeKey"
+        ).forEach { snippet ->
+            assertTrue("EobNavHost should route through ViewModel: $snippet", navHostSource.contains(snippet))
+        }
+        assertFalse(
+            "EobNavHost should not call EobAnalyzer directly",
+            navHostSource.contains("EobAnalyzer.")
+        )
     }
 
     @Test

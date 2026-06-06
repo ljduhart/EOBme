@@ -102,7 +102,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         when {
             !splashComplete -> Screen.Splash
             language == null -> Screen.Language
-            firebaseUser == null && !awaitingEmailVerification && introStep < 3 -> Screen.Intro
+            firebaseUser == null && !awaitingEmailVerification && introStep < INTRO_SLIDE_COUNT -> Screen.Intro
+            firebaseUser == null && awaitingEmailVerification -> Screen.Auth
             firebaseUser == null && isSignUp == null -> Screen.AuthChoice
             firebaseUser == null -> Screen.Auth
             else -> Screen.MainHub
@@ -181,7 +182,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun applyRemoteProfile(updated: UserProfile) {
         if (!_profileEditing.value) {
-            _profile.value = updated
+            _profile.value = updated.sanitizedPlanLimits()
         }
     }
 
@@ -199,7 +200,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onAuthSubmit() {
-        val profile = _profile.value
+        val profile = _profile.value.sanitizedPlanLimits()
+        _profile.value = profile
         val credentials = _registrationCredentials.value
         val isSignUp = _isSignUp.value == true
         val language = _language.value ?: AppLanguage.English
@@ -336,6 +338,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         credentials: RegistrationCredentials,
         onComplete: (String) -> Unit
     ) {
+        val safeProfile = profile.sanitizedPlanLimits()
         viewModelScope.launch(Dispatchers.IO) {
             val language = _language.value ?: AppLanguage.English
             if (!firebaseConfigured) {
@@ -354,11 +357,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
                 val profileMessage = suspendCancellableCoroutine { continuation ->
-                    firebaseRepository.saveProfile(userId, profile) { message ->
+                    firebaseRepository.saveProfile(userId, safeProfile) { message ->
                         continuation.resume(EobStrings.localizeRepositoryMessage(language, message))
                     }
                 }
-                firebaseRepository.saveInsuranceCardMetadata(userId, profile) {}
+                firebaseRepository.saveInsuranceCardMetadata(userId, safeProfile) {}
 
                 val passwordMessage = if (credentials.password.isNotBlank()) {
                     if (!credentials.isPasswordValid) {
@@ -386,9 +389,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 withContext(Dispatchers.Main) {
-                    _profile.value = profile
+                    _profile.value = safeProfile
                     _registrationCredentials.value = credentials.copy(
-                        email = credentials.email.ifBlank { profile.email }
+                        email = credentials.email.ifBlank { safeProfile.email }
                     )
                     onComplete(passwordMessage)
                 }
@@ -404,6 +407,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _profileEditing.value = false
         firebaseRepository.signOut()
         _introStep.value = 0
+        _isSignUp.value = null
+        _awaitingEmailVerification.value = false
         _registrationCredentials.value = RegistrationCredentials()
         updateActivityTime()
     }
@@ -427,7 +432,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
     }
 
-    private companion object {
-        const val INACTIVITY_TIMEOUT_MS = 300_000L
+    companion object {
+        /** Intro slides are indexed 0..INTRO_SLIDE_COUNT - 1; step >= count means intro complete. */
+        const val INTRO_SLIDE_COUNT = 3
+
+        private const val INACTIVITY_TIMEOUT_MS = 300_000L
     }
 }

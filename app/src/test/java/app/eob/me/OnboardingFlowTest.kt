@@ -77,6 +77,21 @@ class OnboardingFlowTest {
     }
 
     @Test
+    fun authScreenWhenAwaitingEmailVerification() {
+        assertEquals(
+            Screen.Auth,
+            resolveOnboardingScreen(
+                splashComplete = true,
+                language = AppLanguage.English,
+                introStep = 0,
+                hasVerifiedUser = false,
+                awaitingEmailVerification = true,
+                isSignUp = null
+            )
+        )
+    }
+
+    @Test
     fun authScreenWhenModeSelected() {
         assertEquals(
             Screen.Auth,
@@ -146,6 +161,7 @@ class OnboardingFlowTest {
         !splashComplete -> Screen.Splash
         language == null -> Screen.Language
         !hasVerifiedUser && !awaitingEmailVerification && introStep < 3 -> Screen.Intro
+        !hasVerifiedUser && awaitingEmailVerification -> Screen.Auth
         !hasVerifiedUser && isSignUp == null -> Screen.AuthChoice
         !hasVerifiedUser -> Screen.Auth
         else -> Screen.MainHub
