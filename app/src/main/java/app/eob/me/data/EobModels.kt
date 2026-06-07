@@ -180,7 +180,8 @@ data class CareTeamCardDisplayState(
     val tertiaryLine: String? = null,
     val phoneDialUri: String? = null,
     val specialistReferralActive: Boolean = false,
-    val therapistNetworkStatus: TherapistNetworkStatus = TherapistNetworkStatus.Unknown
+    val therapistNetworkStatus: TherapistNetworkStatus = TherapistNetworkStatus.Unknown,
+    val therapistCopayAmount: Double? = null
 )
 
 enum class YtdBentoViewMode {

@@ -179,8 +179,9 @@ class EobFlowArchitectureTest {
     fun careTeamAndCalendarFlowsWireHomeScreen() {
         val homeSource = readSource("ui/screens/HomeScreen.kt")
         listOf(
-            "preferredDoctors",
             "HomeCareTeamCards",
+            "careTeamCards",
+            "preferredDoctors",
             "HomeWeekCalendar",
             "onAddAppointment",
             "onUpdateAppointment",
@@ -188,6 +189,10 @@ class EobFlowArchitectureTest {
         ).forEach { snippet ->
             assertTrue("Home flow missing: $snippet", homeSource.contains(snippet))
         }
+        assertTrue(
+            "Care team cards must come from EobViewModel",
+            navHostSource.contains("eobViewModel.careTeamCardStates")
+        )
     }
 
     @Test

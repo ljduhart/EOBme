@@ -135,18 +135,20 @@ object CareTeamStateExtractor {
             CareTeamProviderType.Specialist -> {
                 val referralActive = doctor.isAssigned &&
                     (doctor.specialty.isNotBlank() || relatedRecords.isNotEmpty())
-                val primary = if (doctor.isAssigned) doctor.name else EobStrings.t(language, "careTeamTapToEdit")
+                val primary = if (doctor.isAssigned) {
+                    doctor.name
+                } else {
+                    EobStrings.t(language, "careTeamTapToEdit")
+                }
                 val refLabel = if (referralActive) {
                     EobStrings.t(language, "careTeamSpecialistRefActive")
                 } else {
                     EobStrings.t(language, "careTeamSpecialistRefInactive")
                 }
-                val secondary = if (doctor.specialty.isNotBlank()) {
-                    doctor.specialty
-                } else if (referralActive) {
-                    EobStrings.t(language, "careTeamSpecialtyPending")
-                } else {
-                    refLabel
+                val specialtyLine = when {
+                    doctor.specialty.isNotBlank() -> doctor.specialty
+                    doctor.isAssigned -> EobStrings.t(language, "careTeamSpecialtyPending")
+                    else -> EobStrings.t(language, "careTeamUnassignedHint")
                 }
                 CareTeamCardDisplayState(
                     type = type,
@@ -155,14 +157,25 @@ object CareTeamStateExtractor {
                     metrics = metrics,
                     primaryLine = primary,
                     secondaryLine = refLabel,
-                    tertiaryLine = secondary.takeIf { doctor.specialty.isNotBlank() },
-                    specialistReferralActive = referralActive
+                    tertiaryLine = specialtyLine,
+                    specialistReferralActive = referralActive,
+                    phoneDialUri = phoneUri
                 )
             }
             CareTeamProviderType.Therapist -> {
                 val networkStatus = therapistNetworkStatus(relatedRecords)
-                val primary = if (doctor.isAssigned) doctor.name else EobStrings.t(language, "careTeamTapToEdit")
-                val secondary = when (networkStatus) {
+                val copayAmount = therapistCopayAmount(relatedRecords)
+                val primary = if (doctor.isAssigned) {
+                    doctor.name
+                } else {
+                    EobStrings.t(language, "careTeamTapToEdit")
+                }
+                val secondary = if (copayAmount != null) {
+                    EobStrings.tf(language, "careTeamTherapistCopay", copayAmount.asCurrency())
+                } else {
+                    EobStrings.t(language, "careTeamTherapistCopayPending")
+                }
+                val tertiary = when (networkStatus) {
                     TherapistNetworkStatus.InNetwork -> EobStrings.t(language, "careTeamTherapistInNetwork")
                     TherapistNetworkStatus.OutOfNetwork -> EobStrings.t(language, "careTeamTherapistOutOfNetwork")
                     TherapistNetworkStatus.Unknown -> EobStrings.t(language, "careTeamTherapistNetworkUnknown")
@@ -174,11 +187,20 @@ object CareTeamStateExtractor {
                     metrics = metrics,
                     primaryLine = primary,
                     secondaryLine = secondary,
+                    tertiaryLine = tertiary,
                     therapistNetworkStatus = networkStatus,
+                    therapistCopayAmount = copayAmount,
                     phoneDialUri = phoneUri
                 )
             }
         }
+    }
+
+    private fun therapistCopayAmount(records: List<EobRecord>): Double? {
+        if (records.isEmpty()) return null
+        val latest = records.maxByOrNull { it.serviceDateSortKey } ?: return null
+        return latest.totalCopayAmount.takeIf { it > 0.0 }
+            ?: latest.charges.map { it.copayAmount }.filter { it > 0.0 }.maxOrNull()
     }
 
     private fun therapistNetworkStatus(records: List<EobRecord>): TherapistNetworkStatus {
