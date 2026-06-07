@@ -29,6 +29,39 @@ class EobViewModelFlowTest {
     )
 
     @Test
+    fun insuranceCardDisplayAndEditsMapProfileCredentials() {
+        val viewModel = EobViewModel()
+        val seededProfile = profile.copy(
+            insuranceName = "Blue Shield of California",
+            insuranceId = "ABC123456789",
+            groupName = "98765",
+            pcpCopay = "20",
+            specialistCopay = "40"
+        )
+        val display = viewModel.insuranceCardDisplay(seededProfile, AppLanguage.English)
+        assertEquals("Blue Shield of California", display.insuranceName)
+        assertEquals("ABC123456789", display.memberId)
+        assertEquals("98765", display.groupNumber)
+        assertEquals("20", display.pcpCopay)
+        assertEquals("40", display.specialistCopay)
+        assertEquals("Austin, TX", display.footerLocation)
+
+        val updated = viewModel.applyInsuranceCardEdits(
+            profile = seededProfile,
+            insuranceName = " Aetna ",
+            memberId = " MEM999 ",
+            groupNumber = " GRP1 ",
+            pcpCopay = "25",
+            specialistCopay = "50"
+        )
+        assertEquals("Aetna", updated.insuranceName)
+        assertEquals("MEM999", updated.insuranceId)
+        assertEquals("GRP1", updated.groupName)
+        assertEquals("25", updated.pcpCopay)
+        assertEquals("50", updated.specialistCopay)
+    }
+
+    @Test
     fun setHistoryBentoFilterUpdatesUiState() {
         val viewModel = EobViewModel()
         viewModel.setHistoryBentoFilter(HistoryBentoFilter.Flagged)

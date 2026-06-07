@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,7 @@ import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.ProviderAvatarPreview
+import app.eob.me.data.InsuranceCardDisplay
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.CleanInsuranceCard
@@ -66,6 +68,15 @@ private val HomeOnBlueSecondary = Color(0xFFD8ECFA)
 fun HomeScreen(
     language: AppLanguage,
     profile: UserProfile,
+    insuranceCardDisplay: InsuranceCardDisplay,
+    canEditInsuranceCard: Boolean,
+    onSaveInsuranceCard: (
+        insuranceName: String,
+        memberId: String,
+        groupNumber: String,
+        pcpCopay: String,
+        specialistCopay: String
+    ) -> Unit,
     recordCount: Int,
     firebaseStatusLine: String,
     uploadNotice: String,
@@ -95,6 +106,22 @@ fun HomeScreen(
 ) {
     var appointmentPrefillDate by remember { mutableStateOf("") }
     var openAppointmentDialog by remember { mutableStateOf(false) }
+    var isEditingInsuranceCard by remember { mutableStateOf(false) }
+    var draftInsuranceName by remember { mutableStateOf(profile.insuranceName) }
+    var draftMemberId by remember { mutableStateOf(profile.insuranceId) }
+    var draftGroupNumber by remember { mutableStateOf(profile.groupName) }
+    var draftPcpCopay by remember { mutableStateOf(profile.pcpCopay) }
+    var draftSpecialistCopay by remember { mutableStateOf(profile.specialistCopay) }
+
+    LaunchedEffect(profile, isEditingInsuranceCard) {
+        if (!isEditingInsuranceCard) {
+            draftInsuranceName = profile.insuranceName
+            draftMemberId = profile.insuranceId
+            draftGroupNumber = profile.groupName
+            draftPcpCopay = profile.pcpCopay
+            draftSpecialistCopay = profile.specialistCopay
+        }
+    }
 
     Box(
         modifier = modifier
@@ -145,25 +172,38 @@ fun HomeScreen(
                 ) {
                     CleanInsuranceCard(
                         language = language,
-                        insuranceName = profile.insuranceCompany.ifBlank {
-                            EobStrings.t(language, "cleanInsuranceNameFallback")
+                        display = insuranceCardDisplay,
+                        isEditing = isEditingInsuranceCard,
+                        draftInsuranceName = draftInsuranceName,
+                        draftMemberId = draftMemberId,
+                        draftGroupNumber = draftGroupNumber,
+                        draftPcpCopay = draftPcpCopay,
+                        draftSpecialistCopay = draftSpecialistCopay,
+                        canEdit = canEditInsuranceCard,
+                        onDraftInsuranceNameChange = { draftInsuranceName = it },
+                        onDraftMemberIdChange = { draftMemberId = it },
+                        onDraftGroupNumberChange = { draftGroupNumber = it },
+                        onDraftPcpCopayChange = { draftPcpCopay = it },
+                        onDraftSpecialistCopayChange = { draftSpecialistCopay = it },
+                        onEditRequest = { isEditingInsuranceCard = true },
+                        onSave = {
+                            onSaveInsuranceCard(
+                                draftInsuranceName,
+                                draftMemberId,
+                                draftGroupNumber,
+                                draftPcpCopay,
+                                draftSpecialistCopay
+                            )
+                            isEditingInsuranceCard = false
                         },
-                        memberId = profile.memberId.ifBlank {
-                            EobStrings.t(language, "cleanInsuranceMemberIdFallback")
+                        onCancel = {
+                            draftInsuranceName = profile.insuranceName
+                            draftMemberId = profile.insuranceId
+                            draftGroupNumber = profile.groupName
+                            draftPcpCopay = profile.pcpCopay
+                            draftSpecialistCopay = profile.specialistCopay
+                            isEditingInsuranceCard = false
                         },
-                        groupNumber = profile.groupNumber.ifBlank {
-                            EobStrings.t(language, "cleanInsuranceGroupFallback")
-                        },
-                        pcpCopay = profile.pcpCopay.ifBlank {
-                            EobStrings.t(language, "cleanInsuranceCopayFallback")
-                        },
-                        specialistCopay = profile.specialistCopay.ifBlank {
-                            EobStrings.t(language, "cleanInsuranceCopayFallback")
-                        },
-                        footerLocation = profile.locationLine().ifBlank {
-                            EobStrings.t(language, "valueNotSet")
-                        },
-                        verificationCode = profile.verificationFingerprint(),
                         modifier = Modifier.fillMaxWidth(0.92f)
                     )
                 }

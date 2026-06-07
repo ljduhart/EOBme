@@ -80,6 +80,16 @@ data class UserProfile(
     }
 }
 
+data class InsuranceCardDisplay(
+    val insuranceName: String,
+    val memberId: String,
+    val groupNumber: String,
+    val pcpCopay: String,
+    val specialistCopay: String,
+    val footerLocation: String,
+    val verificationCode: String
+)
+
 data class RegistrationCredentials(val email: String = "", val password: String = "") {
     val isPasswordValid: Boolean
         get() = password.length >= 8 && password.any { it.isDigit() }

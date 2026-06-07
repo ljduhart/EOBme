@@ -2,6 +2,7 @@ package app.eob.me.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,10 +13,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,13 +27,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
+import app.eob.me.data.InsuranceCardDisplay
 
 private val CardBackgroundGradient = Brush.linearGradient(
     colors = listOf(
@@ -48,17 +56,34 @@ private val CardDividerColor = Color.White.copy(alpha = 0.22f)
 @Composable
 fun CleanInsuranceCard(
     language: AppLanguage,
-    insuranceName: String,
-    memberId: String,
-    groupNumber: String,
-    pcpCopay: String,
-    specialistCopay: String,
-    footerLocation: String,
-    verificationCode: String,
+    display: InsuranceCardDisplay,
+    isEditing: Boolean,
+    draftInsuranceName: String,
+    draftMemberId: String,
+    draftGroupNumber: String,
+    draftPcpCopay: String,
+    draftSpecialistCopay: String,
+    canEdit: Boolean,
+    onDraftInsuranceNameChange: (String) -> Unit,
+    onDraftMemberIdChange: (String) -> Unit,
+    onDraftGroupNumberChange: (String) -> Unit,
+    onDraftPcpCopayChange: (String) -> Unit,
+    onDraftSpecialistCopayChange: (String) -> Unit,
+    onEditRequest: () -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (canEdit && !isEditing) {
+                    Modifier.clickable(onClick = onEditRequest)
+                } else {
+                    Modifier
+                }
+            ),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -82,12 +107,16 @@ fun CleanInsuranceCard(
                         color = CardSecondaryText,
                         letterSpacing = 1.sp
                     )
-                    Text(
-                        text = insuranceName.uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = InsuranceNameAccent,
-                        letterSpacing = 0.5.sp
+                    InsuranceCardValue(
+                        value = if (isEditing) draftInsuranceName else display.insuranceName,
+                        onValueChange = onDraftInsuranceNameChange,
+                        isEditing = isEditing,
+                        textStyle = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = InsuranceNameAccent,
+                            letterSpacing = 0.5.sp
+                        ),
+                        displayTransform = { it.uppercase() }
                     )
                 }
             }
@@ -113,12 +142,16 @@ fun CleanInsuranceCard(
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = memberId.uppercase(),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Black,
-                        color = CardPrimaryText,
-                        letterSpacing = 1.sp
+                    InsuranceCardValue(
+                        value = if (isEditing) draftMemberId else display.memberId,
+                        onValueChange = onDraftMemberIdChange,
+                        isEditing = isEditing,
+                        textStyle = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            color = CardPrimaryText,
+                            letterSpacing = 1.sp
+                        ),
+                        displayTransform = { it.uppercase() }
                     )
                 }
                 VerifiedInsuranceBadge(modifier = Modifier.size(44.dp))
@@ -138,11 +171,14 @@ fun CleanInsuranceCard(
                         color = CardSecondaryText,
                         letterSpacing = 0.5.sp
                     )
-                    Text(
-                        text = groupNumber,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = CardPrimaryText
+                    InsuranceCardValue(
+                        value = if (isEditing) draftGroupNumber else display.groupNumber,
+                        onValueChange = onDraftGroupNumberChange,
+                        isEditing = isEditing,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = CardPrimaryText
+                        )
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -153,17 +189,50 @@ fun CleanInsuranceCard(
                         color = CardSecondaryText,
                         letterSpacing = 0.5.sp
                     )
-                    Text(
-                        text = EobStrings.tf(
-                            language,
-                            "cleanInsuranceCopayFormat",
-                            pcpCopay,
-                            specialistCopay
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = CardPrimaryText
-                    )
+                    if (isEditing) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            InsuranceCardValue(
+                                value = draftPcpCopay,
+                                onValueChange = onDraftPcpCopayChange,
+                                isEditing = true,
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = CardPrimaryText
+                                ),
+                                keyboardType = KeyboardType.Decimal,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            Text(
+                                text = "/",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = CardPrimaryText,
+                                fontWeight = FontWeight.Bold
+                            )
+                            InsuranceCardValue(
+                                value = draftSpecialistCopay,
+                                onValueChange = onDraftSpecialistCopayChange,
+                                isEditing = true,
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = CardPrimaryText
+                                ),
+                                keyboardType = KeyboardType.Decimal,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = EobStrings.tf(
+                                language,
+                                "cleanInsuranceCopayFormat",
+                                display.pcpCopay,
+                                display.specialistCopay
+                            ),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = CardPrimaryText
+                        )
+                    }
                 }
             }
 
@@ -173,13 +242,70 @@ fun CleanInsuranceCard(
                 text = EobStrings.tf(
                     language,
                     "cleanInsuranceVerificationFooter",
-                    footerLocation,
-                    verificationCode
+                    display.footerLocation,
+                    display.verificationCode
                 ),
                 style = MaterialTheme.typography.labelSmall,
                 color = CardSecondaryText
             )
+
+            if (isEditing) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onCancel) {
+                        Text(
+                            text = EobStrings.t(language, "cleanInsuranceCancelEdit"),
+                            color = CardSecondaryText
+                        )
+                    }
+                    TextButton(onClick = onSave) {
+                        Text(
+                            text = EobStrings.t(language, "cleanInsuranceSaveCard"),
+                            color = InsuranceNameAccent,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            } else if (canEdit) {
+                Text(
+                    text = EobStrings.t(language, "cleanInsuranceTapToEdit"),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CardSecondaryText.copy(alpha = 0.85f)
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun InsuranceCardValue(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isEditing: Boolean,
+    textStyle: TextStyle,
+    displayTransform: (String) -> String = { it },
+    keyboardType: KeyboardType = KeyboardType.Text,
+    modifier: Modifier = Modifier
+) {
+    if (isEditing) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = textStyle,
+            cursorBrush = SolidColor(InsuranceNameAccent),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            modifier = modifier.fillMaxWidth()
+        )
+    } else {
+        Text(
+            text = displayTransform(value),
+            style = textStyle,
+            modifier = modifier
+        )
     }
 }
 

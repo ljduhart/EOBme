@@ -230,7 +230,10 @@ class EobStringsCoverageTest {
             "cleanInsuranceGroupFallback",
             "cleanInsuranceCopayFallback",
             "pcpCopayField",
-            "specialistCopayField"
+            "specialistCopayField",
+            "cleanInsuranceTapToEdit",
+            "cleanInsuranceSaveCard",
+            "cleanInsuranceCancelEdit"
         )
         AppLanguage.entries.forEach { language ->
             keys.forEach { key ->
