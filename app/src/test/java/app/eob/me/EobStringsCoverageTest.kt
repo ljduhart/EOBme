@@ -219,6 +219,10 @@ class EobStringsCoverageTest {
     fun cleanInsuranceCardKeysResolveForEveryLanguage() {
         val keys = listOf(
             "cleanInsuranceMemberIdLabel",
+            "cleanInsuranceCompanySectionLabel",
+            "cleanInsuranceMemberIdSectionLabel",
+            "cleanInsuranceGroupSectionLabel",
+            "cleanInsuranceCopaySectionDetail",
             "cleanInsuranceGroupNumberLabel",
             "cleanInsuranceCopayLabel",
             "cleanInsuranceNameFallback",
@@ -226,7 +230,10 @@ class EobStringsCoverageTest {
             "cleanInsuranceGroupFallback",
             "cleanInsuranceCopayFallback",
             "pcpCopayField",
-            "specialistCopayField"
+            "specialistCopayField",
+            "cleanInsuranceTapToEdit",
+            "cleanInsuranceSaveCard",
+            "cleanInsuranceCancelEdit"
         )
         AppLanguage.entries.forEach { language ->
             keys.forEach { key ->
@@ -235,6 +242,9 @@ class EobStringsCoverageTest {
             val copays = EobStrings.tf(language, "cleanInsuranceCopayFormat", "25", "50")
             assertTrue(copays.contains("25"))
             assertTrue(copays.contains("50"))
+            val footer = EobStrings.tf(language, "cleanInsuranceVerificationFooter", "Austin, TX", "dea71cb")
+            assertTrue(footer.contains("Austin, TX"))
+            assertTrue(footer.contains("dea71cb"))
         }
     }
 

@@ -21,6 +21,7 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.CareTeamStateExtractor
 import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.InsuranceCardDisplay
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.ProviderDirectoryAssurance
@@ -427,6 +428,48 @@ class EobViewModel : ViewModel() {
         val state = _uiState.value
         return state.isLoadingInvoice ||
             state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing
+    }
+
+    fun insuranceCardDisplay(profile: UserProfile, language: AppLanguage): InsuranceCardDisplay {
+        val safeProfile = profile.sanitizedPlanLimits()
+        return InsuranceCardDisplay(
+            insuranceName = safeProfile.insuranceCompany.ifBlank {
+                EobStrings.t(language, "cleanInsuranceNameFallback")
+            },
+            memberId = safeProfile.memberId.ifBlank {
+                EobStrings.t(language, "cleanInsuranceMemberIdFallback")
+            },
+            groupNumber = safeProfile.groupNumber.ifBlank {
+                EobStrings.t(language, "cleanInsuranceGroupFallback")
+            },
+            pcpCopay = safeProfile.pcpCopay.ifBlank {
+                EobStrings.t(language, "cleanInsuranceCopayFallback")
+            },
+            specialistCopay = safeProfile.specialistCopay.ifBlank {
+                EobStrings.t(language, "cleanInsuranceCopayFallback")
+            },
+            footerLocation = safeProfile.locationLine().ifBlank {
+                EobStrings.t(language, "valueNotSet")
+            },
+            verificationCode = safeProfile.verificationFingerprint()
+        )
+    }
+
+    fun applyInsuranceCardEdits(
+        profile: UserProfile,
+        insuranceName: String,
+        memberId: String,
+        groupNumber: String,
+        pcpCopay: String,
+        specialistCopay: String
+    ): UserProfile {
+        return profile.copy(
+            insuranceName = insuranceName.trim(),
+            insuranceId = memberId.trim(),
+            groupName = groupNumber.trim(),
+            pcpCopay = pcpCopay.trim(),
+            specialistCopay = specialistCopay.trim()
+        ).sanitizedPlanLimits()
     }
 
     fun careTeamCardStates(language: AppLanguage): List<CareTeamCardDisplayState> {

@@ -384,9 +384,32 @@ private fun MainHubNavHost(
                     ) {
                         eobViewModel.ytdDeductibleBentoSnapshot(profile)
                     }
+                    val insuranceCardDisplay = remember(profile, language) {
+                        eobViewModel.insuranceCardDisplay(profile, language)
+                    }
                     HomeScreen(
                         language = language,
                         profile = profile,
+                        insuranceCardDisplay = insuranceCardDisplay,
+                        canEditInsuranceCard = userId.isNotBlank(),
+                        onSaveInsuranceCard = { insuranceName, memberId, groupNumber, pcpCopay, specialistCopay ->
+                            val updatedProfile = eobViewModel.applyInsuranceCardEdits(
+                                profile = profile,
+                                insuranceName = insuranceName,
+                                memberId = memberId,
+                                groupNumber = groupNumber,
+                                pcpCopay = pcpCopay,
+                                specialistCopay = specialistCopay
+                            )
+                            onProfileChanged(updatedProfile)
+                            eobViewModel.updateSyncProfile(updatedProfile)
+                            eobViewModel.saveProfileToRemote(userId, updatedProfile, language) { message ->
+                                if (message.isNotBlank()) {
+                                    eobViewModel.updateUploadNotice(message)
+                                }
+                            }
+                            onActivity()
+                        },
                         recordCount = sortedEobRecords.size,
                         firebaseStatusLine = EobStrings.firebaseStatusText(
                             language,

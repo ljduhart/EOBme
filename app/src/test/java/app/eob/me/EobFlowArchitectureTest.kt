@@ -245,6 +245,8 @@ class EobFlowArchitectureTest {
             "ytdBentoViewMode",
             "firebaseSyncStatus",
             "careTeamCardStates",
+            "insuranceCardDisplay",
+            "applyInsuranceCardEdits",
             "cptBentoSnapshot",
             "ytdDeductibleBentoSnapshot",
             "historyBentoSnapshot",
@@ -329,23 +331,48 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun profileScreenWiresCleanInsuranceCardFromMergedProfile() {
+    fun homeScreenWiresEditableCleanInsuranceCardThroughEobViewModel() {
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
         val profileSource = readSource("ui/screens/ProfileScreen.kt")
         val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         listOf(
             "CleanInsuranceCard",
-            "mergedProfile.insuranceCompany",
-            "mergedProfile.memberId",
-            "mergedProfile.groupNumber",
-            "mergedProfile.pcpCopay",
-            "mergedProfile.specialistCopay",
-            "cleanInsuranceNameFallback",
-            "ProfileFields"
+            "insuranceCardDisplay",
+            "onSaveInsuranceCard",
+            "isEditingInsuranceCard",
+            "draftInsuranceName",
+            "draftMemberId",
+            "draftGroupNumber",
+            "draftPcpCopay",
+            "draftSpecialistCopay"
         ).forEach { snippet ->
-            assertTrue("ProfileScreen missing CleanInsuranceCard wiring: $snippet", profileSource.contains(snippet))
+            assertTrue("HomeScreen missing insurance card wiring: $snippet", homeSource.contains(snippet))
         }
+        listOf(
+            "eobViewModel.insuranceCardDisplay",
+            "eobViewModel.applyInsuranceCardEdits",
+            "eobViewModel.updateSyncProfile",
+            "eobViewModel.saveProfileToRemote",
+            "onProfileChanged(updatedProfile)"
+        ).forEach { snippet ->
+            assertTrue("EobNavHost missing insurance card save wiring: $snippet", navHostSource.contains(snippet))
+        }
+        listOf(
+            "fun insuranceCardDisplay",
+            "fun applyInsuranceCardEdits",
+            "InsuranceCardDisplay"
+        ).forEach { snippet ->
+            assertTrue("EobViewModel missing insurance card API: $snippet", viewModelSource.contains(snippet))
+        }
+        assertFalse(
+            "ProfileScreen must not render CleanInsuranceCard",
+            profileSource.contains("CleanInsuranceCard")
+        )
         assertTrue(cardSource.contains("ElevatedCard"))
-        assertTrue(cardSource.contains("EobStrings.t(language, \"cleanInsuranceMemberIdLabel\")"))
+        assertTrue(cardSource.contains("InsuranceCardDisplay"))
+        assertTrue(cardSource.contains("BasicTextField"))
         assertFalse("CleanInsuranceCard must stay stateless", cardSource.contains("mutableStateOf"))
     }
 
