@@ -668,7 +668,7 @@ private fun HubHeader(
             }
         }
         Text(
-            text = "EOBme",
+            text = EobStrings.t(language, "appBrand"),
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(top = 8.dp)
         )

@@ -117,7 +117,6 @@ class EobViewModelFlowTest {
             summary = "Summary",
             date = "2026-01-01"
         )
-        viewModel.firebaseNews = listOf(item)
         viewModel.deleteNews(item)
         assertTrue(viewModel.visibleNews(listOf(item)).isEmpty())
     }

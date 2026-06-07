@@ -188,6 +188,20 @@ class EobStringsCoverageTest {
             "careTeamAddress",
             "careTeamPhone",
             "careTeamSaveDoctor",
+            "careTeamTapToCall",
+            "careTeamAddPhone",
+            "careTeamUnassignedHint",
+            "careTeamSpecialistRefActive",
+            "careTeamSpecialistRefInactive",
+            "careTeamSpecialtyPending",
+            "careTeamTherapistInNetwork",
+            "careTeamTherapistOutOfNetwork",
+            "careTeamTherapistNetworkUnknown",
+            "careTeamTherapistCopay",
+            "careTeamTherapistCopayPending",
+            "careTeamMicroEobs",
+            "careTeamMicroAppts",
+            "careTeamMicroFlags",
             "selectAppointmentDate"
         )
         AppLanguage.entries.forEach { language ->
@@ -196,6 +210,8 @@ class EobStringsCoverageTest {
             }
             val title = EobStrings.tf(language, "careTeamEditTitle", "PCP")
             assertTrue(title.isNotBlank())
+            val copay = EobStrings.tf(language, "careTeamTherapistCopay", "$25.00")
+            assertTrue(copay.contains("25"))
         }
     }
 

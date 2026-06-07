@@ -13,7 +13,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -62,10 +61,8 @@ import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.EobStrings
 import app.eob.me.data.NetworkAssuranceState
 import app.eob.me.data.PreferredDoctor
+import app.eob.me.data.TherapistNetworkStatus
 import app.eob.me.ui.components.AssuranceCrimson
-import app.eob.me.ui.components.AssuranceCyan
-import app.eob.me.ui.components.AssuranceGold
-import app.eob.me.ui.components.NetworkAssuranceBadge
 
 private val GoldCardGradient = Brush.linearGradient(
     colors = listOf(
@@ -77,7 +74,10 @@ private val GoldCardGradient = Brush.linearGradient(
     )
 )
 
-private const val CARD_HEIGHT_DP = 96
+private val GoldInk = Color(0xFF5C4A1F)
+private val GoldInkDark = Color(0xFF3D3220)
+
+private const val CARD_HEIGHT_DP = 100
 
 @Composable
 fun HomeCareTeamCards(
@@ -149,9 +149,6 @@ private fun CareTeamSmartCard(
         label = "careTeamFlipRotation"
     )
 
-    val assuranceBorder = assuranceAccent(cardState.assuranceState)
-    val showAssuranceChrome = cardState.isAssigned
-
     Card(
         modifier = modifier
             .height(CARD_HEIGHT_DP.dp)
@@ -159,13 +156,6 @@ private fun CareTeamSmartCard(
                 scaleX = pressScale
                 scaleY = pressScale
             }
-            .then(
-                if (showAssuranceChrome) {
-                    Modifier.border(1.5.dp, assuranceBorder, RoundedCornerShape(12.dp))
-                } else {
-                    Modifier
-                }
-            )
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
@@ -185,16 +175,6 @@ private fun CareTeamSmartCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (cardState.isAssigned && cardState.assuranceState == NetworkAssuranceState.FullyAssured) {
-                NetworkAssuranceBadge(
-                    state = NetworkAssuranceState.FullyAssured,
-                    statusLabel = "",
-                    compact = true,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(2.dp)
-                )
-            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -259,7 +239,7 @@ private fun CareTeamCardFront(
                 text = careTeamLabel(language, cardState.type),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF5C4A1F),
+                color = GoldInk,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -273,25 +253,21 @@ private fun CareTeamCardFront(
                     text = cardState.primaryLine,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF3D3220),
+                    color = GoldInkDark,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 9.sp
                 )
-                val secondaryColor = when (cardState.assuranceState) {
-                    NetworkAssuranceState.OutOfNetworkAlert -> AssuranceCrimson
-                    NetworkAssuranceState.FullyAssured -> Color(0xFF1565A8)
-                    NetworkAssuranceState.VerificationPending -> Color(0xFF5C4A1F)
-                }
                 Text(
                     text = cardState.secondaryLine,
                     style = MaterialTheme.typography.labelSmall,
-                    color = secondaryColor,
+                    color = secondaryLineColor(cardState),
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 8.sp,
+                    fontWeight = if (isCallToActionLine(cardState)) FontWeight.SemiBold else FontWeight.Normal,
                     modifier = Modifier.pointerInput(onCall) {
                         if (onCall != null) {
                             detectTapGestures(onTap = { onCall() })
@@ -302,7 +278,7 @@ private fun CareTeamCardFront(
                     Text(
                         text = tertiary,
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF5C4A1F).copy(alpha = 0.85f),
+                        color = tertiaryLineColor(cardState),
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -313,7 +289,7 @@ private fun CareTeamCardFront(
             Text(
                 text = formatMicroMetrics(language, cardState),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF5C4A1F).copy(alpha = 0.8f),
+                color = GoldInk.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 fontSize = 7.sp,
@@ -330,22 +306,23 @@ private fun GoldCardShimmerOverlay(modifier: Modifier = Modifier) {
         initialValue = -0.4f,
         targetValue = 1.4f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3200, easing = LinearEasing),
+            animation = tween(durationMillis = 2800, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
-            initialStartOffset = androidx.compose.animation.core.StartOffset(400)
+            initialStartOffset = androidx.compose.animation.core.StartOffset(300)
         ),
         label = "goldShimmerProgress"
     )
     Canvas(modifier = modifier) {
-        val streakWidth = size.width * 0.42f
+        val streakWidth = size.width * 0.48f
         val x = size.width * progress - streakWidth / 2f
         drawRect(
             brush = Brush.linearGradient(
                 colors = listOf(
                     Color.Transparent,
-                    Color(0xFFFFFBF0).copy(alpha = 0.15f),
-                    Color(0xFFFFE082).copy(alpha = 0.42f),
-                    Color(0xFFD4AF37).copy(alpha = 0.28f),
+                    Color(0xFFFFFBF0).copy(alpha = 0.12f),
+                    Color(0xFFFFE082).copy(alpha = 0.55f),
+                    Color(0xFFD4AF37).copy(alpha = 0.45f),
+                    Color(0xFFFFE082).copy(alpha = 0.35f),
                     Color.Transparent
                 ),
                 start = Offset(x, 0f),
@@ -377,7 +354,7 @@ private fun CareTeamCardBack(
                 text = careTeamLabel(language, doctor.type),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF5C4A1F),
+                color = GoldInk,
                 maxLines = 1,
                 fontSize = 9.sp
             )
@@ -398,7 +375,7 @@ private fun CareTeamDetailLine(
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
-        color = Color(0xFF3D3220),
+        color = GoldInkDark,
         textAlign = TextAlign.Center,
         fontSize = fontSize,
         maxLines = maxLines,
@@ -479,10 +456,30 @@ private fun PreferredDoctorDialog(
     )
 }
 
-private fun assuranceAccent(state: NetworkAssuranceState): Color = when (state) {
-    NetworkAssuranceState.FullyAssured -> AssuranceCyan
-    NetworkAssuranceState.VerificationPending -> AssuranceGold
-    NetworkAssuranceState.OutOfNetworkAlert -> AssuranceCrimson
+private fun isCallToActionLine(card: CareTeamCardDisplayState): Boolean {
+    return card.type == CareTeamProviderType.Pcp ||
+        card.type == CareTeamProviderType.Dentist
+}
+
+private fun secondaryLineColor(card: CareTeamCardDisplayState): Color {
+    return when {
+        card.assuranceState == NetworkAssuranceState.OutOfNetworkAlert -> AssuranceCrimson
+        card.type == CareTeamProviderType.Therapist &&
+            card.therapistNetworkStatus == TherapistNetworkStatus.OutOfNetwork -> AssuranceCrimson
+        card.type == CareTeamProviderType.Specialist && card.specialistReferralActive -> Color(0xFF6B5A2E)
+        isCallToActionLine(card) && card.phoneDialUri != null -> Color(0xFF6B5A2E)
+        else -> GoldInk
+    }
+}
+
+private fun tertiaryLineColor(card: CareTeamCardDisplayState): Color {
+    return when {
+        card.type == CareTeamProviderType.Therapist &&
+            card.therapistNetworkStatus == TherapistNetworkStatus.OutOfNetwork -> AssuranceCrimson
+        card.type == CareTeamProviderType.Therapist &&
+            card.therapistNetworkStatus == TherapistNetworkStatus.InNetwork -> Color(0xFF6B5A2E)
+        else -> GoldInk.copy(alpha = 0.85f)
+    }
 }
 
 private fun formatMicroMetrics(language: AppLanguage, card: CareTeamCardDisplayState): String {
@@ -497,6 +494,10 @@ private fun formatMicroMetrics(language: AppLanguage, card: CareTeamCardDisplayS
         parts += EobStrings.tf(language, "careTeamMicroFlags", card.metrics.flaggedIssueCount)
     }
     return parts.joinToString(" · ").ifBlank {
-        EobStrings.t(language, "careTeamTapToFlip")
+        if (card.isAssigned) {
+            EobStrings.t(language, "careTeamTapToFlip")
+        } else {
+            EobStrings.t(language, "careTeamLongPressEdit")
+        }
     }
 }

@@ -2,9 +2,6 @@ package app.eob.me.viewmodel
 
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
@@ -70,8 +67,11 @@ data class HubUiState(
 )
 
 /**
- * Single source of truth for authenticated hub state: EOB records, selection, appeals, news, uploads.
- * UI layers observe [eobRecords] and [uiState] only; Firestore sync goes through [EobRepository].
+ * Single source of truth for authenticated hub state: EOB records, selection, appeals, news, uploads,
+ * and derived hub snapshots (care team, bento, history, providers, yearly costs).
+ *
+ * UI layers observe [eobRecords], [sortedEobRecords], [insuranceArticles], and [uiState]; all
+ * analytics and card state flow through ViewModel methods. Firestore sync goes through [EobRepository].
  */
 class EobViewModel : ViewModel() {
     private var repository: EobRepository? = null
@@ -88,9 +88,9 @@ class EobViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(HubUiState())
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
 
-    var uploadText by mutableStateOf("")
-    var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
-    private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
+    private var uploadText: String = ""
+    private var firebaseNews: List<NewsRelease> = emptyList()
+    private var deletedNewsKeys: Set<String> = emptySet()
     private var syncProfile: UserProfile = UserProfile()
     private var eobListener: ListenerRegistration? = null
 
@@ -472,14 +472,8 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(ytdBentoViewMode = mode) }
     }
 
-    fun toggleYtdBentoViewMode() {
-        _uiState.update { state ->
-            val next = when (state.ytdBentoViewMode) {
-                YtdBentoViewMode.CostOverview -> YtdBentoViewMode.DeductibleTracker
-                YtdBentoViewMode.DeductibleTracker -> YtdBentoViewMode.CostOverview
-            }
-            state.copy(ytdBentoViewMode = next)
-        }
+    fun updateUploadText(text: String) {
+        uploadText = text
     }
 
     fun setHistoryPage(page: Int) {
