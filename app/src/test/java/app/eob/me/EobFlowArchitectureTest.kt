@@ -229,8 +229,14 @@ class EobFlowArchitectureTest {
     fun viewModelIsDocumentedAsHubSourceOfTruth() {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         assertTrue(viewModelSource.contains("Single source of truth"))
+        assertFalse(
+            "EobViewModel must not use Compose mutableStateOf",
+            viewModelSource.contains("mutableStateOf")
+        )
         listOf(
             "HubUiState",
+            "sortedEobRecords",
+            "insuranceArticles",
             "invoiceProcessingPhase",
             "historyBentoFilter",
             "preferredDoctors",
@@ -238,6 +244,7 @@ class EobFlowArchitectureTest {
             "selectedCptCategory",
             "ytdBentoViewMode",
             "firebaseSyncStatus",
+            "careTeamCardStates",
             "cptBentoSnapshot",
             "ytdDeductibleBentoSnapshot",
             "historyBentoSnapshot",
@@ -247,10 +254,17 @@ class EobFlowArchitectureTest {
             "historyRecordsForDisplay",
             "currentNewsReleases",
             "setSelectedCptCategory",
-            "setYtdBentoViewMode"
+            "setYtdBentoViewMode",
+            "updateUploadText"
         ).forEach { snippet ->
             assertTrue("EobViewModel missing: $snippet", viewModelSource.contains(snippet))
         }
+    }
+
+    @Test
+    fun hubHeaderUsesLocalizedAppBrand() {
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navHostSource.contains("EobStrings.t(language, \"appBrand\")"))
     }
 
     @Test
