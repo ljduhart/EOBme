@@ -36,8 +36,14 @@ data class UserProfile(
     val groupName: String = "",
     val insuranceCardDownloadUrl: String = "",
     val annualDeductibleLimit: Double = 0.0,
-    val annualOutOfPocketMax: Double = 0.0
+    val annualOutOfPocketMax: Double = 0.0,
+    val pcpCopay: String = "",
+    val specialistCopay: String = ""
 ) {
+    val insuranceCompany: String get() = insuranceName
+    val memberId: String get() = insuranceId
+    val groupNumber: String get() = groupName
+
     val isComplete: Boolean
         get() = firstName.isNotBlank() &&
             lastName.isNotBlank() &&
