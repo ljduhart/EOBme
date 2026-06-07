@@ -16,9 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 
 @Composable
 fun CleanInsuranceCard(
+    language: AppLanguage,
     insuranceName: String,
     memberId: String,
     groupNumber: String,
@@ -45,7 +48,7 @@ fun CleanInsuranceCard(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Member ID",
+                text = EobStrings.t(language, "cleanInsuranceMemberIdLabel"),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -64,7 +67,7 @@ fun CleanInsuranceCard(
             ) {
                 Column {
                     Text(
-                        text = "Group Number",
+                        text = EobStrings.t(language, "cleanInsuranceGroupNumberLabel"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -77,12 +80,17 @@ fun CleanInsuranceCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Copay (PCP/Spec)",
+                        text = EobStrings.t(language, "cleanInsuranceCopayLabel"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "$$pcpCopay / $$specialistCopay",
+                        text = EobStrings.tf(
+                            language,
+                            "cleanInsuranceCopayFormat",
+                            pcpCopay,
+                            specialistCopay
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface

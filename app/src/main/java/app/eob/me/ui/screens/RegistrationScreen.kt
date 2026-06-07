@@ -272,6 +272,26 @@ fun ProfileFields(
         enabled = fieldsEnabled
     )
     OutlinedTextField(
+        value = profile.pcpCopay,
+        onValueChange = { onProfileChanged(profile.copy(pcpCopay = it)) },
+        label = { Text(EobStrings.t(language, "pcpCopayField")) },
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = profile.specialistCopay,
+        onValueChange = { onProfileChanged(profile.copy(specialistCopay = it)) },
+        label = { Text(EobStrings.t(language, "specialistCopayField")) },
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true
+    )
+    OutlinedTextField(
         value = profile.annualDeductibleLimit.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
         onValueChange = { value ->
             onProfileChanged(profile.copy(annualDeductibleLimit = value.toDoubleOrNull() ?: 0.0))

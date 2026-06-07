@@ -84,11 +84,22 @@ fun ProfileScreen(
         Text(EobStrings.t(language, "userProfile"), style = MaterialTheme.typography.titleLarge)
         Text(EobStrings.t(language, "editSavedDetails"))
         CleanInsuranceCard(
-            insuranceName = mergedProfile.insuranceCompany.ifBlank { "Insurance Name" },
-            memberId = mergedProfile.memberId.ifBlank { "XXXX-XXXXX" },
-            groupNumber = mergedProfile.groupNumber.ifBlank { "N/A" },
-            pcpCopay = mergedProfile.pcpCopay.ifBlank { "0" },
-            specialistCopay = mergedProfile.specialistCopay.ifBlank { "0" }
+            language = language,
+            insuranceName = mergedProfile.insuranceCompany.ifBlank {
+                EobStrings.t(language, "cleanInsuranceNameFallback")
+            },
+            memberId = mergedProfile.memberId.ifBlank {
+                EobStrings.t(language, "cleanInsuranceMemberIdFallback")
+            },
+            groupNumber = mergedProfile.groupNumber.ifBlank {
+                EobStrings.t(language, "cleanInsuranceGroupFallback")
+            },
+            pcpCopay = mergedProfile.pcpCopay.ifBlank {
+                EobStrings.t(language, "cleanInsuranceCopayFallback")
+            },
+            specialistCopay = mergedProfile.specialistCopay.ifBlank {
+                EobStrings.t(language, "cleanInsuranceCopayFallback")
+            }
         )
         ProfileFields(
             language = language,
