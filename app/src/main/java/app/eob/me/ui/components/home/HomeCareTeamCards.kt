@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -129,10 +130,19 @@ private fun CareTeamSmartCard(
     val context = LocalContext.current
     var isFlipped by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
+    var showShimmer by remember(cardState.type) { mutableStateOf(false) }
     val density = LocalDensity.current
 
     LaunchedEffect(cardState.type, cardState.primaryLine) {
         isFlipped = false
+    }
+
+    LaunchedEffect(cardState.type, cardState.isAssigned) {
+        showShimmer = false
+        if (!cardState.isAssigned) {
+            delay(3_000)
+            showShimmer = true
+        }
     }
 
     val pressScale by animateFloatAsState(
@@ -207,7 +217,7 @@ private fun CareTeamSmartCard(
                     }
                 }
             }
-            if (!cardState.isAssigned) {
+            if (!cardState.isAssigned && showShimmer) {
                 GoldCardShimmerOverlay(
                     modifier = Modifier
                         .fillMaxSize()

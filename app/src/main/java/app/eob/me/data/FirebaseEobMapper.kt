@@ -16,6 +16,8 @@ object FirebaseEobMapper {
             "insuranceName" to profile.insuranceName,
             "insuranceId" to profile.insuranceId,
             "groupName" to profile.groupName,
+            "pcpCopay" to profile.pcpCopay,
+            "specialistCopay" to profile.specialistCopay,
             "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
             "annualDeductibleLimit" to planLimits.annualDeductibleLimit,
             "annualOutOfPocketMax" to planLimits.annualOutOfPocketMax,
@@ -33,6 +35,8 @@ object FirebaseEobMapper {
             insuranceName = data.stringValue("insuranceName", "insurance_name", "insuranceCardSummary", "insurance_card_summary"),
             insuranceId = data.stringValue("insuranceId", "insurance_id", "subscriberId", "subscriber_id", "memberId", "member_id", "policyId"),
             groupName = data.stringValue("groupName", "group_name", "groupNumber", "group_number"),
+            pcpCopay = data.stringValue("pcpCopay", "pcp_copay"),
+            specialistCopay = data.stringValue("specialistCopay", "specialist_copay"),
             insuranceCardDownloadUrl = data.stringValue("insuranceCardDownloadUrl", "insurance_card_download_url", "insurance_card_url"),
             annualDeductibleLimit = data.doubleValue("annualDeductibleLimit", "annual_deductible_limit"),
             annualOutOfPocketMax = data.doubleValue("annualOutOfPocketMax", "annual_out_of_pocket_max")

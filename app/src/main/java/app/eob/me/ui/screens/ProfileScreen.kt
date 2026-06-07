@@ -31,6 +31,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
+import app.eob.me.ui.components.CleanInsuranceCard
 
 @Composable
 fun ProfileScreen(
@@ -82,6 +83,24 @@ fun ProfileScreen(
     ) {
         Text(EobStrings.t(language, "userProfile"), style = MaterialTheme.typography.titleLarge)
         Text(EobStrings.t(language, "editSavedDetails"))
+        CleanInsuranceCard(
+            language = language,
+            insuranceName = mergedProfile.insuranceCompany.ifBlank {
+                EobStrings.t(language, "cleanInsuranceNameFallback")
+            },
+            memberId = mergedProfile.memberId.ifBlank {
+                EobStrings.t(language, "cleanInsuranceMemberIdFallback")
+            },
+            groupNumber = mergedProfile.groupNumber.ifBlank {
+                EobStrings.t(language, "cleanInsuranceGroupFallback")
+            },
+            pcpCopay = mergedProfile.pcpCopay.ifBlank {
+                EobStrings.t(language, "cleanInsuranceCopayFallback")
+            },
+            specialistCopay = mergedProfile.specialistCopay.ifBlank {
+                EobStrings.t(language, "cleanInsuranceCopayFallback")
+            }
+        )
         ProfileFields(
             language = language,
             profile = mergedProfile,

@@ -328,6 +328,47 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun profileScreenWiresCleanInsuranceCardFromMergedProfile() {
+        val profileSource = readSource("ui/screens/ProfileScreen.kt")
+        val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
+        listOf(
+            "CleanInsuranceCard",
+            "mergedProfile.insuranceCompany",
+            "mergedProfile.memberId",
+            "mergedProfile.groupNumber",
+            "mergedProfile.pcpCopay",
+            "mergedProfile.specialistCopay",
+            "cleanInsuranceNameFallback",
+            "ProfileFields"
+        ).forEach { snippet ->
+            assertTrue("ProfileScreen missing CleanInsuranceCard wiring: $snippet", profileSource.contains(snippet))
+        }
+        assertTrue(cardSource.contains("ElevatedCard"))
+        assertTrue(cardSource.contains("EobStrings.t(language, \"cleanInsuranceMemberIdLabel\")"))
+        assertFalse("CleanInsuranceCard must stay stateless", cardSource.contains("mutableStateOf"))
+    }
+
+    @Test
+    fun careTeamShimmerDelaysThreeSecondsOnUnassignedCards() {
+        val careTeamSource = readSource("ui/components/home/HomeCareTeamCards.kt")
+        assertTrue(careTeamSource.contains("delay(3_000)"))
+        assertTrue(careTeamSource.contains("!cardState.isAssigned && showShimmer"))
+    }
+
+    @Test
+    fun firebaseProfileMapperPersistsCopayFields() {
+        val mapperSource = readSource("data/FirebaseEobMapper.kt")
+        listOf(
+            "\"pcpCopay\" to profile.pcpCopay",
+            "\"specialistCopay\" to profile.specialistCopay",
+            "pcpCopay = data.stringValue",
+            "specialistCopay = data.stringValue"
+        ).forEach { snippet ->
+            assertTrue("FirebaseEobMapper missing copay field: $snippet", mapperSource.contains(snippet))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

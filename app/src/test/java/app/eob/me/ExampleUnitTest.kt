@@ -292,6 +292,8 @@ class ExampleUnitTest {
             insuranceName = "Aetna",
             insuranceId = "SUB123",
             groupName = "GRP456",
+            pcpCopay = "25",
+            specialistCopay = "50",
             insuranceCardDownloadUrl = "https://firebasestorage.example/card.jpg"
         )
         val profileMap = FirebaseEobMapper.profileToMap(profile)

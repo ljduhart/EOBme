@@ -216,6 +216,29 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun cleanInsuranceCardKeysResolveForEveryLanguage() {
+        val keys = listOf(
+            "cleanInsuranceMemberIdLabel",
+            "cleanInsuranceGroupNumberLabel",
+            "cleanInsuranceCopayLabel",
+            "cleanInsuranceNameFallback",
+            "cleanInsuranceMemberIdFallback",
+            "cleanInsuranceGroupFallback",
+            "cleanInsuranceCopayFallback",
+            "pcpCopayField",
+            "specialistCopayField"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                assertNotEquals(key, EobStrings.t(language, key))
+            }
+            val copays = EobStrings.tf(language, "cleanInsuranceCopayFormat", "25", "50")
+            assertTrue(copays.contains("25"))
+            assertTrue(copays.contains("50"))
+        }
+    }
+
+    @Test
     fun providerAndYearlyChartKeysResolveForEveryLanguage() {
         val keys = listOf(
             "yearlyExpenseChartTitle",
