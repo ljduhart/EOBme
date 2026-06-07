@@ -311,6 +311,8 @@ class ExampleUnitTest {
         val restoredRecord = FirebaseEobMapper.eobFromMap(FirebaseEobMapper.eobToMap(record))
 
         assertEquals(profile, restoredProfile)
+        assertEquals("Atlanta, GA", profile.locationLine())
+        assertEquals(7, profile.verificationFingerprint().length)
         assertEquals(record.insuranceName, restoredRecord.insuranceName)
         assertEquals(record.providerName, restoredRecord.providerName)
         assertEquals(record.serviceDateSortKey, restoredRecord.serviceDateSortKey)

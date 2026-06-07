@@ -329,23 +329,30 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun profileScreenWiresCleanInsuranceCardFromMergedProfile() {
+    fun homeScreenWiresCleanInsuranceCardFromProfile() {
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
         val profileSource = readSource("ui/screens/ProfileScreen.kt")
         val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
         listOf(
             "CleanInsuranceCard",
-            "mergedProfile.insuranceCompany",
-            "mergedProfile.memberId",
-            "mergedProfile.groupNumber",
-            "mergedProfile.pcpCopay",
-            "mergedProfile.specialistCopay",
-            "cleanInsuranceNameFallback",
-            "ProfileFields"
+            "profile.insuranceCompany",
+            "profile.memberId",
+            "profile.groupNumber",
+            "profile.pcpCopay",
+            "profile.specialistCopay",
+            "profile.locationLine",
+            "profile.verificationFingerprint",
+            "cleanInsuranceNameFallback"
         ).forEach { snippet ->
-            assertTrue("ProfileScreen missing CleanInsuranceCard wiring: $snippet", profileSource.contains(snippet))
+            assertTrue("HomeScreen missing CleanInsuranceCard wiring: $snippet", homeSource.contains(snippet))
         }
+        assertFalse(
+            "ProfileScreen must not render CleanInsuranceCard",
+            profileSource.contains("CleanInsuranceCard")
+        )
         assertTrue(cardSource.contains("ElevatedCard"))
-        assertTrue(cardSource.contains("EobStrings.t(language, \"cleanInsuranceMemberIdLabel\")"))
+        assertTrue(cardSource.contains("CardBackgroundGradient"))
+        assertTrue(cardSource.contains("VerifiedInsuranceBadge"))
         assertFalse("CleanInsuranceCard must stay stateless", cardSource.contains("mutableStateOf"))
     }
 

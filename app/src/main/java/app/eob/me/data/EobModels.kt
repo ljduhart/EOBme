@@ -54,6 +54,23 @@ data class UserProfile(
     val fullName: String
         get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
 
+    fun locationLine(): String = listOf(city, state).filter { it.isNotBlank() }.joinToString(", ")
+
+    fun verificationFingerprint(): String {
+        val seed = buildString {
+            append(insuranceId)
+            append('|')
+            append(insuranceName)
+            append('|')
+            append(groupName)
+            append('|')
+            append(city)
+            append('|')
+            append(state)
+        }
+        return seed.hashCode().toUInt().toString(16).takeLast(7).padStart(7, '0')
+    }
+
     /** Clamps plan limits for safe deductible-tracker math (ignores invalid stored values). */
     fun sanitizedPlanLimits(): UserProfile {
         return copy(
