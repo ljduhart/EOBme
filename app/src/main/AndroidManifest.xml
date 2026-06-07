@@ -12,8 +12,8 @@
     <!-- BILLING — Play Billing Client (com.android.billingclient:billing) -->
     <uses-permission android:name="com.android.vending.BILLING" />
     <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel; no extra permissions. -->
-    <!-- Hub state (records, bento, history, news, smart gold care-team cards, editable home
-         insurance card via EobViewModel.insuranceCardDisplay / applyInsuranceCardEdits) +
+    <!-- Hub state (records, uniform bento grid via BentoCellLayout, history, news, smart gold
+         care-team cards with 4s shimmer delay, editable home insurance card via EobViewModel) +
          EobRepository; care team dial uses ACTION_DIAL only (no CALL_PHONE). Runtime permissions
          in EobNavHost. -->
     <uses-feature

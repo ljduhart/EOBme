@@ -69,7 +69,7 @@ fun YtdExpenseBentoCell(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(1.35f),
+            .aspectRatio(BentoCellLayout.ASPECT_RATIO),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

@@ -140,7 +140,7 @@ private fun CareTeamSmartCard(
     LaunchedEffect(cardState.type, cardState.isAssigned) {
         showShimmer = false
         if (!cardState.isAssigned) {
-            delay(3_000)
+            delay(4_000)
             showShimmer = true
         }
     }

@@ -88,7 +88,7 @@ fun ProviderDirectoryBentoCell(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(1.35f)
+            .aspectRatio(BentoCellLayout.ASPECT_RATIO)
             .hoverable(interactionSource = interactionSource)
             .clickable(
                 interactionSource = interactionSource,

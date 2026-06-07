@@ -377,10 +377,30 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun careTeamShimmerDelaysThreeSecondsOnUnassignedCards() {
+    fun careTeamShimmerDelaysFourSecondsOnUnassignedCards() {
         val careTeamSource = readSource("ui/components/home/HomeCareTeamCards.kt")
-        assertTrue(careTeamSource.contains("delay(3_000)"))
+        assertTrue(careTeamSource.contains("delay(4_000)"))
         assertTrue(careTeamSource.contains("!cardState.isAssigned && showShimmer"))
+    }
+
+    @Test
+    fun allBentoCellsShareUniformAspectRatio() {
+        val layoutSource = readSource("ui/components/bento/BentoCellLayout.kt")
+        val bentoCells = listOf(
+            "ui/components/bento/BentoGridCell.kt",
+            "ui/components/bento/HistoryBentoCell.kt",
+            "ui/components/bento/ProviderDirectoryBentoCell.kt",
+            "ui/components/bento/CptTrackerBentoCell.kt",
+            "ui/components/bento/YtdExpenseBentoCell.kt"
+        )
+        assertTrue(layoutSource.contains("ASPECT_RATIO"))
+        bentoCells.forEach { relativePath ->
+            val source = readSource(relativePath)
+            assertTrue(
+                "$relativePath must use BentoCellLayout.ASPECT_RATIO",
+                source.contains("BentoCellLayout.ASPECT_RATIO")
+            )
+        }
     }
 
     @Test
