@@ -459,7 +459,63 @@ class ExampleUnitTest {
         assertTrue(text.contains("EobRoute.Appeal.route"))
         assertTrue(text.contains("popUpTo(EobRoute.Home.route)"))
         assertTrue(homeText.contains("AppealGeneratorCard"))
-        assertTrue(homeText.contains("onOpenAppeal"))
+        assertTrue(text.contains("selectFlaggedClaim"))
+        assertTrue(text.contains("appealLetterEditingEnabled"))
+        assertTrue(homeText.contains("onFlaggedClaimSelected"))
+    }
+
+    @Test
+    fun flaggedClaimSelectionPrefillsAppealAndLocksEditing() {
+        val viewModel = EobViewModel()
+        val flagged = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2025
+                Claim denied as not covered.
+                99215 billed $300.00 contractual adjustment $0.00 copay $0.00 deductible $300.00 coinsurance $0.00
+            """.trimIndent(),
+            "library",
+            60
+        )
+        val profile = UserProfile(
+            firstName = "Lester",
+            lastName = "Duhart",
+            email = "member@example.com",
+            password = "password1",
+            city = "Atlanta",
+            state = "GA"
+        )
+        viewModel.replaceRecords(listOf(flagged), profile)
+
+        val snapshot = viewModel.appealGeneratorSnapshot(AppLanguage.English)
+        assertEquals(1, snapshot.flaggedClaims.size)
+
+        val selected = viewModel.selectFlaggedClaim(flagged.id, profile)
+        assertTrue(selected)
+        assertFalse(viewModel.appealLetterEditingEnabled)
+        assertTrue(viewModel.appealLetter.contains("Downtown Medical Group"))
+        assertTrue(viewModel.appealLetter.contains("Possible denial language"))
+    }
+
+    @Test
+    fun appealLetterEditingRequiresExplicitEditAndSave() {
+        val viewModel = EobViewModel()
+        val profile = UserProfile(
+            firstName = "A",
+            lastName = "B",
+            email = "a@b.com",
+            password = "password1",
+            city = "X",
+            state = "Y"
+        )
+        assertFalse(viewModel.appealLetterEditingEnabled)
+        viewModel.enableAppealLetterEditing()
+        assertTrue(viewModel.appealLetterEditingEnabled)
+        viewModel.updateAppeal("Edited draft body")
+        viewModel.saveAppealLetter()
+        assertFalse(viewModel.appealLetterEditingEnabled)
+        assertEquals("Edited draft body", viewModel.appealLetter)
     }
 
     @Test

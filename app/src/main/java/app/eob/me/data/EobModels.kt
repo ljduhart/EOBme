@@ -171,11 +171,20 @@ enum class ProviderNetworkAssurance {
     OutOfNetwork
 }
 
+data class FlaggedClaimPreview(
+    val recordId: Int,
+    val providerName: String,
+    val serviceDate: String,
+    val issueHeadline: String,
+    val isSelected: Boolean
+)
+
 data class AppealGeneratorSnapshot(
     val pendingDisputableClaims: Int,
     val claimScanComplete: Boolean,
     val statusLine: String,
-    val summaryLine: String
+    val summaryLine: String,
+    val flaggedClaims: List<FlaggedClaimPreview>
 )
 
 data class ProviderSummary(

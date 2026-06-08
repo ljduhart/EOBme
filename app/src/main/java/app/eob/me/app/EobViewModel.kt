@@ -32,6 +32,8 @@ class EobViewModel : ViewModel() {
     var selectedCptCategory by mutableStateOf(CptCategory.OfficeVisit)
     var appealLetter by mutableStateOf(AppealLetterGenerator.generate(UserProfile(), selectedRecord))
         private set
+    var appealLetterEditingEnabled by mutableStateOf(false)
+        private set
     var firebaseStatus by mutableStateOf(FirebaseSyncStatus(isConfigured = false))
     var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
     var claimScanComplete by mutableStateOf(true)
@@ -77,7 +79,11 @@ class EobViewModel : ViewModel() {
             pendingDisputableClaims = pendingClaims,
             claimScanComplete = claimScanComplete,
             statusLine = statusLine,
-            summaryLine = summaryLine
+            summaryLine = summaryLine,
+            flaggedClaims = EobAnalyzer.flaggedClaimPreviews(
+                records = records,
+                selectedRecordId = selectedRecord?.id
+            )
         )
     }
 
@@ -87,8 +93,26 @@ class EobViewModel : ViewModel() {
 
     fun selectRecord(record: EobRecord, profile: UserProfile) {
         selectedRecord = record
+        appealLetterEditingEnabled = false
         regenerateAppeal(profile)
         uploadNotice = ""
+    }
+
+    fun selectFlaggedClaim(recordId: Int, profile: UserProfile): Boolean {
+        val record = records.firstOrNull { it.id == recordId } ?: return false
+        selectedRecord = record
+        appealLetterEditingEnabled = false
+        regenerateAppeal(profile)
+        uploadNotice = ""
+        return true
+    }
+
+    fun enableAppealLetterEditing() {
+        appealLetterEditingEnabled = true
+    }
+
+    fun saveAppealLetter() {
+        appealLetterEditingEnabled = false
     }
 
     fun deleteRecord(record: EobRecord, profile: UserProfile) {
@@ -121,6 +145,7 @@ class EobViewModel : ViewModel() {
     }
 
     fun regenerateAppeal(profile: UserProfile) {
+        appealLetterEditingEnabled = false
         appealLetter = AppealLetterGenerator.generate(profile, selectedRecord)
     }
 

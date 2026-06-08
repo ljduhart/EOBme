@@ -250,8 +250,26 @@ object EobAnalyzer {
     }
 
     fun disputableClaimsCount(records: List<EobRecord>): Int {
-        return records.count { record ->
-            detectBillingIssues(record).any { issue -> issue.severity != BillingIssueSeverity.Info }
+        return flaggedClaimPreviews(records, selectedRecordId = null).size
+    }
+
+    fun flaggedClaimPreviews(
+        records: List<EobRecord>,
+        selectedRecordId: Int?
+    ): List<FlaggedClaimPreview> {
+        return records.mapNotNull { record ->
+            val issues = detectBillingIssues(record)
+                .filter { issue -> issue.severity != BillingIssueSeverity.Info }
+            if (issues.isEmpty()) return@mapNotNull null
+            FlaggedClaimPreview(
+                recordId = record.id,
+                providerName = record.providerName,
+                serviceDate = record.serviceDate,
+                issueHeadline = issues.first().title,
+                isSelected = record.id == selectedRecordId
+            )
+        }.sortedByDescending { preview ->
+            records.firstOrNull { it.id == preview.recordId }?.serviceDateSortKey ?: Int.MIN_VALUE
         }
     }
 

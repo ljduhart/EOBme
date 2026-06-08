@@ -193,12 +193,14 @@ fun EobNavHost(
                         uploadNotice = viewModel.uploadNotice,
                         appealGeneratorSnapshot = viewModel.appealGeneratorSnapshot(language),
                         providers = viewModel.providerDirectory(),
-                        onOpenAppeal = {
-                            navController.navigate(EobRoute.Appeal.route) {
-                                launchSingleTop = true
-                                popUpTo(EobRoute.Home.route)
+                        onFlaggedClaimSelected = { recordId ->
+                            if (viewModel.selectFlaggedClaim(recordId, profile)) {
+                                navController.navigate(EobRoute.Appeal.route) {
+                                    launchSingleTop = true
+                                    popUpTo(EobRoute.Home.route)
+                                }
+                                onActivity()
                             }
-                            onActivity()
                         },
                         onAddAppointment = { date, provider, time, notes ->
                             viewModel.addAppointment(date, provider, time, notes)
@@ -264,13 +266,25 @@ fun EobNavHost(
                     )
                 }
                 composable(EobRoute.Appeal.route) {
-                    AppealScreen(language, profile, viewModel.selectedRecord, viewModel.appealLetter, {
-                        viewModel.regenerateAppeal(profile)
-                        onActivity()
-                    }, {
-                        viewModel.updateAppeal(it)
-                        onActivity()
-                    })
+                    AppealScreen(
+                        language = language,
+                        profile = profile,
+                        selectedRecord = viewModel.selectedRecord,
+                        letter = viewModel.appealLetter,
+                        isEditing = viewModel.appealLetterEditingEnabled,
+                        onEdit = {
+                            viewModel.enableAppealLetterEditing()
+                            onActivity()
+                        },
+                        onSave = {
+                            viewModel.saveAppealLetter()
+                            onActivity()
+                        },
+                        onLetterChanged = {
+                            viewModel.updateAppeal(it)
+                            onActivity()
+                        }
+                    )
                 }
                 composable(EobRoute.Profile.route) {
                     ProfileScreen(

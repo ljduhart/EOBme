@@ -27,7 +27,7 @@ fun HomeScreen(
     uploadNotice: String,
     appealGeneratorSnapshot: AppealGeneratorSnapshot,
     providers: List<ProviderSummary>,
-    onOpenAppeal: () -> Unit,
+    onFlaggedClaimSelected: (Int) -> Unit,
     onAddAppointment: (String, String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit
 ) {
@@ -41,7 +41,7 @@ fun HomeScreen(
             AppealGeneratorCard(
                 language = language,
                 snapshot = appealGeneratorSnapshot,
-                onOpenAppeal = onOpenAppeal
+                onFlaggedClaimSelected = onFlaggedClaimSelected
             )
         }
         item { ProviderDirectoryCard(language = language, providers = providers) }

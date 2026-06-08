@@ -196,7 +196,9 @@ fun AppealScreen(
     profile: UserProfile,
     selectedRecord: EobRecord?,
     letter: String,
-    onRegenerate: () -> Unit,
+    isEditing: Boolean,
+    onEdit: () -> Unit,
+    onSave: () -> Unit,
     onLetterChanged: (String) -> Unit
 ) {
     Column(
@@ -210,14 +212,38 @@ fun AppealScreen(
         Text(EobStrings.t(language, "appealHelp"))
         Text("${EobStrings.t(language, "currentMember")}: ${profile.fullName.ifBlank { EobStrings.t(language, "profileIncomplete") }}")
         Text("${EobStrings.t(language, "selectedEob")}: ${selectedRecord?.providerName ?: EobStrings.t(language, "noEobSelected")}")
-        Button(onClick = onRegenerate) { Text(EobStrings.t(language, "autoFillAppeal")) }
+        selectedRecord?.let { record ->
+            Text("${EobStrings.t(language, "dateOfService")}: ${record.serviceDate}")
+            Text("${EobStrings.t(language, "eobBilledAmount")}: ${record.totalBilledAmount.asCurrency()}")
+        }
         OutlinedTextField(
             value = letter,
             onValueChange = onLetterChanged,
             modifier = Modifier.fillMaxWidth(),
             minLines = 14,
+            readOnly = !isEditing,
+            enabled = isEditing,
             label = { Text(EobStrings.t(language, "editAppealLetter")) }
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = onEdit,
+                enabled = !isEditing && selectedRecord != null,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(EobStrings.t(language, "appealEditLetter"))
+            }
+            Button(
+                onClick = onSave,
+                enabled = isEditing,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(EobStrings.t(language, "appealSaveLetter"))
+            }
+        }
     }
 }
 
