@@ -22,6 +22,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CptBentoSnapshot
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
+import app.eob.me.data.InsuranceNewsBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderDirectoryAssurance
@@ -41,6 +42,7 @@ fun BentoGridCell(
     providerDirectoryAssurance: ProviderDirectoryAssurance,
     cptBentoSnapshot: CptBentoSnapshot,
     ytdBentoSnapshot: YtdDeductibleBentoSnapshot,
+    insuranceNewsBentoSnapshot: InsuranceNewsBentoSnapshot,
     ytdBentoViewMode: YtdBentoViewMode,
     onYtdViewModeSelected: (YtdBentoViewMode) -> Unit,
     onClick: () -> Unit,
@@ -85,6 +87,14 @@ fun BentoGridCell(
                 snapshot = ytdBentoSnapshot,
                 viewMode = ytdBentoViewMode,
                 onViewModeSelected = onYtdViewModeSelected,
+                onClick = onClick,
+                modifier = modifier
+            )
+        }
+        HubBentoDestination.InsuranceNews -> {
+            InsuranceNewsBentoCell(
+                language = language,
+                snapshot = insuranceNewsBentoSnapshot,
                 onClick = onClick,
                 modifier = modifier
             )

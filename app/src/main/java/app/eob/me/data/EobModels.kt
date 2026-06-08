@@ -237,6 +237,14 @@ enum class PriceTrendDirection {
     AboveFair
 }
 
+data class InsuranceNewsBentoSnapshot(
+    val tickerHeadlines: List<String>,
+    val previewHeadline: String,
+    val previewCompany: String,
+    val criticalAlertActive: Boolean,
+    val actionSummary: String
+)
+
 data class YtdDeductibleBentoSnapshot(
     val year: Int,
     val totalBilled: Double,

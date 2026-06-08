@@ -304,6 +304,7 @@ class EobFlowArchitectureTest {
             "applyInsuranceCardEdits",
             "cptBentoSnapshot",
             "ytdDeductibleBentoSnapshot",
+            "newsBentoSnapshot",
             "historyBentoSnapshot",
             "providerAvatarPreviews",
             "providerDirectory",
@@ -344,6 +345,40 @@ class EobFlowArchitectureTest {
             "EobNavHost should not call EobAnalyzer directly",
             navHostSource.contains("EobAnalyzer.")
         )
+    }
+
+    @Test
+    fun insuranceNewsBentoCellWiredThroughHomeAndNavHost() {
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+        val bentoSource = readSource("ui/components/bento/BentoGridCell.kt")
+        val newsCellSource = readSource("ui/components/bento/InsuranceNewsBentoCell.kt")
+        assertTrue(
+            "Missing InsuranceNewsBentoCell.kt",
+            File(appModuleRoot, "ui/components/bento/InsuranceNewsBentoCell.kt").isFile
+        )
+        listOf("insuranceNewsBentoSnapshot").forEach { snippet ->
+            assertTrue("HomeScreen missing: $snippet", homeSource.contains(snippet))
+            assertTrue("EobNavHost missing: $snippet", navHostSource.contains(snippet))
+        }
+        listOf(
+            "InsuranceNewsBentoCell",
+            "HubBentoDestination.InsuranceNews"
+        ).forEach { snippet ->
+            assertTrue("BentoGridCell missing: $snippet", bentoSource.contains(snippet))
+        }
+        listOf(
+            "eobViewModel.newsBentoSnapshot",
+            "EobKnowledgeBase.newsReleases"
+        ).forEach { snippet ->
+            assertTrue("EobNavHost missing: $snippet", navHostSource.contains(snippet))
+        }
+        listOf(
+            "Spring.StiffnessLow",
+            "graphicsLayer",
+            "infiniteRepeatable"
+        ).forEach { snippet ->
+            assertTrue("InsuranceNewsBentoCell missing: $snippet", newsCellSource.contains(snippet))
+        }
     }
 
     @Test

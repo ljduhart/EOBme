@@ -23,6 +23,7 @@ import app.eob.me.data.CareTeamStateExtractor
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.InsuranceCardDisplay
 import app.eob.me.data.HistoryBentoSnapshot
+import app.eob.me.data.InsuranceNewsBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.InsuranceArticle
@@ -504,6 +505,17 @@ class EobViewModel : ViewModel() {
         return BentoSnapshotExtractor.buildYtdDeductibleBentoSnapshot(
             records = _eobRecords.value,
             profile = profile.sanitizedPlanLimits()
+        )
+    }
+
+    fun newsBentoSnapshot(
+        language: AppLanguage,
+        fallbackNews: List<NewsRelease>
+    ): InsuranceNewsBentoSnapshot {
+        return BentoSnapshotExtractor.buildInsuranceNewsBentoSnapshot(
+            language = language,
+            releases = currentNewsReleases(fallbackNews),
+            records = _eobRecords.value
         )
     }
 

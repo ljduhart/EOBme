@@ -35,6 +35,7 @@ import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.CptBentoSnapshot
 import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
+import app.eob.me.data.InsuranceNewsBentoSnapshot
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.ProviderAvatarPreview
@@ -86,6 +87,7 @@ fun HomeScreen(
     providerDirectoryAssurance: ProviderDirectoryAssurance,
     cptBentoSnapshot: CptBentoSnapshot,
     ytdBentoSnapshot: YtdDeductibleBentoSnapshot,
+    insuranceNewsBentoSnapshot: InsuranceNewsBentoSnapshot,
     ytdBentoViewMode: YtdBentoViewMode,
     onYtdBentoViewModeSelected: (YtdBentoViewMode) -> Unit,
     calendarExpanded: Boolean,
@@ -258,6 +260,7 @@ fun HomeScreen(
                                 providerDirectoryAssurance = providerDirectoryAssurance,
                                 cptBentoSnapshot = cptBentoSnapshot,
                                 ytdBentoSnapshot = ytdBentoSnapshot,
+                                insuranceNewsBentoSnapshot = insuranceNewsBentoSnapshot,
                                 ytdBentoViewMode = ytdBentoViewMode,
                                 onYtdViewModeSelected = onYtdBentoViewModeSelected,
                                 onClick = { onBentoSelected(destination) },
