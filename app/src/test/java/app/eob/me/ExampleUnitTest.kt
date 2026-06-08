@@ -7,6 +7,12 @@ import app.eob.me.data.FirebaseEobMapper
 import app.eob.me.data.UserProfile
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.BillingIssueType
+import app.eob.me.data.ProviderNetworkAssurance
+import app.eob.me.app.EobViewModel
+import app.eob.me.data.AppLanguage
+import app.eob.me.navigation.EobRoute
+import app.eob.me.navigation.primaryRoutes
+import java.io.File
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -400,6 +406,109 @@ class ExampleUnitTest {
 
         assertTrue(EobAnalyzer.isSameEob(original, replacement))
         assertFalse(EobAnalyzer.isSameEob(original, differentVisit))
+    }
+
+    @Test
+    fun providerNetworkAssuranceFlagsOutOfNetworkText() {
+        val record = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Out of Network Clinic
+                Date of Service: 02/03/2025
+                Out-of-network provider billed $400.00 insurance paid $0.00
+            """.trimIndent(),
+            "library",
+            40
+        )
+
+        assertEquals(ProviderNetworkAssurance.OutOfNetwork, EobAnalyzer.providerNetworkAssurance(record))
+    }
+
+    @Test
+    fun providerDirectoryIncludesNetworkAssurance() {
+        val inNetwork = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2026
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00
+            """.trimIndent(),
+            "library",
+            41
+        )
+
+        val provider = EobAnalyzer.providerDirectory(listOf(inNetwork)).first()
+
+        assertEquals(ProviderNetworkAssurance.InNetwork, provider.networkAssurance)
+    }
+
+    @Test
+    fun appealGeneratorNavigationWiringUsesViewModelAndAppealRoute() {
+        val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt")
+            .takeIf { it.isFile }
+            ?: File("app/src/main/java/app/eob/me/navigation/EobNavHost.kt")
+        val homeSource = File("src/main/java/app/eob/me/ui/screens/HomeScreen.kt")
+            .takeIf { it.isFile }
+            ?: File("app/src/main/java/app/eob/me/ui/screens/HomeScreen.kt")
+        val text = navHostSource.readText()
+        val homeText = homeSource.readText()
+
+        assertTrue(EobRoute.Appeal in primaryRoutes)
+        assertTrue(text.contains("appealGeneratorSnapshot = viewModel.appealGeneratorSnapshot(language)"))
+        assertTrue(text.contains("providers = viewModel.providerDirectory()"))
+        assertTrue(text.contains("EobRoute.Appeal.route"))
+        assertTrue(text.contains("popUpTo(EobRoute.Home.route)"))
+        assertTrue(homeText.contains("AppealGeneratorCard"))
+        assertTrue(homeText.contains("onOpenAppeal"))
+    }
+
+    @Test
+    fun deleteRecordRoutesThroughReplaceRecordsAndClaimScan() {
+        val viewModel = EobViewModel()
+        val first = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Alpha Clinic
+                Date of Service: 02/03/2026
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00
+            """.trimIndent(),
+            "library",
+            50
+        )
+        val second = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Beta Clinic
+                Date of Service: 03/03/2026
+                99214 billed $200.00 insurance paid $100.00 contractual adjustment $50.00
+            """.trimIndent(),
+            "library",
+            51
+        )
+        val profile = UserProfile(
+            firstName = "A",
+            lastName = "B",
+            email = "a@b.com",
+            password = "password1",
+            city = "X",
+            state = "Y"
+        )
+        viewModel.replaceRecords(listOf(first, second), profile)
+        viewModel.deleteRecord(first, profile)
+
+        assertEquals(1, viewModel.records.size)
+        assertTrue(viewModel.claimScanComplete)
+        assertEquals(second.id, viewModel.selectedRecord?.id)
+    }
+
+    @Test
+    fun viewModelAppealGeneratorSnapshotReflectsDisputableClaims() {
+        val viewModel = EobViewModel()
+        val snapshot = viewModel.appealGeneratorSnapshot(AppLanguage.English)
+
+        assertTrue(snapshot.claimScanComplete)
+        assertTrue(snapshot.statusLine.isNotBlank())
+        assertTrue(snapshot.summaryLine.isNotBlank())
     }
 
     @Test

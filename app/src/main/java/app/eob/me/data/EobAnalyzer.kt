@@ -249,6 +249,49 @@ object EobAnalyzer {
         return issues.distinctBy { it.type }
     }
 
+    fun disputableClaimsCount(records: List<EobRecord>): Int {
+        return records.count { record ->
+            detectBillingIssues(record).any { issue -> issue.severity != BillingIssueSeverity.Info }
+        }
+    }
+
+    fun providerNetworkAssurance(record: EobRecord): ProviderNetworkAssurance {
+        val text = record.rawText.lowercase()
+        if (
+            text.contains("out-of-network") ||
+            text.contains("out of network") ||
+            text.contains("non-participating") ||
+            text.contains("non participating")
+        ) {
+            return ProviderNetworkAssurance.OutOfNetwork
+        }
+        if (
+            record.providerName.contains("not recognized", ignoreCase = true) ||
+            record.insuranceName.contains("not recognized", ignoreCase = true)
+        ) {
+            return ProviderNetworkAssurance.PendingVerification
+        }
+        if (record.totalInsurancePaidAmount > 0.0 || record.totalContractualAdjustmentAmount > 0.0) {
+            return ProviderNetworkAssurance.InNetwork
+        }
+        if (record.totalBilledAmount > 0.0 && record.totalInsurancePaidAmount == 0.0) {
+            if (text.contains("denied") || text.contains("not covered")) {
+                return ProviderNetworkAssurance.OutOfNetwork
+            }
+            return ProviderNetworkAssurance.PendingVerification
+        }
+        return ProviderNetworkAssurance.PendingVerification
+    }
+
+    fun aggregateProviderNetworkAssurance(records: List<EobRecord>): ProviderNetworkAssurance {
+        val assurances = records.map(::providerNetworkAssurance)
+        return when {
+            assurances.any { it == ProviderNetworkAssurance.OutOfNetwork } -> ProviderNetworkAssurance.OutOfNetwork
+            assurances.any { it == ProviderNetworkAssurance.PendingVerification } -> ProviderNetworkAssurance.PendingVerification
+            else -> ProviderNetworkAssurance.InNetwork
+        }
+    }
+
     fun providerDirectory(records: List<EobRecord>): List<ProviderSummary> {
         return records
             .filter { it.providerName.isNotBlank() && !it.providerName.contains("not recognized", ignoreCase = true) }
@@ -260,8 +303,11 @@ object EobAnalyzer {
                     eobCount = providerRecords.size,
                     totalBilled = providerRecords.sumOf { it.totalBilledAmount },
                     totalInsurancePaid = providerRecords.sumOf { it.totalInsurancePaidAmount },
-                    totalPatientResponsibility = providerRecords.sumOf { it.totalCopayAmount + it.totalDeductibleAmount + it.totalCoinsuranceAmount },
-                    lastServiceDate = latest?.serviceDate ?: "Date not recognized"
+                    totalPatientResponsibility = providerRecords.sumOf {
+                        it.totalCopayAmount + it.totalDeductibleAmount + it.totalCoinsuranceAmount
+                    },
+                    lastServiceDate = latest?.serviceDate ?: "Date not recognized",
+                    networkAssurance = aggregateProviderNetworkAssurance(providerRecords)
                 )
             }
             .sortedByDescending { it.eobCount }

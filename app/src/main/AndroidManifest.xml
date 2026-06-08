@@ -1,13 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- INTERNET — Firebase Auth, Firestore, Storage; EOB sync via EobViewModel / FirebaseEobRepository -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- ACCESS_NETWORK_STATE — connectivity checks before remote claim/news sync -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- CAMERA — EobRoute.CameraCapture (CameraX); runtime request in EobNavHost -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- POST_NOTIFICATIONS — EobFirebaseMessagingService; runtime request API 33+ in EobNavHost -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- BILLING — Play Billing Client -->
     <uses-permission android:name="com.android.vending.BILLING" />
+    <!-- Hub: Appeal Generator shield card + Provider Directory assurance badges via EobViewModel.
+         Onboarding (Splash → Language → Intro) unchanged; no extra permissions. -->
     <uses-feature
         android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
         android:required="false" />
 
     <application

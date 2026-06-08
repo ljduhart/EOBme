@@ -165,11 +165,25 @@ data class BillingIssue(
     val recommendedAction: String
 )
 
+enum class ProviderNetworkAssurance {
+    InNetwork,
+    PendingVerification,
+    OutOfNetwork
+}
+
+data class AppealGeneratorSnapshot(
+    val pendingDisputableClaims: Int,
+    val claimScanComplete: Boolean,
+    val statusLine: String,
+    val summaryLine: String
+)
+
 data class ProviderSummary(
     val providerName: String,
     val eobCount: Int,
     val totalBilled: Double,
     val totalInsurancePaid: Double,
     val totalPatientResponsibility: Double,
-    val lastServiceDate: String
+    val lastServiceDate: String,
+    val networkAssurance: ProviderNetworkAssurance = ProviderNetworkAssurance.PendingVerification
 )

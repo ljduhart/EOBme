@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import app.eob.me.data.AppealGeneratorSnapshot
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.CptCategory
@@ -17,6 +18,7 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
+import app.eob.me.data.ProviderSummary
 import app.eob.me.data.UserProfile
 
 class EobViewModel : ViewModel() {
@@ -32,9 +34,12 @@ class EobViewModel : ViewModel() {
         private set
     var firebaseStatus by mutableStateOf(FirebaseSyncStatus(isConfigured = false))
     var firebaseNews by mutableStateOf<List<NewsRelease>>(emptyList())
+    var claimScanComplete by mutableStateOf(true)
+        private set
     private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
 
     fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
+        beginLocalClaimScan()
         val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
         records.clear()
         records.addAll(compacted)
@@ -45,6 +50,39 @@ class EobViewModel : ViewModel() {
             compacted.firstOrNull { it.id == current.id }
         }
         regenerateAppeal(profile)
+        finishLocalClaimScan()
+    }
+
+    private fun beginLocalClaimScan() {
+        claimScanComplete = false
+    }
+
+    private fun finishLocalClaimScan() {
+        claimScanComplete = true
+    }
+
+    fun appealGeneratorSnapshot(language: AppLanguage): AppealGeneratorSnapshot {
+        val pendingClaims = EobAnalyzer.disputableClaimsCount(records)
+        val statusLine = if (claimScanComplete) {
+            EobStrings.tf(language, "appealGeneratorClaimsReady", pendingClaims)
+        } else {
+            EobStrings.t(language, "appealGeneratorScanning")
+        }
+        val summaryLine = when {
+            !claimScanComplete -> EobStrings.t(language, "appealGeneratorScanningDetail")
+            pendingClaims > 0 -> EobStrings.tf(language, "appealGeneratorDisputeSummary", pendingClaims)
+            else -> EobStrings.t(language, "appealGeneratorAllClear")
+        }
+        return AppealGeneratorSnapshot(
+            pendingDisputableClaims = pendingClaims,
+            claimScanComplete = claimScanComplete,
+            statusLine = statusLine,
+            summaryLine = summaryLine
+        )
+    }
+
+    fun providerDirectory(): List<ProviderSummary> {
+        return EobAnalyzer.providerDirectory(records)
     }
 
     fun selectRecord(record: EobRecord, profile: UserProfile) {
@@ -54,9 +92,7 @@ class EobViewModel : ViewModel() {
     }
 
     fun deleteRecord(record: EobRecord, profile: UserProfile) {
-        records.removeAll { it.id == record.id }
-        selectedRecord = records.firstOrNull()
-        regenerateAppeal(profile)
+        replaceRecords(records.filterNot { it.id == record.id }, profile)
     }
 
     fun deleteNews(news: NewsRelease) {
