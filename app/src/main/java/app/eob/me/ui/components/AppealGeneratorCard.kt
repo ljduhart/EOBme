@@ -10,14 +10,16 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +38,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppealGeneratorSnapshot
 import app.eob.me.data.AppLanguage
@@ -46,11 +49,12 @@ private val ShieldBlue = Color(0xFF2498EA)
 private val ShieldCyan = Color(0xFF00E5FF)
 private val ShieldGold = Color(0xFFD4AF37)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppealGeneratorCard(
     language: AppLanguage,
     snapshot: AppealGeneratorSnapshot,
-    onOpenAppeal: () -> Unit,
+    onFlaggedClaimSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var breatheExpanded by remember { mutableStateOf(false) }
@@ -98,69 +102,101 @@ fun AppealGeneratorCard(
         end = Offset(200f * shimmerProgress + 260f, 40f)
     )
 
-    ElevatedCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpenAppeal)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Canvas(
-                modifier = Modifier.size(52.dp)
+        if (snapshot.flaggedClaims.isNotEmpty()) {
+            Text(
+                text = EobStrings.t(language, "appealGeneratorFlaggedClaims"),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                scale(breathScale, breathScale, center) {
-                    val shieldPath = Path().apply {
-                        val w = size.width
-                        val h = size.height
-                        moveTo(w * 0.5f, h * 0.06f)
-                        cubicTo(w * 0.82f, h * 0.16f, w * 0.9f, h * 0.42f, w * 0.5f, h * 0.94f)
-                        cubicTo(w * 0.1f, h * 0.42f, w * 0.18f, h * 0.16f, w * 0.5f, h * 0.06f)
-                        close()
-                    }
-                    drawPath(
-                        path = shieldPath,
-                        brush = Brush.linearGradient(
-                            colors = listOf(ShieldCyan, ShieldBlue, ShieldGold.copy(alpha = 0.8f))
-                        )
-                    )
-                    drawPath(
-                        path = shieldPath,
-                        color = Color.White.copy(alpha = 0.35f),
-                        style = Stroke(width = 2.dp.toPx())
+                snapshot.flaggedClaims.forEach { claim ->
+                    FilterChip(
+                        selected = claim.isSelected,
+                        onClick = { onFlaggedClaimSelected(claim.recordId) },
+                        label = {
+                            Text(
+                                text = EobStrings.tf(
+                                    language,
+                                    "appealGeneratorFlaggedClaimChip",
+                                    claim.providerName,
+                                    claim.serviceDate
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     )
                 }
             }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+        }
+
+        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = EobStrings.t(language, "appealGeneratorTitle"),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                HolographicAppealLine(
-                    text = snapshot.statusLine,
-                    shimmerBrush = shimmerBrush,
-                    settled = settledShimmer,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                )
-                HolographicAppealLine(
-                    text = snapshot.summaryLine,
-                    shimmerBrush = shimmerBrush,
-                    settled = settledShimmer,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Text(
-                    text = EobStrings.t(language, "appealGeneratorTapToOpen"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Canvas(modifier = Modifier.size(52.dp)) {
+                    scale(breathScale, breathScale, center) {
+                        val shieldPath = Path().apply {
+                            val w = size.width
+                            val h = size.height
+                            moveTo(w * 0.5f, h * 0.06f)
+                            cubicTo(w * 0.82f, h * 0.16f, w * 0.9f, h * 0.42f, w * 0.5f, h * 0.94f)
+                            cubicTo(w * 0.1f, h * 0.42f, w * 0.18f, h * 0.16f, w * 0.5f, h * 0.06f)
+                            close()
+                        }
+                        drawPath(
+                            path = shieldPath,
+                            brush = Brush.linearGradient(
+                                colors = listOf(ShieldCyan, ShieldBlue, ShieldGold.copy(alpha = 0.8f))
+                            )
+                        )
+                        drawPath(
+                            path = shieldPath,
+                            color = Color.White.copy(alpha = 0.35f),
+                            style = Stroke(width = 2.dp.toPx())
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = EobStrings.t(language, "appealGeneratorTitle"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    HolographicAppealLine(
+                        text = snapshot.statusLine,
+                        shimmerBrush = shimmerBrush,
+                        settled = settledShimmer,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    HolographicAppealLine(
+                        text = snapshot.summaryLine,
+                        shimmerBrush = shimmerBrush,
+                        settled = settledShimmer,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = EobStrings.t(language, "appealGeneratorSelectClaimHint"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
