@@ -123,12 +123,67 @@ class EobFlowArchitectureTest {
                 HubBentoDestination.AppealGenerator -> "EobRoute.Appeal.route"
             }
             assertTrue("Bento ${destination.name} missing nav wiring", navHostSource.contains(routeToken))
+            assertTrue(
+                "Bento ${destination.name} route must be a hub feature route",
+                destination.route in hubFeatureRoutes
+            )
+            assertTrue(
+                "Bento ${destination.name} route must show hub back navigation",
+                destination.route in hubBackRoutes
+            )
         }
-        assertTrue(File(appModuleRoot, "ui/components/bento/HistoryBentoCell.kt").isFile)
-        assertTrue(File(appModuleRoot, "ui/components/bento/ProviderDirectoryBentoCell.kt").isFile)
-        assertTrue(File(appModuleRoot, "ui/components/bento/BentoGridCell.kt").isFile)
+        listOf(
+            "ui/components/bento/BentoCellLayout.kt",
+            "ui/components/bento/HistoryBentoCell.kt",
+            "ui/components/bento/ProviderDirectoryBentoCell.kt",
+            "ui/components/bento/CptTrackerBentoCell.kt",
+            "ui/components/bento/YtdExpenseBentoCell.kt",
+            "ui/components/bento/BentoGridCell.kt"
+        ).forEach { path ->
+            assertTrue("Missing bento component $path", File(appModuleRoot, path).isFile)
+        }
+        val gridDestinations = HubBentoDestination.gridRows.flatten()
+        assertEquals(HubBentoDestination.entries.size, gridDestinations.size)
+        assertEquals(HubBentoDestination.entries.toSet(), gridDestinations.toSet())
         assertEquals(6, HubBentoDestination.entries.size)
         assertEquals(2, HubBentoDestination.gridRows.size)
+    }
+
+    @Test
+    fun homeBentoGridNavigatesThroughDestinationRoutes() {
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+        val bentoSource = readSource("ui/components/bento/BentoGridCell.kt")
+        listOf(
+            "HubBentoDestination.gridRows",
+            "onBentoSelected: (HubBentoDestination) -> Unit",
+            "onClick = { onBentoSelected(destination) }",
+            "BentoGridCell"
+        ).forEach { snippet ->
+            assertTrue("HomeScreen missing bento navigation: $snippet", homeSource.contains(snippet))
+        }
+        listOf(
+            "HubBentoDestination.CptTracker ->",
+            "CptTrackerBentoCell",
+            "onClick = onClick"
+        ).forEach { snippet ->
+            assertTrue("BentoGridCell missing CPT tracker click wiring: $snippet", bentoSource.contains(snippet))
+        }
+        listOf(
+            "onBentoSelected = { destination ->",
+            "navController.navigate(destination.route)"
+        ).forEach { snippet ->
+            assertTrue("EobNavHost missing bento navigate wiring: $snippet", navHostSource.contains(snippet))
+        }
+        assertTrue(
+            "History bento filter must navigate to History route",
+            navHostSource.contains("navController.navigate(EobRoute.History.route)") &&
+                navHostSource.contains("setHistoryBentoFilter")
+        )
+        assertTrue(
+            "CPT feature screen must read selected category from EobViewModel uiState",
+            navHostSource.contains("uiState.selectedCptCategory") &&
+                navHostSource.contains("setSelectedCptCategory")
+        )
     }
 
     @Test
@@ -377,10 +432,30 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun careTeamShimmerDelaysThreeSecondsOnUnassignedCards() {
+    fun careTeamShimmerDelaysFourSecondsOnUnassignedCards() {
         val careTeamSource = readSource("ui/components/home/HomeCareTeamCards.kt")
-        assertTrue(careTeamSource.contains("delay(3_000)"))
+        assertTrue(careTeamSource.contains("delay(4_000)"))
         assertTrue(careTeamSource.contains("!cardState.isAssigned && showShimmer"))
+    }
+
+    @Test
+    fun allBentoCellsShareUniformAspectRatio() {
+        val layoutSource = readSource("ui/components/bento/BentoCellLayout.kt")
+        val bentoCells = listOf(
+            "ui/components/bento/BentoGridCell.kt",
+            "ui/components/bento/HistoryBentoCell.kt",
+            "ui/components/bento/ProviderDirectoryBentoCell.kt",
+            "ui/components/bento/CptTrackerBentoCell.kt",
+            "ui/components/bento/YtdExpenseBentoCell.kt"
+        )
+        assertTrue(layoutSource.contains("ASPECT_RATIO"))
+        bentoCells.forEach { relativePath ->
+            val source = readSource(relativePath)
+            assertTrue(
+                "$relativePath must use BentoCellLayout.ASPECT_RATIO",
+                source.contains("BentoCellLayout.ASPECT_RATIO")
+            )
+        }
     }
 
     @Test
