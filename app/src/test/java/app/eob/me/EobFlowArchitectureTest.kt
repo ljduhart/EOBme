@@ -304,7 +304,8 @@ class EobFlowArchitectureTest {
             "applyInsuranceCardEdits",
             "cptBentoSnapshot",
             "ytdDeductibleBentoSnapshot",
-            "newsBentoSnapshot",
+            "insuranceNewsBentoSnapshot",
+            "newsFeedRevision",
             "historyBentoSnapshot",
             "providerAvatarPreviews",
             "providerDirectory",
@@ -367,8 +368,8 @@ class EobFlowArchitectureTest {
             assertTrue("BentoGridCell missing: $snippet", bentoSource.contains(snippet))
         }
         listOf(
-            "eobViewModel.newsBentoSnapshot",
-            "EobKnowledgeBase.newsReleases"
+            "eobViewModel.insuranceNewsBentoSnapshot",
+            "uiState.newsFeedRevision"
         ).forEach { snippet ->
             assertTrue("EobNavHost missing: $snippet", navHostSource.contains(snippet))
         }

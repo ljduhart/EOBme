@@ -387,9 +387,10 @@ private fun MainHubNavHost(
                     val insuranceNewsBentoSnapshot = remember(
                         sortedEobRecords,
                         language,
-                        hubTimeKey
+                        hubTimeKey,
+                        uiState.newsFeedRevision
                     ) {
-                        eobViewModel.newsBentoSnapshot(language, EobKnowledgeBase.newsReleases)
+                        eobViewModel.insuranceNewsBentoSnapshot(language)
                     }
                     val insuranceCardDisplay = remember(profile, language) {
                         eobViewModel.insuranceCardDisplay(profile, language)
@@ -428,8 +429,8 @@ private fun MainHubNavHost(
                         careTeamCards = careTeamCards,
                         providerDirectoryAssurance = providerDirectoryAssurance,
                         cptBentoSnapshot = cptBentoSnapshot,
-                        ytdBentoSnapshot = ytdBentoSnapshot,
                         insuranceNewsBentoSnapshot = insuranceNewsBentoSnapshot,
+                        ytdBentoSnapshot = ytdBentoSnapshot,
                         ytdBentoViewMode = uiState.ytdBentoViewMode,
                         onYtdBentoViewModeSelected = eobViewModel::setYtdBentoViewMode,
                         calendarExpanded = uiState.calendarExpanded,

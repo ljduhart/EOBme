@@ -27,11 +27,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,14 +59,8 @@ fun InsuranceNewsBentoCell(
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    var showActionFace by remember { mutableStateOf(false) }
-
-    LaunchedEffect(snapshot.criticalAlertActive, snapshot.actionSummary) {
-        showActionFace = snapshot.criticalAlertActive
-    }
-
     val flipRotation by animateFloatAsState(
-        targetValue = if (showActionFace) 180f else 0f,
+        targetValue = if (snapshot.criticalAlertActive) 180f else 0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow

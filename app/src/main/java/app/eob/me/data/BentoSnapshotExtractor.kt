@@ -153,12 +153,7 @@ object BentoSnapshotExtractor {
         )
     }
 
-    private fun isCriticalNewsRelease(release: NewsRelease): Boolean {
-        val text = "${release.headline} ${release.summary}".lowercase()
-        return CRITICAL_NEWS_KEYWORDS.any { keyword -> text.contains(keyword) }
-    }
-
-    private val CRITICAL_NEWS_KEYWORDS = listOf(
+    private val criticalNewsKeywords = listOf(
         "alert",
         "urgent",
         "critical",
@@ -170,6 +165,11 @@ object BentoSnapshotExtractor {
         "warning",
         "fraud"
     )
+
+    private fun isCriticalNewsRelease(release: NewsRelease): Boolean {
+        val text = "${release.headline} ${release.summary}".lowercase()
+        return criticalNewsKeywords.any { keyword -> text.contains(keyword) }
+    }
 
     private fun cptShortLabel(language: AppLanguage, code: String, info: CptInfo): String {
         val key = "cptShort$code"

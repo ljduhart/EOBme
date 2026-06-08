@@ -166,6 +166,28 @@ class EobViewModelFlowTest {
     }
 
     @Test
+    fun insuranceNewsBentoSnapshotReflectsViewModelNewsAndRecords() {
+        val viewModel = EobViewModel()
+        val snapshot = viewModel.insuranceNewsBentoSnapshot(AppLanguage.English)
+        assertTrue(snapshot.tickerHeadlines.isNotEmpty())
+        assertTrue(snapshot.previewHeadline.isNotBlank())
+    }
+
+    @Test
+    fun deleteNewsBumpsNewsFeedRevision() {
+        val viewModel = EobViewModel()
+        val revisionBefore = viewModel.uiState.value.newsFeedRevision
+        val item = NewsRelease(
+            company = "Aetna",
+            headline = "Test headline",
+            summary = "Summary",
+            date = "2026-01-01"
+        )
+        viewModel.deleteNews(item)
+        assertEquals(revisionBefore + 1, viewModel.uiState.value.newsFeedRevision)
+    }
+
+    @Test
     fun historyBentoSnapshotReflectsRecords() {
         val viewModel = EobViewModel()
         val record = sampleRecord(id = 1, provider = "Snapshot Clinic")

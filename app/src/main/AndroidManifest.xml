@@ -13,10 +13,10 @@
     <uses-permission android:name="com.android.vending.BILLING" />
     <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel; no extra permissions. -->
     <!-- Hub state (records, uniform bento grid via BentoCellLayout → HubBentoDestination routes in
-         EobNavHost, history, insurance news split-pane bento with ticker + glass micro-card flip,
-         smart gold care-team cards with 4s shimmer delay, editable home insurance card via
-         EobViewModel) + EobRepository; care team dial uses ACTION_DIAL only (no CALL_PHONE).
-         Runtime permissions in EobNavHost. -->
+         EobNavHost, history, insurance news split-pane bento via EobViewModel.insuranceNewsBentoSnapshot
+         and newsFeedRevision, smart gold care-team cards with 4s shimmer delay, editable home
+         insurance card via EobViewModel) + EobRepository; care team dial uses ACTION_DIAL only
+         (no CALL_PHONE). Runtime permissions in EobNavHost. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />

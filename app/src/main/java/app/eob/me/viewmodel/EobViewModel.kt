@@ -65,7 +65,8 @@ data class HubUiState(
     val selectedInsuranceArticle: InsuranceArticle? = null,
     val ytdBentoViewMode: YtdBentoViewMode = YtdBentoViewMode.CostOverview,
     val selectedCptCategory: CptCategory = CptCategory.OfficeVisit,
-    val firebaseSyncStatus: FirebaseSyncStatus = FirebaseSyncStatus(isConfigured = false)
+    val firebaseSyncStatus: FirebaseSyncStatus = FirebaseSyncStatus(isConfigured = false),
+    val newsFeedRevision: Int = 0
 )
 
 /**
@@ -161,7 +162,10 @@ class EobViewModel : ViewModel() {
     private fun observeNews(repo: EobRepository) {
         newsListener?.remove()
         newsListener = repo.observeInsuranceNews(
-            onNews = { newsItems -> firebaseNews = newsItems },
+            onNews = { newsItems ->
+                firebaseNews = newsItems
+                bumpNewsFeedRevision()
+            },
             onError = { message -> updateUploadNotice(message) }
         )
     }
@@ -272,6 +276,11 @@ class EobViewModel : ViewModel() {
     fun deleteNews(news: NewsRelease) {
         deletedNewsKeys = deletedNewsKeys + news.key()
         firebaseNews = firebaseNews.filterNot { it.key() == news.key() }
+        bumpNewsFeedRevision()
+    }
+
+    private fun bumpNewsFeedRevision() {
+        _uiState.update { state -> state.copy(newsFeedRevision = state.newsFeedRevision + 1) }
     }
 
     fun visibleNews(fallbackNews: List<NewsRelease>): List<NewsRelease> {
@@ -508,13 +517,10 @@ class EobViewModel : ViewModel() {
         )
     }
 
-    fun newsBentoSnapshot(
-        language: AppLanguage,
-        fallbackNews: List<NewsRelease>
-    ): InsuranceNewsBentoSnapshot {
+    fun insuranceNewsBentoSnapshot(language: AppLanguage): InsuranceNewsBentoSnapshot {
         return BentoSnapshotExtractor.buildInsuranceNewsBentoSnapshot(
             language = language,
-            releases = currentNewsReleases(fallbackNews),
+            releases = currentNewsReleases(EobKnowledgeBase.newsReleases),
             records = _eobRecords.value
         )
     }
