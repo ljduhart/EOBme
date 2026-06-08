@@ -197,6 +197,7 @@ fun AppealScreen(
     selectedRecord: EobRecord?,
     letter: String,
     isEditing: Boolean,
+    onAutoFill: () -> Unit,
     onEdit: () -> Unit,
     onSave: () -> Unit,
     onLetterChanged: (String) -> Unit
@@ -215,6 +216,13 @@ fun AppealScreen(
         selectedRecord?.let { record ->
             Text("${EobStrings.t(language, "dateOfService")}: ${record.serviceDate}")
             Text("${EobStrings.t(language, "eobBilledAmount")}: ${record.totalBilledAmount.asCurrency()}")
+        }
+        Button(
+            onClick = onAutoFill,
+            enabled = selectedRecord != null && !isEditing,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(EobStrings.t(language, "autoFillAppeal"))
         }
         OutlinedTextField(
             value = letter,

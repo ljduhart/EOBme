@@ -137,6 +137,7 @@ class EobViewModel : ViewModel() {
     }
 
     fun updateAppeal(text: String) {
+        if (!appealLetterEditingEnabled) return
         appealLetter = text
     }
 

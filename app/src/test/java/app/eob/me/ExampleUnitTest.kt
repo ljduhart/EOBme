@@ -461,7 +461,13 @@ class ExampleUnitTest {
         assertTrue(homeText.contains("AppealGeneratorCard"))
         assertTrue(text.contains("selectFlaggedClaim"))
         assertTrue(text.contains("appealLetterEditingEnabled"))
+        assertTrue(text.contains("regenerateAppeal"))
         assertTrue(homeText.contains("onFlaggedClaimSelected"))
+        val appealSource = File("src/main/java/app/eob/me/ui/screens/MainScreens.kt")
+            .takeIf { it.isFile }
+            ?: File("app/src/main/java/app/eob/me/ui/screens/MainScreens.kt")
+        assertTrue(appealSource.readText().contains("autoFillAppeal"))
+        assertTrue(appealSource.readText().contains("onAutoFill"))
     }
 
     @Test
@@ -496,6 +502,34 @@ class ExampleUnitTest {
         assertFalse(viewModel.appealLetterEditingEnabled)
         assertTrue(viewModel.appealLetter.contains("Downtown Medical Group"))
         assertTrue(viewModel.appealLetter.contains("Possible denial language"))
+    }
+
+    @Test
+    fun regenerateAppealAutoFillsAndResetsEditing() {
+        val viewModel = EobViewModel()
+        val profile = UserProfile(
+            firstName = "Lester",
+            lastName = "Duhart",
+            email = "member@example.com",
+            password = "password1",
+            city = "Atlanta",
+            state = "GA"
+        )
+        viewModel.enableAppealLetterEditing()
+        viewModel.updateAppeal("Manual edits in progress")
+        viewModel.regenerateAppeal(profile)
+
+        assertFalse(viewModel.appealLetterEditingEnabled)
+        assertFalse(viewModel.appealLetter.contains("Manual edits in progress"))
+        assertTrue(viewModel.appealLetter.contains("Lakeside Family Medical Clinic"))
+    }
+
+    @Test
+    fun updateAppealIgnoredUntilEditEnabled() {
+        val viewModel = EobViewModel()
+        val original = viewModel.appealLetter
+        viewModel.updateAppeal("Should not apply")
+        assertEquals(original, viewModel.appealLetter)
     }
 
     @Test

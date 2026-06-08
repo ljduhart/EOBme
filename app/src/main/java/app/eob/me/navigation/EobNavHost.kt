@@ -272,6 +272,10 @@ fun EobNavHost(
                         selectedRecord = viewModel.selectedRecord,
                         letter = viewModel.appealLetter,
                         isEditing = viewModel.appealLetterEditingEnabled,
+                        onAutoFill = {
+                            viewModel.regenerateAppeal(profile)
+                            onActivity()
+                        },
                         onEdit = {
                             viewModel.enableAppealLetterEditing()
                             onActivity()

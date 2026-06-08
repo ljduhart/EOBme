@@ -11,8 +11,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- BILLING — Play Billing Client -->
     <uses-permission android:name="com.android.vending.BILLING" />
-    <!-- Hub: Appeal Generator flagged-claim toggles + edit/save appeal flow, Provider Directory
-         assurance badges via EobViewModel. Onboarding (Splash → Language → Intro) unchanged. -->
+    <!-- Hub: Appeal Generator flagged-claim toggles, auto-fill + edit/save appeal via EobViewModel,
+         Provider Directory assurance badges. Onboarding (Splash → Language → Intro) unchanged. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
