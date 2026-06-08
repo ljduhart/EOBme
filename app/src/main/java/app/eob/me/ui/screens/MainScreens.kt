@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.ui.components.CalendarPicker
+import app.eob.me.ui.components.ProviderAssuranceBadge
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.BillingIssue
 import app.eob.me.data.BillingIssueSeverity
@@ -542,20 +543,58 @@ fun YearlyHealthCostDashboard(summary: YearlyHealthCostSummary) {
 }
 
 @Composable
-fun ProviderDirectoryCard(providers: List<ProviderSummary>) {
+fun ProviderDirectoryCard(
+    language: AppLanguage,
+    providers: List<ProviderSummary>
+) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Provider Directory", style = MaterialTheme.typography.titleLarge)
+            Text(EobStrings.t(language, "providerDirectoryTitle"), style = MaterialTheme.typography.titleLarge)
+            Text(
+                EobStrings.t(language, "providerDirectorySubtitle"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             if (providers.isEmpty()) {
-                Text("Providers will appear here after EOBs are scanned.")
+                Text(EobStrings.t(language, "providerDirectoryEmpty"))
             } else {
                 providers.take(5).forEach { provider ->
                     Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(provider.providerName, style = MaterialTheme.typography.titleMedium)
-                            Text("EOBs: ${provider.eobCount} • Last service: ${provider.lastServiceDate}")
-                            Text("Billed: ${provider.totalBilled.asCurrency()} • Paid: ${provider.totalInsurancePaid.asCurrency()}")
-                            Text("Patient responsibility: ${provider.totalPatientResponsibility.asCurrency()}")
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    provider.providerName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                ProviderAssuranceBadge(
+                                    language = language,
+                                    assurance = provider.networkAssurance
+                                )
+                            }
+                            Text(
+                                EobStrings.tf(
+                                    language,
+                                    "providerEobSummary",
+                                    provider.eobCount,
+                                    provider.lastServiceDate
+                                )
+                            )
+                            Text(
+                                EobStrings.tf(
+                                    language,
+                                    "providerBilledPaid",
+                                    provider.totalBilled.asCurrency(),
+                                    provider.totalInsurancePaid.asCurrency()
+                                )
+                            )
+                            Text(
+                                "${EobStrings.t(language, "patientResponsibility")}: ${provider.totalPatientResponsibility.asCurrency()}"
+                            )
                         }
                     }
                 }

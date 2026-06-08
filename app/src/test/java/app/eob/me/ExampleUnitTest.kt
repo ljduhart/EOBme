@@ -7,6 +7,9 @@ import app.eob.me.data.FirebaseEobMapper
 import app.eob.me.data.UserProfile
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.BillingIssueType
+import app.eob.me.data.ProviderNetworkAssurance
+import app.eob.me.app.EobViewModel
+import app.eob.me.data.AppLanguage
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -400,6 +403,50 @@ class ExampleUnitTest {
 
         assertTrue(EobAnalyzer.isSameEob(original, replacement))
         assertFalse(EobAnalyzer.isSameEob(original, differentVisit))
+    }
+
+    @Test
+    fun providerNetworkAssuranceFlagsOutOfNetworkText() {
+        val record = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Out of Network Clinic
+                Date of Service: 02/03/2025
+                Out-of-network provider billed $400.00 insurance paid $0.00
+            """.trimIndent(),
+            "library",
+            40
+        )
+
+        assertEquals(ProviderNetworkAssurance.OutOfNetwork, EobAnalyzer.providerNetworkAssurance(record))
+    }
+
+    @Test
+    fun providerDirectoryIncludesNetworkAssurance() {
+        val inNetwork = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 02/03/2026
+                99215 billed $300.00 insurance paid $125.00 contractual adjustment $100.00
+            """.trimIndent(),
+            "library",
+            41
+        )
+
+        val provider = EobAnalyzer.providerDirectory(listOf(inNetwork)).first()
+
+        assertEquals(ProviderNetworkAssurance.InNetwork, provider.networkAssurance)
+    }
+
+    @Test
+    fun viewModelAppealGeneratorSnapshotReflectsDisputableClaims() {
+        val viewModel = EobViewModel()
+        val snapshot = viewModel.appealGeneratorSnapshot(AppLanguage.English)
+
+        assertTrue(snapshot.claimScanComplete)
+        assertTrue(snapshot.statusLine.isNotBlank())
+        assertTrue(snapshot.summaryLine.isNotBlank())
     }
 
     @Test

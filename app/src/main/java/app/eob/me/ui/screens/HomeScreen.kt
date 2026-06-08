@@ -9,11 +9,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppealGeneratorSnapshot
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorAppointment
-import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
+import app.eob.me.data.ProviderSummary
+import app.eob.me.ui.components.AppealGeneratorCard
 
 @Composable
 fun HomeScreen(
@@ -22,6 +24,9 @@ fun HomeScreen(
     records: List<EobRecord>,
     appointments: List<DoctorAppointment>,
     uploadNotice: String,
+    appealGeneratorSnapshot: AppealGeneratorSnapshot,
+    providers: List<ProviderSummary>,
+    onOpenAppeal: () -> Unit,
     onAddAppointment: (String, String, String, String) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit
 ) {
@@ -31,7 +36,14 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { InsuranceCard(language, profile) }
-        item { ProviderDirectoryCard(EobAnalyzer.providerDirectory(records)) }
+        item {
+            AppealGeneratorCard(
+                language = language,
+                snapshot = appealGeneratorSnapshot,
+                onOpenAppeal = onOpenAppeal
+            )
+        }
+        item { ProviderDirectoryCard(language = language, providers = providers) }
         item {
             QuickActionsCard(
                 language = language,

@@ -172,8 +172,28 @@ object EobStrings {
         "categoryHospital" to "Hospital",
         "categoryDme" to "DME",
         "categoryInjection" to "Injections",
-        "categoryOther" to "Other"
+        "categoryOther" to "Other",
+        "appealGeneratorTitle" to "Appeal Generator",
+        "appealGeneratorScanning" to "Scanning local claims…",
+        "appealGeneratorScanningDetail" to "Reviewing uploaded EOBs for disputable billing lines.",
+        "appealGeneratorClaimsReady" to "%d pending claim(s) can be disputed",
+        "appealGeneratorDisputeSummary" to "Tap to draft appeals for %d flagged claim(s).",
+        "appealGeneratorAllClear" to "No pending disputable claims detected.",
+        "appealGeneratorTapToOpen" to "Tap to open appeal letter",
+        "providerDirectoryTitle" to "Provider Directory",
+        "providerDirectorySubtitle" to "Network assurance badges help identify in-network and out-of-network clinicians.",
+        "providerDirectoryEmpty" to "Providers will appear here after EOBs are scanned.",
+        "providerEobSummary" to "EOBs: %1\$d • Last service: %2\$s",
+        "providerBilledPaid" to "Billed: %1\$s • Paid: %2\$s",
+        "patientResponsibility" to "Patient responsibility",
+        "networkAssuranceInNetwork" to "In-Network",
+        "networkAssurancePending" to "Pending Network",
+        "networkAssuranceOutOfNetwork" to "Out-of-Network"
     )
+
+    fun tf(language: AppLanguage, key: String, vararg formatArgs: Any): String {
+        return String.format(java.util.Locale.US, t(language, key), *formatArgs)
+    }
 
     private val spanish = english + mapOf(
         "next" to "Siguiente",
