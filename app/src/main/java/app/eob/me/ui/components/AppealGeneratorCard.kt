@@ -70,9 +70,9 @@ fun AppealGeneratorCard(
     )
 
     val infiniteTransition = rememberInfiniteTransition(label = "appealShimmer")
-    val shimmerOffset by infiniteTransition.animateFloat(
+    val animatedShimmerOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = if (snapshot.claimScanComplete) 0f else 1f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1800, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
@@ -86,6 +86,7 @@ fun AppealGeneratorCard(
         label = "appealShimmerSettle"
     )
 
+    val shimmerProgress = animatedShimmerOffset * (1f - settledShimmer)
     val shimmerBrush = Brush.linearGradient(
         colors = listOf(
             Color(0xFF2498EA).copy(alpha = 0.15f),
@@ -93,8 +94,8 @@ fun AppealGeneratorCard(
             ShieldGold.copy(alpha = 0.65f),
             Color(0xFF2498EA).copy(alpha = 0.15f)
         ),
-        start = Offset(200f * shimmerOffset, 0f),
-        end = Offset(200f * shimmerOffset + 260f, 40f)
+        start = Offset(200f * shimmerProgress, 0f),
+        end = Offset(200f * shimmerProgress + 260f, 40f)
     )
 
     ElevatedCard(

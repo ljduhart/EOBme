@@ -39,7 +39,7 @@ class EobViewModel : ViewModel() {
     private var deletedNewsKeys by mutableStateOf<Set<String>>(emptySet())
 
     fun replaceRecords(newRecords: List<EobRecord>, profile: UserProfile) {
-        claimScanComplete = false
+        beginLocalClaimScan()
         val compacted = EobAnalyzer.compactDuplicateEobs(newRecords)
         records.clear()
         records.addAll(compacted)
@@ -50,6 +50,14 @@ class EobViewModel : ViewModel() {
             compacted.firstOrNull { it.id == current.id }
         }
         regenerateAppeal(profile)
+        finishLocalClaimScan()
+    }
+
+    private fun beginLocalClaimScan() {
+        claimScanComplete = false
+    }
+
+    private fun finishLocalClaimScan() {
         claimScanComplete = true
     }
 
@@ -84,9 +92,7 @@ class EobViewModel : ViewModel() {
     }
 
     fun deleteRecord(record: EobRecord, profile: UserProfile) {
-        records.removeAll { it.id == record.id }
-        selectedRecord = records.firstOrNull()
-        regenerateAppeal(profile)
+        replaceRecords(records.filterNot { it.id == record.id }, profile)
     }
 
     fun deleteNews(news: NewsRelease) {

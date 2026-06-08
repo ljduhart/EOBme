@@ -194,7 +194,10 @@ fun EobNavHost(
                         appealGeneratorSnapshot = viewModel.appealGeneratorSnapshot(language),
                         providers = viewModel.providerDirectory(),
                         onOpenAppeal = {
-                            navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
+                            navController.navigate(EobRoute.Appeal.route) {
+                                launchSingleTop = true
+                                popUpTo(EobRoute.Home.route)
+                            }
                             onActivity()
                         },
                         onAddAppointment = { date, provider, time, notes ->

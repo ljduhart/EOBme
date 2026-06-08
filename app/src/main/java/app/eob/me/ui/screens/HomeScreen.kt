@@ -15,12 +15,13 @@ import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.ProviderSummary
+import app.eob.me.data.UserProfile
 import app.eob.me.ui.components.AppealGeneratorCard
 
 @Composable
 fun HomeScreen(
     language: AppLanguage,
-    profile: app.eob.me.data.UserProfile,
+    profile: UserProfile,
     records: List<EobRecord>,
     appointments: List<DoctorAppointment>,
     uploadNotice: String,
