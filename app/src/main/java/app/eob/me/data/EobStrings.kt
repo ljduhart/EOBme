@@ -256,6 +256,11 @@ object EobStrings {
         "insuranceIntelligenceSubtitle" to "Policy updates, coverage warnings, and carrier alerts",
         "insuranceIntelligenceTip" to "EOBme cross-references your uploaded provider networks with regional policy changes to flag unexpected coverage adjustments.",
         "insuranceNewsAllClear" to "All clear! No pending network alerts or updates.",
+        "newsBentoTickerFallback" to "Policy updates refresh monthly from your carriers.",
+        "newsBentoCriticalBilling" to "%d billing issue(s) need review on your EOBs.",
+        "newsBentoTapToOpen" to "Tap to open full news feed",
+        "newsBentoMicroPreview" to "Latest briefing",
+        "newsBentoCriticalAction" to "Critical alert",
         "cptTrackingTitle" to "Medical Code Tracking",
         "cptTrackingSubtitle" to "Analyze procedural frequency and billing distributions",
         "cptCodeDescriptionHeader" to "Code / Description",
@@ -527,7 +532,12 @@ object EobStrings {
         "cameraOpenFailed" to "No se pudo abrir la cámara. Inténtelo de nuevo.",
         "cameraStarting" to "La cámara aún se está iniciando. Espere un momento.",
         "cameraCaptureFailed" to "Error al capturar con la cámara.",
-        "contractualAdjustment" to "Ajuste contractual"
+        "contractualAdjustment" to "Ajuste contractual",
+        "newsBentoTickerFallback" to "Las actualizaciones de póliza se renuevan mensualmente.",
+        "newsBentoCriticalBilling" to "%d problema(s) de facturación requieren revisión.",
+        "newsBentoTapToOpen" to "Tocar para abrir noticias",
+        "newsBentoMicroPreview" to "Último resumen",
+        "newsBentoCriticalAction" to "Alerta crítica"
     )
 
     private val french = english + mapOf(
@@ -643,7 +653,12 @@ object EobStrings {
         "cameraOpenFailed" to "Impossible d'ouvrir la caméra. Réessayez.",
         "cameraStarting" to "La caméra démarre encore. Patientez un instant.",
         "cameraCaptureFailed" to "Échec de la capture photo.",
-        "contractualAdjustment" to "Ajustement contractuel"
+        "contractualAdjustment" to "Ajustement contractuel",
+        "newsBentoTickerFallback" to "Les mises à jour de police sont actualisées chaque mois.",
+        "newsBentoCriticalBilling" to "%d problème(s) de facturation à examiner.",
+        "newsBentoTapToOpen" to "Appuyer pour ouvrir les actualités",
+        "newsBentoMicroPreview" to "Dernier briefing",
+        "newsBentoCriticalAction" to "Alerte critique"
     )
 
     private val chinese = english + mapOf(
@@ -759,7 +774,12 @@ object EobStrings {
         "cameraOpenFailed" to "无法打开相机，请重试。",
         "cameraStarting" to "相机正在启动，请稍候。",
         "cameraCaptureFailed" to "相机拍摄失败。",
-        "contractualAdjustment" to "合同调整"
+        "contractualAdjustment" to "合同调整",
+        "newsBentoTickerFallback" to "保单更新每月从您的承保商刷新。",
+        "newsBentoCriticalBilling" to "有 %d 个账单问题需要审查。",
+        "newsBentoTapToOpen" to "点击打开完整新闻",
+        "newsBentoMicroPreview" to "最新简报",
+        "newsBentoCriticalAction" to "严重警报"
     )
 
     private val localized = mapOf(

@@ -121,6 +121,56 @@ object BentoSnapshotExtractor {
         )
     }
 
+    fun buildInsuranceNewsBentoSnapshot(
+        language: AppLanguage,
+        releases: List<NewsRelease>,
+        records: List<EobRecord>
+    ): InsuranceNewsBentoSnapshot {
+        val tickerHeadlines = releases.map { it.headline }.filter { it.isNotBlank() }
+        val featured = releases.firstOrNull()
+        val flaggedCount = records.sumOf { record ->
+            EobAnalyzer.detectBillingIssues(record).count { it.severity != BillingIssueSeverity.Info }
+        }
+        val criticalRelease = releases.firstOrNull { isCriticalNewsRelease(it) }
+        val criticalAlertActive = criticalRelease != null || flaggedCount > 0
+        val actionSummary = when {
+            criticalRelease != null -> criticalRelease.summary.trim()
+            flaggedCount > 0 -> EobStrings.tf(language, "newsBentoCriticalBilling", flaggedCount)
+            else -> EobStrings.t(language, "newsBentoTapToOpen")
+        }
+        return InsuranceNewsBentoSnapshot(
+            tickerHeadlines = tickerHeadlines.ifEmpty {
+                listOf(EobStrings.t(language, "insuranceNewsAllClear"))
+            },
+            previewHeadline = featured?.headline?.substringAfter(": ")?.trim()
+                ?.ifBlank { featured.headline }
+                ?: EobStrings.t(language, "newsBentoTickerFallback"),
+            previewCompany = featured?.company.orEmpty().ifBlank {
+                EobStrings.t(language, "insuranceNews")
+            },
+            criticalAlertActive = criticalAlertActive,
+            actionSummary = actionSummary
+        )
+    }
+
+    private val criticalNewsKeywords = listOf(
+        "alert",
+        "urgent",
+        "critical",
+        "denial",
+        "denied",
+        "out-of-network",
+        "termination",
+        "suspension",
+        "warning",
+        "fraud"
+    )
+
+    private fun isCriticalNewsRelease(release: NewsRelease): Boolean {
+        val text = "${release.headline} ${release.summary}".lowercase()
+        return criticalNewsKeywords.any { keyword -> text.contains(keyword) }
+    }
+
     private fun cptShortLabel(language: AppLanguage, code: String, info: CptInfo): String {
         val key = "cptShort$code"
         val localized = EobStrings.t(language, key)

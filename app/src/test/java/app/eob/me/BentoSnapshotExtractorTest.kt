@@ -5,8 +5,10 @@ import app.eob.me.data.BentoSnapshotExtractor
 import app.eob.me.data.CptCategory
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.PriceTrendDirection
+import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.UserProfile
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -78,6 +80,40 @@ class BentoSnapshotExtractorTest {
         val safe = profile.sanitizedPlanLimits()
         assertEquals(0.0, safe.annualDeductibleLimit, 0.01)
         assertEquals(200_000.0, safe.annualOutOfPocketMax, 0.01)
+    }
+
+    @Test
+    fun insuranceNewsSnapshotBuildsTickerAndPreview() {
+        val snapshot = BentoSnapshotExtractor.buildInsuranceNewsBentoSnapshot(
+            language = AppLanguage.English,
+            releases = EobKnowledgeBase.newsReleases,
+            records = emptyList()
+        )
+        assertTrue(snapshot.tickerHeadlines.isNotEmpty())
+        assertTrue(snapshot.previewHeadline.isNotBlank())
+        assertFalse(snapshot.criticalAlertActive)
+    }
+
+    @Test
+    fun insuranceNewsSnapshotFlagsCriticalBillingIssues() {
+        val record = EobAnalyzer.analyze(
+            rawText = """
+                Provider: Clinic
+                Aetna
+                01/15/2026
+                99213 billed ${'$'}900.00 insurance paid ${'$'}0.00
+                Out-of-network provider charge
+            """.trimIndent(),
+            sourceName = "critical",
+            nextId = 1
+        )
+        val snapshot = BentoSnapshotExtractor.buildInsuranceNewsBentoSnapshot(
+            language = AppLanguage.English,
+            releases = EobKnowledgeBase.newsReleases,
+            records = listOf(record)
+        )
+        assertTrue(snapshot.criticalAlertActive)
+        assertTrue(snapshot.actionSummary.isNotBlank())
     }
 
     @Test

@@ -28,18 +28,19 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobStrings
-import app.eob.me.data.HistoryBentoFilter
-import app.eob.me.data.HistoryBentoSnapshot
-import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.CptBentoSnapshot
+import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.HistoryBentoSnapshot
+import app.eob.me.data.InsuranceCardDisplay
+import app.eob.me.data.InsuranceNewsBentoSnapshot
+import app.eob.me.data.InvoiceProcessingPhase
+import app.eob.me.data.PreferredDoctor
+import app.eob.me.data.ProviderAvatarPreview
+import app.eob.me.data.ProviderDirectoryAssurance
+import app.eob.me.data.UserProfile
 import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
-import app.eob.me.data.PreferredDoctor
-import app.eob.me.data.ProviderDirectoryAssurance
-import app.eob.me.data.ProviderAvatarPreview
-import app.eob.me.data.InsuranceCardDisplay
-import app.eob.me.data.UserProfile
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.CleanInsuranceCard
 import app.eob.me.ui.components.bento.BentoGridCell
@@ -85,6 +86,7 @@ fun HomeScreen(
     careTeamCards: List<CareTeamCardDisplayState>,
     providerDirectoryAssurance: ProviderDirectoryAssurance,
     cptBentoSnapshot: CptBentoSnapshot,
+    insuranceNewsBentoSnapshot: InsuranceNewsBentoSnapshot,
     ytdBentoSnapshot: YtdDeductibleBentoSnapshot,
     ytdBentoViewMode: YtdBentoViewMode,
     onYtdBentoViewModeSelected: (YtdBentoViewMode) -> Unit,
@@ -257,6 +259,7 @@ fun HomeScreen(
                                 providerAvatars = providerAvatars,
                                 providerDirectoryAssurance = providerDirectoryAssurance,
                                 cptBentoSnapshot = cptBentoSnapshot,
+                                insuranceNewsBentoSnapshot = insuranceNewsBentoSnapshot,
                                 ytdBentoSnapshot = ytdBentoSnapshot,
                                 ytdBentoViewMode = ytdBentoViewMode,
                                 onYtdViewModeSelected = onYtdBentoViewModeSelected,
