@@ -1,5 +1,7 @@
 package app.eob.me.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -16,12 +19,66 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
+
+private object LegalAcceptanceUrls {
+    const val TERMS_OF_USE = "https://ljduhart.github.io/EOBme/terms-of-use.html"
+    const val PRIVACY_POLICY = "https://ljduhart.github.io/EOBme/privacy-policy.html"
+}
+
+private const val LEGAL_TERMS_TAG = "terms_of_use"
+private const val LEGAL_PRIVACY_TAG = "privacy_policy"
+
+@Composable
+fun LegalAcceptanceText(
+    language: AppLanguage,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val linkColor = MaterialTheme.colorScheme.primary
+    val termsLabel = EobStrings.t(language, "termsOfUse")
+    val privacyLabel = EobStrings.t(language, "privacyPolicy")
+    val annotatedText = buildAnnotatedString {
+        append(EobStrings.t(language, "legalAcceptancePrefix"))
+        pushStringAnnotation(tag = LEGAL_TERMS_TAG, annotation = LegalAcceptanceUrls.TERMS_OF_USE)
+        withStyle(SpanStyle(color = linkColor)) {
+            append(termsLabel)
+        }
+        pop()
+        append(EobStrings.t(language, "legalAcceptanceMiddle"))
+        pushStringAnnotation(tag = LEGAL_PRIVACY_TAG, annotation = LegalAcceptanceUrls.PRIVACY_POLICY)
+        withStyle(SpanStyle(color = linkColor)) {
+            append(privacyLabel)
+        }
+        pop()
+        append(EobStrings.t(language, "legalAcceptanceSuffix"))
+    }
+    ClickableText(
+        text = annotatedText,
+        style = MaterialTheme.typography.bodySmall.copy(
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        ),
+        modifier = modifier.fillMaxWidth(),
+        onClick = { offset ->
+            annotatedText.getStringAnnotations(start = offset, end = offset)
+                .firstOrNull()
+                ?.let { annotation ->
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item)))
+                }
+        }
+    )
+}
 
 @Composable
 fun AuthChoiceScreen(
@@ -180,6 +237,12 @@ fun RegistrationScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (isSignUp) EobStrings.t(language, "createAccount") else EobStrings.t(language, "login"))
+        }
+        if (isSignUp) {
+            LegalAcceptanceText(
+                language = language,
+                modifier = Modifier.padding(top = 16.dp)
+            )
         }
         OutlinedButton(onClick = onToggleMode, modifier = Modifier.fillMaxWidth()) {
             Text(if (isSignUp) EobStrings.t(language, "login") else EobStrings.t(language, "createAccount"))
