@@ -464,7 +464,14 @@ private fun MainHubNavHost(
                         onInvoiceFileDropFinished = {
                             eobViewModel.acknowledgeInvoiceFileDropAnimation()
                         },
+                        appealGeneratorBentoProcessing = uiState.appealGeneratorBentoProcessing,
+                        onAppealGeneratorProcessingFinished = {
+                            eobViewModel.acknowledgeAppealGeneratorBentoActivation()
+                        },
                         onBentoSelected = { destination ->
+                            if (destination == HubBentoDestination.AppealGenerator) {
+                                eobViewModel.activateAppealGeneratorBento(profile)
+                            }
                             navController.navigate(destination.route) { launchSingleTop = true }
                             onActivity()
                         },
@@ -555,6 +562,9 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.Appeal.route) {
+                    LaunchedEffect(Unit) {
+                        eobViewModel.acknowledgeAppealGeneratorBentoActivation()
+                    }
                     Column(modifier = Modifier.fillMaxSize()) {
                         AppealScreen(
                             language = language,

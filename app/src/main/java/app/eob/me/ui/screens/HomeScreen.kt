@@ -103,6 +103,8 @@ fun HomeScreen(
     providerAvatars: List<ProviderAvatarPreview>,
     onHistoryFilterSelected: (HistoryBentoFilter) -> Unit,
     onInvoiceFileDropFinished: () -> Unit,
+    appealGeneratorBentoProcessing: Boolean,
+    onAppealGeneratorProcessingFinished: () -> Unit,
     onBentoSelected: (HubBentoDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -263,9 +265,11 @@ fun HomeScreen(
                                 ytdBentoSnapshot = ytdBentoSnapshot,
                                 ytdBentoViewMode = ytdBentoViewMode,
                                 onYtdViewModeSelected = onYtdBentoViewModeSelected,
+                                appealGeneratorBentoProcessing = appealGeneratorBentoProcessing,
                                 onClick = { onBentoSelected(destination) },
                                 onHistoryFilterSelected = onHistoryFilterSelected,
                                 onInvoiceFileDropFinished = onInvoiceFileDropFinished,
+                                onAppealGeneratorProcessingFinished = onAppealGeneratorProcessingFinished,
                                 modifier = Modifier.weight(1f)
                             )
                         }

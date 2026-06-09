@@ -69,6 +69,25 @@ class EobViewModelFlowTest {
     }
 
     @Test
+    fun activateAppealGeneratorBentoSetsProcessingAndRegeneratesLetter() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+        viewModel.activateAppealGeneratorBento(profile)
+        assertTrue(viewModel.uiState.value.appealGeneratorBentoProcessing)
+        assertTrue(viewModel.uiState.value.appealLetter.contains("Appeal Clinic"))
+    }
+
+    @Test
+    fun acknowledgeAppealGeneratorBentoActivationClearsProcessing() {
+        val viewModel = EobViewModel()
+        viewModel.activateAppealGeneratorBento(profile)
+        viewModel.acknowledgeAppealGeneratorBentoActivation()
+        assertFalse(viewModel.uiState.value.appealGeneratorBentoProcessing)
+    }
+
+    @Test
     fun acknowledgeInvoiceFileDropAnimationReturnsToIdle() {
         val viewModel = EobViewModel()
         viewModel.setLoadingInvoice(true)

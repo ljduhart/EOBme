@@ -66,7 +66,8 @@ data class HubUiState(
     val ytdBentoViewMode: YtdBentoViewMode = YtdBentoViewMode.CostOverview,
     val selectedCptCategory: CptCategory = CptCategory.OfficeVisit,
     val firebaseSyncStatus: FirebaseSyncStatus = FirebaseSyncStatus(isConfigured = false),
-    val newsFeedRevision: Int = 0
+    val newsFeedRevision: Int = 0,
+    val appealGeneratorBentoProcessing: Boolean = false
 )
 
 /**
@@ -544,6 +545,15 @@ class EobViewModel : ViewModel() {
     fun regenerateAppeal(profile: UserProfile) {
         val selected = _uiState.value.selectedRecord
         _uiState.update { it.copy(appealLetter = AppealLetterGenerator.generate(profile, selected)) }
+    }
+
+    fun activateAppealGeneratorBento(profile: UserProfile) {
+        regenerateAppeal(profile)
+        _uiState.update { it.copy(appealGeneratorBentoProcessing = true) }
+    }
+
+    fun acknowledgeAppealGeneratorBentoActivation() {
+        _uiState.update { it.copy(appealGeneratorBentoProcessing = false) }
     }
 
     fun uploadEobFile(userId: String, uri: Uri, sourceName: String, language: AppLanguage) {

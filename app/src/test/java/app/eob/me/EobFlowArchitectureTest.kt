@@ -138,6 +138,7 @@ class EobFlowArchitectureTest {
             "ui/components/bento/ProviderDirectoryBentoCell.kt",
             "ui/components/bento/CptTrackerBentoCell.kt",
             "ui/components/bento/YtdExpenseBentoCell.kt",
+            "ui/components/bento/AppealGeneratorBentoCell.kt",
             "ui/components/bento/BentoGridCell.kt"
         ).forEach { path ->
             assertTrue("Missing bento component $path", File(appModuleRoot, path).isFile)
@@ -167,6 +168,14 @@ class EobFlowArchitectureTest {
             "onClick = onClick"
         ).forEach { snippet ->
             assertTrue("BentoGridCell missing CPT tracker click wiring: $snippet", bentoSource.contains(snippet))
+        }
+        listOf(
+            "HubBentoDestination.AppealGenerator ->",
+            "AppealGeneratorBentoCell",
+            "appealGeneratorBentoProcessing",
+            "activateAppealGeneratorBento"
+        ).forEach { snippet ->
+            assertTrue("Appeal bento wiring missing: $snippet", bentoSource.contains(snippet) || navHostSource.contains(snippet))
         }
         listOf(
             "onBentoSelected = { destination ->",
@@ -478,11 +487,12 @@ class EobFlowArchitectureTest {
     fun allBentoCellsShareUniformAspectRatio() {
         val layoutSource = readSource("ui/components/bento/BentoCellLayout.kt")
         val bentoCells = listOf(
-            "ui/components/bento/BentoGridCell.kt",
             "ui/components/bento/HistoryBentoCell.kt",
             "ui/components/bento/ProviderDirectoryBentoCell.kt",
             "ui/components/bento/CptTrackerBentoCell.kt",
-            "ui/components/bento/YtdExpenseBentoCell.kt"
+            "ui/components/bento/YtdExpenseBentoCell.kt",
+            "ui/components/bento/InsuranceNewsBentoCell.kt",
+            "ui/components/bento/AppealGeneratorBentoCell.kt"
         )
         assertTrue(layoutSource.contains("ASPECT_RATIO"))
         bentoCells.forEach { relativePath ->
