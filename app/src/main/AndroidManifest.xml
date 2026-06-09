@@ -11,7 +11,15 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- BILLING — Play Billing Client (com.android.billingclient:billing) -->
     <uses-permission android:name="com.android.vending.BILLING" />
-    <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel; no extra permissions. -->
+    <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel.
+         Sign-up LegalAcceptanceText opens policy URLs with ACTION_VIEW (queries below). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
     <!-- Hub state (records, uniform bento grid via BentoCellLayout → HubBentoDestination routes in
          EobNavHost, history, insurance news split-pane bento via EobViewModel.insuranceNewsBentoSnapshot
          and newsFeedRevision, smart gold care-team cards with 4s shimmer delay, editable home

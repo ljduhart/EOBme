@@ -372,6 +372,22 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun legalAcceptanceEnglishSentenceMatchesRequiredCopy() {
+        val language = AppLanguage.English
+        val sentence = buildString {
+            append(EobStrings.t(language, "legalAcceptancePrefix"))
+            append(EobStrings.t(language, "termsOfUse"))
+            append(EobStrings.t(language, "legalAcceptanceMiddle"))
+            append(EobStrings.t(language, "privacyPolicy"))
+            append(EobStrings.t(language, "legalAcceptanceSuffix"))
+        }
+        assertEquals(
+            "By creating an account, you agree to our Terms of Use and Privacy Policy.",
+            sentence
+        )
+    }
+
+    @Test
     fun repositoryMessagesLocalizeWithoutReturningRawKeys() {
         val sample = "EOB uploaded. Veryfi processing started."
         AppLanguage.entries.forEach { language ->
