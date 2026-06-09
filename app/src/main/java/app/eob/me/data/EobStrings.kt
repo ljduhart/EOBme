@@ -193,7 +193,12 @@ object EobStrings {
         "patientResponsibility" to "Patient responsibility",
         "networkAssuranceInNetwork" to "In-Network",
         "networkAssurancePending" to "Pending Network",
-        "networkAssuranceOutOfNetwork" to "Out-of-Network"
+        "networkAssuranceOutOfNetwork" to "Out-of-Network",
+        "privacyPolicy" to "Privacy Policy",
+        "termsOfUse" to "Terms of Use",
+        "authLegalNoticePrefix" to "By tapping Create account, you agree to our ",
+        "authLegalNoticeMiddle" to " and ",
+        "authLegalNoticeSuffix" to "."
     )
 
     fun tf(language: AppLanguage, key: String, vararg formatArgs: Any): String {
@@ -218,7 +223,12 @@ object EobStrings {
         "logout" to "Salir",
         "scanBill" to "Escanear EOB",
         "uploadFromLibrary" to "Subir desde biblioteca",
-        "scanWithCamera" to "Escanear con cámara"
+        "scanWithCamera" to "Escanear con cámara",
+        "privacyPolicy" to "Política de privacidad",
+        "termsOfUse" to "Términos de uso",
+        "authLegalNoticePrefix" to "Al tocar Crear cuenta, acepta nuestra ",
+        "authLegalNoticeMiddle" to " y los ",
+        "authLegalNoticeSuffix" to "."
     )
 
     private val french = english + mapOf(
@@ -238,7 +248,12 @@ object EobStrings {
         "logout" to "Déconnexion",
         "scanBill" to "Scanner EOB",
         "uploadFromLibrary" to "Depuis bibliothèque",
-        "scanWithCamera" to "Scanner avec caméra"
+        "scanWithCamera" to "Scanner avec caméra",
+        "privacyPolicy" to "Politique de confidentialité",
+        "termsOfUse" to "Conditions d'utilisation",
+        "authLegalNoticePrefix" to "En appuyant sur Créer un compte, vous acceptez notre ",
+        "authLegalNoticeMiddle" to " et nos ",
+        "authLegalNoticeSuffix" to "."
     )
 
     private val chinese = english + mapOf(
@@ -258,7 +273,12 @@ object EobStrings {
         "logout" to "退出",
         "scanBill" to "扫描 EOB",
         "uploadFromLibrary" to "从图库上传",
-        "scanWithCamera" to "用相机扫描"
+        "scanWithCamera" to "用相机扫描",
+        "privacyPolicy" to "隐私政策",
+        "termsOfUse" to "使用条款",
+        "authLegalNoticePrefix" to "点击创建账户即表示您同意我们的",
+        "authLegalNoticeMiddle" to "和",
+        "authLegalNoticeSuffix" to "。"
     )
 
     private val localized = mapOf(

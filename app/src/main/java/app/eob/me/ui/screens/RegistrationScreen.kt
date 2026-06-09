@@ -15,10 +15,50 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
+
+private object AuthLegalUrls {
+    const val PRIVACY_POLICY = "https://github.com/ljduhart/EOBme/blob/main/privacy-policy.html"
+    const val TERMS_OF_USE = "https://github.com/ljduhart/EOBme/blob/main/terms-of-use.html"
+}
+
+@Composable
+private fun AuthLegalNotice(language: AppLanguage, modifier: Modifier = Modifier) {
+    val linkStyle = TextLinkStyles(
+        style = SpanStyle(
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline
+        )
+    )
+    val notice = buildAnnotatedString {
+        append(EobStrings.t(language, "authLegalNoticePrefix"))
+        withLink(LinkAnnotation.Url(AuthLegalUrls.PRIVACY_POLICY, linkStyle)) {
+            append(EobStrings.t(language, "privacyPolicy"))
+        }
+        append(EobStrings.t(language, "authLegalNoticeMiddle"))
+        withLink(LinkAnnotation.Url(AuthLegalUrls.TERMS_OF_USE, linkStyle)) {
+            append(EobStrings.t(language, "termsOfUse"))
+        }
+        append(EobStrings.t(language, "authLegalNoticeSuffix"))
+    }
+    Text(
+        text = notice,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth()
+    )
+}
 
 @Composable
 fun AuthChoiceScreen(
@@ -161,6 +201,9 @@ fun RegistrationScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (isSignUp) EobStrings.t(language, "createAccount") else EobStrings.t(language, "login"))
+        }
+        if (isSignUp) {
+            AuthLegalNotice(language = language)
         }
         OutlinedButton(onClick = onToggleMode, modifier = Modifier.fillMaxWidth()) {
             Text(if (isSignUp) EobStrings.t(language, "login") else EobStrings.t(language, "createAccount"))
