@@ -10,6 +10,7 @@ import app.eob.me.data.BillingIssueType
 import app.eob.me.data.ProviderNetworkAssurance
 import app.eob.me.app.EobViewModel
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 import app.eob.me.navigation.EobRoute
 import app.eob.me.navigation.primaryRoutes
 import java.io.File
@@ -599,6 +600,22 @@ class ExampleUnitTest {
         assertTrue(snapshot.claimScanComplete)
         assertTrue(snapshot.statusLine.isNotBlank())
         assertTrue(snapshot.summaryLine.isNotBlank())
+    }
+
+    @Test
+    fun authLegalNoticeStringsExistForAllLanguages() {
+        val keys = listOf(
+            "privacyPolicy",
+            "termsOfUse",
+            "authLegalNoticePrefix",
+            "authLegalNoticeMiddle",
+            "authLegalNoticeSuffix"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                assertTrue(EobStrings.t(language, key).isNotBlank())
+            }
+        }
     }
 
     @Test
