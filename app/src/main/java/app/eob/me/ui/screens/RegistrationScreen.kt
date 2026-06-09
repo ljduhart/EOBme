@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -20,11 +19,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
@@ -36,47 +38,57 @@ private object LegalAcceptanceUrls {
     const val PRIVACY_POLICY = "https://ljduhart.github.io/EOBme/privacy-policy.html"
 }
 
-private const val LEGAL_TERMS_TAG = "terms_of_use"
-private const val LEGAL_PRIVACY_TAG = "privacy_policy"
-
 @Composable
 fun LegalAcceptanceText(
     language: AppLanguage,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val linkColor = MaterialTheme.colorScheme.primary
+    val linkStyles = TextLinkStyles(
+        style = SpanStyle(
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline
+        )
+    )
     val termsLabel = EobStrings.t(language, "termsOfUse")
     val privacyLabel = EobStrings.t(language, "privacyPolicy")
     val annotatedText = buildAnnotatedString {
         append(EobStrings.t(language, "legalAcceptancePrefix"))
-        pushStringAnnotation(tag = LEGAL_TERMS_TAG, annotation = LegalAcceptanceUrls.TERMS_OF_USE)
-        withStyle(SpanStyle(color = linkColor)) {
+        withLink(
+            LinkAnnotation.Url(
+                url = LegalAcceptanceUrls.TERMS_OF_USE,
+                styles = linkStyles,
+                linkInteractionListener = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(LegalAcceptanceUrls.TERMS_OF_USE))
+                    )
+                }
+            )
+        ) {
             append(termsLabel)
         }
-        pop()
         append(EobStrings.t(language, "legalAcceptanceMiddle"))
-        pushStringAnnotation(tag = LEGAL_PRIVACY_TAG, annotation = LegalAcceptanceUrls.PRIVACY_POLICY)
-        withStyle(SpanStyle(color = linkColor)) {
+        withLink(
+            LinkAnnotation.Url(
+                url = LegalAcceptanceUrls.PRIVACY_POLICY,
+                styles = linkStyles,
+                linkInteractionListener = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(LegalAcceptanceUrls.PRIVACY_POLICY))
+                    )
+                }
+            )
+        ) {
             append(privacyLabel)
         }
-        pop()
         append(EobStrings.t(language, "legalAcceptanceSuffix"))
     }
-    ClickableText(
+    Text(
         text = annotatedText,
-        style = MaterialTheme.typography.bodySmall.copy(
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        ),
-        modifier = modifier.fillMaxWidth(),
-        onClick = { offset ->
-            annotatedText.getStringAnnotations(start = offset, end = offset)
-                .firstOrNull()
-                ?.let { annotation ->
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item)))
-                }
-        }
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth()
     )
 }
 
