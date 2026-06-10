@@ -46,8 +46,11 @@ fun AppealScreen(
     profile: UserProfile,
     selectedRecord: EobRecord?,
     appealLetter: String,
+    appealLetterEditingEnabled: Boolean,
     onRegenerate: () -> Unit,
     onEditLetter: (String) -> Unit,
+    onEnableEditing: () -> Unit,
+    onSaveLetter: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -120,6 +123,7 @@ fun AppealScreen(
                 OutlinedTextField(
                     value = appealLetter,
                     onValueChange = onEditLetter,
+                    readOnly = !appealLetterEditingEnabled,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(8.dp)
@@ -174,6 +178,27 @@ fun AppealScreen(
                     )
                 ) {
                     Text("📤")
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onEnableEditing,
+                    modifier = Modifier.weight(1f),
+                    enabled = !appealLetterEditingEnabled && appealLetter.isNotBlank()
+                ) {
+                    Text(EobStrings.t(language, "appealEditLetter"))
+                }
+                Button(
+                    onClick = onSaveLetter,
+                    modifier = Modifier.weight(1f),
+                    enabled = appealLetterEditingEnabled,
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+                ) {
+                    Text(EobStrings.t(language, "appealSaveLetter"))
                 }
             }
         }

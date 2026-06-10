@@ -67,7 +67,8 @@ data class HubUiState(
     val selectedCptCategory: CptCategory = CptCategory.OfficeVisit,
     val firebaseSyncStatus: FirebaseSyncStatus = FirebaseSyncStatus(isConfigured = false),
     val newsFeedRevision: Int = 0,
-    val appealGeneratorBentoProcessing: Boolean = false
+    val appealGeneratorBentoProcessing: Boolean = false,
+    val appealLetterEditingEnabled: Boolean = false
 )
 
 /**
@@ -239,7 +240,8 @@ class EobViewModel : ViewModel() {
             it.copy(
                 selectedRecord = record,
                 uploadNotice = "",
-                appealLetter = AppealLetterGenerator.generate(profile, record)
+                appealLetter = AppealLetterGenerator.generate(profile, record),
+                appealLetterEditingEnabled = false
             )
         }
     }
@@ -251,7 +253,8 @@ class EobViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 selectedRecord = nextSelection,
-                appealLetter = AppealLetterGenerator.generate(profile, nextSelection)
+                appealLetter = AppealLetterGenerator.generate(profile, nextSelection),
+                appealLetterEditingEnabled = false
             )
         }
     }
@@ -363,7 +366,16 @@ class EobViewModel : ViewModel() {
     }
 
     fun updateAppeal(text: String) {
+        if (!_uiState.value.appealLetterEditingEnabled) return
         _uiState.update { it.copy(appealLetter = text) }
+    }
+
+    fun enableAppealLetterEditing() {
+        _uiState.update { it.copy(appealLetterEditingEnabled = true) }
+    }
+
+    fun saveAppealLetter() {
+        _uiState.update { it.copy(appealLetterEditingEnabled = false) }
     }
 
     fun updateUploadNotice(message: String) {
@@ -544,7 +556,12 @@ class EobViewModel : ViewModel() {
 
     fun regenerateAppeal(profile: UserProfile) {
         val selected = _uiState.value.selectedRecord
-        _uiState.update { it.copy(appealLetter = AppealLetterGenerator.generate(profile, selected)) }
+        _uiState.update {
+            it.copy(
+                appealLetter = AppealLetterGenerator.generate(profile, selected),
+                appealLetterEditingEnabled = false
+            )
+        }
     }
 
     fun activateAppealGeneratorBento(profile: UserProfile) {

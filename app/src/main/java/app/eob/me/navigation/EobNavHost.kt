@@ -565,28 +565,30 @@ private fun MainHubNavHost(
                     LaunchedEffect(Unit) {
                         eobViewModel.acknowledgeAppealGeneratorBentoActivation()
                     }
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        AppealScreen(
-                            language = language,
-                            profile = profile,
-                            selectedRecord = uiState.selectedRecord,
-                            appealLetter = uiState.appealLetter,
-                            onRegenerate = {
-                                eobViewModel.regenerateAppeal(profile)
-                                onActivity()
-                            },
-                            onEditLetter = {
-                                eobViewModel.updateAppeal(it)
-                                onActivity()
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        EobDeleteBar(
-                            language = language,
-                            selectedRecord = uiState.selectedRecord,
-                            onDeleteEob = { deleteEob(it) }
-                        )
-                    }
+                    AppealScreen(
+                        language = language,
+                        profile = profile,
+                        selectedRecord = uiState.selectedRecord,
+                        appealLetter = uiState.appealLetter,
+                        appealLetterEditingEnabled = uiState.appealLetterEditingEnabled,
+                        onRegenerate = {
+                            eobViewModel.regenerateAppeal(profile)
+                            onActivity()
+                        },
+                        onEditLetter = {
+                            eobViewModel.updateAppeal(it)
+                            onActivity()
+                        },
+                        onEnableEditing = {
+                            eobViewModel.enableAppealLetterEditing()
+                            onActivity()
+                        },
+                        onSaveLetter = {
+                            eobViewModel.saveAppealLetter()
+                            onActivity()
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 composable(EobRoute.Profile.route) {
                     ProfileScreen(
