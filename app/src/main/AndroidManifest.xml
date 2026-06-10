@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- BILLING — Play Billing Client (com.android.billingclient:billing) -->
     <uses-permission android:name="com.android.vending.BILLING" />
+    <!-- USE_BIOMETRIC — Settings biometric login via BiometricPrompt -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel.
          Sign-up LegalAcceptanceText opens policy URLs with ACTION_VIEW (queries below). -->
     <queries>
@@ -25,7 +27,8 @@
          history, insurance news split-pane bento via EobViewModel.insuranceNewsBentoSnapshot
          and newsFeedRevision, smart gold care-team cards with 4s shimmer delay, editable home
          insurance card via EobViewModel, Appeal letter edit/save gated by
-         EobViewModel.appealLetterEditingEnabled) + EobRepository; care team dial uses ACTION_DIAL only
+         EobViewModel.appealLetterEditingEnabled, hub Settings gear → EobRoute.Settings with
+         EobViewModel hubSettings) + EobRepository; care team dial uses ACTION_DIAL only
          (no CALL_PHONE). Runtime permissions in EobNavHost. -->
     <uses-feature
         android:name="android.hardware.camera"

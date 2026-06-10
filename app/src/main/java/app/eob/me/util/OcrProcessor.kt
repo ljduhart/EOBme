@@ -11,6 +11,7 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
+import app.eob.me.data.ImageCompressionLevel
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -39,7 +40,11 @@ object OcrProcessor {
     }
 
     // Shifted to Dispatchers.IO to prevent UI Stalling
-    suspend fun prepareUriForUpload(context: Context, uri: Uri): Uri = withContext(Dispatchers.IO) {
+    suspend fun prepareUriForUpload(
+        context: Context,
+        uri: Uri,
+        compression: ImageCompressionLevel = ImageCompressionLevel.Medium
+    ): Uri = withContext(Dispatchers.IO) {
         val mimeType = context.contentResolver.getType(uri).orEmpty()
         if (mimeType == "application/pdf" || uri.toString().endsWith(".pdf", ignoreCase = true)) return@withContext uri
 
@@ -56,18 +61,21 @@ object OcrProcessor {
         val decoded = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
             ?: throw IllegalArgumentException("Unable to decode selected EOB image")
 
-        return@withContext prepareBitmapForUpload(context, decoded)
+        return@withContext prepareBitmapForUpload(context, decoded, compression)
     }
 
-    suspend fun prepareBitmapForUpload(context: Context, bitmap: Bitmap): Uri = withContext(Dispatchers.IO) {
-        val scaled = scaleBitmap(bitmap)
+    suspend fun prepareBitmapForUpload(
+        context: Context,
+        bitmap: Bitmap,
+        compression: ImageCompressionLevel = ImageCompressionLevel.Medium
+    ): Uri = withContext(Dispatchers.IO) {
+        val scaled = scaleBitmap(bitmap, compression.maxDimension)
         val enhanced = enhanceContrast(scaled)
 
         val file = File(context.cacheDir, "eob_upload_${System.currentTimeMillis()}.jpg")
         try {
             FileOutputStream(file).use { output ->
-                // Drop quality slightly to 85% for vastly reduced payload file size without losing OCR accuracy
-                enhanced.compress(Bitmap.CompressFormat.JPEG, 85, output)
+                enhanced.compress(Bitmap.CompressFormat.JPEG, compression.jpegQuality, output)
             }
         } finally {
             // Memory is guaranteed to clean up safely here
@@ -132,7 +140,7 @@ object OcrProcessor {
         return sampleSize
     }
 
-    private fun scaleBitmap(bitmap: Bitmap, maxDimension: Int = 1800): Bitmap {
+    private fun scaleBitmap(bitmap: Bitmap, maxDimension: Int): Bitmap {
         val largest = maxOf(bitmap.width, bitmap.height)
         if (largest <= maxDimension) return bitmap
         val scale = maxDimension.toFloat() / largest.toFloat()

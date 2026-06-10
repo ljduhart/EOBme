@@ -4,6 +4,9 @@ import android.Manifest
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -14,11 +17,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -30,8 +36,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.eob.me.billing.PlayBillingManager
+import app.eob.me.security.BiometricAuthManager
+import app.eob.me.ui.components.HubSettingsGearIcon
+import app.eob.me.ui.screens.SettingsScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -192,8 +206,13 @@ private fun MainHubNavHost(
             Toast.makeText(context, EobStrings.t(language, "signInBeforeUpload"), Toast.LENGTH_SHORT).show()
             return
         }
+        if (!eobViewModel.canUploadOnCurrentNetwork(context)) {
+            Toast.makeText(context, EobStrings.t(language, "settingsUploadWifiBlocked"), Toast.LENGTH_LONG).show()
+            return
+        }
+        val compression = eobViewModel.imageCompressionLevel()
         scope.launch {
-            runCatching { OcrProcessor.prepareUriForUpload(context, uri) }
+            runCatching { OcrProcessor.prepareUriForUpload(context, uri, compression) }
                 .onSuccess { preparedUri ->
                     eobViewModel.uploadEobFile(
                         userId = uid,
@@ -232,8 +251,43 @@ private fun MainHubNavHost(
     }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val activity = context as? FragmentActivity
+    val billingManager = remember(activity) {
+        activity?.let { host ->
+            PlayBillingManager(
+                activity = host,
+                onTierChanged = eobViewModel::setSubscriptionTier,
+                onBillingMessage = { key ->
+                    val message = when (key) {
+                        "billing_not_ready" -> EobStrings.t(language, "billingNotReady")
+                        "billing_product_unavailable" -> EobStrings.t(language, "billingProductUnavailable")
+                        else -> EobStrings.t(language, "billingFlowFailed")
+                    }
+                    eobViewModel.updateSettingsNotice(message)
+                }
+            )
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, billingManager) {
+        billingManager?.start()
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> eobViewModel.onAppBackgrounded()
+                Lifecycle.Event.ON_START -> eobViewModel.onAppForegrounded()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            billingManager?.endConnection()
+        }
+    }
+
     LaunchedEffect(Unit) {
-        eobViewModel.attachRepository(eobRepository)
+        eobViewModel.attachRepository(eobRepository, context)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
@@ -269,8 +323,32 @@ private fun MainHubNavHost(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: EobRoute.Home.route
     val showBack = currentRoute in hubBackRoutes
+    val showSettingsGear = currentRoute == EobRoute.Home.route
     val showBottomBar = currentRoute !in hubRoutesWithoutBottomBar
     val selectedBottomTab = HubBottomTab.fromRoute(currentRoute)
+    var settingsDraftFirstName by remember(profile.firstName) { mutableStateOf(profile.firstName) }
+    var settingsDraftLastName by remember(profile.lastName) { mutableStateOf(profile.lastName) }
+
+    LaunchedEffect(profile.firstName, profile.lastName, uiState.hubSettings.settingsAccountEditing) {
+        if (!uiState.hubSettings.settingsAccountEditing) {
+            settingsDraftFirstName = profile.firstName
+            settingsDraftLastName = profile.lastName
+        }
+    }
+
+    val appVersionLabel = remember {
+        val packageInfo = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        }.getOrNull()
+        val versionName = packageInfo?.versionName.orEmpty().ifBlank { "1.0.0" }
+        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo?.longVersionCode?.toInt() ?: 0
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo?.versionCode ?: 0
+        }
+        EobStrings.tf(language, "settingsAppVersion", versionName, versionCode)
+    }
 
     LaunchedEffect(currentRoute) {
         if (currentRoute != EobRoute.News.route && uiState.selectedInsuranceArticle != null) {
@@ -324,19 +402,25 @@ private fun MainHubNavHost(
             }
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            Column(modifier = Modifier.fillMaxSize()) {
             HubHeader(
                 language = language,
                 showBack = showBack,
+                showSettingsGear = showSettingsGear,
                 onBack = {
                     navController.navigate(EobRoute.Home.route) {
                         popUpTo(EobRoute.Home.route) { inclusive = true }
                         launchSingleTop = true
                     }
+                    onActivity()
+                },
+                onOpenSettings = {
+                    navController.navigate(EobRoute.Settings.route) { launchSingleTop = true }
                     onActivity()
                 }
             )
@@ -524,6 +608,7 @@ private fun MainHubNavHost(
                 composable(EobRoute.CameraCapture.route) {
                     CameraCaptureScreen(
                         language = language,
+                        autoCropEnabled = eobViewModel.autoCropEnabled(),
                         onImageCaptured = { uri ->
                             prepareAndUpload(uri, EobStrings.t(language, "cameraScan"))
                             navController.popBackStack(EobRoute.History.route, inclusive = false)
@@ -590,6 +675,110 @@ private fun MainHubNavHost(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+                composable(EobRoute.Settings.route) {
+                    SettingsScreen(
+                        language = language,
+                        profile = profile,
+                        hubSettings = uiState.hubSettings,
+                        appVersionLabel = appVersionLabel,
+                        accountEditing = uiState.hubSettings.settingsAccountEditing,
+                        draftFirstName = settingsDraftFirstName,
+                        draftLastName = settingsDraftLastName,
+                        onDraftFirstNameChanged = { settingsDraftFirstName = it },
+                        onDraftLastNameChanged = { settingsDraftLastName = it },
+                        onEnableAccountEditing = eobViewModel::enableSettingsAccountEditing,
+                        onSaveAccountProfile = {
+                            val updatedProfile = profile.copy(
+                                firstName = settingsDraftFirstName.trim(),
+                                lastName = settingsDraftLastName.trim()
+                            )
+                            onProfileChanged(updatedProfile)
+                            eobViewModel.updateSyncProfile(updatedProfile)
+                            eobViewModel.saveProfileToRemote(userId, updatedProfile, language) { message ->
+                                eobViewModel.updateSettingsNotice(
+                                    message.ifBlank { EobStrings.t(language, "settingsProfileSaved") }
+                                )
+                            }
+                            eobViewModel.disableSettingsAccountEditing()
+                            onActivity()
+                        },
+                        onCancelAccountEditing = {
+                            settingsDraftFirstName = profile.firstName
+                            settingsDraftLastName = profile.lastName
+                            eobViewModel.disableSettingsAccountEditing()
+                        },
+                        onManageSubscription = {
+                            billingManager?.launchManageSubscription()
+                            onActivity()
+                        },
+                        onLogout = {
+                            eobViewModel.resetHubState()
+                            profileSaveMessage = ""
+                            onLogout()
+                        },
+                        onDeleteAccountConfirmed = {
+                            eobViewModel.deleteAccount(userId, language) { message ->
+                                eobViewModel.updateSettingsNotice(message)
+                                if (message == EobStrings.t(language, "settingsAccountDeleted")) {
+                                    eobViewModel.resetHubState()
+                                    onLogout()
+                                }
+                            }
+                            onActivity()
+                        },
+                        onBiometricToggle = { enabled ->
+                            if (enabled) {
+                                val hostActivity = activity
+                                if (hostActivity == null || !BiometricAuthManager.canAuthenticate(hostActivity)) {
+                                    eobViewModel.updateSettingsNotice(
+                                        EobStrings.t(language, "settingsBiometricUnavailable")
+                                    )
+                                } else {
+                                    eobViewModel.setBiometricLoginEnabled(true)
+                                }
+                            } else {
+                                eobViewModel.setBiometricLoginEnabled(false)
+                            }
+                            onActivity()
+                        },
+                        onAppLockTimeoutSelected = {
+                            eobViewModel.setAppLockTimeout(it)
+                            onActivity()
+                        },
+                        onCrashlyticsToggle = {
+                            eobViewModel.setCrashlyticsOptIn(it)
+                            onActivity()
+                        },
+                        onWifiOnlyToggle = {
+                            eobViewModel.setUploadOverWifiOnly(it)
+                            onActivity()
+                        },
+                        onCompressionSelected = {
+                            eobViewModel.setImageCompressionLevel(it)
+                            onActivity()
+                        },
+                        onAutoCropToggle = {
+                            eobViewModel.setAutoCropEnabled(it)
+                            onActivity()
+                        },
+                        onClearCache = {
+                            eobViewModel.clearLocalCache { cleared ->
+                                eobViewModel.updateSettingsNotice(
+                                    EobStrings.t(
+                                        language,
+                                        if (cleared) "settingsCacheCleared" else "settingsCacheClearFailed"
+                                    )
+                                )
+                            }
+                            onActivity()
+                        },
+                        onTabSelected = {
+                            eobViewModel.setSettingsTab(it)
+                            onActivity()
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 composable(EobRoute.Profile.route) {
                     ProfileScreen(
                         language = language,
@@ -611,6 +800,39 @@ private fun MainHubNavHost(
                             onLogout()
                         },
                         openSupportInitially = openProfileSupport
+                    )
+                }
+            }
+            }
+            if (uiState.hubSettings.appLocked) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.72f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AppLockOverlay(
+                        language = language,
+                        onUnlock = {
+                            val hostActivity = activity
+                            if (hostActivity == null || !BiometricAuthManager.canAuthenticate(hostActivity)) {
+                                eobViewModel.updateSettingsNotice(
+                                    EobStrings.t(language, "settingsBiometricUnavailable")
+                                )
+                            } else {
+                                BiometricAuthManager.showPrompt(
+                                    activity = hostActivity,
+                                    language = language,
+                                    onSuccess = {
+                                        eobViewModel.unlockApp()
+                                        eobViewModel.updateSettingsNotice("")
+                                    },
+                                    onError = { message ->
+                                        eobViewModel.updateSettingsNotice(message)
+                                    }
+                                )
+                            }
+                        }
                     )
                 }
             }
@@ -698,13 +920,16 @@ private fun HistoryRoute(
 private fun HubHeader(
     language: AppLanguage,
     showBack: Boolean,
-    onBack: () -> Unit
+    showSettingsGear: Boolean,
+    onBack: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         if (showBack) {
             TextButton(onClick = onBack) {
@@ -714,7 +939,46 @@ private fun HubHeader(
         Text(
             text = EobStrings.t(language, "appBrand"),
             style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .weight(1f)
         )
+        if (showSettingsGear) {
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Icon(
+                    imageVector = HubSettingsGearIcon.Settings,
+                    contentDescription = EobStrings.t(language, "settings")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppLockOverlay(
+    language: AppLanguage,
+    onUnlock: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = EobStrings.t(language, "settingsAppLocked"),
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Button(onClick = onUnlock) {
+                Text(EobStrings.t(language, "settingsUnlock"))
+            }
+        }
     }
 }

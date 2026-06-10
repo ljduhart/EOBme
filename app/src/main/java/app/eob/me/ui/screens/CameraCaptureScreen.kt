@@ -57,7 +57,10 @@ import androidx.core.content.ContextCompat
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.ui.components.CameraScanningOverlay
+import app.eob.me.util.DocumentScanCrop
+import android.graphics.BitmapFactory
 import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -70,6 +73,7 @@ data class TapFocusState(val offset: Offset, val triggerTime: Long)
 @Composable
 fun CameraCaptureScreen(
     language: AppLanguage,
+    autoCropEnabled: Boolean = true,
     onImageCaptured: (Uri) -> Unit,
     onClose: () -> Unit
 ) {
@@ -237,6 +241,7 @@ fun CameraCaptureScreen(
                             context = context,
                             language = language,
                             imageCapture = capture,
+                            autoCropEnabled = autoCropEnabled,
                             onImageCaptured = {
                                 isCapturing = false
                                 onImageCaptured(it)
@@ -421,6 +426,7 @@ private fun captureImage(
     context: Context,
     language: AppLanguage,
     imageCapture: ImageCapture,
+    autoCropEnabled: Boolean,
     onImageCaptured: (Uri) -> Unit,
     onError: (String) -> Unit
 ) {
@@ -431,6 +437,17 @@ private fun captureImage(
         ContextCompat.getMainExecutor(context),
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                if (autoCropEnabled) {
+                    runCatching {
+                        val decoded = BitmapFactory.decodeFile(file.absolutePath) ?: return@runCatching
+                        val cropped = DocumentScanCrop.applyGuideCrop(decoded)
+                        FileOutputStream(file).use { output ->
+                            cropped.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, output)
+                        }
+                        if (cropped !== decoded) decoded.recycle()
+                        cropped.recycle()
+                    }
+                }
                 onImageCaptured(Uri.fromFile(file))
             }
 

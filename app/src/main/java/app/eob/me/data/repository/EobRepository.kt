@@ -42,4 +42,6 @@ interface EobRepository {
     fun uploadEobFile(userId: String, uri: Uri, sourceName: String, onComplete: (String) -> Unit)
 
     fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, onComplete: (String) -> Unit)
+
+    fun deleteAccount(userId: String, onComplete: (String) -> Unit)
 }

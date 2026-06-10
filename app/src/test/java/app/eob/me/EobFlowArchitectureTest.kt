@@ -99,6 +99,7 @@ class EobFlowArchitectureTest {
             "EobRoute.News.route" to "NewsScreen.kt",
             "EobRoute.Appeal.route" to "AppealScreen.kt",
             "EobRoute.Profile.route" to "ProfileScreen.kt",
+            "EobRoute.Settings.route" to "SettingsScreen.kt",
             "EobRoute.CameraCapture.route" to "CameraCaptureScreen.kt",
             "EobRoute.ProviderDirectory.route" to "ProviderDirectoryScreen.kt"
         )
@@ -204,10 +205,32 @@ class EobFlowArchitectureTest {
             "EobRoute.CameraCapture.route",
             "cameraPermissionLauncher",
             "setLoadingInvoice",
-            "acknowledgeInvoiceFileDropAnimation"
+            "acknowledgeInvoiceFileDropAnimation",
+            "canUploadOnCurrentNetwork",
+            "imageCompressionLevel"
         ).forEach { snippet ->
             assertTrue("EobNavHost missing upload/camera wiring: $snippet", navHostSource.contains(snippet))
         }
+    }
+
+    @Test
+    fun settingsGearAndHubSettingsWireThroughViewModel() {
+        listOf(
+            "EobRoute.Settings.route",
+            "HubSettingsGearIcon",
+            "SettingsScreen",
+            "hubSettings",
+            "setBiometricLoginEnabled",
+            "setUploadOverWifiOnly",
+            "setImageCompressionLevel",
+            "setAutoCropEnabled",
+            "clearLocalCache",
+            "deleteAccount"
+        ).forEach { snippet ->
+            assertTrue("Settings flow missing: $snippet", navHostSource.contains(snippet) || readSource("viewmodel/EobViewModel.kt").contains(snippet))
+        }
+        assertTrue(EobRoute.Settings.route in hubBackRoutes)
+        assertTrue(manifestSource.contains("USE_BIOMETRIC"))
     }
 
     @Test
