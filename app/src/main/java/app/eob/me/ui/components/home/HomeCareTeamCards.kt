@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -44,10 +45,17 @@ import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.border
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -65,20 +73,60 @@ import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.TherapistNetworkStatus
 import app.eob.me.ui.components.AssuranceCrimson
 
-private val GoldCardGradient = Brush.linearGradient(
+private val FrostedGlassGradient = Brush.verticalGradient(
     colors = listOf(
-        Color(0xFFFFF8E7),
-        Color(0xFFF5E6B8),
-        Color(0xFFD4AF37),
-        Color(0xFFF5E6B8),
-        Color(0xFFFFF8E7)
+        Color(0xFFF4FAFF),
+        Color(0xFFE3F2FF),
+        Color(0xFFD0E8FF)
     )
 )
 
-private val GoldInk = Color(0xFF5C4A1F)
-private val GoldInkDark = Color(0xFF3D3220)
+private val NeonBlueGlow = Color(0xFF00E5FF)
+private val NeonBlueBorder = Color(0xFF2498EA)
+private val CardInk = Color(0xFF0B3D91)
+private val CardInkDark = Color(0xFF102A43)
+private val CardCornerRadius = 12.dp
+private val CardInnerCornerRadius = 8.dp
 
 private const val CARD_HEIGHT_DP = 100
+
+private fun Modifier.frostedCareTeamCardSurface(cornerRadius: androidx.compose.ui.unit.Dp): Modifier {
+    return this
+        .drawBehind {
+            val shadowPaint = Paint().asFrameworkPaint().apply {
+                color = NeonBlueGlow.copy(alpha = 0.12f).toArgb()
+                setShadowLayer(
+                    18.dp.toPx(),
+                    0f,
+                    0f,
+                    NeonBlueGlow.copy(alpha = 0.45f).toArgb()
+                )
+            }
+            drawContext.canvas.nativeCanvas.drawRoundRect(
+                0f,
+                0f,
+                size.width,
+                size.height,
+                cornerRadius.toPx(),
+                cornerRadius.toPx(),
+                shadowPaint
+            )
+        }
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(FrostedGlassGradient, RoundedCornerShape(cornerRadius))
+        .border(
+            width = 2.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    NeonBlueGlow,
+                    NeonBlueBorder,
+                    NeonBlueGlow.copy(alpha = 0.85f),
+                    NeonBlueBorder
+                )
+            ),
+            shape = RoundedCornerShape(cornerRadius)
+        )
+}
 
 @Composable
 fun HomeCareTeamCards(
@@ -180,9 +228,9 @@ private fun CareTeamSmartCard(
                     onLongPress = { onEdit() }
                 )
             },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(CardCornerRadius),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -218,10 +266,10 @@ private fun CareTeamSmartCard(
                 }
             }
             if (!cardState.isAssigned && showShimmer) {
-                GoldCardShimmerOverlay(
+                FrostedCardShimmerOverlay(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(CardCornerRadius))
                 )
             }
         }
@@ -237,7 +285,7 @@ private fun CareTeamCardFront(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(GoldCardGradient, RoundedCornerShape(8.dp))
+            .frostedCareTeamCardSurface(CardInnerCornerRadius)
             .padding(horizontal = 4.dp, vertical = 5.dp)
     ) {
         Column(
@@ -245,16 +293,27 @@ private fun CareTeamCardFront(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = careTeamLabel(language, cardState.type),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = GoldInk,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 10.sp
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                CareTeamProviderIcon(
+                    type = cardState.type,
+                    tint = CardInk,
+                    modifier = Modifier.padding(end = 3.dp)
+                )
+                Text(
+                    text = careTeamLabel(language, cardState.type),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = CardInk,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 10.sp
+                )
+            }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(1.dp)
@@ -263,7 +322,7 @@ private fun CareTeamCardFront(
                     text = cardState.primaryLine,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = GoldInkDark,
+                    color = CardInkDark,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -299,7 +358,7 @@ private fun CareTeamCardFront(
             Text(
                 text = formatMicroMetrics(language, cardState),
                 style = MaterialTheme.typography.labelSmall,
-                color = GoldInk.copy(alpha = 0.8f),
+                color = CardInk.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 fontSize = 7.sp,
@@ -310,8 +369,84 @@ private fun CareTeamCardFront(
 }
 
 @Composable
-private fun GoldCardShimmerOverlay(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "goldShimmer")
+private fun CareTeamProviderIcon(
+    type: CareTeamProviderType,
+    tint: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier.size(14.dp)) {
+        val stroke = Stroke(width = size.minDimension * 0.08f)
+        when (type) {
+            CareTeamProviderType.Pcp -> {
+                drawCircle(tint, radius = size.width * 0.22f, center = Offset(size.width * 0.5f, size.height * 0.28f))
+                drawArc(
+                    color = tint,
+                    startAngle = 200f,
+                    sweepAngle = 140f,
+                    useCenter = false,
+                    topLeft = Offset(size.width * 0.18f, size.height * 0.42f),
+                    size = Size(size.width * 0.64f, size.height * 0.52f),
+                    style = stroke
+                )
+            }
+            CareTeamProviderType.Dentist -> {
+                drawRoundRect(
+                    color = tint,
+                    topLeft = Offset(size.width * 0.28f, size.height * 0.2f),
+                    size = Size(size.width * 0.44f, size.height * 0.58f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.width * 0.16f),
+                    style = stroke
+                )
+                drawLine(
+                    tint,
+                    Offset(size.width * 0.36f, size.height * 0.42f),
+                    Offset(size.width * 0.64f, size.height * 0.42f),
+                    stroke.width
+                )
+            }
+            CareTeamProviderType.Specialist -> {
+                drawLine(
+                    tint,
+                    Offset(size.width * 0.5f, size.height * 0.12f),
+                    Offset(size.width * 0.5f, size.height * 0.88f),
+                    stroke.width * 1.1f
+                )
+                drawLine(
+                    tint,
+                    Offset(size.width * 0.22f, size.height * 0.34f),
+                    Offset(size.width * 0.78f, size.height * 0.34f),
+                    stroke.width
+                )
+                drawCircle(tint, radius = size.width * 0.08f, center = Offset(size.width * 0.34f, size.height * 0.5f), style = stroke)
+                drawCircle(tint, radius = size.width * 0.08f, center = Offset(size.width * 0.66f, size.height * 0.58f), style = stroke)
+            }
+            CareTeamProviderType.Therapist -> {
+                drawOval(
+                    color = tint,
+                    topLeft = Offset(size.width * 0.2f, size.height * 0.18f),
+                    size = Size(size.width * 0.6f, size.height * 0.64f),
+                    style = stroke
+                )
+                drawLine(
+                    tint,
+                    Offset(size.width * 0.3f, size.height * 0.38f),
+                    Offset(size.width * 0.7f, size.height * 0.48f),
+                    stroke.width
+                )
+                drawLine(
+                    tint,
+                    Offset(size.width * 0.35f, size.height * 0.58f),
+                    Offset(size.width * 0.62f, size.height * 0.34f),
+                    stroke.width
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FrostedCardShimmerOverlay(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "frostedCareTeamShimmer")
     val progress by transition.animateFloat(
         initialValue = -0.4f,
         targetValue = 1.4f,
@@ -320,7 +455,7 @@ private fun GoldCardShimmerOverlay(modifier: Modifier = Modifier) {
             repeatMode = RepeatMode.Restart,
             initialStartOffset = androidx.compose.animation.core.StartOffset(300)
         ),
-        label = "goldShimmerProgress"
+        label = "frostedCareTeamShimmerProgress"
     )
     Canvas(modifier = modifier) {
         val streakWidth = size.width * 0.48f
@@ -329,10 +464,10 @@ private fun GoldCardShimmerOverlay(modifier: Modifier = Modifier) {
             brush = Brush.linearGradient(
                 colors = listOf(
                     Color.Transparent,
-                    Color(0xFFFFFBF0).copy(alpha = 0.12f),
-                    Color(0xFFFFE082).copy(alpha = 0.55f),
-                    Color(0xFFD4AF37).copy(alpha = 0.45f),
-                    Color(0xFFFFE082).copy(alpha = 0.35f),
+                    Color(0xFFE8F7FF).copy(alpha = 0.15f),
+                    NeonBlueGlow.copy(alpha = 0.45f),
+                    NeonBlueBorder.copy(alpha = 0.35f),
+                    Color(0xFFB8E4FF).copy(alpha = 0.3f),
                     Color.Transparent
                 ),
                 start = Offset(x, 0f),
@@ -352,7 +487,7 @@ private fun CareTeamCardBack(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(GoldCardGradient, RoundedCornerShape(8.dp))
+            .frostedCareTeamCardSurface(CardInnerCornerRadius)
             .padding(horizontal = 4.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -364,7 +499,7 @@ private fun CareTeamCardBack(
                 text = careTeamLabel(language, doctor.type),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = GoldInk,
+                color = CardInk,
                 maxLines = 1,
                 fontSize = 9.sp
             )
@@ -385,7 +520,7 @@ private fun CareTeamDetailLine(
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
-        color = GoldInkDark,
+        color = CardInkDark,
         textAlign = TextAlign.Center,
         fontSize = fontSize,
         maxLines = maxLines,
@@ -476,9 +611,9 @@ private fun secondaryLineColor(card: CareTeamCardDisplayState): Color {
         card.assuranceState == NetworkAssuranceState.OutOfNetworkAlert -> AssuranceCrimson
         card.type == CareTeamProviderType.Therapist &&
             card.therapistNetworkStatus == TherapistNetworkStatus.OutOfNetwork -> AssuranceCrimson
-        card.type == CareTeamProviderType.Specialist && card.specialistReferralActive -> Color(0xFF6B5A2E)
-        isCallToActionLine(card) && card.phoneDialUri != null -> Color(0xFF6B5A2E)
-        else -> GoldInk
+        card.type == CareTeamProviderType.Specialist && card.specialistReferralActive -> CardInk
+        isCallToActionLine(card) && card.phoneDialUri != null -> NeonBlueBorder
+        else -> CardInk
     }
 }
 
@@ -487,8 +622,8 @@ private fun tertiaryLineColor(card: CareTeamCardDisplayState): Color {
         card.type == CareTeamProviderType.Therapist &&
             card.therapistNetworkStatus == TherapistNetworkStatus.OutOfNetwork -> AssuranceCrimson
         card.type == CareTeamProviderType.Therapist &&
-            card.therapistNetworkStatus == TherapistNetworkStatus.InNetwork -> Color(0xFF6B5A2E)
-        else -> GoldInk.copy(alpha = 0.85f)
+            card.therapistNetworkStatus == TherapistNetworkStatus.InNetwork -> NeonBlueBorder
+        else -> CardInk.copy(alpha = 0.85f)
     }
 }
 
