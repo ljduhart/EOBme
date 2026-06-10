@@ -283,6 +283,15 @@ class EobViewModelFlowTest {
         assertFalse(viewModel.uiState.value.hubSettings.appLocked)
     }
 
+    @Test
+    fun appLockDoesNotTriggerBeforeFirstBackground() {
+        val viewModel = EobViewModel()
+        viewModel.setBiometricLoginEnabled(true)
+        viewModel.setAppLockTimeout(AppLockTimeout.Immediately)
+        viewModel.onAppForegrounded()
+        assertFalse(viewModel.uiState.value.hubSettings.appLocked)
+    }
+
     private fun waitForHubRecords(viewModel: EobViewModel) {
         var attempts = 0
         while (viewModel.eobRecords.value.isEmpty() && attempts < 200) {

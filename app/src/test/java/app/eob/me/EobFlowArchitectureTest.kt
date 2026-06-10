@@ -225,7 +225,8 @@ class EobFlowArchitectureTest {
             "setImageCompressionLevel",
             "setAutoCropEnabled",
             "clearLocalCache",
-            "deleteAccount"
+            "deleteAccount",
+            "settingsUploadWifiBlocked"
         ).forEach { snippet ->
             assertTrue("Settings flow missing: $snippet", navHostSource.contains(snippet) || readSource("viewmodel/EobViewModel.kt").contains(snippet))
         }

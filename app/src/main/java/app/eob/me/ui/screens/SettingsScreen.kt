@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -275,10 +275,10 @@ private fun SecuritySettingsTab(
     Text(EobStrings.t(language, "settingsAppLockTimeout"), style = MaterialTheme.typography.titleMedium)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         AppLockTimeout.entries.forEach { timeout ->
-            AssistChip(
+            FilterChip(
+                selected = hubSettings.appLockTimeout == timeout,
                 onClick = { onAppLockTimeoutSelected(timeout) },
-                label = { Text(EobStrings.t(language, timeout.labelKey())) },
-                enabled = hubSettings.appLockTimeout != timeout
+                label = { Text(EobStrings.t(language, timeout.labelKey())) }
             )
         }
     }
@@ -306,10 +306,10 @@ private fun DocumentScanSettingsTab(
     Text(EobStrings.t(language, "settingsImageCompression"), style = MaterialTheme.typography.titleMedium)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ImageCompressionLevel.entries.forEach { level ->
-            AssistChip(
+            FilterChip(
+                selected = hubSettings.imageCompressionLevel == level,
                 onClick = { onCompressionSelected(level) },
-                label = { Text(EobStrings.t(language, level.labelKey())) },
-                enabled = hubSettings.imageCompressionLevel != level
+                label = { Text(EobStrings.t(language, level.labelKey())) }
             )
         }
     }

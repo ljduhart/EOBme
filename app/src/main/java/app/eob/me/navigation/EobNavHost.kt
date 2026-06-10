@@ -336,7 +336,7 @@ private fun MainHubNavHost(
         }
     }
 
-    val appVersionLabel = remember {
+    val appVersionLabel = remember(language) {
         val packageInfo = runCatching {
             context.packageManager.getPackageInfo(context.packageName, 0)
         }.getOrNull()
@@ -348,6 +348,12 @@ private fun MainHubNavHost(
             packageInfo?.versionCode ?: 0
         }
         EobStrings.tf(language, "settingsAppVersion", versionName, versionCode)
+    }
+
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == EobRoute.Settings.route) {
+            eobViewModel.refreshCacheSize()
+        }
     }
 
     LaunchedEffect(currentRoute) {
@@ -608,7 +614,7 @@ private fun MainHubNavHost(
                 composable(EobRoute.CameraCapture.route) {
                     CameraCaptureScreen(
                         language = language,
-                        autoCropEnabled = eobViewModel.autoCropEnabled(),
+                        autoCropEnabled = uiState.hubSettings.autoCropEnabled,
                         onImageCaptured = { uri ->
                             prepareAndUpload(uri, EobStrings.t(language, "cameraScan"))
                             navController.popBackStack(EobRoute.History.route, inclusive = false)

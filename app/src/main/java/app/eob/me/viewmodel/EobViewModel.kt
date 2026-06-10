@@ -96,6 +96,7 @@ class EobViewModel : ViewModel() {
     private var profileListener: ListenerRegistration? = null
     private var newsListener: ListenerRegistration? = null
     private var lastBackgroundAt: Long = System.currentTimeMillis()
+    private var hasBeenBackgrounded: Boolean = false
 
     private val _eobRecords = MutableStateFlow<List<EobRecord>>(emptyList())
     val eobRecords: StateFlow<List<EobRecord>> = _eobRecords.asStateFlow()
@@ -258,9 +259,11 @@ class EobViewModel : ViewModel() {
 
     fun onAppBackgrounded() {
         lastBackgroundAt = System.currentTimeMillis()
+        hasBeenBackgrounded = true
     }
 
     fun onAppForegrounded() {
+        if (!hasBeenBackgrounded) return
         val settings = _uiState.value.hubSettings
         if (!settings.biometricLoginEnabled) return
         val elapsed = System.currentTimeMillis() - lastBackgroundAt
@@ -770,6 +773,12 @@ class EobViewModel : ViewModel() {
             updateUploadNotice(EobStrings.t(language, "signInBeforeUpload"))
             return
         }
+        val context = appContext
+        if (context != null && !canUploadOnCurrentNetwork(context)) {
+            setLoadingInvoice(false)
+            updateUploadNotice(EobStrings.t(language, "settingsUploadWifiBlocked"))
+            return
+        }
         setLoadingInvoice(true)
         repo.uploadEobFile(userId, uri, sourceName) { message ->
             val notice = EobStrings.localizeRepositoryMessage(language, message)
@@ -786,6 +795,12 @@ class EobViewModel : ViewModel() {
         if (userId.isBlank()) {
             setLoadingInvoice(false)
             updateUploadNotice(EobStrings.t(language, "signInBeforeScan"))
+            return
+        }
+        val context = appContext
+        if (context != null && !canUploadOnCurrentNetwork(context)) {
+            setLoadingInvoice(false)
+            updateUploadNotice(EobStrings.t(language, "settingsUploadWifiBlocked"))
             return
         }
         setLoadingInvoice(true)
