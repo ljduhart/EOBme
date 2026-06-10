@@ -252,6 +252,8 @@ object EobStrings {
         "appealDraftPlaceholder" to "Drafting your appeal...",
         "appealRegenerate" to "Regenerate",
         "appealCopy" to "Copy",
+        "appealEditLetter" to "Edit",
+        "appealSaveLetter" to "Save",
         "insuranceIntelligence" to "Insurance Intelligence",
         "insuranceIntelligenceSubtitle" to "Policy updates, coverage warnings, and carrier alerts",
         "insuranceIntelligenceTip" to "EOBme cross-references your uploaded provider networks with regional policy changes to flag unexpected coverage adjustments.",

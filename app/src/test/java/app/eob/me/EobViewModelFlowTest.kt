@@ -161,6 +161,35 @@ class EobViewModelFlowTest {
     }
 
     @Test
+    fun updateAppealIgnoredUntilEditEnabled() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+        val generated = viewModel.uiState.value.appealLetter
+        viewModel.updateAppeal("user draft")
+        assertEquals(generated, viewModel.uiState.value.appealLetter)
+        viewModel.enableAppealLetterEditing()
+        viewModel.updateAppeal("user draft")
+        assertEquals("user draft", viewModel.uiState.value.appealLetter)
+    }
+
+    @Test
+    fun saveAppealLetterDisablesEditingAndRegenerateResetsEditing() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+        viewModel.enableAppealLetterEditing()
+        assertTrue(viewModel.uiState.value.appealLetterEditingEnabled)
+        viewModel.saveAppealLetter()
+        assertFalse(viewModel.uiState.value.appealLetterEditingEnabled)
+        viewModel.enableAppealLetterEditing()
+        viewModel.regenerateAppeal(profile)
+        assertFalse(viewModel.uiState.value.appealLetterEditingEnabled)
+    }
+
+    @Test
     fun visibleNewsHidesDeletedItems() {
         val viewModel = EobViewModel()
         val item = NewsRelease(

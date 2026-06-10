@@ -230,6 +230,9 @@ class EobFlowArchitectureTest {
         listOf(
             "regenerateAppeal",
             "updateAppeal",
+            "enableAppealLetterEditing",
+            "saveAppealLetter",
+            "appealLetterEditingEnabled",
             "currentNewsReleases",
             "deleteNews",
             "DashboardScreen"
