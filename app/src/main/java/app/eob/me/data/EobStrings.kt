@@ -406,7 +406,11 @@ object EobStrings {
         "settingsDeleteAccountConfirm" to "Delete permanently",
         "settingsDeleteAccountCancel" to "Keep account",
         "settingsDeleteAccountSignIn" to "Sign in to delete your account.",
+        "settingsDeleteAccountNoSession" to "No signed-in account to delete.",
         "settingsAccountDeleted" to "Account deleted.",
+        "settingsDeleteAccountFailed" to "Account deletion failed: %s",
+        "settingsDeleteAuthFailed" to "Auth account deletion failed: %s",
+        "settingsDeleteFirestoreFailed" to "Firestore account deletion failed: %s",
         "settingsCancelEdit" to "Cancel",
         "settingsBiometricLogin" to "Biometric login",
         "settingsAppLockTimeout" to "App lock timeout",
@@ -454,7 +458,9 @@ object EobStrings {
         "Please sign in before uploading an EOB." to "signInBeforeUpload",
         "Please sign in before scanning an EOB." to "signInBeforeScan",
         "EOB uploaded. Veryfi processing started." to "eobUploadVeryfiStarted",
-        "Account deleted." to "settingsAccountDeleted"
+        "Account deleted." to "settingsAccountDeleted",
+        "Please sign in to delete your account." to "settingsDeleteAccountSignIn",
+        "No signed-in account to delete." to "settingsDeleteAccountNoSession"
     )
 
     fun localizeRepositoryMessage(language: AppLanguage, message: String): String {
@@ -472,6 +478,12 @@ object EobStrings {
                 tf(language, "eobDeleteFailed", trimmed.substringAfter(":").trim())
             trimmed.startsWith("EOB upload failed:") ->
                 tf(language, "eobUploadFailed", trimmed.substringAfter(":").trim())
+            trimmed.startsWith("Account deletion failed:") ->
+                tf(language, "settingsDeleteAccountFailed", trimmed.substringAfter(":").trim())
+            trimmed.startsWith("Auth account deletion failed:") ->
+                tf(language, "settingsDeleteAuthFailed", trimmed.substringAfter(":").trim())
+            trimmed.startsWith("Firestore account deletion failed:") ->
+                tf(language, "settingsDeleteFirestoreFailed", trimmed.substringAfter(":").trim())
             else -> trimmed
         }
     }

@@ -206,7 +206,7 @@ private fun MainHubNavHost(
             Toast.makeText(context, EobStrings.t(language, "signInBeforeUpload"), Toast.LENGTH_SHORT).show()
             return
         }
-        if (!eobViewModel.canUploadOnCurrentNetwork(context)) {
+        if (!eobViewModel.canUploadOnCurrentNetwork()) {
             Toast.makeText(context, EobStrings.t(language, "settingsUploadWifiBlocked"), Toast.LENGTH_LONG).show()
             return
         }
@@ -255,24 +255,21 @@ private fun MainHubNavHost(
     val activity = context as? FragmentActivity
     var playBillingManager by remember { mutableStateOf<PlayBillingManager?>(null) }
 
-    fun billingNoticeMessage(key: String): String {
-        return when (key) {
-            "billing_not_ready" -> EobStrings.t(language, "billingNotReady")
-            "billing_product_unavailable" -> EobStrings.t(language, "billingProductUnavailable")
-            else -> EobStrings.t(language, "billingFlowFailed")
-        }
-    }
-
     fun launchManageSubscriptionFlow() {
         val host = activity ?: return
         val manager = playBillingManager ?: PlayBillingManager(
             activity = host,
             onTierChanged = eobViewModel::setSubscriptionTier,
-            onBillingMessage = { key -> eobViewModel.updateSettingsNotice(billingNoticeMessage(key)) }
+            onBillingMessage = { key -> eobViewModel.updateBillingNotice(language, key) }
         ).also { playBillingManager = it }
         manager.start()
         manager.launchManageSubscription()
         onActivity()
+    }
+
+    LaunchedEffect(language) {
+        playBillingManager?.endConnection()
+        playBillingManager = null
     }
 
     DisposableEffect(Unit) {

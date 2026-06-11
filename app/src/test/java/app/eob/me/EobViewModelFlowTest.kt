@@ -2,6 +2,7 @@ package app.eob.me
 
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobStrings
 import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.ImageCompressionLevel
@@ -281,6 +282,16 @@ class EobViewModelFlowTest {
         assertTrue(viewModel.uiState.value.hubSettings.appLocked)
         viewModel.unlockApp()
         assertFalse(viewModel.uiState.value.hubSettings.appLocked)
+    }
+
+    @Test
+    fun updateBillingNoticeLocalizesKnownKeys() {
+        val viewModel = EobViewModel()
+        viewModel.updateBillingNotice(AppLanguage.English, "billing_not_ready")
+        assertEquals(
+            EobStrings.t(AppLanguage.English, "billingNotReady"),
+            viewModel.uiState.value.hubSettings.settingsNotice
+        )
     }
 
     @Test

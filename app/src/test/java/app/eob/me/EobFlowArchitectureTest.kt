@@ -226,12 +226,16 @@ class EobFlowArchitectureTest {
             "setAutoCropEnabled",
             "clearLocalCache",
             "deleteAccount",
-            "settingsUploadWifiBlocked"
+            "settingsUploadWifiBlocked",
+            "launchManageSubscriptionFlow",
+            "updateBillingNotice",
+            "HubCrashlyticsGate"
         ).forEach { snippet ->
-            assertTrue("Settings flow missing: $snippet", navHostSource.contains(snippet) || readSource("viewmodel/EobViewModel.kt").contains(snippet))
+            assertTrue("Settings flow missing: $snippet", navHostSource.contains(snippet) || readSource("viewmodel/EobViewModel.kt").contains(snippet) || readSource("util/HubCrashlyticsGate.kt").contains(snippet))
         }
         assertTrue(EobRoute.Settings.route in hubBackRoutes)
         assertTrue(manifestSource.contains("USE_BIOMETRIC"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("fun canUploadOnCurrentNetwork()"))
     }
 
     @Test

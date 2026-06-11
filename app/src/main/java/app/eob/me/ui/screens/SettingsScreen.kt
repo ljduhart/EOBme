@@ -375,7 +375,6 @@ private fun AppLockTimeoutDropdown(
     onTimeoutSelected: (AppLockTimeout) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Text(EobStrings.t(language, "settingsAppLockTimeout"), style = MaterialTheme.typography.titleMedium)
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it },
