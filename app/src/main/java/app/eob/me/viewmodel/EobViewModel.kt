@@ -1,5 +1,6 @@
 package app.eob.me.viewmodel
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -34,8 +35,17 @@ import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderSummary
 import app.eob.me.data.UserProfile
 import app.eob.me.data.YearlyHealthCostSummary
+import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.BillingIssueSeverity
+import app.eob.me.data.HubSettingsState
+import app.eob.me.data.HubSettingsStore
+import app.eob.me.data.ImageCompressionLevel
+import app.eob.me.data.SettingsTab
+import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.util.CacheSizeCalculator
+import app.eob.me.util.NetworkUploadGate
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +78,8 @@ data class HubUiState(
     val firebaseSyncStatus: FirebaseSyncStatus = FirebaseSyncStatus(isConfigured = false),
     val newsFeedRevision: Int = 0,
     val appealGeneratorBentoProcessing: Boolean = false,
-    val appealLetterEditingEnabled: Boolean = false
+    val appealLetterEditingEnabled: Boolean = false,
+    val hubSettings: HubSettingsState = HubSettingsState()
 )
 
 /**
@@ -80,8 +91,12 @@ data class HubUiState(
  */
 class EobViewModel : ViewModel() {
     private var repository: EobRepository? = null
+    private var settingsStore: HubSettingsStore? = null
+    private var appContext: Context? = null
     private var profileListener: ListenerRegistration? = null
     private var newsListener: ListenerRegistration? = null
+    private var lastBackgroundAt: Long = System.currentTimeMillis()
+    private var hasBeenBackgrounded: Boolean = false
 
     private val _eobRecords = MutableStateFlow<List<EobRecord>>(emptyList())
     val eobRecords: StateFlow<List<EobRecord>> = _eobRecords.asStateFlow()
@@ -103,9 +118,182 @@ class EobViewModel : ViewModel() {
     private val _insuranceArticles = MutableStateFlow(EobInsuranceNews.articlesForYear(currentYear))
     val insuranceArticles: StateFlow<List<InsuranceArticle>> = _insuranceArticles.asStateFlow()
 
-    fun attachRepository(repo: EobRepository) {
+    fun attachRepository(repo: EobRepository, context: Context) {
         repository = repo
+        appContext = context.applicationContext
+        settingsStore = HubSettingsStore(context)
+        loadHubSettings()
+        refreshCacheSize()
         refreshFirebaseStatus()
+    }
+
+    private fun loadHubSettings() {
+        val stored = settingsStore?.read() ?: return
+        _uiState.update { state ->
+            state.copy(
+                hubSettings = stored.copy(
+                    cacheSizeBytes = state.hubSettings.cacheSizeBytes,
+                    subscriptionTier = state.hubSettings.subscriptionTier,
+                    settingsAccountEditing = false,
+                    settingsNotice = "",
+                    appLocked = false,
+                    selectedTab = state.hubSettings.selectedTab
+                )
+            )
+        }
+        applyCrashlyticsCollection(stored.crashlyticsOptIn)
+    }
+
+    private fun persistHubSettings(settings: HubSettingsState) {
+        settingsStore?.write(settings)
+    }
+
+    private fun updateHubSettings(transform: (HubSettingsState) -> HubSettingsState) {
+        _uiState.update { state ->
+            val updated = transform(state.hubSettings)
+            persistHubSettings(updated)
+            state.copy(hubSettings = updated)
+        }
+    }
+
+    private fun applyCrashlyticsCollection(enabled: Boolean) {
+        runCatching {
+            FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = enabled
+        }
+    }
+
+    fun setSettingsTab(tab: SettingsTab) {
+        _uiState.update { it.copy(hubSettings = it.hubSettings.copy(selectedTab = tab)) }
+    }
+
+    fun setBiometricLoginEnabled(enabled: Boolean) {
+        updateHubSettings { it.copy(biometricLoginEnabled = enabled) }
+        if (!enabled) {
+            _uiState.update { state -> state.copy(hubSettings = state.hubSettings.copy(appLocked = false)) }
+        }
+    }
+
+    fun setAppLockTimeout(timeout: AppLockTimeout) {
+        updateHubSettings { it.copy(appLockTimeout = timeout) }
+    }
+
+    fun setCrashlyticsOptIn(enabled: Boolean) {
+        updateHubSettings { it.copy(crashlyticsOptIn = enabled) }
+        applyCrashlyticsCollection(enabled)
+    }
+
+    fun setUploadOverWifiOnly(enabled: Boolean) {
+        updateHubSettings { it.copy(uploadOverWifiOnly = enabled) }
+    }
+
+    fun setImageCompressionLevel(level: ImageCompressionLevel) {
+        updateHubSettings { it.copy(imageCompressionLevel = level) }
+    }
+
+    fun setAutoCropEnabled(enabled: Boolean) {
+        updateHubSettings { it.copy(autoCropEnabled = enabled) }
+    }
+
+    fun imageCompressionLevel(): ImageCompressionLevel {
+        return _uiState.value.hubSettings.imageCompressionLevel
+    }
+
+    fun autoCropEnabled(): Boolean {
+        return _uiState.value.hubSettings.autoCropEnabled
+    }
+
+    fun canUploadOnCurrentNetwork(context: Context): Boolean {
+        return NetworkUploadGate.canUpload(context, _uiState.value.hubSettings.uploadOverWifiOnly)
+    }
+
+    fun refreshCacheSize() {
+        val cacheDir = appContext?.cacheDir ?: return
+        val bytes = CacheSizeCalculator.directorySizeBytes(cacheDir)
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(cacheSizeBytes = bytes))
+        }
+    }
+
+    fun clearLocalCache(onComplete: (Boolean) -> Unit) {
+        val cacheDir = appContext?.cacheDir
+        if (cacheDir == null) {
+            onComplete(false)
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val cleared = runCatching {
+                cacheDir.listFiles()?.forEach { entry ->
+                    entry.deleteRecursively()
+                }
+            }.isSuccess
+            refreshCacheSize()
+            withContext(Dispatchers.Main) {
+                onComplete(cleared)
+            }
+        }
+    }
+
+    fun setSubscriptionTier(tier: SubscriptionTier) {
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(subscriptionTier = tier))
+        }
+    }
+
+    fun enableSettingsAccountEditing() {
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(settingsAccountEditing = true, settingsNotice = ""))
+        }
+    }
+
+    fun disableSettingsAccountEditing() {
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(settingsAccountEditing = false))
+        }
+    }
+
+    fun updateSettingsNotice(message: String) {
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(settingsNotice = message))
+        }
+    }
+
+    fun onAppBackgrounded() {
+        lastBackgroundAt = System.currentTimeMillis()
+        hasBeenBackgrounded = true
+    }
+
+    fun onAppForegrounded() {
+        if (!hasBeenBackgrounded) return
+        val settings = _uiState.value.hubSettings
+        if (!settings.biometricLoginEnabled) return
+        val elapsed = System.currentTimeMillis() - lastBackgroundAt
+        if (elapsed >= settings.appLockTimeout.millis) {
+            _uiState.update { state ->
+                state.copy(hubSettings = state.hubSettings.copy(appLocked = true))
+            }
+        }
+    }
+
+    fun unlockApp() {
+        lastBackgroundAt = System.currentTimeMillis()
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(appLocked = false))
+        }
+    }
+
+    fun deleteAccount(
+        userId: String,
+        language: AppLanguage,
+        onComplete: (String) -> Unit
+    ) {
+        val repo = repository
+        if (userId.isBlank() || repo == null) {
+            onComplete(EobStrings.t(language, "settingsDeleteAccountSignIn"))
+            return
+        }
+        repo.deleteAccount(userId) { message ->
+            onComplete(EobStrings.localizeRepositoryMessage(language, message))
+        }
     }
 
     fun refreshFirebaseStatus() {
@@ -136,7 +324,12 @@ class EobViewModel : ViewModel() {
         newsListener?.remove()
         newsListener = null
         _eobRecords.value = emptyList()
-        _uiState.value = HubUiState()
+        val preservedSettings = _uiState.value.hubSettings.copy(
+            settingsAccountEditing = false,
+            settingsNotice = "",
+            appLocked = false
+        )
+        _uiState.value = HubUiState(hubSettings = preservedSettings)
         syncProfile = UserProfile()
         uploadText = ""
         firebaseNews = emptyList()
@@ -580,6 +773,12 @@ class EobViewModel : ViewModel() {
             updateUploadNotice(EobStrings.t(language, "signInBeforeUpload"))
             return
         }
+        val context = appContext
+        if (context != null && !canUploadOnCurrentNetwork(context)) {
+            setLoadingInvoice(false)
+            updateUploadNotice(EobStrings.t(language, "settingsUploadWifiBlocked"))
+            return
+        }
         setLoadingInvoice(true)
         repo.uploadEobFile(userId, uri, sourceName) { message ->
             val notice = EobStrings.localizeRepositoryMessage(language, message)
@@ -596,6 +795,12 @@ class EobViewModel : ViewModel() {
         if (userId.isBlank()) {
             setLoadingInvoice(false)
             updateUploadNotice(EobStrings.t(language, "signInBeforeScan"))
+            return
+        }
+        val context = appContext
+        if (context != null && !canUploadOnCurrentNetwork(context)) {
+            setLoadingInvoice(false)
+            updateUploadNotice(EobStrings.t(language, "settingsUploadWifiBlocked"))
             return
         }
         setLoadingInvoice(true)

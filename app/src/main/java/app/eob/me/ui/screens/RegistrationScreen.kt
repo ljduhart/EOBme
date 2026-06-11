@@ -29,14 +29,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobLegalUrls
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
-
-private object LegalAcceptanceUrls {
-    const val TERMS_OF_USE = "https://ljduhart.github.io/EOBme/terms-of-use.html"
-    const val PRIVACY_POLICY = "https://ljduhart.github.io/EOBme/privacy-policy.html"
-}
 
 @Composable
 fun LegalAcceptanceText(
@@ -56,11 +52,11 @@ fun LegalAcceptanceText(
         append(EobStrings.t(language, "legalAcceptancePrefix"))
         withLink(
             LinkAnnotation.Url(
-                url = LegalAcceptanceUrls.TERMS_OF_USE,
+                url = EobLegalUrls.TERMS_OF_USE,
                 styles = linkStyles,
                 linkInteractionListener = {
                     context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(LegalAcceptanceUrls.TERMS_OF_USE))
+                        Intent(Intent.ACTION_VIEW, Uri.parse(EobLegalUrls.TERMS_OF_USE))
                     )
                 }
             )
@@ -70,11 +66,11 @@ fun LegalAcceptanceText(
         append(EobStrings.t(language, "legalAcceptanceMiddle"))
         withLink(
             LinkAnnotation.Url(
-                url = LegalAcceptanceUrls.PRIVACY_POLICY,
+                url = EobLegalUrls.PRIVACY_POLICY,
                 styles = linkStyles,
                 linkInteractionListener = {
                     context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(LegalAcceptanceUrls.PRIVACY_POLICY))
+                        Intent(Intent.ACTION_VIEW, Uri.parse(EobLegalUrls.PRIVACY_POLICY))
                     )
                 }
             )

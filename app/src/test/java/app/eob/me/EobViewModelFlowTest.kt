@@ -2,8 +2,11 @@ package app.eob.me
 
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.data.InvoiceProcessingPhase
+import app.eob.me.data.SettingsTab
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.viewmodel.EobViewModel
@@ -249,6 +252,44 @@ class EobViewModelFlowTest {
         val source = resolveViewModelSource()
         assertTrue(source.contains("InvoiceProcessingPhase.FileDropReveal"))
         assertTrue(source.contains("acknowledgeInvoiceFileDropAnimation"))
+    }
+
+    @Test
+    fun hubSettingsMutationsUpdateUiState() {
+        val viewModel = EobViewModel()
+        viewModel.setSettingsTab(SettingsTab.Security)
+        assertEquals(SettingsTab.Security, viewModel.uiState.value.hubSettings.selectedTab)
+        viewModel.setBiometricLoginEnabled(true)
+        assertTrue(viewModel.uiState.value.hubSettings.biometricLoginEnabled)
+        viewModel.setAppLockTimeout(AppLockTimeout.OneMinute)
+        assertEquals(AppLockTimeout.OneMinute, viewModel.uiState.value.hubSettings.appLockTimeout)
+        viewModel.setUploadOverWifiOnly(true)
+        assertTrue(viewModel.uiState.value.hubSettings.uploadOverWifiOnly)
+        viewModel.setImageCompressionLevel(ImageCompressionLevel.High)
+        assertEquals(ImageCompressionLevel.High, viewModel.imageCompressionLevel())
+        viewModel.setAutoCropEnabled(false)
+        assertFalse(viewModel.autoCropEnabled())
+    }
+
+    @Test
+    fun appLockRequiresUnlockAfterBackgroundTimeout() {
+        val viewModel = EobViewModel()
+        viewModel.setBiometricLoginEnabled(true)
+        viewModel.setAppLockTimeout(AppLockTimeout.Immediately)
+        viewModel.onAppBackgrounded()
+        viewModel.onAppForegrounded()
+        assertTrue(viewModel.uiState.value.hubSettings.appLocked)
+        viewModel.unlockApp()
+        assertFalse(viewModel.uiState.value.hubSettings.appLocked)
+    }
+
+    @Test
+    fun appLockDoesNotTriggerBeforeFirstBackground() {
+        val viewModel = EobViewModel()
+        viewModel.setBiometricLoginEnabled(true)
+        viewModel.setAppLockTimeout(AppLockTimeout.Immediately)
+        viewModel.onAppForegrounded()
+        assertFalse(viewModel.uiState.value.hubSettings.appLocked)
     }
 
     private fun waitForHubRecords(viewModel: EobViewModel) {

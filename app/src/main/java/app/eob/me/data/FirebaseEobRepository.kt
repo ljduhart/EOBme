@@ -128,6 +128,67 @@ class FirebaseEobRepository(private val context: Context) {
         if (configured) FirebaseAuth.getInstance().signOut()
     }
 
+    fun deleteAccount(userId: String, onComplete: (String) -> Unit) {
+        if (!configured || userId.isBlank()) {
+            onComplete("Please sign in to delete your account.")
+            return
+        }
+        val authUser = FirebaseAuth.getInstance().currentUser
+        if (authUser == null || authUser.uid != userId) {
+            onComplete("No signed-in account to delete.")
+            return
+        }
+        val userRef = firestore().collection(USERS).document(userId)
+        deleteSubcollectionDocuments(userRef.collection(EOBS)) { eobError ->
+            if (eobError != null) {
+                onComplete("Account deletion failed: $eobError")
+                return@deleteSubcollectionDocuments
+            }
+            deleteSubcollectionDocuments(userRef.collection("insurance-cards")) { cardError ->
+                if (cardError != null) {
+                    onComplete("Account deletion failed: $cardError")
+                    return@deleteSubcollectionDocuments
+                }
+                deleteSubcollectionDocuments(userRef.collection(DEVICES)) { deviceError ->
+                    if (deviceError != null) {
+                        onComplete("Account deletion failed: $deviceError")
+                        return@deleteSubcollectionDocuments
+                    }
+                    userRef.delete()
+                        .addOnSuccessListener {
+                            authUser.delete()
+                                .addOnSuccessListener { onComplete("Account deleted.") }
+                                .addOnFailureListener { error ->
+                                    onComplete("Auth account deletion failed: ${error.localizedMessage}")
+                                }
+                        }
+                        .addOnFailureListener { error ->
+                            onComplete("Firestore account deletion failed: ${error.localizedMessage}")
+                        }
+                }
+            }
+        }
+    }
+
+    private fun deleteSubcollectionDocuments(
+        collectionRef: com.google.firebase.firestore.CollectionReference,
+        onComplete: (String?) -> Unit
+    ) {
+        collectionRef.get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.isEmpty) {
+                    onComplete(null)
+                    return@addOnSuccessListener
+                }
+                val batch = firestore().batch()
+                snapshot.documents.forEach { document -> batch.delete(document.reference) }
+                batch.commit()
+                    .addOnSuccessListener { onComplete(null) }
+                    .addOnFailureListener { error -> onComplete(error.localizedMessage) }
+            }
+            .addOnFailureListener { error -> onComplete(error.localizedMessage) }
+    }
+
     fun observeProfile(
         userId: String,
         onProfile: (UserProfile) -> Unit,

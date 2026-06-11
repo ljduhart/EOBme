@@ -129,6 +129,7 @@ class EobStringsCoverageTest {
             EobRoute.News.route,
             EobRoute.Appeal.route,
             EobRoute.Profile.route,
+            EobRoute.Settings.route,
             EobRoute.CameraCapture.route,
             EobRoute.ProviderDirectory.route
         )

@@ -59,4 +59,8 @@ class FirebaseEobRemoteDataSource(
     override fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, onComplete: (String) -> Unit) {
         firebase.uploadEobBitmap(userId, bitmap, sourceName, onComplete)
     }
+
+    override fun deleteAccount(userId: String, onComplete: (String) -> Unit) {
+        firebase.deleteAccount(userId, onComplete)
+    }
 }
