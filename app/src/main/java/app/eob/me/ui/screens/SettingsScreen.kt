@@ -14,11 +14,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -258,6 +265,7 @@ private fun AccountSettingsTab(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SecuritySettingsTab(
     language: AppLanguage,
@@ -272,16 +280,11 @@ private fun SecuritySettingsTab(
         checked = hubSettings.biometricLoginEnabled,
         onCheckedChange = onBiometricToggle
     )
-    Text(EobStrings.t(language, "settingsAppLockTimeout"), style = MaterialTheme.typography.titleMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        AppLockTimeout.entries.forEach { timeout ->
-            FilterChip(
-                selected = hubSettings.appLockTimeout == timeout,
-                onClick = { onAppLockTimeoutSelected(timeout) },
-                label = { Text(EobStrings.t(language, timeout.labelKey())) }
-            )
-        }
-    }
+    AppLockTimeoutDropdown(
+        language = language,
+        selectedTimeout = hubSettings.appLockTimeout,
+        onTimeoutSelected = onAppLockTimeoutSelected
+    )
     SettingsToggleRow(
         label = EobStrings.t(language, "settingsCrashlyticsOptIn"),
         checked = hubSettings.crashlyticsOptIn,
@@ -362,6 +365,46 @@ private fun LegalSettingsTab(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.fillMaxWidth()
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppLockTimeoutDropdown(
+    language: AppLanguage,
+    selectedTimeout: AppLockTimeout,
+    onTimeoutSelected: (AppLockTimeout) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = EobStrings.t(language, selectedTimeout.labelKey()),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(EobStrings.t(language, "settingsAppLockTimeout")) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth()
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            AppLockTimeout.entries.forEach { timeout ->
+                DropdownMenuItem(
+                    text = { Text(EobStrings.t(language, timeout.labelKey())) },
+                    onClick = {
+                        onTimeoutSelected(timeout)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable

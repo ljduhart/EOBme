@@ -45,7 +45,7 @@ import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.util.CacheSizeCalculator
 import app.eob.me.util.NetworkUploadGate
-import com.google.firebase.crashlytics.FirebaseCrashlytics
+import app.eob.me.util.HubCrashlyticsGate
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
@@ -141,7 +141,9 @@ class EobViewModel : ViewModel() {
                 )
             )
         }
-        applyCrashlyticsCollection(stored.crashlyticsOptIn)
+        if (repository?.status()?.isConfigured == true) {
+            applyCrashlyticsCollection(stored.crashlyticsOptIn)
+        }
     }
 
     private fun persistHubSettings(settings: HubSettingsState) {
@@ -157,9 +159,7 @@ class EobViewModel : ViewModel() {
     }
 
     private fun applyCrashlyticsCollection(enabled: Boolean) {
-        runCatching {
-            FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = enabled
-        }
+        HubCrashlyticsGate.setCollectionEnabled(enabled)
     }
 
     fun setSettingsTab(tab: SettingsTab) {
@@ -179,7 +179,9 @@ class EobViewModel : ViewModel() {
 
     fun setCrashlyticsOptIn(enabled: Boolean) {
         updateHubSettings { it.copy(crashlyticsOptIn = enabled) }
-        applyCrashlyticsCollection(enabled)
+        if (repository?.status()?.isConfigured == true) {
+            applyCrashlyticsCollection(enabled)
+        }
     }
 
     fun setUploadOverWifiOnly(enabled: Boolean) {
@@ -257,6 +259,20 @@ class EobViewModel : ViewModel() {
         }
     }
 
+    fun updateBillingNotice(language: AppLanguage, noticeKey: String) {
+        val message = when (noticeKey) {
+            "billing_not_ready" -> EobStrings.t(language, "billingNotReady")
+            "billing_product_unavailable" -> EobStrings.t(language, "billingProductUnavailable")
+            else -> EobStrings.t(language, "billingFlowFailed")
+        }
+        updateSettingsNotice(message)
+    }
+
+    fun canUploadOnCurrentNetwork(): Boolean {
+        val context = appContext ?: return true
+        return canUploadOnCurrentNetwork(context)
+    }
+
     fun onAppBackgrounded() {
         lastBackgroundAt = System.currentTimeMillis()
         hasBeenBackgrounded = true
@@ -299,6 +315,9 @@ class EobViewModel : ViewModel() {
     fun refreshFirebaseStatus() {
         val status = repository?.status() ?: FirebaseSyncStatus(isConfigured = false)
         _uiState.update { it.copy(firebaseSyncStatus = status) }
+        if (status.isConfigured) {
+            applyCrashlyticsCollection(_uiState.value.hubSettings.crashlyticsOptIn)
+        }
     }
 
     fun updateSyncProfile(profile: UserProfile) {

@@ -206,7 +206,7 @@ private fun MainHubNavHost(
             Toast.makeText(context, EobStrings.t(language, "signInBeforeUpload"), Toast.LENGTH_SHORT).show()
             return
         }
-        if (!eobViewModel.canUploadOnCurrentNetwork(context)) {
+        if (!eobViewModel.canUploadOnCurrentNetwork()) {
             Toast.makeText(context, EobStrings.t(language, "settingsUploadWifiBlocked"), Toast.LENGTH_LONG).show()
             return
         }
@@ -253,25 +253,36 @@ private fun MainHubNavHost(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? FragmentActivity
-    val billingManager = remember(activity) {
-        activity?.let { host ->
-            PlayBillingManager(
-                activity = host,
-                onTierChanged = eobViewModel::setSubscriptionTier,
-                onBillingMessage = { key ->
-                    val message = when (key) {
-                        "billing_not_ready" -> EobStrings.t(language, "billingNotReady")
-                        "billing_product_unavailable" -> EobStrings.t(language, "billingProductUnavailable")
-                        else -> EobStrings.t(language, "billingFlowFailed")
-                    }
-                    eobViewModel.updateSettingsNotice(message)
-                }
-            )
+    var playBillingManager by remember { mutableStateOf<PlayBillingManager?>(null) }
+
+    fun launchManageSubscriptionFlow() {
+        val host = activity ?: return
+        val manager = playBillingManager ?: PlayBillingManager(
+            activity = host,
+            onTierChanged = eobViewModel::setSubscriptionTier,
+            onBillingMessage = { key -> eobViewModel.updateBillingNotice(language, key) }
+        ).also { playBillingManager = it }
+        manager.start()
+        manager.launchManageSubscription()
+        onActivity()
+    }
+
+    LaunchedEffect(language) {
+        playBillingManager?.endConnection()
+        playBillingManager = null
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            playBillingManager?.endConnection()
+            playBillingManager = null
         }
     }
 
-    DisposableEffect(lifecycleOwner, billingManager) {
-        billingManager?.start()
+    DisposableEffect(lifecycleOwner, uiState.hubSettings.biometricLoginEnabled) {
+        if (!uiState.hubSettings.biometricLoginEnabled) {
+            return@DisposableEffect onDispose { }
+        }
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> eobViewModel.onAppBackgrounded()
@@ -280,9 +291,12 @@ private fun MainHubNavHost(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            billingManager?.endConnection()
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(uiState.hubSettings.biometricLoginEnabled) {
+        if (!uiState.hubSettings.biometricLoginEnabled && uiState.hubSettings.appLocked) {
+            eobViewModel.unlockApp()
         }
     }
 
@@ -713,10 +727,7 @@ private fun MainHubNavHost(
                             settingsDraftLastName = profile.lastName
                             eobViewModel.disableSettingsAccountEditing()
                         },
-                        onManageSubscription = {
-                            billingManager?.launchManageSubscription()
-                            onActivity()
-                        },
+                        onManageSubscription = ::launchManageSubscriptionFlow,
                         onLogout = {
                             eobViewModel.resetHubState()
                             profileSaveMessage = ""
