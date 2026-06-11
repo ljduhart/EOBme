@@ -79,7 +79,7 @@ fun NewsScreen(
                     Text(
                         text = EobStrings.t(language, "insuranceIntelligenceSubtitle"),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -118,7 +118,7 @@ fun NewsScreen(
                         Text(
                             text = EobStrings.t(language, "insuranceNewsAllClear"),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -169,7 +169,7 @@ fun NewsScreen(
                         Text(
                             text = news.date,
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))

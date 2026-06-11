@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
+import app.eob.me.ui.theme.EobCyberSurface
+import app.eob.me.ui.theme.EobCyberSurfaceVariant
 
 fun Modifier.shimmerEffect(): Modifier = composed {
     var size by remember { mutableStateOf(IntSize.Zero) }
@@ -35,9 +37,9 @@ fun Modifier.shimmerEffect(): Modifier = composed {
     )
 
     val shimmerColors = listOf(
-        Color(0xFFEFEFEF),
-        Color(0xFFF6F6F6),
-        Color(0xFFEFEFEF)
+        EobCyberSurface,
+        EobCyberSurfaceVariant,
+        EobCyberSurface
     )
 
     this.onGloballyPositioned { size = it.size }

@@ -21,7 +21,7 @@ fun HubBottomBar(
     scanEnabled: Boolean
 ) {
     NavigationBar(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.primary
     ) {
         HubBottomTab.entries.forEach { tab ->

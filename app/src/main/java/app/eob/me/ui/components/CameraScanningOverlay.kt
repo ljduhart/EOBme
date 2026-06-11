@@ -23,9 +23,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
-private val OverlayMask = Color(0xA0000000)
-private val BrandBlue = Color(0xFF2498EA)
-private val NeonTeal = Color(0xFF00F2FE)
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobBrandCyan
+import app.eob.me.ui.theme.EobCyberOverlay
+
+private val OverlayMask = EobCyberOverlay
+private val BrandBlue = EobBrandBlue
+private val NeonTeal = EobBrandCyan
 
 @Composable
 fun CameraScanningOverlay(modifier: Modifier = Modifier) {

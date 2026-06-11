@@ -825,7 +825,7 @@ private fun MainHubNavHost(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.72f)),
+                        .background(app.eob.me.ui.theme.EobCyberOverlay),
                     contentAlignment = Alignment.Center
                 ) {
                     AppLockOverlay(

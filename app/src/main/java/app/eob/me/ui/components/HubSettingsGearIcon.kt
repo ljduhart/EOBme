@@ -16,7 +16,7 @@ object HubSettingsGearIcon {
             viewportWidth = 24f,
             viewportHeight = 24f
         ).apply {
-            val fill = SolidColor(Color(0xFF2498EA))
+            val fill = SolidColor(app.eob.me.ui.theme.EobBrandBlue)
             path(fill = fill) {
                 moveTo(19.14f, 12.94f)
                 curveToRelative(0.04f, -0.31f, 0.06f, -0.63f, 0.06f, -0.94f)

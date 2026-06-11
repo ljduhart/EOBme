@@ -33,9 +33,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.NetworkAssuranceState
 
-val AssuranceCyan = Color(0xFF00E5FF)
-val AssuranceGold = Color(0xFFD4AF37)
-val AssuranceCrimson = Color(0xFFEF4444)
+import app.eob.me.ui.theme.EobCyberGlow
+import app.eob.me.ui.theme.EobCyberWarning
+import app.eob.me.ui.theme.EobCyberError
+
+val AssuranceCyan = EobCyberGlow
+val AssuranceGold = EobCyberWarning
+val AssuranceCrimson = EobCyberError
 
 @Composable
 fun NetworkAssuranceBadge(
@@ -58,7 +62,7 @@ fun NetworkAssuranceBadge(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
                 .border(1.dp, accent.copy(alpha = 0.85f), RoundedCornerShape(6.dp))
-                .background(Color.White.copy(alpha = 0.92f))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
                 .padding(horizontal = if (compact) 4.dp else 6.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -90,7 +94,7 @@ fun NetworkAssuranceWarningDot(
         modifier = modifier
             .size(8.dp)
             .background(AssuranceGold, CircleShape)
-            .border(1.dp, Color.White, CircleShape)
+            .border(1.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
     )
 }
 

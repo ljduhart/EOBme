@@ -35,7 +35,9 @@ import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import java.util.Locale
 
-private val BrandBlue = Color(0xFF2498EA)
+import app.eob.me.ui.theme.EobBrandBlue
+
+private val BrandBlue = EobBrandBlue
 
 @Composable
 fun CptCountScreen(
@@ -80,7 +82,7 @@ fun CptCountScreen(
                 Text(
                     text = EobStrings.t(language, "cptTrackingSubtitle"),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -100,7 +102,7 @@ fun CptCountScreen(
                         label = { Text(EobStrings.cptCategoryLabel(language, category)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = BrandBlue,
-                            selectedLabelColor = Color.White
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                         )
                     )
                 }
@@ -119,20 +121,20 @@ fun CptCountScreen(
                     Text(
                         text = EobStrings.t(language, "cptCodeDescriptionHeader"),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = EobStrings.t(language, "cptFrequencyHeader"),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.width(80.dp),
                         textAlign = TextAlign.Center
                     )
                     Text(
                         text = EobStrings.t(language, "cptBilledTotalHeader"),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.width(90.dp),
                         textAlign = TextAlign.End
                     )
@@ -151,7 +153,7 @@ fun CptCountScreen(
                     Text(
                         text = EobStrings.t(language, "cptNoProcedures"),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

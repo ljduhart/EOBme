@@ -45,11 +45,17 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.InsuranceNewsBentoSnapshot
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.glassEffect
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobBrandCyan
+import app.eob.me.ui.theme.EobChartOrange
+import app.eob.me.ui.theme.EobCyberTextPrimary
+import app.eob.me.ui.theme.EobCyberTextSecondary
+import app.eob.me.ui.theme.EobCyberSurfaceVariant
 import kotlin.math.roundToInt
 
-private val TickerAccent = Color(0xFF2498EA)
-private val CriticalGlow = Color(0xFFFF6B35)
-private val MicroCardGlow = Color(0xFF00F2FE)
+private val TickerAccent = EobBrandBlue
+private val CriticalGlow = EobChartOrange
+private val MicroCardGlow = EobBrandCyan
 
 @Composable
 fun InsuranceNewsBentoCell(
@@ -74,7 +80,7 @@ fun InsuranceNewsBentoCell(
             .aspectRatio(BentoCellLayout.ASPECT_RATIO)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -183,7 +189,7 @@ private fun NewsHeadlineTicker(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFFF3F8FD))
+            .background(EobCyberSurfaceVariant)
             .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
         Column(
@@ -199,7 +205,7 @@ private fun NewsHeadlineTicker(
                         fontSize = 9.sp,
                         lineHeight = 12.sp
                     ),
-                    color = Color(0xFF1A3A5C),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
@@ -231,7 +237,7 @@ private fun NewsMicroCardPreview(
         Text(
             text = EobStrings.t(language, "newsBentoMicroPreview"),
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-            color = Color(0xFF2498EA),
+            color = TickerAccent,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -242,14 +248,14 @@ private fun NewsMicroCardPreview(
                 lineHeight = 10.sp
             ),
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF0D2B4E),
+            color = EobCyberTextPrimary,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = company,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-            color = Color(0xFF5C7A99),
+            color = EobCyberTextSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -282,7 +288,7 @@ private fun NewsMicroCardActionFace(
                 fontSize = 8.sp,
                 lineHeight = 10.sp
             ),
-            color = Color(0xFF4A1F12),
+            color = CriticalGlow.copy(alpha = 0.85f),
             maxLines = 4,
             overflow = TextOverflow.Ellipsis
         )

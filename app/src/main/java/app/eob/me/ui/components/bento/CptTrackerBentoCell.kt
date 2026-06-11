@@ -45,11 +45,17 @@ import app.eob.me.data.PriceTrendDirection
 import app.eob.me.navigation.HubBentoDestination
 import kotlinx.coroutines.delay
 
-private val RingBlue = Color(0xFF2498EA)
-private val RingTrack = Color(0xFFE3F2FD)
-private val GaugeLow = Color(0xFF43A047)
-private val GaugeMid = Color(0xFFF9A825)
-private val GaugeHigh = Color(0xFFE53935)
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobGaugeHigh
+import app.eob.me.ui.theme.EobGaugeLow
+import app.eob.me.ui.theme.EobGaugeMid
+import app.eob.me.ui.theme.EobGaugeTrack
+
+private val RingBlue = EobBrandBlue
+private val RingTrack = EobGaugeTrack
+private val GaugeLow = EobGaugeLow
+private val GaugeMid = EobGaugeMid
+private val GaugeHigh = EobGaugeHigh
 
 @Composable
 fun CptTrackerBentoCell(
@@ -82,7 +88,7 @@ fun CptTrackerBentoCell(
             .aspectRatio(BentoCellLayout.ASPECT_RATIO)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -189,7 +195,7 @@ private fun PriceRangeGauge(
         val barTop = size.height * 0.55f
         val barHeight = size.height * 0.2f
         drawRoundRect(
-            color = Color(0xFFECEFF1),
+            color = RingTrack,
             topLeft = Offset(0f, barTop),
             size = Size(size.width, barHeight),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(barHeight / 2f)

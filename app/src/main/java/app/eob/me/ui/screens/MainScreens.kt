@@ -18,6 +18,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import app.eob.me.ui.theme.EobChartBlue
+import app.eob.me.ui.theme.EobChartGreen
+import app.eob.me.ui.theme.EobChartIndigo
+import app.eob.me.ui.theme.EobChartOrange
+import app.eob.me.ui.theme.EobChartPurple
+import app.eob.me.ui.theme.EobChartRed
+import app.eob.me.ui.theme.EobChartTeal
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -80,13 +87,13 @@ fun YearlyHealthCostBarChart(language: AppLanguage, summary: YearlyHealthCostSum
     }
     val maxValue = segments.maxOfOrNull { it.second }?.coerceAtLeast(1.0) ?: 1.0
     val barColors = listOf(
-        Color(0xFF2498EA),
-        Color(0xFF4CAF50),
-        Color(0xFF7E57C2),
-        Color(0xFFE53935),
-        Color(0xFFFF9800),
-        Color(0xFF00897B),
-        Color(0xFF5C6BC0)
+        EobChartBlue,
+        EobChartGreen,
+        EobChartPurple,
+        EobChartRed,
+        EobChartOrange,
+        EobChartTeal,
+        EobChartIndigo
     )
 
     ElevatedCard(Modifier.fillMaxWidth()) {

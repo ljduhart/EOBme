@@ -72,19 +72,18 @@ import app.eob.me.data.NetworkAssuranceState
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.TherapistNetworkStatus
 import app.eob.me.ui.components.AssuranceCrimson
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobBrandGlow
+import app.eob.me.ui.theme.EobCyberTextPrimary
+import app.eob.me.ui.theme.EobCyberTextSecondary
+import app.eob.me.ui.theme.eobCyberGlassGradient
 
-private val FrostedGlassGradient = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFFF4FAFF),
-        Color(0xFFE3F2FF),
-        Color(0xFFD0E8FF)
-    )
-)
+private val FrostedGlassGradient = eobCyberGlassGradient()
 
-private val NeonBlueGlow = Color(0xFF00E5FF)
-private val NeonBlueBorder = Color(0xFF2498EA)
-private val CardInk = Color(0xFF0B3D91)
-private val CardInkDark = Color(0xFF102A43)
+private val NeonBlueGlow = EobBrandGlow
+private val NeonBlueBorder = EobBrandBlue
+private val CardInk = EobBrandBlue
+private val CardInkDark = EobCyberTextSecondary
 private val CardCornerRadius = 12.dp
 private val CardInnerCornerRadius = 8.dp
 
@@ -464,10 +463,10 @@ private fun FrostedCardShimmerOverlay(modifier: Modifier = Modifier) {
             brush = Brush.linearGradient(
                 colors = listOf(
                     Color.Transparent,
-                    Color(0xFFE8F7FF).copy(alpha = 0.15f),
+                    EobBrandGlow.copy(alpha = 0.15f),
                     NeonBlueGlow.copy(alpha = 0.45f),
                     NeonBlueBorder.copy(alpha = 0.35f),
-                    Color(0xFFB8E4FF).copy(alpha = 0.3f),
+                    EobBrandBlue.copy(alpha = 0.3f),
                     Color.Transparent
                 ),
                 start = Offset(x, 0f),

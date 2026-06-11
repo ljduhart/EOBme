@@ -6,7 +6,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
-private val BrandBlue = Color(0xFF2498EA)
+import app.eob.me.ui.theme.EobBrandBlue
+
+private val BrandBlue = EobBrandBlue
 
 /** Monochromatic vector icons for the hub bottom navigation bar. */
 object hubBottomIcons {
