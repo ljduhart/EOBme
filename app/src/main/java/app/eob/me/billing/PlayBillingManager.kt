@@ -33,21 +33,25 @@ class PlayBillingManager(
         .build()
 
     fun start() {
-        if (billingClient.isReady) {
-            refreshSubscriptionTier()
-            queryPremiumProduct()
-            return
-        }
-        billingClient.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(result: BillingResult) {
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    refreshSubscriptionTier()
-                    queryPremiumProduct()
-                }
+        try {
+            if (billingClient.isReady) {
+                refreshSubscriptionTier()
+                queryPremiumProduct()
+                return
             }
+            billingClient.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(result: BillingResult) {
+                    if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                        refreshSubscriptionTier()
+                        queryPremiumProduct()
+                    }
+                }
 
-            override fun onBillingServiceDisconnected() = Unit
-        })
+                override fun onBillingServiceDisconnected() = Unit
+            })
+        } catch (_: Throwable) {
+            onBillingMessage("billing_not_ready")
+        }
     }
 
     fun launchManageSubscription() {

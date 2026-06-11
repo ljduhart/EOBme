@@ -45,7 +45,7 @@ import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.util.CacheSizeCalculator
 import app.eob.me.util.NetworkUploadGate
-import com.google.firebase.crashlytics.FirebaseCrashlytics
+import app.eob.me.util.HubCrashlyticsGate
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
@@ -141,7 +141,9 @@ class EobViewModel : ViewModel() {
                 )
             )
         }
-        applyCrashlyticsCollection(stored.crashlyticsOptIn)
+        if (repository?.status()?.isConfigured == true) {
+            applyCrashlyticsCollection(stored.crashlyticsOptIn)
+        }
     }
 
     private fun persistHubSettings(settings: HubSettingsState) {
@@ -157,9 +159,7 @@ class EobViewModel : ViewModel() {
     }
 
     private fun applyCrashlyticsCollection(enabled: Boolean) {
-        runCatching {
-            FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = enabled
-        }
+        HubCrashlyticsGate.setCollectionEnabled(enabled)
     }
 
     fun setSettingsTab(tab: SettingsTab) {

@@ -13,6 +13,7 @@ val hasGoogleServicesConfig = googleServicesConfigFile != null
 
 if (hasGoogleServicesConfig) {
     apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 android {
