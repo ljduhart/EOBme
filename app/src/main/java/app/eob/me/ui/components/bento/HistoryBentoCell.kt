@@ -49,10 +49,14 @@ import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.navigation.HubBentoDestination
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobBrandGlow
+import app.eob.me.ui.theme.EobChartIndigo
+import app.eob.me.ui.theme.EobCyberTextPrimary
 import kotlinx.coroutines.delay
 
-private val GlowBlue = Color(0xFF2498EA)
-private val GlowCyan = Color(0xFF00E5FF)
+private val GlowBlue = EobBrandBlue
+private val GlowCyan = EobBrandGlow
 
 @Composable
 fun HistoryBentoCell(
@@ -102,7 +106,7 @@ fun HistoryBentoCell(
             .aspectRatio(BentoCellLayout.ASPECT_RATIO)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -293,7 +297,7 @@ private fun CornerstoneBlock(strength: Float, modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(3.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f), RoundedCornerShape(3.dp))
         )
     }
 }
@@ -326,7 +330,7 @@ private fun SpendingGlowChart(
                 cornerRadius = CornerRadius(barWidth * 0.25f)
             )
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.35f),
+                color = EobCyberTextPrimary.copy(alpha = 0.35f),
                 topLeft = Offset(left + 1f, top + 1f),
                 size = Size(barWidth - 2f, barHeight * 0.35f),
                 cornerRadius = CornerRadius(barWidth * 0.2f)
@@ -348,7 +352,7 @@ private fun FileDropOverlay(
 ) {
     val docOffsetY = (-36).dp + (48.dp * progress)
     Box(
-        modifier = modifier.background(Color.White.copy(alpha = 0.72f * progress)),
+        modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f * progress)),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -356,7 +360,7 @@ private fun FileDropOverlay(
                 modifier = Modifier
                     .offset(y = docOffsetY)
                     .size(width = 28.dp, height = 34.dp)
-                    .background(Color.White, RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(3.dp))
                     .padding(2.dp)
             ) {
                 Box(
@@ -369,7 +373,7 @@ private fun FileDropOverlay(
                 modifier = Modifier
                     .padding(top = 4.dp)
                     .size(width = 36.dp, height = 10.dp)
-                    .background(Color(0xFF5C6BC0), RoundedCornerShape(2.dp))
+                    .background(EobChartIndigo, RoundedCornerShape(2.dp))
             )
         }
     }

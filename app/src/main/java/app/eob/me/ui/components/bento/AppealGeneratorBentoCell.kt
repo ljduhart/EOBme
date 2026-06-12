@@ -45,8 +45,11 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.navigation.HubBentoDestination
 import kotlinx.coroutines.delay
 
-private val GlowCyan = Color(0xFF00E5FF)
-private val GlowBlue = Color(0xFF2498EA)
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobBrandGlow
+
+private val GlowCyan = EobBrandGlow
+private val GlowBlue = EobBrandBlue
 
 @Composable
 fun AppealGeneratorBentoCell(
@@ -95,7 +98,7 @@ fun AppealGeneratorBentoCell(
             }
             .clickable(enabled = !isProcessing, onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {

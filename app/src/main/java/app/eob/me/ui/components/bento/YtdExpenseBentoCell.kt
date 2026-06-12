@@ -46,10 +46,15 @@ import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.navigation.HubBentoDestination
 import kotlin.random.Random
 
-private val LineBilled = Color(0xFF2498EA)
-private val LinePatient = Color(0xFF00E5FF)
-private val LineTrajectory = Color(0xFFD4AF37)
-private val ParticleColor = Color(0xFF80D8FF)
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobBrandGlow
+import app.eob.me.ui.theme.EobLineTrajectory
+import app.eob.me.ui.theme.EobParticleColor
+
+private val LineBilled = EobBrandBlue
+private val LinePatient = EobBrandGlow
+private val LineTrajectory = EobLineTrajectory
+private val ParticleColor = EobParticleColor
 
 @Composable
 fun YtdExpenseBentoCell(
@@ -71,7 +76,7 @@ fun YtdExpenseBentoCell(
             .fillMaxWidth()
             .aspectRatio(BentoCellLayout.ASPECT_RATIO),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(

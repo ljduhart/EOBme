@@ -38,7 +38,9 @@ import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
 
-private val BrandBlue = Color(0xFF2498EA)
+import app.eob.me.ui.theme.EobBrandBlue
+
+private val BrandBlue = EobBrandBlue
 
 @Composable
 fun AppealScreen(
@@ -79,7 +81,7 @@ fun AppealScreen(
                     Text(
                         text = EobStrings.t(language, "appealSelectClaimHint"),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 12.dp)
                     )
@@ -118,7 +120,7 @@ fun AppealScreen(
                     .weight(1f),
                 shape = RoundedCornerShape(8.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 OutlinedTextField(
                     value = appealLetter,
@@ -127,18 +129,18 @@ fun AppealScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(8.dp)
-                        .background(Color.White, RoundedCornerShape(4.dp)),
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp)),
                     textStyle = LocalTextStyle.current.copy(
                         fontFamily = FontFamily.Serif,
                         fontSize = 15.sp,
                         lineHeight = 22.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = BrandBlue,
-                        unfocusedBorderColor = Color.LightGray,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
                     ),
                     placeholder = { Text(EobStrings.t(language, "appealDraftPlaceholder")) }
                 )

@@ -18,6 +18,9 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobBrandCyan
+import app.eob.me.ui.theme.EobCyberGlassFill
 
 /**
  * A highly reusable modifier extension that applies a glass blur fill
@@ -25,18 +28,18 @@ import androidx.compose.ui.unit.dp
  */
 fun Modifier.glassEffect(
     cornerRadius: Dp = 16.dp,
-    glowColor: Color = Color(0xFF00F2FE)
+    glowColor: Color = EobBrandCyan
 ): Modifier = this
     .clip(RoundedCornerShape(cornerRadius))
-    .background(Color(0x1AFFFFFF))
+    .background(EobCyberGlassFill)
     .border(
         width = 1.dp,
         brush = Brush.linearGradient(
             colors = listOf(
                 glowColor.copy(alpha = 0.4f),
-                Color(0xFF2498EA).copy(alpha = 0.1f),
+                EobBrandBlue.copy(alpha = 0.1f),
                 glowColor.copy(alpha = 0.05f),
-                Color(0xFF2498EA).copy(alpha = 0.3f)
+                EobBrandBlue.copy(alpha = 0.3f)
             )
         ),
         shape = RoundedCornerShape(cornerRadius)
@@ -45,7 +48,7 @@ fun Modifier.glassEffect(
 /** Alias for glass styling used across dashboard surfaces. */
 fun Modifier.glassBackground(
     cornerRadius: Dp = 16.dp,
-    glowColor: Color = Color(0xFF00F2FE)
+    glowColor: Color = EobBrandCyan
 ): Modifier = glassEffect(cornerRadius = cornerRadius, glowColor = glowColor)
 
 /**
@@ -56,7 +59,7 @@ fun Modifier.glassBackground(
 fun HolographicGlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 16.dp,
-    glowColor: Color = Color(0xFF00F2FE),
+    glowColor: Color = EobBrandCyan,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Box(

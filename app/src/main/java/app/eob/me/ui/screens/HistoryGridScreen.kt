@@ -142,7 +142,7 @@ private fun EobSmartCard(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
             } else {
-                Color.White
+                MaterialTheme.colorScheme.surface
             }
         ),
         border = BorderStroke(1.dp, borderColor),

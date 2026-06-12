@@ -65,7 +65,9 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val BrandBlue = Color(0xFF2498EA)
+import app.eob.me.ui.theme.EobBrandBlue
+
+private val BrandBlue = EobBrandBlue
 private const val TapFocusReticleActiveMs = 500L
 
 data class TapFocusState(val offset: Offset, val triggerTime: Long)

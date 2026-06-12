@@ -23,12 +23,16 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobStrings
+import app.eob.me.ui.theme.EobCareDentistBlue
+import app.eob.me.ui.theme.EobCarePcpGreen
+import app.eob.me.ui.theme.EobCareSpecialistYellow
+import app.eob.me.ui.theme.EobCareTherapistRed
 
 object CareTeamColors {
-    val pcpGreen = Color(0xFF43A047)
-    val dentistBlue = Color(0xFF1E88E5)
-    val specialistYellow = Color(0xFFF9A825)
-    val therapistRed = Color(0xFFE53935)
+    val pcpGreen = EobCarePcpGreen
+    val dentistBlue = EobCareDentistBlue
+    val specialistYellow = EobCareSpecialistYellow
+    val therapistRed = EobCareTherapistRed
 
     fun colorFor(type: CareTeamProviderType): Color = when (type) {
         CareTeamProviderType.Pcp -> pcpGreen

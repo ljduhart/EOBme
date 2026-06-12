@@ -22,6 +22,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import app.eob.me.ui.theme.EobCyberTextPrimary
+import app.eob.me.ui.theme.EobCyberTextSecondary
+import app.eob.me.ui.theme.EobHomeGradientBase
+import app.eob.me.ui.theme.EobHomeGradientDeep
+import app.eob.me.ui.theme.EobHomeGradientMid
+import app.eob.me.ui.theme.EobHomeGradientSurface
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
@@ -50,17 +56,17 @@ import app.eob.me.ui.components.home.HomeWeekCalendar
 
 private val MetallicMedicalBlue = Brush.verticalGradient(
     colors = listOf(
-        Color(0xFF0A4D73),
-        Color(0xFF1565A8),
-        Color(0xFF1B7BBD),
-        Color(0xFF2498EA),
-        Color(0xFF1565A8),
-        Color(0xFF0C3D5E)
+        EobHomeGradientDeep,
+        EobHomeGradientBase,
+        EobHomeGradientSurface,
+        EobHomeGradientMid,
+        EobHomeGradientBase,
+        EobHomeGradientDeep
     )
 )
 
-private val HomeOnBluePrimary = Color(0xFFFFFFFF)
-private val HomeOnBlueSecondary = Color(0xFFD8ECFA)
+private val HomeOnBluePrimary = EobCyberTextPrimary
+private val HomeOnBlueSecondary = EobCyberTextSecondary
 
 /**
  * Scrollable main hub — state from [app.eob.me.viewmodel.EobViewModel].

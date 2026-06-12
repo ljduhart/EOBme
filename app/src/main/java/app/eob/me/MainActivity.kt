@@ -15,8 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import app.eob.me.navigation.EobNavHost
-import app.eob.me.ui.components.eobAppBackgroundGradient
 import app.eob.me.ui.theme.EOBmeTheme
+import app.eob.me.ui.theme.eobCyberAppBackgroundGradient
 import app.eob.me.viewmodel.AppViewModel
 
 class MainActivity : FragmentActivity() {
@@ -24,14 +24,14 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EOBmeTheme(darkTheme = false) {
+            EOBmeTheme(darkTheme = true) {
                 val viewModel: AppViewModel = viewModel()
 
                 Scaffold(
                     containerColor = Color.Transparent,
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(eobAppBackgroundGradient())
+                        .background(eobCyberAppBackgroundGradient())
                         .pointerInput(Unit) {
                             detectTapGestures { viewModel.updateActivityTime() }
                         }

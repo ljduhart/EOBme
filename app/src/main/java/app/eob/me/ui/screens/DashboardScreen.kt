@@ -36,9 +36,13 @@ import app.eob.me.data.EobStrings
 import app.eob.me.ui.components.HolographicGlassCard
 import java.util.Locale
 
-private val BilledBlue = Color(0xFF2498EA)
-private val AdjustmentGreen = Color(0xFF10B981)
-private val PatientRed = Color(0xFFEF4444)
+import app.eob.me.ui.theme.EobAdjustmentGreen
+import app.eob.me.ui.theme.EobBilledBlue
+import app.eob.me.ui.theme.EobPatientRed
+
+private val BilledBlue = EobBilledBlue
+private val AdjustmentGreen = EobAdjustmentGreen
+private val PatientRed = EobPatientRed
 
 @Composable
 fun DashboardScreen(
@@ -99,7 +103,7 @@ fun DashboardScreen(
                     Text(
                         text = EobStrings.t(language, "dashboardUploadHint"),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -228,7 +232,7 @@ fun DashboardScreen(
                         Text(
                             text = EobStrings.tf(language, "patientOutOfPocketShare", summary.patientAmount),
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (summary.patientAmount > 0) PatientRed else Color.Gray
+                            color = if (summary.patientAmount > 0) PatientRed else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

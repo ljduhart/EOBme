@@ -38,20 +38,27 @@ import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.InsuranceCardDisplay
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobCyberTextPrimary
+import app.eob.me.ui.theme.EobCyberTextSecondary
+import app.eob.me.ui.theme.EobInsuranceGradientEnd
+import app.eob.me.ui.theme.EobInsuranceGradientMid
+import app.eob.me.ui.theme.EobInsuranceGradientStart
+import app.eob.me.ui.theme.EobInsuranceNameAccent
+import app.eob.me.ui.theme.EobInsuranceSecondaryText
 
 private val CardBackgroundGradient = Brush.linearGradient(
     colors = listOf(
-        Color(0xFF1A3D63),
-        Color(0xFF102A47),
-        Color(0xFF0A1E38)
+        EobInsuranceGradientStart,
+        EobInsuranceGradientMid,
+        EobInsuranceGradientEnd
     ),
     start = Offset(0f, 0f),
     end = Offset(900f, 1200f)
 )
-private val InsuranceNameAccent = Color(0xFF7DD3FC)
-private val CardPrimaryText = Color.White
-private val CardSecondaryText = Color(0xFFB8D4EA)
-private val CardDividerColor = Color.White.copy(alpha = 0.22f)
+private val CardPrimaryText = EobCyberTextPrimary
+private val CardSecondaryText = EobInsuranceSecondaryText
+private val CardDividerColor = EobCyberTextPrimary.copy(alpha = 0.22f)
 
 @Composable
 fun CleanInsuranceCard(
@@ -113,7 +120,7 @@ fun CleanInsuranceCard(
                         isEditing = isEditing,
                         textStyle = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = InsuranceNameAccent,
+                            color = EobInsuranceNameAccent,
                             letterSpacing = 0.5.sp
                         ),
                         displayTransform = { it.uppercase() }
@@ -264,7 +271,7 @@ fun CleanInsuranceCard(
                     TextButton(onClick = onSave) {
                         Text(
                             text = EobStrings.t(language, "cleanInsuranceSaveCard"),
-                            color = InsuranceNameAccent,
+                            color = EobInsuranceNameAccent,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -295,7 +302,7 @@ private fun InsuranceCardValue(
             value = value,
             onValueChange = onValueChange,
             textStyle = textStyle,
-            cursorBrush = SolidColor(InsuranceNameAccent),
+            cursorBrush = SolidColor(EobInsuranceNameAccent),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             modifier = modifier.fillMaxWidth()
@@ -315,7 +322,7 @@ private fun EobInsuranceCardMark(modifier: Modifier = Modifier) {
         modifier = modifier
             .background(
                 brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF2498EA), Color(0xFF0E45BE))
+                    colors = listOf(EobBrandBlue, EobInsuranceGradientStart)
                 ),
                 shape = RoundedCornerShape(8.dp)
             ),
@@ -323,7 +330,7 @@ private fun EobInsuranceCardMark(modifier: Modifier = Modifier) {
     ) {
         Text(
             text = "E",
-            color = Color.White,
+            color = CardPrimaryText,
             fontWeight = FontWeight.Black,
             fontSize = 20.sp
         )
@@ -336,11 +343,11 @@ private fun VerifiedInsuranceBadge(modifier: Modifier = Modifier) {
         val radius = size.minDimension / 2f
         val center = Offset(size.width / 2f, size.height / 2f)
         drawCircle(
-            color = Color.White.copy(alpha = 0.18f),
+            color = CardPrimaryText.copy(alpha = 0.18f),
             radius = radius
         )
         drawCircle(
-            color = Color.White,
+            color = CardPrimaryText,
             radius = radius * 0.72f,
             style = Stroke(width = radius * 0.08f)
         )
@@ -351,7 +358,7 @@ private fun VerifiedInsuranceBadge(modifier: Modifier = Modifier) {
         }
         drawPath(
             path = checkPath,
-            color = Color.White,
+            color = CardPrimaryText,
             style = Stroke(width = radius * 0.12f, cap = StrokeCap.Round)
         )
         listOf(
@@ -359,7 +366,7 @@ private fun VerifiedInsuranceBadge(modifier: Modifier = Modifier) {
             Offset(center.x + radius * 0.95f, center.y - radius * 0.18f),
             Offset(center.x - radius * 0.88f, center.y - radius * 0.62f)
         ).forEach { sparkle ->
-            drawCircle(color = Color.White.copy(alpha = 0.85f), radius = radius * 0.06f, center = sparkle)
+            drawCircle(color = CardPrimaryText.copy(alpha = 0.85f), radius = radius * 0.06f, center = sparkle)
         }
     }
 }

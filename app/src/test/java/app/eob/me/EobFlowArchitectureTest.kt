@@ -29,6 +29,40 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun hubUsesCyberDarkThemeWithoutTouchingOpeningScreens() {
+        assertTrue(mainActivitySource.contains("EOBmeTheme(darkTheme = true)"))
+        assertTrue(mainActivitySource.contains("eobCyberAppBackgroundGradient()"))
+        assertFalse(
+            "MainActivity must not reuse splash gradient on hub screens",
+            mainActivitySource.contains("eobAppBackgroundGradient()")
+        )
+        val colorSource = readSource("ui/theme/Color.kt")
+        listOf(
+            "EobCyberBackground",
+            "EobCyberAccent",
+            "EobCyberAccentBright",
+            "EobCyberSuccess",
+            "EobCyberError",
+            "EobCyberTextSecondary",
+            "eobCyberAppBackgroundGradient"
+        ).forEach { token ->
+            assertTrue("Color.kt missing cyber token: $token", colorSource.contains(token))
+        }
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse(
+                "$path must remain unchanged for opening flow branding",
+                source.contains("EobCyber")
+            )
+        }
+    }
+
+    @Test
     fun manifestDeclaresLauncherActivityAndMessagingService() {
         listOf(
             "android.permission.INTERNET",

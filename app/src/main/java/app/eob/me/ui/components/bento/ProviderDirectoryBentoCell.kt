@@ -48,9 +48,13 @@ import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.NetworkAssuranceBadge
 import app.eob.me.ui.components.NetworkAssuranceWarningDot
+import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.ui.theme.EobBrandGlow
+import app.eob.me.ui.theme.EobCyberError
+import app.eob.me.ui.theme.EobCyberWarning
 
-private val NeonCyan = Color(0xFF00E5FF)
-private val NeonCyanDim = Color(0x6600E5FF)
+private val NeonCyan = EobBrandGlow
+private val NeonCyanDim = EobBrandGlow.copy(alpha = 0.4f)
 
 @Composable
 fun ProviderDirectoryBentoCell(
@@ -81,8 +85,8 @@ fun ProviderDirectoryBentoCell(
 
     val assuranceAccent = when (directoryAssurance.state) {
         NetworkAssuranceState.FullyAssured -> NeonCyan
-        NetworkAssuranceState.VerificationPending -> Color(0xFFD4AF37)
-        NetworkAssuranceState.OutOfNetworkAlert -> Color(0xFFEF4444)
+        NetworkAssuranceState.VerificationPending -> EobCyberWarning
+        NetworkAssuranceState.OutOfNetworkAlert -> EobCyberError
     }
 
     Card(
@@ -96,7 +100,7 @@ fun ProviderDirectoryBentoCell(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -237,7 +241,7 @@ private fun ProviderAvatarFan(
                                 Brush.radialGradient(
                                     colors = listOf(
                                         NeonCyan.copy(alpha = 0.35f * fanProgress + 0.1f),
-                                        Color(0xFF1565A8)
+                                        EobBrandBlue
                                     )
                                 )
                             )
@@ -252,7 +256,7 @@ private fun ProviderAvatarFan(
                             text = avatar.initials,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 11.sp
                         )
                     }
