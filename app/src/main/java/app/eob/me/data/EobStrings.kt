@@ -315,6 +315,8 @@ object EobStrings {
         "cptCountTimes" to "%dx",
         "editProfile" to "Edit",
         "profileSavedButton" to "Saved",
+        "appearanceSettings" to "Appearance",
+        "darkModeDescription" to "Switch between light and dark backgrounds",
         "homeInsuranceCardTitle" to "Insurance card",
         "insuranceCardMemberLabel" to "Member name",
         "cleanInsuranceMemberIdLabel" to "Member ID",
