@@ -281,6 +281,7 @@ class EobFlowArchitectureTest {
             "setUploadOverWifiOnly",
             "setImageCompressionLevel",
             "setAutoCropEnabled",
+            "setDarkModeEnabled",
             "clearLocalCache",
             "deleteAccount",
             "settingsUploadWifiBlocked",
@@ -289,6 +290,18 @@ class EobFlowArchitectureTest {
             "HubCrashlyticsGate"
         ).forEach { snippet ->
             assertTrue("Settings flow missing: $snippet", navHostSource.contains(snippet) || readSource("viewmodel/EobViewModel.kt").contains(snippet) || readSource("util/HubCrashlyticsGate.kt").contains(snippet))
+        }
+        listOf(
+            "onHubDarkModeChanged",
+            "eobViewModel.setDarkModeEnabled",
+            "eobLightAppBackgroundGradient"
+        ).forEach { snippet ->
+            assertTrue(
+                "Dark mode hub wiring missing: $snippet",
+                navHostSource.contains(snippet) ||
+                    mainActivitySource.contains(snippet) ||
+                    readSource("viewmodel/EobViewModel.kt").contains(snippet)
+            )
         }
         assertTrue(EobRoute.Settings.route in hubBackRoutes)
         assertTrue(manifestSource.contains("USE_BIOMETRIC"))
