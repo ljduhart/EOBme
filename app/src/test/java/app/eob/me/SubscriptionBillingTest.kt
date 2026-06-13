@@ -86,6 +86,17 @@ class SubscriptionBillingTest {
     }
 
     @Test
+    fun mergeSubscriptionStatusStaysLoadingWhenPlayBillingIsUnknown() {
+        assertEquals(
+            SubscriptionState.Loading,
+            mergeSubscriptionStatus(
+                playPremium = null,
+                firestoreSnapshot = FirestorePremiumSnapshot.Error("billing disconnected")
+            )
+        )
+    }
+
+    @Test
     fun firestoreRepositoryUsesUsersCollectionAndIsPremiumField() {
         val source = readSource("data/remote/FirestoreSubscriptionRepository.kt")
         assertTrue(source.contains("USERS_COLLECTION = \"users\""))

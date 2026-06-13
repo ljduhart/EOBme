@@ -279,7 +279,8 @@ class EobFlowArchitectureTest {
             "PREMIUM_PRODUCT_ID = \"premium_access_tier\"",
             "launchBillingFlow",
             "queryProductDetailsAsync",
-            "BillingRepository"
+            "BillingRepository",
+            "WeakReference"
         ).forEach { snippet ->
             assertTrue("Billing layer missing: $snippet", billingSource.contains(snippet))
         }

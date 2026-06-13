@@ -13,6 +13,7 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import java.lang.ref.WeakReference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +33,7 @@ class BillingRepository(
     val billingErrorKey: StateFlow<String?> = _billingErrorKey.asStateFlow()
 
     private var premiumProductDetails: ProductDetails? = null
-    private var pendingLaunchActivity: Activity? = null
+    private var pendingLaunchActivity: WeakReference<Activity>? = null
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
@@ -56,13 +57,13 @@ class BillingRepository(
                     refreshPurchases()
                     queryPremiumProductDetails()
                 } else {
-                    _isPlayPremium.value = false
+                    _isPlayPremium.value = null
                     _billingErrorKey.value = "billing_not_ready"
                 }
             }
 
             override fun onBillingServiceDisconnected() {
-                _isPlayPremium.value = false
+                _isPlayPremium.value = null
             }
         })
     }
@@ -80,13 +81,14 @@ class BillingRepository(
     fun launchBillingFlow(activity: Activity) {
         _billingErrorKey.value = null
         if (!billingClient.isReady) {
+            pendingLaunchActivity = WeakReference(activity)
             _billingErrorKey.value = "billing_not_ready"
             startConnection()
             return
         }
         val product = premiumProductDetails
         if (product == null) {
-            pendingLaunchActivity = activity
+            pendingLaunchActivity = WeakReference(activity)
             queryPremiumProductDetails()
             return
         }
@@ -117,7 +119,7 @@ class BillingRepository(
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                 handlePurchases(purchases)
             } else {
-                _isPlayPremium.value = false
+                _isPlayPremium.value = null
                 _billingErrorKey.value = "billing_not_ready"
             }
         }
@@ -165,14 +167,14 @@ class BillingRepository(
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                 premiumProductDetails = details.productDetailsList.firstOrNull()
                 val product = premiumProductDetails
-                val pendingActivity = pendingLaunchActivity
+                val pendingActivity = pendingLaunchActivity?.get()
                 pendingLaunchActivity = null
                 when {
                     product == null -> {
                         _billingErrorKey.value = "billing_product_unavailable"
                     }
 
-                    pendingActivity != null -> {
+                    pendingActivity != null && !pendingActivity.isFinishing && !pendingActivity.isDestroyed -> {
                         launchBillingFlowInternal(pendingActivity, product)
                     }
                 }
@@ -183,6 +185,7 @@ class BillingRepository(
     }
 
     private fun launchBillingFlowInternal(activity: Activity, product: ProductDetails) {
+        if (activity.isFinishing || activity.isDestroyed) return
         val offerToken = product.subscriptionOfferDetails?.firstOrNull()?.offerToken
         if (offerToken.isNullOrBlank()) {
             _billingErrorKey.value = "billing_product_unavailable"
