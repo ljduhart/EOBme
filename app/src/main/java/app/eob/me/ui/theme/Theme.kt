@@ -2,7 +2,6 @@ package app.eob.me.ui.theme
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -41,25 +40,29 @@ private val CyberColorScheme = darkColorScheme(
 
 private val LightColorScheme = lightColorScheme(
     primary = EobCyberAccent,
-    onPrimary = EobCyberBackground,
+    onPrimary = EobLightBackground,
+    primaryContainer = EobCyberAccent.copy(alpha = 0.12f),
+    onPrimaryContainer = EobLightTextPrimary,
     secondary = EobCyberAccentBright,
-    onSecondary = EobCyberBackground,
+    onSecondary = EobLightBackground,
+    secondaryContainer = EobLightSurfaceVariant,
+    onSecondaryContainer = EobLightTextPrimary,
     tertiary = EobCyberGlow,
-    onTertiary = EobCyberBackground,
-    background = EobCyberBackground,
-    onBackground = EobCyberTextPrimary,
-    surface = EobCyberSurface,
-    onSurface = EobCyberTextPrimary,
-    surfaceVariant = EobCyberSurfaceVariant,
-    onSurfaceVariant = EobCyberTextSecondary,
-    outline = EobCyberGlassBorder,
+    onTertiary = EobLightBackground,
+    background = EobLightBackground,
+    onBackground = EobLightTextPrimary,
+    surface = EobLightSurface,
+    onSurface = EobLightTextPrimary,
+    surfaceVariant = EobLightSurfaceVariant,
+    onSurfaceVariant = EobLightTextSecondary,
+    outline = EobLightOutline,
     error = EobCyberError,
-    onError = EobCyberTextPrimary
+    onError = EobLightBackground
 )
 
 @Composable
 fun EOBmeTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = false,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -78,8 +81,8 @@ fun EOBmeTheme(
         SideEffect {
             val window = (view.context as Activity).window
             val insetsController = WindowCompat.getInsetsController(window, view)
-            insetsController.isAppearanceLightStatusBars = false
-            insetsController.isAppearanceLightNavigationBars = false
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

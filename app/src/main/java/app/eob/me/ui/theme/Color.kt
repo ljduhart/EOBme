@@ -77,6 +77,29 @@ val EobHomeGradientBase = EobCyberBackground
 val EobHomeGradientSurface = EobCyberSurface
 val EobHomeGradientMid = EobCyberBackgroundMid
 
+// Light hub palette (default on first launch)
+val EobLightBackground = Color(0xFFFFFFFF)
+val EobLightBackgroundSoft = Color(0xFFF5F7FA)
+val EobLightSurface = Color(0xFFF7F9FC)
+val EobLightSurfaceVariant = Color(0xFFEEF2F7)
+val EobLightTextPrimary = Color(0xFF102033)
+val EobLightTextSecondary = Color(0xFF5C6B7A)
+val EobLightOutline = Color(0xFFB7C7D9)
+
+// Home hub gradient stops for light mode (layout unchanged; colors only)
+val EobHomeLightGradientTop = EobLightBackground
+val EobHomeLightGradientMid = EobLightBackgroundSoft
+val EobHomeLightGradientBase = EobLightSurface
+
+/** App-wide background behind hub screens in light mode. */
+fun eobLightAppBackgroundGradient(): Brush = Brush.verticalGradient(
+    colors = listOf(
+        EobLightBackground,
+        EobLightBackgroundSoft,
+        EobLightBackground
+    )
+)
+
 /** App-wide background behind hub screens (opening screens keep their own styling). */
 fun eobCyberAppBackgroundGradient(): Brush = Brush.verticalGradient(
     colors = listOf(

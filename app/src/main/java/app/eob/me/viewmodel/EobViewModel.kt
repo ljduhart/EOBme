@@ -196,6 +196,10 @@ class EobViewModel : ViewModel() {
         updateHubSettings { it.copy(autoCropEnabled = enabled) }
     }
 
+    fun setDarkModeEnabled(enabled: Boolean) {
+        updateHubSettings { it.copy(darkModeEnabled = enabled) }
+    }
+
     fun imageCompressionLevel(): ImageCompressionLevel {
         return _uiState.value.hubSettings.imageCompressionLevel
     }

@@ -57,6 +57,7 @@ data class HubSettingsState(
     val uploadOverWifiOnly: Boolean = false,
     val imageCompressionLevel: ImageCompressionLevel = ImageCompressionLevel.Medium,
     val autoCropEnabled: Boolean = true,
+    val darkModeEnabled: Boolean = false,
     val cacheSizeBytes: Long = 0L,
     val subscriptionTier: SubscriptionTier = SubscriptionTier.Free,
     val settingsAccountEditing: Boolean = false,

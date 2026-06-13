@@ -30,8 +30,9 @@ class EobFlowArchitectureTest {
 
     @Test
     fun hubUsesCyberDarkThemeWithoutTouchingOpeningScreens() {
-        assertTrue(mainActivitySource.contains("EOBmeTheme(darkTheme = true)"))
+        assertTrue(mainActivitySource.contains("EOBmeTheme(darkTheme = useDarkTheme)"))
         assertTrue(mainActivitySource.contains("eobCyberAppBackgroundGradient()"))
+        assertTrue(mainActivitySource.contains("eobLightAppBackgroundGradient()"))
         assertFalse(
             "MainActivity must not reuse splash gradient on hub screens",
             mainActivitySource.contains("eobAppBackgroundGradient()")
@@ -44,7 +45,9 @@ class EobFlowArchitectureTest {
             "EobCyberSuccess",
             "EobCyberError",
             "EobCyberTextSecondary",
-            "eobCyberAppBackgroundGradient"
+            "eobCyberAppBackgroundGradient",
+            "eobLightAppBackgroundGradient",
+            "EobLightBackground"
         ).forEach { token ->
             assertTrue("Color.kt missing cyber token: $token", colorSource.contains(token))
         }
@@ -60,6 +63,26 @@ class EobFlowArchitectureTest {
                 source.contains("EobCyber")
             )
         }
+    }
+
+    @Test
+    fun profileDarkModeToggleWiresThroughEobViewModel() {
+        val profileSource = readSource("ui/screens/ProfileScreen.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val storeSource = readSource("data/HubSettingsStore.kt")
+        listOf(
+            "darkModeEnabled",
+            "onDarkModeChanged",
+            "Switch(",
+            "appearanceSettings",
+            "setDarkModeEnabled"
+        ).forEach { snippet ->
+            assertTrue("Profile dark mode wiring missing: $snippet", profileSource.contains(snippet) || navHostSource.contains(snippet) || viewModelSource.contains(snippet))
+        }
+        assertTrue(navHostSource.contains("onHubDarkModeChanged"))
+        assertTrue(navHostSource.contains("eobViewModel.setDarkModeEnabled"))
+        assertTrue(storeSource.contains("KEY_DARK_MODE"))
+        assertTrue(viewModelSource.contains("fun setDarkModeEnabled"))
     }
 
     @Test
@@ -258,6 +281,7 @@ class EobFlowArchitectureTest {
             "setUploadOverWifiOnly",
             "setImageCompressionLevel",
             "setAutoCropEnabled",
+            "setDarkModeEnabled",
             "clearLocalCache",
             "deleteAccount",
             "settingsUploadWifiBlocked",
@@ -266,6 +290,18 @@ class EobFlowArchitectureTest {
             "HubCrashlyticsGate"
         ).forEach { snippet ->
             assertTrue("Settings flow missing: $snippet", navHostSource.contains(snippet) || readSource("viewmodel/EobViewModel.kt").contains(snippet) || readSource("util/HubCrashlyticsGate.kt").contains(snippet))
+        }
+        listOf(
+            "onHubDarkModeChanged",
+            "eobViewModel.setDarkModeEnabled",
+            "eobLightAppBackgroundGradient"
+        ).forEach { snippet ->
+            assertTrue(
+                "Dark mode hub wiring missing: $snippet",
+                navHostSource.contains(snippet) ||
+                    mainActivitySource.contains(snippet) ||
+                    readSource("viewmodel/EobViewModel.kt").contains(snippet)
+            )
         }
         assertTrue(EobRoute.Settings.route in hubBackRoutes)
         assertTrue(manifestSource.contains("USE_BIOMETRIC"))

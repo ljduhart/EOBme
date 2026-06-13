@@ -28,6 +28,11 @@ import app.eob.me.ui.theme.EobHomeGradientBase
 import app.eob.me.ui.theme.EobHomeGradientDeep
 import app.eob.me.ui.theme.EobHomeGradientMid
 import app.eob.me.ui.theme.EobHomeGradientSurface
+import app.eob.me.ui.theme.EobHomeLightGradientBase
+import app.eob.me.ui.theme.EobHomeLightGradientMid
+import app.eob.me.ui.theme.EobHomeLightGradientTop
+import app.eob.me.ui.theme.EobLightTextPrimary
+import app.eob.me.ui.theme.EobLightTextSecondary
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
@@ -54,7 +59,7 @@ import app.eob.me.ui.components.home.HomeAppointmentsSection
 import app.eob.me.ui.components.home.HomeCareTeamCards
 import app.eob.me.ui.components.home.HomeWeekCalendar
 
-private val MetallicMedicalBlue = Brush.verticalGradient(
+private val DarkHomeBackground = Brush.verticalGradient(
     colors = listOf(
         EobHomeGradientDeep,
         EobHomeGradientBase,
@@ -65,8 +70,15 @@ private val MetallicMedicalBlue = Brush.verticalGradient(
     )
 )
 
-private val HomeOnBluePrimary = EobCyberTextPrimary
-private val HomeOnBlueSecondary = EobCyberTextSecondary
+private val LightHomeBackground = Brush.verticalGradient(
+    colors = listOf(
+        EobHomeLightGradientTop,
+        EobHomeLightGradientMid,
+        EobHomeLightGradientBase,
+        EobHomeLightGradientMid,
+        EobHomeLightGradientTop
+    )
+)
 
 /**
  * Scrollable main hub — state from [app.eob.me.viewmodel.EobViewModel].
@@ -74,6 +86,7 @@ private val HomeOnBlueSecondary = EobCyberTextSecondary
 @Composable
 fun HomeScreen(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     profile: UserProfile,
     insuranceCardDisplay: InsuranceCardDisplay,
     canEditInsuranceCard: Boolean,
@@ -133,10 +146,14 @@ fun HomeScreen(
         }
     }
 
+    val homeBackground = if (darkModeEnabled) DarkHomeBackground else LightHomeBackground
+    val homePrimaryText = if (darkModeEnabled) EobCyberTextPrimary else EobLightTextPrimary
+    val homeSecondaryText = if (darkModeEnabled) EobCyberTextSecondary else EobLightTextSecondary
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MetallicMedicalBlue)
+            .background(homeBackground)
     ) {
         LazyColumn(
             modifier = Modifier
@@ -155,7 +172,7 @@ fun HomeScreen(
                         ),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = HomeOnBluePrimary
+                        color = homePrimaryText
                     )
                     Text(
                         text = EobStrings.tf(
@@ -170,7 +187,7 @@ fun HomeScreen(
                             firebaseStatusLine
                         ),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = HomeOnBlueSecondary
+                        color = homeSecondaryText
                     )
                 }
             }
@@ -224,7 +241,7 @@ fun HomeScreen(
                     Text(
                         text = uploadNotice,
                         style = MaterialTheme.typography.bodySmall,
-                        color = HomeOnBluePrimary,
+                        color = homePrimaryText,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -245,7 +262,7 @@ fun HomeScreen(
                     text = EobStrings.t(language, "featuresSection"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = HomeOnBluePrimary,
+                    color = homePrimaryText,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
             }

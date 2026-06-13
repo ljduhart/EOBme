@@ -19,7 +19,8 @@ class HubSettingsStore(context: Context) {
             imageCompressionLevel = ImageCompressionLevel.entries.getOrElse(
                 prefs.getInt(KEY_COMPRESSION, ImageCompressionLevel.Medium.ordinal)
             ) { ImageCompressionLevel.Medium },
-            autoCropEnabled = prefs.getBoolean(KEY_AUTO_CROP, true)
+            autoCropEnabled = prefs.getBoolean(KEY_AUTO_CROP, true),
+            darkModeEnabled = prefs.getBoolean(KEY_DARK_MODE, false)
         )
     }
 
@@ -31,6 +32,7 @@ class HubSettingsStore(context: Context) {
             .putBoolean(KEY_WIFI_ONLY, state.uploadOverWifiOnly)
             .putInt(KEY_COMPRESSION, state.imageCompressionLevel.ordinal)
             .putBoolean(KEY_AUTO_CROP, state.autoCropEnabled)
+            .putBoolean(KEY_DARK_MODE, state.darkModeEnabled)
             .apply()
     }
 
@@ -42,5 +44,6 @@ class HubSettingsStore(context: Context) {
         const val KEY_WIFI_ONLY = "upload_wifi_only"
         const val KEY_COMPRESSION = "image_compression"
         const val KEY_AUTO_CROP = "auto_crop"
+        const val KEY_DARK_MODE = "dark_mode"
     }
 }

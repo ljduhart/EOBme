@@ -86,7 +86,10 @@ import app.eob.me.viewmodel.HubUiState
 import kotlinx.coroutines.launch
 
 @Composable
-fun EobNavHost(viewModel: AppViewModel) {
+fun EobNavHost(
+    viewModel: AppViewModel,
+    onHubDarkModeChanged: (Boolean) -> Unit = {}
+) {
     val navController = rememberNavController()
     val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
     val language by viewModel.selectedLanguage.collectAsStateWithLifecycle()
@@ -96,6 +99,12 @@ fun EobNavHost(viewModel: AppViewModel) {
     val awaitingEmailVerification by viewModel.awaitingEmailVerification.collectAsStateWithLifecycle()
     val authMessage by viewModel.authMessage.collectAsStateWithLifecycle()
     val registrationCredentials by viewModel.registrationCredentials.collectAsStateWithLifecycle()
+
+    LaunchedEffect(currentScreen) {
+        if (currentScreen != Screen.MainHub) {
+            onHubDarkModeChanged(false)
+        }
+    }
 
     LaunchedEffect(currentScreen) {
         val targetRoute = currentScreen.route
@@ -171,7 +180,8 @@ fun EobNavHost(viewModel: AppViewModel) {
                 onCredentialsChanged = viewModel::onCredentialsChanged,
                 onLanguageChanged = viewModel::onLanguageChanged,
                 onLogout = viewModel::onLogout,
-                onActivity = viewModel::updateActivityTime
+                onActivity = viewModel::updateActivityTime,
+                onHubDarkModeChanged = onHubDarkModeChanged
             )
         }
     }
@@ -187,7 +197,8 @@ private fun MainHubNavHost(
     onCredentialsChanged: (RegistrationCredentials) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onLogout: () -> Unit,
-    onActivity: () -> Unit
+    onActivity: () -> Unit,
+    onHubDarkModeChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -199,6 +210,10 @@ private fun MainHubNavHost(
     val insuranceArticles by eobViewModel.insuranceArticles.collectAsStateWithLifecycle()
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState.hubSettings.darkModeEnabled) {
+        onHubDarkModeChanged(uiState.hubSettings.darkModeEnabled)
+    }
 
     fun prepareAndUpload(uri: Uri, sourceName: String) {
         val uid = firebaseUser?.uid.orEmpty()
@@ -501,6 +516,7 @@ private fun MainHubNavHost(
                     }
                     HomeScreen(
                         language = language,
+                        darkModeEnabled = uiState.hubSettings.darkModeEnabled,
                         profile = profile,
                         insuranceCardDisplay = insuranceCardDisplay,
                         canEditInsuranceCard = userId.isNotBlank(),
@@ -802,6 +818,11 @@ private fun MainHubNavHost(
                         profile = profile,
                         credentials = credentials,
                         saveMessage = profileSaveMessage,
+                        darkModeEnabled = uiState.hubSettings.darkModeEnabled,
+                        onDarkModeChanged = {
+                            eobViewModel.setDarkModeEnabled(it)
+                            onActivity()
+                        },
                         onProfileChanged = onProfileChanged,
                         onCredentialsChanged = onCredentialsChanged,
                         onEditingChanged = appViewModel::setProfileEditing,

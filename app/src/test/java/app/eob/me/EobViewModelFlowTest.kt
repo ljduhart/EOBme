@@ -270,6 +270,10 @@ class EobViewModelFlowTest {
         assertEquals(ImageCompressionLevel.High, viewModel.imageCompressionLevel())
         viewModel.setAutoCropEnabled(false)
         assertFalse(viewModel.autoCropEnabled())
+        viewModel.setDarkModeEnabled(true)
+        assertTrue(viewModel.uiState.value.hubSettings.darkModeEnabled)
+        viewModel.setDarkModeEnabled(false)
+        assertFalse(viewModel.uiState.value.hubSettings.darkModeEnabled)
     }
 
     @Test
