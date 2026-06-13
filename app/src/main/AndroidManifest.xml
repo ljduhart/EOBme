@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- POST_NOTIFICATIONS — EobFirebaseMessagingService; runtime request API 33+ in EobNavHost -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- BILLING — Play Billing Client (com.android.billingclient:billing) -->
+    <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel) -->
     <uses-permission android:name="com.android.vending.BILLING" />
     <!-- USE_BIOMETRIC — Settings biometric login via BiometricPrompt -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
@@ -21,6 +21,7 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="https" />
         </intent>
+        <package android:name="com.android.vending" />
     </queries>
     <!-- Hub state (records, uniform bento grid via BentoCellLayout → HubBentoDestination routes in
          EobNavHost, Appeal Generator bento press/processing ring via EobViewModel.appealGeneratorBentoProcessing,
@@ -28,7 +29,8 @@
          and newsFeedRevision, smart gold care-team cards with 4s shimmer delay, editable home
          insurance card via EobViewModel, Appeal letter edit/save gated by
          EobViewModel.appealLetterEditingEnabled, hub Settings gear → EobRoute.Settings with
-         EobViewModel hubSettings) + EobRepository; care team dial uses ACTION_DIAL only
+         EobViewModel hubSettings, SubscriptionViewModel + BillingRepository for
+         premium_access_tier, Firestore users/{uid}.isPremium) + EobRepository; care team dial uses ACTION_DIAL only
          (no CALL_PHONE). Profile darkModeEnabled persisted in hubSettings. Runtime permissions in EobNavHost. -->
     <uses-feature
         android:name="android.hardware.camera"

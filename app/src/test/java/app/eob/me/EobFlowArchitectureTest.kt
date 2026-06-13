@@ -271,6 +271,51 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun subscriptionBillingArchitectureWiresThroughViewModel() {
+        val billingSource = readSource("billing/BillingRepository.kt")
+        val subscriptionStateSource = readSource("billing/SubscriptionState.kt")
+        val subscriptionVmSource = readSource("viewmodel/SubscriptionViewModel.kt")
+        listOf(
+            "PREMIUM_PRODUCT_ID = \"premium_access_tier\"",
+            "launchBillingFlow",
+            "queryProductDetailsAsync",
+            "BillingRepository",
+            "WeakReference"
+        ).forEach { snippet ->
+            assertTrue("Billing layer missing: $snippet", billingSource.contains(snippet))
+        }
+        assertTrue(
+            subscriptionStateSource.contains("sealed interface SubscriptionState") &&
+                subscriptionStateSource.contains("Premium") &&
+                subscriptionStateSource.contains("Free") &&
+                subscriptionStateSource.contains("Error")
+        )
+        listOf(
+            "SubscriptionViewModel",
+            "subscriptionState",
+            "collectAsStateWithLifecycle",
+            "applySubscriptionState",
+            "FirestoreSubscriptionRepository",
+            "observeIsPremium",
+            "isPremium"
+        ).forEach { snippet ->
+            assertTrue(
+                "Subscription wiring missing: $snippet",
+                navHostSource.contains(snippet) ||
+                    subscriptionVmSource.contains(snippet) ||
+                    readSource("viewmodel/EobViewModel.kt").contains(snippet) ||
+                    readSource("data/remote/FirestoreSubscriptionRepository.kt").contains(snippet)
+            )
+        }
+        assertFalse(
+            "PlayBillingManager must be replaced by BillingRepository",
+            File(appModuleRoot, "billing/PlayBillingManager.kt").exists()
+        )
+        assertTrue(manifestSource.contains("com.android.vending.BILLING"))
+        assertTrue(manifestSource.contains("com.android.vending"))
+    }
+
+    @Test
     fun settingsGearAndHubSettingsWireThroughViewModel() {
         listOf(
             "EobRoute.Settings.route",

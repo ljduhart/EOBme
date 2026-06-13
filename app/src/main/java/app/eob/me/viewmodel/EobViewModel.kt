@@ -37,6 +37,7 @@ import app.eob.me.data.UserProfile
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.BillingIssueSeverity
+import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.HubSettingsState
 import app.eob.me.data.HubSettingsStore
 import app.eob.me.data.ImageCompressionLevel
@@ -242,6 +243,15 @@ class EobViewModel : ViewModel() {
     fun setSubscriptionTier(tier: SubscriptionTier) {
         _uiState.update { state ->
             state.copy(hubSettings = state.hubSettings.copy(subscriptionTier = tier))
+        }
+    }
+
+    /** Applies merged subscription status from [SubscriptionViewModel] into hub settings. */
+    fun applySubscriptionState(state: SubscriptionState) {
+        when (state) {
+            SubscriptionState.Premium -> setSubscriptionTier(SubscriptionTier.Premium)
+            SubscriptionState.Free -> setSubscriptionTier(SubscriptionTier.Free)
+            SubscriptionState.Loading, is SubscriptionState.Error -> Unit
         }
     }
 

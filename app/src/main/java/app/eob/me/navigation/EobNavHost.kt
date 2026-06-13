@@ -42,7 +42,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import app.eob.me.billing.PlayBillingManager
+import app.eob.me.billing.SubscriptionState
+import app.eob.me.viewmodel.SubscriptionViewModel
 import app.eob.me.security.BiometricAuthManager
 import app.eob.me.ui.components.HubSettingsGearIcon
 import app.eob.me.ui.screens.SettingsScreen
@@ -268,29 +269,37 @@ private fun MainHubNavHost(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? FragmentActivity
-    var playBillingManager by remember { mutableStateOf<PlayBillingManager?>(null) }
+    val subscriptionViewModel: SubscriptionViewModel = viewModel()
+    val subscriptionState by subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle()
+    val billingNoticeKey by subscriptionViewModel.billingNoticeKey.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
         val host = activity ?: return
-        val manager = playBillingManager ?: PlayBillingManager(
-            activity = host,
-            onTierChanged = eobViewModel::setSubscriptionTier,
-            onBillingMessage = { key -> eobViewModel.updateBillingNotice(language, key) }
-        ).also { playBillingManager = it }
-        manager.start()
-        manager.launchManageSubscription()
+        subscriptionViewModel.launchPurchaseFlow(host)
         onActivity()
     }
 
-    LaunchedEffect(language) {
-        playBillingManager?.endConnection()
-        playBillingManager = null
+    LaunchedEffect(Unit) {
+        subscriptionViewModel.startBilling()
+    }
+
+    LaunchedEffect(firebaseUser?.uid) {
+        subscriptionViewModel.bindUser(firebaseUser?.uid.orEmpty())
+    }
+
+    LaunchedEffect(subscriptionState) {
+        eobViewModel.applySubscriptionState(subscriptionState)
+    }
+
+    LaunchedEffect(billingNoticeKey, language) {
+        billingNoticeKey?.let { key ->
+            eobViewModel.updateBillingNotice(language, key)
+        }
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            playBillingManager?.endConnection()
-            playBillingManager = null
+            subscriptionViewModel.stopBilling()
         }
     }
 
