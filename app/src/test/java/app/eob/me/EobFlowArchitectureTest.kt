@@ -323,6 +323,14 @@ class EobFlowArchitectureTest {
             "SubscriptionViewModel constructor parameters break AndroidViewModelFactory",
             subscriptionVmSource.contains("class SubscriptionViewModel(\n    application: Application,")
         )
+        assertTrue(
+            "SubscriptionViewModel must initialize BillingRepository inside the ViewModel body",
+            subscriptionVmSource.contains("BillingRepository(application.applicationContext)")
+        )
+        assertTrue(
+            "AppViewModel and SubscriptionViewModel must share the same viewModel() constructor contract",
+            readSource("viewmodel/AppViewModel.kt").contains("class AppViewModel(application: Application) : AndroidViewModel(application)")
+        )
     }
 
     @Test
