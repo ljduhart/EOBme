@@ -313,6 +313,16 @@ class EobFlowArchitectureTest {
         )
         assertTrue(manifestSource.contains("com.android.vending.BILLING"))
         assertTrue(manifestSource.contains("com.android.vending"))
+        assertTrue(
+            "SubscriptionViewModel must use Application-only constructor for viewModel()",
+            subscriptionVmSource.contains(
+                "class SubscriptionViewModel(application: Application) : AndroidViewModel(application)"
+            )
+        )
+        assertFalse(
+            "SubscriptionViewModel constructor parameters break AndroidViewModelFactory",
+            subscriptionVmSource.contains("class SubscriptionViewModel(\n    application: Application,")
+        )
     }
 
     @Test

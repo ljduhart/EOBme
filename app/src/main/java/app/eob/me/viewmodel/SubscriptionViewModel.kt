@@ -19,12 +19,14 @@ import kotlinx.coroutines.launch
 /**
  * Merges Google Play Billing and Firestore `users/{uid}.isPremium` into [subscriptionState].
  * Hub UI continues to read subscription tier through [EobViewModel.applySubscriptionState].
+ *
+ * Constructor matches [AppViewModel]: single [Application] parameter so `viewModel()` can
+ * instantiate this class through [androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory].
  */
-class SubscriptionViewModel(
-    application: Application,
-    private val billingRepository: BillingRepository = BillingRepository(application.applicationContext),
+class SubscriptionViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val billingRepository: BillingRepository = BillingRepository(application.applicationContext)
     private val subscriptionRepository: SubscriptionRepository = FirestoreSubscriptionRepository()
-) : AndroidViewModel(application) {
 
     private val _subscriptionState = MutableStateFlow<SubscriptionState>(SubscriptionState.Loading)
     val subscriptionState: StateFlow<SubscriptionState> = _subscriptionState.asStateFlow()
