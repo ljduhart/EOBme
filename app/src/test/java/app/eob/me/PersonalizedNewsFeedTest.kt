@@ -4,6 +4,7 @@ import app.eob.me.data.CptCategory
 import app.eob.me.data.NewsRelease
 import app.eob.me.viewmodel.rankNewsReleases
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -82,6 +83,14 @@ class PersonalizedNewsFeedTest {
         assertTrue(source.contains("val personalizedNewsFeed: StateFlow<List<NewsRelease>>"))
         assertTrue(source.contains("private val userContextTags: Flow<Set<String>>"))
         assertTrue(source.contains("rankNewsReleases(releases, contextTags)"))
+    }
+
+    @Test
+    fun eobViewModelKeepsSubscriptionStateApplicationSeparateFromNewsRanking() {
+        val source = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(source.contains("fun applySubscriptionState(state: SubscriptionState)"))
+        assertTrue(source.contains("val personalizedNewsFeed: StateFlow<List<NewsRelease>>"))
+        assertFalse(source.contains("import app.eob.me.viewmodel.SubscriptionViewModel"))
     }
 
     private fun readSource(relativePath: String): String {
