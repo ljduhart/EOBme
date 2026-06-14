@@ -1,15 +1,41 @@
 package app.eob.me
 
+import android.app.Application
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.FirestorePremiumSnapshot
+import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
+import app.eob.me.viewmodel.SubscriptionViewModel
 import app.eob.me.viewmodel.mergeSubscriptionStatus
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SubscriptionBillingTest {
+    @Test
+    fun subscriptionViewModelConstructorMatchesAndroidViewModelFactory() {
+        val constructor = SubscriptionViewModel::class.java.getConstructor(Application::class.java)
+        assertNotNull(constructor)
+    }
+
+    @Test
+    fun appViewModelConstructorMatchesAndroidViewModelFactory() {
+        val constructor = AppViewModel::class.java.getConstructor(Application::class.java)
+        assertNotNull(constructor)
+    }
+
+    @Test
+    fun subscriptionViewModelInitializesDependenciesInsideBodyLikeAppViewModel() {
+        val source = readSource("viewmodel/SubscriptionViewModel.kt")
+        assertTrue(source.contains("class SubscriptionViewModel(application: Application) : AndroidViewModel(application)"))
+        assertTrue(source.contains("BillingRepository(application.applicationContext)"))
+        assertTrue(source.contains("FirestoreSubscriptionRepository()"))
+        assertFalse(source.contains("class SubscriptionViewModel(\n    application: Application,"))
+    }
+
     @Test
     fun premiumProductIdMatchesPlayConsoleSku() {
         assertEquals("premium_access_tier", app.eob.me.billing.BillingRepository.PREMIUM_PRODUCT_ID)
