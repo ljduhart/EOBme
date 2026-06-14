@@ -9,6 +9,7 @@ import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Firebase / Firestore implementation of [EobRepository].
@@ -35,6 +36,9 @@ class FirebaseEobRemoteDataSource(
         onNews: (List<NewsRelease>) -> Unit,
         onError: (String) -> Unit
     ): ListenerRegistration? = firebase.observeInsuranceNews(onNews, onError)
+
+    override fun observeRegionalNews(userState: String): Flow<List<NewsRelease>> =
+        firebase.observeRegionalNews(userState)
 
     override fun saveProfile(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
         firebase.saveProfile(userId, profile, onComplete)

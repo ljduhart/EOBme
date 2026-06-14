@@ -485,6 +485,8 @@ class EobFlowArchitectureTest {
             "yearlyHealthCostSummary",
             "historyRecordsForDisplay",
             "currentNewsReleases",
+            "personalizedNewsFeed",
+            "observeRegionalNews",
             "setSelectedCptCategory",
             "setYtdBentoViewMode",
             "updateUploadText"
@@ -542,7 +544,8 @@ class EobFlowArchitectureTest {
         }
         listOf(
             "eobViewModel.insuranceNewsBentoSnapshot",
-            "uiState.newsFeedRevision"
+            "uiState.newsFeedRevision",
+            "personalizedNewsFeed"
         ).forEach { snippet ->
             assertTrue("EobNavHost missing: $snippet", navHostSource.contains(snippet))
         }

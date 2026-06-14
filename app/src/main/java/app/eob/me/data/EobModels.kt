@@ -149,7 +149,9 @@ data class NewsRelease(
     val company: String,
     val headline: String,
     val summary: String,
-    val date: String
+    val date: String,
+    val targetTags: List<String> = emptyList(),
+    val baseRelevance: Int = 1
 )
 
 data class CptUsage(

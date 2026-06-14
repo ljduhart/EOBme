@@ -7,6 +7,7 @@ import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Remote data contract for EOB hub features. Firestore is the system of record.
@@ -30,6 +31,8 @@ interface EobRepository {
         onNews: (List<NewsRelease>) -> Unit,
         onError: (String) -> Unit
     ): ListenerRegistration?
+
+    fun observeRegionalNews(userState: String): Flow<List<NewsRelease>>
 
     fun saveProfile(userId: String, profile: UserProfile, onComplete: (String) -> Unit)
 
