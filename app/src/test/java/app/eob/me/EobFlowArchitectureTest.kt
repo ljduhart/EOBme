@@ -378,7 +378,8 @@ class EobFlowArchitectureTest {
             "deleteAccount",
             "settingsUploadWifiBlocked",
             "launchManageSubscriptionFlow",
-            "updateBillingNotice",
+            "handleBillingNoticeForPaywall",
+            "beginPaywallPurchase",
             "HubCrashlyticsGate"
         ).forEach { snippet ->
             assertTrue("Settings flow missing: $snippet", navHostSource.contains(snippet) || readSource("viewmodel/EobViewModel.kt").contains(snippet) || readSource("util/HubCrashlyticsGate.kt").contains(snippet))

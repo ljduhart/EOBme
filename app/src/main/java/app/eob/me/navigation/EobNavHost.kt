@@ -278,13 +278,13 @@ private fun MainHubNavHost(
     val billingNoticeKey by subscriptionViewModel.billingNoticeKey.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
-        eobViewModel.showPaywall(uiState.hubSettings.settingsNotice)
+        eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
         onActivity()
     }
 
     fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
         val host = activity ?: return
-        eobViewModel.dismissPaywall()
+        eobViewModel.beginPaywallPurchase()
         subscriptionViewModel.launchPurchaseFlow(host, tier, interval)
         onActivity()
     }
@@ -303,7 +303,7 @@ private fun MainHubNavHost(
 
     LaunchedEffect(billingNoticeKey, language) {
         billingNoticeKey?.let { key ->
-            eobViewModel.updateBillingNotice(language, key)
+            eobViewModel.handleBillingNoticeForPaywall(language, key)
         }
     }
 

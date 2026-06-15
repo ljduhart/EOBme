@@ -2,7 +2,9 @@ package app.eob.me
 
 import android.app.Application
 import app.eob.me.billing.SubscriptionState
+import app.eob.me.data.AppLanguage
 import app.eob.me.data.BillingInterval
+import app.eob.me.data.EobStrings
 import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.FirestoreSubscriptionSnapshot
@@ -138,6 +140,34 @@ class SubscriptionBillingTest {
         assertEquals("Upgrade required", viewModel.uiState.value.paywallMessage)
         viewModel.dismissPaywall()
         assertFalse(viewModel.uiState.value.paywallVisible)
+    }
+
+    @Test
+    fun eobViewModelReopensPaywallWhenPurchaseBillingFails() {
+        val viewModel = EobViewModel()
+        viewModel.showPaywall()
+        viewModel.beginPaywallPurchase()
+        assertFalse(viewModel.uiState.value.paywallVisible)
+        assertTrue(viewModel.uiState.value.paywallPurchasePending)
+
+        viewModel.handleBillingNoticeForPaywall(AppLanguage.English, "billing_flow_failed")
+
+        assertFalse(viewModel.uiState.value.paywallPurchasePending)
+        assertTrue(viewModel.uiState.value.paywallVisible)
+        assertEquals(
+            EobStrings.t(AppLanguage.English, "billingFlowFailed"),
+            viewModel.uiState.value.paywallMessage
+        )
+    }
+
+    @Test
+    fun eobViewModelApplySubscriptionStateDismissesPaywall() {
+        val viewModel = EobViewModel()
+        viewModel.showPaywall()
+        viewModel.beginPaywallPurchase()
+        viewModel.applySubscriptionState(SubscriptionState.Gold)
+        assertFalse(viewModel.uiState.value.paywallVisible)
+        assertFalse(viewModel.uiState.value.paywallPurchasePending)
     }
 
     @Test

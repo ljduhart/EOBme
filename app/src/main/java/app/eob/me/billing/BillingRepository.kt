@@ -236,7 +236,6 @@ class BillingRepository(
     )
 
     companion object {
-        /** @deprecated Use [SubscriptionCatalog.LEGACY_PREMIUM_PRODUCT_ID]. */
         const val PREMIUM_PRODUCT_ID: String = SubscriptionCatalog.LEGACY_PREMIUM_PRODUCT_ID
     }
 }
