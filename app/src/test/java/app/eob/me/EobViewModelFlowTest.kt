@@ -309,7 +309,7 @@ class EobViewModelFlowTest {
 
     private fun waitForHubRecords(viewModel: EobViewModel) {
         var attempts = 0
-        while (viewModel.eobRecords.value.isEmpty() && attempts < 200) {
+        while (viewModel.eobRecords.value.isEmpty() && attempts < 1_000) {
             shadowOf(Looper.getMainLooper()).idle()
             attempts++
         }

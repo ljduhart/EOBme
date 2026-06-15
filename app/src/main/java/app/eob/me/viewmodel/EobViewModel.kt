@@ -50,10 +50,15 @@ import app.eob.me.util.HubCrashlyticsGate
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -90,12 +95,13 @@ data class HubUiState(
  * UI layers observe [eobRecords], [sortedEobRecords], [insuranceArticles], and [uiState]; all
  * analytics and card state flow through ViewModel methods. Firestore sync goes through [EobRepository].
  */
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class EobViewModel : ViewModel() {
     private var repository: EobRepository? = null
+    private val _repository = MutableStateFlow<EobRepository?>(null)
     private var settingsStore: HubSettingsStore? = null
     private var appContext: Context? = null
     private var profileListener: ListenerRegistration? = null
-    private var newsListener: ListenerRegistration? = null
     private var lastBackgroundAt: Long = System.currentTimeMillis()
     private var hasBeenBackgrounded: Boolean = false
 
@@ -112,8 +118,38 @@ class EobViewModel : ViewModel() {
     private var uploadText: String = ""
     private var firebaseNews: List<NewsRelease> = emptyList()
     private var deletedNewsKeys: Set<String> = emptySet()
-    private var syncProfile: UserProfile = UserProfile()
+    private val _syncProfile = MutableStateFlow(UserProfile())
     private var eobListener: ListenerRegistration? = null
+
+    private val userContextTags: Flow<Set<String>> = combine(
+        uiState.map { it.selectedCptCategory }.distinctUntilChanged(),
+        _syncProfile
+    ) { category, profile ->
+        buildSet {
+            profile.city.takeIf { it.isNotBlank() }?.let(::add)
+            profile.state.takeIf { it.isNotBlank() }?.let(::add)
+            add(category.name)
+        }
+    }
+
+    private val regionalNewsFeed = combine(
+        _repository,
+        _syncProfile.map { it.state }.distinctUntilChanged()
+    ) { repo, userState ->
+        repo to userState
+    }.flatMapLatest { (repo, userState) ->
+        when {
+            repo == null || userState.isBlank() -> flowOf(emptyList())
+            else -> repo.observeRegionalNews(userState)
+        }
+    }
+
+    val personalizedNewsFeed: StateFlow<List<NewsRelease>> = combine(
+        regionalNewsFeed,
+        userContextTags
+    ) { releases, contextTags ->
+        rankNewsReleases(releases, contextTags)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
     private val _insuranceArticles = MutableStateFlow(EobInsuranceNews.articlesForYear(currentYear))
@@ -121,6 +157,7 @@ class EobViewModel : ViewModel() {
 
     fun attachRepository(repo: EobRepository, context: Context) {
         repository = repo
+        _repository.value = repo
         appContext = context.applicationContext
         settingsStore = HubSettingsStore(context)
         loadHubSettings()
@@ -335,11 +372,11 @@ class EobViewModel : ViewModel() {
     }
 
     fun updateSyncProfile(profile: UserProfile) {
-        syncProfile = profile.sanitizedPlanLimits()
+        _syncProfile.value = profile.sanitizedPlanLimits()
         val selected = _uiState.value.selectedRecord
         if (selected != null) {
             _uiState.update {
-                it.copy(appealLetter = AppealLetterGenerator.generate(syncProfile, selected))
+                it.copy(appealLetter = AppealLetterGenerator.generate(_syncProfile.value, selected))
             }
         }
     }
@@ -354,8 +391,6 @@ class EobViewModel : ViewModel() {
         eobListener = null
         profileListener?.remove()
         profileListener = null
-        newsListener?.remove()
-        newsListener = null
         _eobRecords.value = emptyList()
         val preservedSettings = _uiState.value.hubSettings.copy(
             settingsAccountEditing = false,
@@ -363,7 +398,7 @@ class EobViewModel : ViewModel() {
             appLocked = false
         )
         _uiState.value = HubUiState(hubSettings = preservedSettings)
-        syncProfile = UserProfile()
+        _syncProfile.value = UserProfile()
         uploadText = ""
         firebaseNews = emptyList()
         deletedNewsKeys = emptySet()
@@ -375,24 +410,15 @@ class EobViewModel : ViewModel() {
         refreshFirebaseStatus()
         fetchHistoryFromFirestore(repo, userId)
         observeProfile(repo, userId, onProfileChanged)
-        observeNews(repo)
     }
 
     private fun observeProfile(repo: EobRepository, userId: String, onProfileChanged: (UserProfile) -> Unit) {
         profileListener?.remove()
         profileListener = repo.observeProfile(
             userId = userId,
-            onProfile = onProfileChanged,
-            onError = { message -> updateUploadNotice(message) }
-        )
-    }
-
-    private fun observeNews(repo: EobRepository) {
-        newsListener?.remove()
-        newsListener = repo.observeInsuranceNews(
-            onNews = { newsItems ->
-                firebaseNews = newsItems
-                bumpNewsFeedRevision()
+            onProfile = { remoteProfile ->
+                updateSyncProfile(remoteProfile)
+                onProfileChanged(remoteProfile)
             },
             onError = { message -> updateUploadNotice(message) }
         )
@@ -425,7 +451,7 @@ class EobViewModel : ViewModel() {
     }
 
     private fun applyRemoteRecords(records: List<EobRecord>) {
-        val profile = syncProfile
+        val profile = _syncProfile.value
         viewModelScope.launch(Dispatchers.Default) {
             val compacted = EobAnalyzer.compactDuplicateEobs(records)
                 .sortedByDescending { it.serviceDateSortKey }
@@ -670,7 +696,9 @@ class EobViewModel : ViewModel() {
     }
 
     fun currentNewsReleases(fallbackNews: List<NewsRelease>): List<NewsRelease> {
-        return EobKnowledgeBase.currentNewsReleases(visibleNews(fallbackNews))
+        val ranked = personalizedNewsFeed.value.filterNot { it.key() in deletedNewsKeys }
+        val source = ranked.ifEmpty { visibleNews(fallbackNews) }
+        return EobKnowledgeBase.currentNewsReleases(source)
     }
 
     private fun isInvoicePipelineActive(): Boolean {
@@ -894,9 +922,23 @@ class EobViewModel : ViewModel() {
     override fun onCleared() {
         eobListener?.remove()
         profileListener?.remove()
-        newsListener?.remove()
         super.onCleared()
     }
 }
 
 private fun NewsRelease.key(): String = "$company|$headline|$date"
+
+internal fun rankNewsReleases(
+    releases: List<NewsRelease>,
+    contextTags: Set<String>
+): List<NewsRelease> {
+    return releases
+        .map { article ->
+            val intersectionCount = article.targetTags.intersect(contextTags).size
+            val dynamicScore = article.baseRelevance + (intersectionCount * 10)
+            article to dynamicScore
+        }
+        .filter { (_, dynamicScore) -> dynamicScore > 0 }
+        .sortedByDescending { (_, dynamicScore) -> dynamicScore }
+        .map { (article, _) -> article }
+}

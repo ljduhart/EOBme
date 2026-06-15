@@ -334,6 +334,23 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun hubNewsAndSubscriptionBillingCoexistInNavHost() {
+        listOf(
+            "personalizedNewsFeed",
+            "eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle",
+            "SubscriptionViewModel",
+            "subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle",
+            "eobViewModel.applySubscriptionState",
+            "launchManageSubscriptionFlow"
+        ).forEach { snippet ->
+            assertTrue("MainHubNavHost must wire news and billing together: $snippet", navHostSource.contains(snippet))
+        }
+        val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
+        assertTrue(remoteSource.contains("override fun observeRegionalNews"))
+        assertTrue(remoteSource.contains("override fun observeInsuranceNews"))
+    }
+
+    @Test
     fun settingsGearAndHubSettingsWireThroughViewModel() {
         listOf(
             "EobRoute.Settings.route",
@@ -485,6 +502,8 @@ class EobFlowArchitectureTest {
             "yearlyHealthCostSummary",
             "historyRecordsForDisplay",
             "currentNewsReleases",
+            "personalizedNewsFeed",
+            "observeRegionalNews",
             "setSelectedCptCategory",
             "setYtdBentoViewMode",
             "updateUploadText"
@@ -542,7 +561,8 @@ class EobFlowArchitectureTest {
         }
         listOf(
             "eobViewModel.insuranceNewsBentoSnapshot",
-            "uiState.newsFeedRevision"
+            "uiState.newsFeedRevision",
+            "personalizedNewsFeed"
         ).forEach { snippet ->
             assertTrue("EobNavHost missing: $snippet", navHostSource.contains(snippet))
         }

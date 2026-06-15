@@ -12,6 +12,9 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 
 data class FirebaseSyncStatus(
     val isConfigured: Boolean,
@@ -248,6 +251,27 @@ class FirebaseEobRepository(private val context: Context) {
             }
     }
 
+    fun observeRegionalNews(userState: String): Flow<List<NewsRelease>> = callbackFlow {
+        if (!configured || userState.isBlank()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+        val registration = firestore().collection(NEWS_RELEASES)
+            .whereArrayContainsAny("targetTags", listOf(userState, "National"))
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                val news = snapshot?.documents
+                    ?.mapNotNull { document -> document.data?.let(FirebaseEobMapper::newsFromMap) }
+                    .orEmpty()
+                trySend(news)
+            }
+        awaitClose { registration.remove() }
+    }
+
     fun saveProfile(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
         if (!configured || userId.isBlank()) {
             onComplete(if (userId.isBlank()) "Please sign in to save your profile." else status().message)
@@ -373,6 +397,7 @@ class FirebaseEobRepository(private val context: Context) {
         const val EOB_RECORDS = "eob_records"
         const val DEVICES = "devices"
         const val NEWS = "insuranceNews"
+        const val NEWS_RELEASES = "news_releases"
     }
 }
 

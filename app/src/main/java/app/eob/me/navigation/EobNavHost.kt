@@ -210,6 +210,7 @@ private fun MainHubNavHost(
     val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     val insuranceArticles by eobViewModel.insuranceArticles.collectAsStateWithLifecycle()
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
+    val personalizedNewsFeed by eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.hubSettings.darkModeEnabled) {
@@ -516,7 +517,11 @@ private fun MainHubNavHost(
                         sortedEobRecords,
                         language,
                         hubTimeKey,
-                        uiState.newsFeedRevision
+                        uiState.newsFeedRevision,
+                        personalizedNewsFeed,
+                        uiState.selectedCptCategory,
+                        profile.city,
+                        profile.state
                     ) {
                         eobViewModel.insuranceNewsBentoSnapshot(language)
                     }

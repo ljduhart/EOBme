@@ -113,11 +113,14 @@ object FirebaseEobMapper {
     }
 
     fun newsFromMap(data: Map<String, Any?>): NewsRelease {
+        val parsedBaseRelevance = data.longValue("baseRelevance", "base_relevance").toInt()
         return NewsRelease(
             company = data.stringValue("company"),
             headline = data.stringValue("headline"),
             summary = data.stringValue("summary"),
-            date = data.stringValue("date")
+            date = data.stringValue("date"),
+            targetTags = data.stringListValue("targetTags", "target_tags"),
+            baseRelevance = parsedBaseRelevance.takeIf { it > 0 } ?: 1
         )
     }
 
