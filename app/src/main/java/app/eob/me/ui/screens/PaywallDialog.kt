@@ -19,8 +19,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -100,7 +100,7 @@ private fun PaywallScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TabRow(
+            PrimaryTabRow(
                 selectedTabIndex = if (isAnnual) 1 else 0,
                 modifier = Modifier.clip(RoundedCornerShape(8.dp))
             ) {

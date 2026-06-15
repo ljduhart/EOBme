@@ -353,16 +353,19 @@ class EobViewModel : ViewModel() {
 
     fun handleBillingNoticeForPaywall(language: AppLanguage, noticeKey: String) {
         val message = localizedBillingNotice(language, noticeKey)
-        updateSettingsNotice(message)
         _uiState.update { state ->
             when {
                 state.paywallPurchasePending -> state.copy(
                     paywallPurchasePending = false,
                     paywallVisible = true,
-                    paywallMessage = message
+                    paywallMessage = message,
+                    hubSettings = state.hubSettings.copy(settingsNotice = message)
                 )
 
-                state.paywallVisible -> state.copy(paywallMessage = message)
+                state.paywallVisible -> state.copy(
+                    paywallMessage = message,
+                    hubSettings = state.hubSettings.copy(settingsNotice = message)
+                )
 
                 else -> state
             }

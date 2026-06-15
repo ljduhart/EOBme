@@ -158,6 +158,18 @@ class SubscriptionBillingTest {
             EobStrings.t(AppLanguage.English, "billingFlowFailed"),
             viewModel.uiState.value.paywallMessage
         )
+        assertEquals(
+            EobStrings.t(AppLanguage.English, "billingFlowFailed"),
+            viewModel.uiState.value.hubSettings.settingsNotice
+        )
+    }
+
+    @Test
+    fun handleBillingNoticeForPaywallIgnoresBackgroundBillingErrors() {
+        val viewModel = EobViewModel()
+        viewModel.handleBillingNoticeForPaywall(AppLanguage.English, "billing_not_ready")
+        assertEquals("", viewModel.uiState.value.hubSettings.settingsNotice)
+        assertFalse(viewModel.uiState.value.paywallVisible)
     }
 
     @Test
