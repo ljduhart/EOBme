@@ -247,6 +247,10 @@ class EobFlowArchitectureTest {
         ).forEach { snippet ->
             assertTrue("EobNavHost missing tax vault wiring: $snippet", navHostSource.contains(snippet))
         }
+        assertTrue(
+            "History route must recompute when tax vault filter changes",
+            navHostSource.contains("remember(sortedEobRecords, searchQuery, historyBentoFilter, taxVaultFilterState)")
+        )
     }
 
     @Test

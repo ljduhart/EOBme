@@ -67,12 +67,15 @@ fun TaxVaultHorizontalFilterCard(
         TaxVaultFilterState.HSA -> EobStrings.t(language, "taxVaultStatusHsa")
         TaxVaultFilterState.FSA -> EobStrings.t(language, "taxVaultStatusFsa")
     }
-    val budgetReadout = EobStrings.tf(
-        language,
-        "taxVaultBudgetReadout",
-        budgetSummary.eligibleAmount.asCurrency(),
-        budgetSummary.allocationLimit.asCurrency()
-    )
+    val budgetReadout = when (filterState) {
+        TaxVaultFilterState.OFF -> EobStrings.t(language, "taxVaultBudgetInactive")
+        else -> EobStrings.tf(
+            language,
+            "taxVaultBudgetReadout",
+            budgetSummary.eligibleAmount.asCurrency(),
+            budgetSummary.allocationLimit.asCurrency()
+        )
+    }
 
     Row(
         modifier = modifier

@@ -98,14 +98,11 @@ object FirebaseEobMapper {
             .ifEmpty { synthesizeCharges(data, rawText, serviceDate) }
         val storedHsaEligible = data.booleanValue("isHsaEligible", "is_hsa_eligible")
         val storedFsaEligible = data.booleanValue("isFsaEligible", "is_fsa_eligible")
-        val taxVaultEligibility = if (storedHsaEligible != null || storedFsaEligible != null) {
-            EobAnalyzer.TaxVaultEligibility(
-                isHsaEligible = storedHsaEligible == true,
-                isFsaEligible = storedFsaEligible == true
-            )
-        } else {
-            EobAnalyzer.detectTaxVaultEligibility(rawText, charges)
-        }
+        val detectedEligibility = EobAnalyzer.detectTaxVaultEligibility(rawText, charges)
+        val taxVaultEligibility = EobAnalyzer.TaxVaultEligibility(
+            isHsaEligible = storedHsaEligible ?: detectedEligibility.isHsaEligible,
+            isFsaEligible = storedFsaEligible ?: detectedEligibility.isFsaEligible
+        )
 
         return EobRecord(
             id = data.longValue("id").toInt().takeUnless { it == 0 } ?: stableId(documentId, data, serviceDate),

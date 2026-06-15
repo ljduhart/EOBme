@@ -174,6 +174,31 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun taxVaultKeysResolveForEveryLanguage() {
+        val keys = listOf(
+            "taxVaultFilterTitle",
+            "taxVaultStatusOff",
+            "taxVaultStatusHsa",
+            "taxVaultStatusFsa",
+            "taxVaultFilterOff",
+            "taxVaultFilterHsa",
+            "taxVaultFilterFsa",
+            "taxVaultBudgetReadout",
+            "taxVaultBudgetInactive",
+            "hsaAllocation",
+            "fsaAllocation"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                val value = EobStrings.t(language, key)
+                assertTrue("$key missing for $language", value.isNotBlank() && value != key)
+            }
+            val readout = EobStrings.tf(language, "taxVaultBudgetReadout", "$10.00", "$20.00")
+            assertTrue(readout.contains("10.00"))
+        }
+    }
+
+    @Test
     fun careTeamKeysResolveForEveryLanguage() {
         val keys = listOf(
             "careTeamPcp",
@@ -335,7 +360,7 @@ class EobStringsCoverageTest {
         val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
         assertTrue(
             navHostSource.contains("val historyBentoFilter = uiState.historyBentoFilter") &&
-                navHostSource.contains("remember(sortedEobRecords, searchQuery, historyBentoFilter)") &&
+                navHostSource.contains("remember(sortedEobRecords, searchQuery, historyBentoFilter, taxVaultFilterState)") &&
                 navHostSource.contains("historyRecordsForDisplay")
         )
     }

@@ -922,7 +922,8 @@ private fun HistoryRoute(
     var searchQuery by remember { mutableStateOf("") }
 
     val historyBentoFilter = uiState.historyBentoFilter
-    val filteredRecords by remember(sortedEobRecords, searchQuery, historyBentoFilter) {
+    val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
+    val filteredRecords by remember(sortedEobRecords, searchQuery, historyBentoFilter, taxVaultFilterState) {
         derivedStateOf {
             eobViewModel.historyRecordsForDisplay(historyBentoFilter, searchQuery)
         }
