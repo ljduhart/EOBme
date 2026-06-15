@@ -276,17 +276,27 @@ class EobFlowArchitectureTest {
         val subscriptionStateSource = readSource("billing/SubscriptionState.kt")
         val subscriptionVmSource = readSource("viewmodel/SubscriptionViewModel.kt")
         listOf(
-            "PREMIUM_PRODUCT_ID = \"premium_access_tier\"",
+            "LEGACY_PREMIUM_PRODUCT_ID",
             "launchBillingFlow",
             "queryProductDetailsAsync",
             "BillingRepository",
-            "WeakReference"
+            "WeakReference",
+            "activePlayTier"
         ).forEach { snippet ->
             assertTrue("Billing layer missing: $snippet", billingSource.contains(snippet))
         }
+        val catalogSource = readSource("data/SubscriptionCatalog.kt")
+        listOf(
+            "premium_access_tier",
+            "eobme_silver_annual",
+            "eobme_gold_annual"
+        ).forEach { snippet ->
+            assertTrue("Subscription catalog missing: $snippet", catalogSource.contains(snippet))
+        }
         assertTrue(
             subscriptionStateSource.contains("sealed interface SubscriptionState") &&
-                subscriptionStateSource.contains("Premium") &&
+                subscriptionStateSource.contains("Silver") &&
+                subscriptionStateSource.contains("Gold") &&
                 subscriptionStateSource.contains("Free") &&
                 subscriptionStateSource.contains("Error")
         )
@@ -296,8 +306,8 @@ class EobFlowArchitectureTest {
             "collectAsStateWithLifecycle",
             "applySubscriptionState",
             "FirestoreSubscriptionRepository",
-            "observeIsPremium",
-            "isPremium"
+            "observeSubscriptionTier",
+            "subscriptionTier"
         ).forEach { snippet ->
             assertTrue(
                 "Subscription wiring missing: $snippet",
@@ -341,7 +351,9 @@ class EobFlowArchitectureTest {
             "SubscriptionViewModel",
             "subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle",
             "eobViewModel.applySubscriptionState",
-            "launchManageSubscriptionFlow"
+            "launchManageSubscriptionFlow",
+            "PaywallDialog",
+            "launchTierPurchaseFlow"
         ).forEach { snippet ->
             assertTrue("MainHubNavHost must wire news and billing together: $snippet", navHostSource.contains(snippet))
         }
@@ -504,6 +516,8 @@ class EobFlowArchitectureTest {
             "currentNewsReleases",
             "personalizedNewsFeed",
             "observeRegionalNews",
+            "showPaywall",
+            "dismissPaywall",
             "setSelectedCptCategory",
             "setYtdBentoViewMode",
             "updateUploadText"

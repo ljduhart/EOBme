@@ -52,11 +52,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.BillingInterval
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
+import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.components.EobDeleteBar
@@ -76,6 +78,7 @@ import app.eob.me.ui.screens.IntroScreen
 import app.eob.me.ui.screens.LanguageScreen
 import app.eob.me.ui.screens.LoadingInvoiceScreen
 import app.eob.me.ui.screens.NewsScreen
+import app.eob.me.ui.screens.PaywallDialog
 import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
 import app.eob.me.ui.screens.YearlyExpenseScreen
@@ -275,8 +278,14 @@ private fun MainHubNavHost(
     val billingNoticeKey by subscriptionViewModel.billingNoticeKey.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
+        eobViewModel.showPaywall(uiState.hubSettings.settingsNotice)
+        onActivity()
+    }
+
+    fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
         val host = activity ?: return
-        subscriptionViewModel.launchPurchaseFlow(host)
+        eobViewModel.dismissPaywall()
+        subscriptionViewModel.launchPurchaseFlow(host, tier, interval)
         onActivity()
     }
 
@@ -887,6 +896,16 @@ private fun MainHubNavHost(
                         }
                     )
                 }
+            }
+            if (uiState.paywallVisible) {
+                PaywallDialog(
+                    message = uiState.paywallMessage,
+                    onPurchaseClicked = ::launchTierPurchaseFlow,
+                    onDismiss = {
+                        eobViewModel.dismissPaywall()
+                        onActivity()
+                    }
+                )
             }
         }
     }

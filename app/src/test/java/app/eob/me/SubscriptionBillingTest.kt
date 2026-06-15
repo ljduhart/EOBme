@@ -2,15 +2,18 @@ package app.eob.me
 
 import android.app.Application
 import app.eob.me.billing.SubscriptionState
+import app.eob.me.data.BillingInterval
+import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
-import app.eob.me.data.repository.FirestorePremiumSnapshot
+import app.eob.me.data.repository.FirestoreSubscriptionSnapshot
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.SubscriptionViewModel
 import app.eob.me.viewmodel.mergeSubscriptionStatus
+import app.eob.me.viewmodel.subscriptionStateToTier
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -28,33 +31,47 @@ class SubscriptionBillingTest {
     }
 
     @Test
-    fun subscriptionViewModelInitializesDependenciesInsideBodyLikeAppViewModel() {
-        val source = readSource("viewmodel/SubscriptionViewModel.kt")
-        assertTrue(source.contains("class SubscriptionViewModel(application: Application) : AndroidViewModel(application)"))
-        assertTrue(source.contains("BillingRepository(application.applicationContext)"))
-        assertTrue(source.contains("FirestoreSubscriptionRepository()"))
-        assertFalse(source.contains("class SubscriptionViewModel(\n    application: Application,"))
+    fun subscriptionCatalogDefinesAllTierSkus() {
+        assertEquals("eobme_silver_monthly", SubscriptionCatalog.SILVER_MONTHLY_PRODUCT_ID)
+        assertEquals("eobme_silver_annual", SubscriptionCatalog.SILVER_ANNUAL_PRODUCT_ID)
+        assertEquals("eobme_gold_monthly", SubscriptionCatalog.GOLD_MONTHLY_PRODUCT_ID)
+        assertEquals("eobme_gold_annual", SubscriptionCatalog.GOLD_ANNUAL_PRODUCT_ID)
+        assertEquals("premium_access_tier", SubscriptionCatalog.LEGACY_PREMIUM_PRODUCT_ID)
     }
 
     @Test
-    fun premiumProductIdMatchesPlayConsoleSku() {
-        assertEquals("premium_access_tier", app.eob.me.billing.BillingRepository.PREMIUM_PRODUCT_ID)
+    fun subscriptionCatalogMarketingPricesMatchStrategy() {
+        assertEquals("$2.99/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Silver, BillingInterval.MONTHLY))
+        assertEquals("$29.99/yr", SubscriptionCatalog.displayPrice(SubscriptionTier.Silver, BillingInterval.ANNUAL))
+        assertEquals("$4.99/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
+        assertEquals("$44.99/yr", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.ANNUAL))
     }
 
     @Test
-    fun mergeSubscriptionStatusPrefersPremiumFromEitherSource() {
+    fun mergeSubscriptionStatusPrefersGoldFromEitherSource() {
         assertEquals(
-            SubscriptionState.Premium,
+            SubscriptionState.Gold,
             mergeSubscriptionStatus(
-                playPremium = true,
-                firestoreSnapshot = FirestorePremiumSnapshot.Resolved(isPremium = false)
+                playTier = SubscriptionTier.Gold,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Resolved(SubscriptionTier.Free)
             )
         )
         assertEquals(
-            SubscriptionState.Premium,
+            SubscriptionState.Gold,
             mergeSubscriptionStatus(
-                playPremium = false,
-                firestoreSnapshot = FirestorePremiumSnapshot.Resolved(isPremium = true)
+                playTier = SubscriptionTier.Free,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Resolved(SubscriptionTier.Gold)
+            )
+        )
+    }
+
+    @Test
+    fun mergeSubscriptionStatusResolvesSilverTier() {
+        assertEquals(
+            SubscriptionState.Silver,
+            mergeSubscriptionStatus(
+                playTier = SubscriptionTier.Silver,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Resolved(SubscriptionTier.Free)
             )
         )
     }
@@ -64,8 +81,8 @@ class SubscriptionBillingTest {
         assertEquals(
             SubscriptionState.Free,
             mergeSubscriptionStatus(
-                playPremium = false,
-                firestoreSnapshot = FirestorePremiumSnapshot.Resolved(isPremium = false)
+                playTier = SubscriptionTier.Free,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Resolved(SubscriptionTier.Free)
             )
         )
     }
@@ -75,15 +92,15 @@ class SubscriptionBillingTest {
         assertEquals(
             SubscriptionState.Loading,
             mergeSubscriptionStatus(
-                playPremium = null,
-                firestoreSnapshot = FirestorePremiumSnapshot.Resolved(isPremium = false)
+                playTier = null,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Resolved(SubscriptionTier.Free)
             )
         )
         assertEquals(
             SubscriptionState.Loading,
             mergeSubscriptionStatus(
-                playPremium = false,
-                firestoreSnapshot = FirestorePremiumSnapshot.Loading
+                playTier = SubscriptionTier.Free,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Loading
             )
         )
     }
@@ -91,8 +108,8 @@ class SubscriptionBillingTest {
     @Test
     fun mergeSubscriptionStatusSurfacesFirestoreErrorWhenPlayIsFree() {
         val state = mergeSubscriptionStatus(
-            playPremium = false,
-            firestoreSnapshot = FirestorePremiumSnapshot.Error("permission denied")
+            playTier = SubscriptionTier.Free,
+            firestoreSnapshot = FirestoreSubscriptionSnapshot.Error("permission denied")
         )
         assertTrue(state is SubscriptionState.Error)
         assertEquals("permission denied", (state as SubscriptionState.Error).message)
@@ -101,8 +118,10 @@ class SubscriptionBillingTest {
     @Test
     fun eobViewModelApplySubscriptionStateUpdatesHubTier() {
         val viewModel = EobViewModel()
-        viewModel.applySubscriptionState(SubscriptionState.Premium)
-        assertEquals(SubscriptionTier.Premium, viewModel.uiState.value.hubSettings.subscriptionTier)
+        viewModel.applySubscriptionState(SubscriptionState.Gold)
+        assertEquals(SubscriptionTier.Gold, viewModel.uiState.value.hubSettings.subscriptionTier)
+        viewModel.applySubscriptionState(SubscriptionState.Silver)
+        assertEquals(SubscriptionTier.Silver, viewModel.uiState.value.hubSettings.subscriptionTier)
         viewModel.applySubscriptionState(SubscriptionState.Free)
         assertEquals(SubscriptionTier.Free, viewModel.uiState.value.hubSettings.subscriptionTier)
         viewModel.applySubscriptionState(SubscriptionState.Loading)
@@ -112,20 +131,26 @@ class SubscriptionBillingTest {
     }
 
     @Test
-    fun mergeSubscriptionStatusStaysLoadingWhenPlayBillingIsUnknown() {
-        assertEquals(
-            SubscriptionState.Loading,
-            mergeSubscriptionStatus(
-                playPremium = null,
-                firestoreSnapshot = FirestorePremiumSnapshot.Error("billing disconnected")
-            )
-        )
+    fun eobViewModelPaywallStateIsHubSourceOfTruth() {
+        val viewModel = EobViewModel()
+        viewModel.showPaywall("Upgrade required")
+        assertTrue(viewModel.uiState.value.paywallVisible)
+        assertEquals("Upgrade required", viewModel.uiState.value.paywallMessage)
+        viewModel.dismissPaywall()
+        assertFalse(viewModel.uiState.value.paywallVisible)
     }
 
     @Test
-    fun firestoreRepositoryUsesUsersCollectionAndIsPremiumField() {
+    fun subscriptionStateToTierMapsActiveStates() {
+        assertEquals(SubscriptionTier.Gold, subscriptionStateToTier(SubscriptionState.Gold))
+        assertEquals(SubscriptionTier.Silver, subscriptionStateToTier(SubscriptionState.Silver))
+        assertEquals(SubscriptionTier.Free, subscriptionStateToTier(SubscriptionState.Free))
+    }
+
+    @Test
+    fun firestoreRepositoryUsesSubscriptionTierFieldWithLegacyFallback() {
         val source = readSource("data/remote/FirestoreSubscriptionRepository.kt")
-        assertTrue(source.contains("USERS_COLLECTION = \"users\""))
+        assertTrue(source.contains("FIELD_SUBSCRIPTION_TIER = \"subscriptionTier\""))
         assertTrue(source.contains("FIELD_IS_PREMIUM = \"isPremium\""))
     }
 

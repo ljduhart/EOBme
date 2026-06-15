@@ -6,8 +6,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.eob.me.billing.BillingRepository
 import app.eob.me.billing.SubscriptionState
+import app.eob.me.data.BillingInterval
+import app.eob.me.data.SubscriptionCatalog
+import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.remote.FirestoreSubscriptionRepository
-import app.eob.me.data.repository.FirestorePremiumSnapshot
+import app.eob.me.data.repository.FirestoreSubscriptionSnapshot
 import app.eob.me.data.repository.SubscriptionRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,11 +20,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
- * Merges Google Play Billing and Firestore `users/{uid}.isPremium` into [subscriptionState].
+ * Merges Google Play Billing and Firestore `users/{uid}.subscriptionTier` into [subscriptionState].
  * Hub UI continues to read subscription tier through [EobViewModel.applySubscriptionState].
- *
- * Constructor matches [AppViewModel]: single [Application] parameter so `viewModel()` can
- * instantiate this class through [androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory].
  */
 class SubscriptionViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -43,10 +43,10 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         _subscriptionState.value = SubscriptionState.Loading
         observeJob = viewModelScope.launch {
             combine(
-                billingRepository.isPlayPremium,
-                subscriptionRepository.observeIsPremium(userId)
-            ) { playPremium, firestoreSnapshot ->
-                mergeSubscriptionState(playPremium, firestoreSnapshot)
+                billingRepository.activePlayTier,
+                subscriptionRepository.observeSubscriptionTier(userId)
+            ) { playTier, firestoreSnapshot ->
+                mergeSubscriptionState(playTier, firestoreSnapshot)
             }.collect { merged ->
                 _subscriptionState.value = merged
             }
@@ -65,34 +65,50 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         _subscriptionState.value = SubscriptionState.Loading
     }
 
-    fun launchPurchaseFlow(activity: Activity) {
-        billingRepository.launchBillingFlow(activity)
+    fun launchPurchaseFlow(
+        activity: Activity,
+        tier: SubscriptionTier,
+        interval: BillingInterval
+    ) {
+        billingRepository.launchBillingFlow(activity, tier, interval)
     }
 
     private fun mergeSubscriptionState(
-        playPremium: Boolean?,
-        firestoreSnapshot: FirestorePremiumSnapshot
-    ): SubscriptionState = mergeSubscriptionStatus(playPremium, firestoreSnapshot)
+        playTier: SubscriptionTier?,
+        firestoreSnapshot: FirestoreSubscriptionSnapshot
+    ): SubscriptionState = mergeSubscriptionStatus(playTier, firestoreSnapshot)
 }
 
 internal fun mergeSubscriptionStatus(
-    playPremium: Boolean?,
-    firestoreSnapshot: FirestorePremiumSnapshot
+    playTier: SubscriptionTier?,
+    firestoreSnapshot: FirestoreSubscriptionSnapshot
 ): SubscriptionState {
-    val firestoreResolved = firestoreSnapshot is FirestorePremiumSnapshot.Resolved
-    val firestorePremium = (firestoreSnapshot as? FirestorePremiumSnapshot.Resolved)?.isPremium == true
+    val firestoreResolved = firestoreSnapshot is FirestoreSubscriptionSnapshot.Resolved
+    val firestoreTier = (firestoreSnapshot as? FirestoreSubscriptionSnapshot.Resolved)?.tier
+        ?: SubscriptionTier.Free
 
-    if (playPremium == true || firestorePremium) {
-        return SubscriptionState.Premium
+    if (playTier == SubscriptionTier.Gold || firestoreTier == SubscriptionTier.Gold) {
+        return SubscriptionState.Gold
     }
 
-    if (firestoreSnapshot is FirestorePremiumSnapshot.Error && playPremium == false) {
+    if (playTier == SubscriptionTier.Silver || firestoreTier == SubscriptionTier.Silver) {
+        return SubscriptionState.Silver
+    }
+
+    if (firestoreSnapshot is FirestoreSubscriptionSnapshot.Error && playTier == SubscriptionTier.Free) {
         return SubscriptionState.Error(firestoreSnapshot.message)
     }
 
-    if (playPremium != null && firestoreResolved) {
+    if (playTier != null && firestoreResolved) {
         return SubscriptionState.Free
     }
 
     return SubscriptionState.Loading
+}
+
+internal fun subscriptionStateToTier(state: SubscriptionState): SubscriptionTier? = when (state) {
+    SubscriptionState.Gold -> SubscriptionTier.Gold
+    SubscriptionState.Silver -> SubscriptionTier.Silver
+    SubscriptionState.Free -> SubscriptionTier.Free
+    SubscriptionState.Loading, is SubscriptionState.Error -> null
 }

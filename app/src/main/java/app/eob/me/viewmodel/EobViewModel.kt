@@ -85,6 +85,8 @@ data class HubUiState(
     val newsFeedRevision: Int = 0,
     val appealGeneratorBentoProcessing: Boolean = false,
     val appealLetterEditingEnabled: Boolean = false,
+    val paywallVisible: Boolean = false,
+    val paywallMessage: String = "",
     val hubSettings: HubSettingsState = HubSettingsState()
 )
 
@@ -286,10 +288,19 @@ class EobViewModel : ViewModel() {
     /** Applies merged subscription status from [SubscriptionViewModel] into hub settings. */
     fun applySubscriptionState(state: SubscriptionState) {
         when (state) {
-            SubscriptionState.Premium -> setSubscriptionTier(SubscriptionTier.Premium)
+            SubscriptionState.Gold -> setSubscriptionTier(SubscriptionTier.Gold)
+            SubscriptionState.Silver -> setSubscriptionTier(SubscriptionTier.Silver)
             SubscriptionState.Free -> setSubscriptionTier(SubscriptionTier.Free)
             SubscriptionState.Loading, is SubscriptionState.Error -> Unit
         }
+    }
+
+    fun showPaywall(message: String = "") {
+        _uiState.update { it.copy(paywallVisible = true, paywallMessage = message) }
+    }
+
+    fun dismissPaywall() {
+        _uiState.update { it.copy(paywallVisible = false, paywallMessage = "") }
     }
 
     fun enableSettingsAccountEditing() {

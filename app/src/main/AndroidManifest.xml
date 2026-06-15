@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- POST_NOTIFICATIONS — EobFirebaseMessagingService; runtime request API 33+ in EobNavHost -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel) -->
+    <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel / PaywallDialog) -->
     <uses-permission android:name="com.android.vending.BILLING" />
     <!-- USE_BIOMETRIC — Settings biometric login via BiometricPrompt -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
@@ -30,7 +30,8 @@
          insurance card via EobViewModel, Appeal letter edit/save gated by
          EobViewModel.appealLetterEditingEnabled, hub Settings gear → EobRoute.Settings with
          EobViewModel hubSettings, SubscriptionViewModel + BillingRepository for
-         premium_access_tier, Firestore users/{uid}.isPremium) + EobRepository; care team dial uses ACTION_DIAL only
+         eobme_silver_*/eobme_gold_* SKUs (annual default in PaywallDialog),
+         Firestore users/{uid}.subscriptionTier + legacy isPremium) + EobRepository; care team dial uses ACTION_DIAL only
          (no CALL_PHONE). Profile darkModeEnabled persisted in hubSettings. Runtime permissions in EobNavHost. -->
     <uses-feature
         android:name="android.hardware.camera"
