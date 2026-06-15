@@ -21,6 +21,8 @@ object FirebaseEobMapper {
             "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
             "annualDeductibleLimit" to planLimits.annualDeductibleLimit,
             "annualOutOfPocketMax" to planLimits.annualOutOfPocketMax,
+            "hsaAllocation" to planLimits.hsaAllocation,
+            "fsaAllocation" to planLimits.fsaAllocation,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -39,7 +41,9 @@ object FirebaseEobMapper {
             specialistCopay = data.stringValue("specialistCopay", "specialist_copay"),
             insuranceCardDownloadUrl = data.stringValue("insuranceCardDownloadUrl", "insurance_card_download_url", "insurance_card_url"),
             annualDeductibleLimit = data.doubleValue("annualDeductibleLimit", "annual_deductible_limit"),
-            annualOutOfPocketMax = data.doubleValue("annualOutOfPocketMax", "annual_out_of_pocket_max")
+            annualOutOfPocketMax = data.doubleValue("annualOutOfPocketMax", "annual_out_of_pocket_max"),
+            hsaAllocation = data.doubleValue("hsaAllocation", "hsa_allocation"),
+            fsaAllocation = data.doubleValue("fsaAllocation", "fsa_allocation")
         ).sanitizedPlanLimits()
     }
 
@@ -59,6 +63,8 @@ object FirebaseEobMapper {
             "totalCopayAmount" to record.totalCopayAmount,
             "totalDeductibleAmount" to record.totalDeductibleAmount,
             "totalCoinsuranceAmount" to record.totalCoinsuranceAmount,
+            "isHsaEligible" to record.isHsaEligible,
+            "isFsaEligible" to record.isFsaEligible,
             "charges" to record.charges.map(::chargeToMap),
             "provider_name" to record.providerName,
             "insurance_name" to record.insuranceName,
@@ -90,6 +96,16 @@ object FirebaseEobMapper {
             .mapNotNull { it as? Map<*, *> }
             .map { chargeFromMap(it.entries.associate { entry -> entry.key.toString() to entry.value }) }
             .ifEmpty { synthesizeCharges(data, rawText, serviceDate) }
+        val storedHsaEligible = data.booleanValue("isHsaEligible", "is_hsa_eligible")
+        val storedFsaEligible = data.booleanValue("isFsaEligible", "is_fsa_eligible")
+        val taxVaultEligibility = if (storedHsaEligible != null || storedFsaEligible != null) {
+            EobAnalyzer.TaxVaultEligibility(
+                isHsaEligible = storedHsaEligible == true,
+                isFsaEligible = storedFsaEligible == true
+            )
+        } else {
+            EobAnalyzer.detectTaxVaultEligibility(rawText, charges)
+        }
 
         return EobRecord(
             id = data.longValue("id").toInt().takeUnless { it == 0 } ?: stableId(documentId, data, serviceDate),
@@ -108,7 +124,9 @@ object FirebaseEobMapper {
             totalContractualAdjustmentAmount = data.doubleValue("totalContractualAdjustmentAmount", "contractual_adj"),
             totalCopayAmount = data.doubleValue("totalCopayAmount", "copay"),
             totalDeductibleAmount = data.doubleValue("totalDeductibleAmount", "deductible"),
-            totalCoinsuranceAmount = data.doubleValue("totalCoinsuranceAmount", "coinsurance")
+            totalCoinsuranceAmount = data.doubleValue("totalCoinsuranceAmount", "coinsurance"),
+            isHsaEligible = taxVaultEligibility.isHsaEligible,
+            isFsaEligible = taxVaultEligibility.isFsaEligible
         )
     }
 
@@ -205,6 +223,19 @@ object FirebaseEobMapper {
             is Number -> value.toDouble()
             is String -> value.replace("$", "").replace(",", "").toDoubleOrNull() ?: 0.0
             else -> 0.0
+        }
+    }
+
+    private fun Map<String, Any?>.booleanValue(vararg keys: String): Boolean? {
+        return when (val value = keys.firstNotNullOfOrNull { key -> this[key] }) {
+            is Boolean -> value
+            is String -> when (value.trim().lowercase(Locale.US)) {
+                "true", "1", "yes" -> true
+                "false", "0", "no" -> false
+                else -> null
+            }
+            is Number -> value.toInt() != 0
+            else -> null
         }
     }
 

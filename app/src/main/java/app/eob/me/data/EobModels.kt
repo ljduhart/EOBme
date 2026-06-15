@@ -37,6 +37,8 @@ data class UserProfile(
     val insuranceCardDownloadUrl: String = "",
     val annualDeductibleLimit: Double = 0.0,
     val annualOutOfPocketMax: Double = 0.0,
+    val hsaAllocation: Double = 0.0,
+    val fsaAllocation: Double = 0.0,
     val pcpCopay: String = "",
     val specialistCopay: String = ""
 ) {
@@ -75,7 +77,9 @@ data class UserProfile(
     fun sanitizedPlanLimits(): UserProfile {
         return copy(
             annualDeductibleLimit = annualDeductibleLimit.coerceIn(0.0, 100_000.0),
-            annualOutOfPocketMax = annualOutOfPocketMax.coerceIn(0.0, 200_000.0)
+            annualOutOfPocketMax = annualOutOfPocketMax.coerceIn(0.0, 200_000.0),
+            hsaAllocation = hsaAllocation.coerceIn(0.0, 100_000.0),
+            fsaAllocation = fsaAllocation.coerceIn(0.0, 100_000.0)
         )
     }
 }
@@ -136,7 +140,9 @@ data class EobRecord(
     val totalContractualAdjustmentAmount: Double = 0.0,
     val totalCopayAmount: Double = 0.0,
     val totalDeductibleAmount: Double = 0.0,
-    val totalCoinsuranceAmount: Double = 0.0
+    val totalCoinsuranceAmount: Double = 0.0,
+    val isHsaEligible: Boolean = false,
+    val isFsaEligible: Boolean = false
 ) {
     val insuranceCompany: String
         get() = insuranceName
@@ -278,6 +284,17 @@ data class DoctorAppointment(
     val time: String,
     val notes: String,
     val providerType: CareTeamProviderType = CareTeamProviderType.Pcp
+)
+
+enum class TaxVaultFilterState {
+    OFF,
+    HSA,
+    FSA
+}
+
+data class TaxVaultBudgetSummary(
+    val eligibleAmount: Double,
+    val allocationLimit: Double
 )
 
 enum class HistoryBentoFilter {

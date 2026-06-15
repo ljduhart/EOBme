@@ -41,6 +41,8 @@ import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.HubSettingsState
 import app.eob.me.data.HubSettingsStore
 import app.eob.me.data.ImageCompressionLevel
+import app.eob.me.data.TaxVaultBudgetSummary
+import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.SettingsTab
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.EobRepository
@@ -107,6 +109,9 @@ class EobViewModel : ViewModel() {
 
     private val _eobRecords = MutableStateFlow<List<EobRecord>>(emptyList())
     val eobRecords: StateFlow<List<EobRecord>> = _eobRecords.asStateFlow()
+
+    private val _taxVaultFilterState = MutableStateFlow(TaxVaultFilterState.OFF)
+    val taxVaultFilterState: StateFlow<TaxVaultFilterState> = _taxVaultFilterState.asStateFlow()
 
     val sortedEobRecords: StateFlow<List<EobRecord>> = eobRecords
         .map { records -> records.sortedByDescending { it.serviceDateSortKey } }
@@ -399,6 +404,7 @@ class EobViewModel : ViewModel() {
         )
         _uiState.value = HubUiState(hubSettings = preservedSettings)
         _syncProfile.value = UserProfile()
+        _taxVaultFilterState.value = TaxVaultFilterState.OFF
         uploadText = ""
         firebaseNews = emptyList()
         deletedNewsKeys = emptySet()
@@ -657,8 +663,35 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(historyBentoFilter = filter) }
     }
 
+    fun setTaxVaultFilterState(state: TaxVaultFilterState) {
+        _taxVaultFilterState.value = state
+    }
+
+    fun taxVaultBudgetSummary(profile: UserProfile): TaxVaultBudgetSummary {
+        val filter = _taxVaultFilterState.value
+        if (filter == TaxVaultFilterState.OFF) {
+            return TaxVaultBudgetSummary(eligibleAmount = 0.0, allocationLimit = 0.0)
+        }
+        val safeProfile = profile.sanitizedPlanLimits()
+        val eligibleRecords = EobAnalyzer.recordsForTaxVaultFilter(_eobRecords.value, filter)
+        val eligibleAmount = eligibleRecords.sumOf { it.totalPatientResponsibility }
+        val allocationLimit = when (filter) {
+            TaxVaultFilterState.HSA -> safeProfile.hsaAllocation
+            TaxVaultFilterState.FSA -> safeProfile.fsaAllocation
+            TaxVaultFilterState.OFF -> 0.0
+        }
+        return TaxVaultBudgetSummary(
+            eligibleAmount = eligibleAmount,
+            allocationLimit = allocationLimit
+        )
+    }
+
+    private fun recordsForHistoryPipeline(): List<EobRecord> {
+        return EobAnalyzer.recordsForTaxVaultFilter(_eobRecords.value, _taxVaultFilterState.value)
+    }
+
     fun historyBentoSnapshot(): HistoryBentoSnapshot {
-        return EobAnalyzer.historyBentoSnapshot(_eobRecords.value)
+        return EobAnalyzer.historyBentoSnapshot(recordsForHistoryPipeline())
     }
 
     fun providerAvatarPreviews(language: AppLanguage): List<ProviderAvatarPreview> {
@@ -677,7 +710,7 @@ class EobViewModel : ViewModel() {
         filter: HistoryBentoFilter,
         searchQuery: String
     ): List<EobRecord> {
-        val sorted = _eobRecords.value.sortedByDescending { it.serviceDateSortKey }
+        val sorted = recordsForHistoryPipeline().sortedByDescending { it.serviceDateSortKey }
         val byFilter = when (filter) {
             HistoryBentoFilter.All -> sorted
             HistoryBentoFilter.Flagged -> EobAnalyzer.recordsWithFlaggedBillingErrors(sorted)

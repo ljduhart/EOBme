@@ -57,6 +57,7 @@ import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
+import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.components.EobDeleteBar
@@ -472,8 +473,17 @@ private fun MainHubNavHost(
             NavHost(navController = navController, startDestination = EobRoute.Home.route) {
                 composable(EobRoute.Home.route) {
                     val hubTimeKey = eobViewModel.hubTimeKey()
-                    val historySnapshot = remember(sortedEobRecords, hubTimeKey) {
+                    val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
+                    val historySnapshot = remember(sortedEobRecords, hubTimeKey, taxVaultFilterState) {
                         eobViewModel.historyBentoSnapshot()
+                    }
+                    val taxVaultBudgetSummary = remember(
+                        sortedEobRecords,
+                        profile.hsaAllocation,
+                        profile.fsaAllocation,
+                        taxVaultFilterState
+                    ) {
+                        eobViewModel.taxVaultBudgetSummary(profile)
                     }
                     val providerAvatars = remember(sortedEobRecords, language) {
                         eobViewModel.providerAvatarPreviews(language)
@@ -607,6 +617,12 @@ private fun MainHubNavHost(
                                 eobViewModel.activateAppealGeneratorBento(profile)
                             }
                             navController.navigate(destination.route) { launchSingleTop = true }
+                            onActivity()
+                        },
+                        taxVaultFilterState = taxVaultFilterState,
+                        taxVaultBudgetSummary = taxVaultBudgetSummary,
+                        onTaxVaultFilterSelected = { filter ->
+                            eobViewModel.setTaxVaultFilterState(filter)
                             onActivity()
                         },
                         modifier = Modifier.fillMaxSize()

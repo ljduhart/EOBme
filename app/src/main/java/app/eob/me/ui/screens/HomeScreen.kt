@@ -49,6 +49,8 @@ import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderDirectoryAssurance
+import app.eob.me.data.TaxVaultBudgetSummary
+import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.UserProfile
 import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
@@ -58,6 +60,7 @@ import app.eob.me.ui.components.bento.BentoGridCell
 import app.eob.me.ui.components.home.HomeAppointmentsSection
 import app.eob.me.ui.components.home.HomeCareTeamCards
 import app.eob.me.ui.components.home.HomeWeekCalendar
+import app.eob.me.ui.components.home.TaxVaultHorizontalFilterCard
 
 private val DarkHomeBackground = Brush.verticalGradient(
     colors = listOf(
@@ -125,6 +128,9 @@ fun HomeScreen(
     appealGeneratorBentoProcessing: Boolean,
     onAppealGeneratorProcessingFinished: () -> Unit,
     onBentoSelected: (HubBentoDestination) -> Unit,
+    taxVaultFilterState: TaxVaultFilterState,
+    taxVaultBudgetSummary: TaxVaultBudgetSummary,
+    onTaxVaultFilterSelected: (TaxVaultFilterState) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var appointmentPrefillDate by remember { mutableStateOf("") }
@@ -254,6 +260,19 @@ fun HomeScreen(
                     preferredDoctors = preferredDoctors,
                     onSaveDoctor = onSavePreferredDoctor,
                     modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                TaxVaultHorizontalFilterCard(
+                    language = language,
+                    darkModeEnabled = darkModeEnabled,
+                    filterState = taxVaultFilterState,
+                    budgetSummary = taxVaultBudgetSummary,
+                    onFilterSelected = onTaxVaultFilterSelected,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
                 )
             }
 

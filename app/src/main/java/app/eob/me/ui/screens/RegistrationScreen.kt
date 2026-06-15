@@ -386,6 +386,30 @@ fun ProfileFields(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true
     )
+    OutlinedTextField(
+        value = profile.hsaAllocation.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
+        onValueChange = { value ->
+            onProfileChanged(profile.copy(hsaAllocation = value.toDoubleOrNull() ?: 0.0))
+        },
+        label = { Text(EobStrings.t(language, "hsaAllocation")) },
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = profile.fsaAllocation.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
+        onValueChange = { value ->
+            onProfileChanged(profile.copy(fsaAllocation = value.toDoubleOrNull() ?: 0.0))
+        },
+        label = { Text(EobStrings.t(language, "fsaAllocation")) },
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !fieldsEnabled,
+        enabled = fieldsEnabled,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true
+    )
 }
 
 private fun formatPlanAmount(amount: Double): String {

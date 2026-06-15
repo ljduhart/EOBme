@@ -209,6 +209,47 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun homeTaxVaultFilterWiresThroughViewModel() {
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+        val vmSource = readSource("viewmodel/EobViewModel.kt")
+        val taxVaultSource = readSource("ui/components/home/TaxVaultHorizontalFilterCard.kt")
+        listOf(
+            "TaxVaultHorizontalFilterCard",
+            "taxVaultFilterState",
+            "taxVaultBudgetSummary",
+            "onTaxVaultFilterSelected",
+            "padding(vertical = 12.dp)"
+        ).forEach { snippet ->
+            assertTrue("HomeScreen missing tax vault wiring: $snippet", homeSource.contains(snippet))
+        }
+        listOf(
+            "enum class TaxVaultFilterState",
+            "MutableStateFlow(TaxVaultFilterState.OFF)",
+            "setTaxVaultFilterState",
+            "taxVaultBudgetSummary",
+            "recordsForTaxVaultFilter",
+            "isHsaEligible",
+            "isFsaEligible"
+        ).forEach { snippet ->
+            assertTrue("EobViewModel/data missing tax vault logic: $snippet", vmSource.contains(snippet) || readSource("data/EobModels.kt").contains(snippet) || readSource("data/EobAnalyzer.kt").contains(snippet))
+        }
+        listOf(
+            "TaxVaultHorizontalFilterCard",
+            "FilterChip",
+            "taxVaultFilterTitle"
+        ).forEach { snippet ->
+            assertTrue("TaxVaultHorizontalFilterCard missing: $snippet", taxVaultSource.contains(snippet))
+        }
+        listOf(
+            "taxVaultFilterState",
+            "taxVaultBudgetSummary",
+            "setTaxVaultFilterState"
+        ).forEach { snippet ->
+            assertTrue("EobNavHost missing tax vault wiring: $snippet", navHostSource.contains(snippet))
+        }
+    }
+
+    @Test
     fun homeBentoGridNavigatesThroughDestinationRoutes() {
         val homeSource = readSource("ui/screens/HomeScreen.kt")
         val bentoSource = readSource("ui/components/bento/BentoGridCell.kt")

@@ -28,6 +28,7 @@ object EobAnalyzer {
         val docCopay = amountAfterLabels(cleanedText, listOf("copay", "co-pay")) ?: charges.sumOf { it.copayAmount }
         val docDeductible = amountAfterLabels(cleanedText, listOf("deductible")) ?: charges.sumOf { it.deductibleAmount }
         val docCoinsurance = amountAfterLabels(cleanedText, listOf("coinsurance", "co-insurance")) ?: charges.sumOf { it.coinsuranceAmount }
+        val taxVaultEligibility = detectTaxVaultEligibility(cleanedText, charges)
 
         return EobRecord(
             id = nextId,
@@ -44,9 +45,70 @@ object EobAnalyzer {
             totalContractualAdjustmentAmount = docAdj,
             totalCopayAmount = docCopay,
             totalDeductibleAmount = docDeductible,
-            totalCoinsuranceAmount = docCoinsurance
+            totalCoinsuranceAmount = docCoinsurance,
+            isHsaEligible = taxVaultEligibility.isHsaEligible,
+            isFsaEligible = taxVaultEligibility.isFsaEligible
         )
     }
+
+    data class TaxVaultEligibility(
+        val isHsaEligible: Boolean,
+        val isFsaEligible: Boolean
+    )
+
+    private val hsaKeywords = listOf(
+        "hsa",
+        "health savings account",
+        "health savings"
+    )
+
+    private val fsaKeywords = listOf(
+        "fsa",
+        "flexible spending account",
+        "flexible spending",
+        "cafeteria plan"
+    )
+
+    fun detectTaxVaultEligibility(rawText: String, charges: List<EobCharge>): TaxVaultEligibility {
+        val normalized = rawText.lowercase(Locale.US)
+        val explicitHsa = hsaKeywords.any { keyword -> normalized.contains(keyword) }
+        val explicitFsa = fsaKeywords.any { keyword -> normalized.contains(keyword) }
+        if (explicitHsa || explicitFsa) {
+            return TaxVaultEligibility(
+                isHsaEligible = explicitHsa,
+                isFsaEligible = explicitFsa
+            )
+        }
+        if (charges.isEmpty()) {
+            return TaxVaultEligibility(isHsaEligible = false, isFsaEligible = false)
+        }
+        val hasQualifiedMedicalCharges = charges.any { charge ->
+            charge.category in qualifiedHsaCategories
+        }
+        return TaxVaultEligibility(
+            isHsaEligible = hasQualifiedMedicalCharges,
+            isFsaEligible = hasQualifiedMedicalCharges || charges.any { it.category == CptCategory.Other }
+        )
+    }
+
+    fun recordsForTaxVaultFilter(
+        records: List<EobRecord>,
+        filter: TaxVaultFilterState
+    ): List<EobRecord> {
+        return when (filter) {
+            TaxVaultFilterState.OFF -> records
+            TaxVaultFilterState.HSA -> records.filter { it.isHsaEligible }
+            TaxVaultFilterState.FSA -> records.filter { it.isFsaEligible }
+        }
+    }
+
+    private val qualifiedHsaCategories = setOf(
+        CptCategory.OfficeVisit,
+        CptCategory.Lab,
+        CptCategory.Hospital,
+        CptCategory.Dme,
+        CptCategory.Injection
+    )
 
     fun normalizeScan(rawText: String): String {
         return rawText
