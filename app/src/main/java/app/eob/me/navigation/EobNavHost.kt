@@ -42,7 +42,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import app.eob.me.billing.SubscriptionState
 import app.eob.me.viewmodel.SubscriptionViewModel
 import app.eob.me.security.BiometricAuthManager
 import app.eob.me.ui.components.HubSettingsGearIcon
@@ -52,6 +51,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
+import app.eob.me.EobApplication
 import app.eob.me.data.BillingInterval
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
@@ -274,7 +274,6 @@ private fun MainHubNavHost(
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? FragmentActivity
     val subscriptionViewModel: SubscriptionViewModel = viewModel()
-    val subscriptionState by subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle()
     val billingNoticeKey by subscriptionViewModel.billingNoticeKey.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
@@ -290,15 +289,8 @@ private fun MainHubNavHost(
     }
 
     LaunchedEffect(Unit) {
-        subscriptionViewModel.startBilling()
-    }
-
-    LaunchedEffect(firebaseUser?.uid) {
-        subscriptionViewModel.bindUser(firebaseUser?.uid.orEmpty())
-    }
-
-    LaunchedEffect(subscriptionState) {
-        eobViewModel.applySubscriptionState(subscriptionState)
+        val revenueCatManager = (context.applicationContext as EobApplication).revenueCatManager
+        eobViewModel.bindRevenueCat(revenueCatManager)
     }
 
     LaunchedEffect(billingNoticeKey, language) {
@@ -308,8 +300,9 @@ private fun MainHubNavHost(
     }
 
     DisposableEffect(Unit) {
+        val revenueCatManager = (context.applicationContext as EobApplication).revenueCatManager
         onDispose {
-            subscriptionViewModel.stopBilling()
+            eobViewModel.unbindRevenueCat(revenueCatManager)
         }
     }
 

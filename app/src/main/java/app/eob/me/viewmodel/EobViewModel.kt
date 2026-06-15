@@ -37,7 +37,10 @@ import app.eob.me.data.UserProfile
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.BillingIssueSeverity
+import app.eob.me.billing.RevenueCatConfig
+import app.eob.me.billing.RevenueCatManager
 import app.eob.me.billing.SubscriptionState
+import com.revenuecat.purchases.CustomerInfo
 import app.eob.me.data.HubSettingsState
 import app.eob.me.data.HubSettingsStore
 import app.eob.me.data.ImageCompressionLevel
@@ -49,6 +52,7 @@ import app.eob.me.util.NetworkUploadGate
 import app.eob.me.util.HubCrashlyticsGate
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -123,6 +127,7 @@ class EobViewModel : ViewModel() {
     private var deletedNewsKeys: Set<String> = emptySet()
     private val _syncProfile = MutableStateFlow(UserProfile())
     private var eobListener: ListenerRegistration? = null
+    private var revenueCatJob: Job? = null
 
     private val userContextTags: Flow<Set<String>> = combine(
         uiState.map { it.selectedCptCategory }.distinctUntilChanged(),
@@ -299,6 +304,57 @@ class EobViewModel : ViewModel() {
             }
             SubscriptionState.Free -> setSubscriptionTier(SubscriptionTier.Free)
             SubscriptionState.Loading, is SubscriptionState.Error -> Unit
+        }
+    }
+
+    /**
+     * Subscribes to [RevenueCatManager.customerInfo] and maps RevenueCat entitlements
+     * (`gold`, `silver`) into [HubSettingsState.subscriptionTier].
+     */
+    fun bindRevenueCat(manager: RevenueCatManager) {
+        revenueCatJob?.cancel()
+        manager.start()
+        revenueCatJob = viewModelScope.launch {
+            manager.customerInfo.collect { customerInfo ->
+                applyRevenueCatCustomerInfo(customerInfo)
+            }
+        }
+    }
+
+    fun unbindRevenueCat(manager: RevenueCatManager) {
+        revenueCatJob?.cancel()
+        revenueCatJob = null
+        manager.stop()
+    }
+
+    internal fun applyRevenueCatCustomerInfo(customerInfo: CustomerInfo?) {
+        if (customerInfo == null) return
+        when {
+            customerInfo.entitlements[RevenueCatConfig.ENTITLEMENT_GOLD]?.isActive == true -> {
+                _uiState.update { state ->
+                    state.copy(
+                        hubSettings = state.hubSettings.copy(subscriptionTier = SubscriptionTier.Gold)
+                    )
+                }
+                dismissPaywall()
+            }
+
+            customerInfo.entitlements[RevenueCatConfig.ENTITLEMENT_SILVER]?.isActive == true -> {
+                _uiState.update { state ->
+                    state.copy(
+                        hubSettings = state.hubSettings.copy(subscriptionTier = SubscriptionTier.Silver)
+                    )
+                }
+                dismissPaywall()
+            }
+
+            else -> {
+                _uiState.update { state ->
+                    state.copy(
+                        hubSettings = state.hubSettings.copy(subscriptionTier = SubscriptionTier.Free)
+                    )
+                }
+            }
         }
     }
 

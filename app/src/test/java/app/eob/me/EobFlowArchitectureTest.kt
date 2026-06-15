@@ -272,18 +272,17 @@ class EobFlowArchitectureTest {
 
     @Test
     fun subscriptionBillingArchitectureWiresThroughViewModel() {
-        val billingSource = readSource("billing/BillingRepository.kt")
+        val revenueCatSource = readSource("billing/RevenueCatManager.kt")
         val subscriptionStateSource = readSource("billing/SubscriptionState.kt")
         val subscriptionVmSource = readSource("viewmodel/SubscriptionViewModel.kt")
         listOf(
-            "LEGACY_PREMIUM_PRODUCT_ID",
-            "launchBillingFlow",
-            "queryProductDetailsAsync",
-            "BillingRepository",
-            "WeakReference",
-            "activePlayTier"
+            "fetchOfferings",
+            "purchasePackage",
+            "updatedCustomerInfoListener",
+            "RevenueCatManager",
+            "customerInfo"
         ).forEach { snippet ->
-            assertTrue("Billing layer missing: $snippet", billingSource.contains(snippet))
+            assertTrue("RevenueCat billing layer missing: $snippet", revenueCatSource.contains(snippet))
         }
         val catalogSource = readSource("data/SubscriptionCatalog.kt")
         listOf(
@@ -302,11 +301,12 @@ class EobFlowArchitectureTest {
         )
         listOf(
             "SubscriptionViewModel",
-            "subscriptionState",
-            "collectAsStateWithLifecycle",
-            "applySubscriptionState",
-            "FirestoreSubscriptionRepository",
-            "observeSubscriptionTier",
+            "RevenueCatManager",
+            "billingNoticeKey",
+            "bindRevenueCat",
+            "applyRevenueCatCustomerInfo",
+            "ENTITLEMENT_GOLD",
+            "ENTITLEMENT_SILVER",
             "subscriptionTier"
         ).forEach { snippet ->
             assertTrue(
@@ -314,15 +314,17 @@ class EobFlowArchitectureTest {
                 navHostSource.contains(snippet) ||
                     subscriptionVmSource.contains(snippet) ||
                     readSource("viewmodel/EobViewModel.kt").contains(snippet) ||
-                    readSource("data/remote/FirestoreSubscriptionRepository.kt").contains(snippet)
+                    revenueCatSource.contains(snippet) ||
+                    readSource("EobApplication.kt").contains(snippet)
             )
         }
         assertFalse(
-            "PlayBillingManager must be replaced by BillingRepository",
+            "PlayBillingManager must be replaced by RevenueCatManager",
             File(appModuleRoot, "billing/PlayBillingManager.kt").exists()
         )
         assertTrue(manifestSource.contains("com.android.vending.BILLING"))
         assertTrue(manifestSource.contains("com.android.vending"))
+        assertTrue(manifestSource.contains("EobApplication"))
         assertTrue(
             "SubscriptionViewModel must use Application-only constructor for viewModel()",
             subscriptionVmSource.contains(
@@ -334,8 +336,8 @@ class EobFlowArchitectureTest {
             subscriptionVmSource.contains("class SubscriptionViewModel(\n    application: Application,")
         )
         assertTrue(
-            "SubscriptionViewModel must initialize BillingRepository inside the ViewModel body",
-            subscriptionVmSource.contains("BillingRepository(application.applicationContext)")
+            "SubscriptionViewModel must use RevenueCatManager from EobApplication",
+            subscriptionVmSource.contains("revenueCatManager")
         )
         assertTrue(
             "AppViewModel and SubscriptionViewModel must share the same viewModel() constructor contract",
@@ -349,8 +351,7 @@ class EobFlowArchitectureTest {
             "personalizedNewsFeed",
             "eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle",
             "SubscriptionViewModel",
-            "subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle",
-            "eobViewModel.applySubscriptionState",
+            "eobViewModel.bindRevenueCat",
             "launchManageSubscriptionFlow",
             "PaywallDialog",
             "launchTierPurchaseFlow"

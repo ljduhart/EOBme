@@ -11,8 +11,9 @@ import app.eob.me.data.repository.FirestoreSubscriptionSnapshot
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.SubscriptionViewModel
-import app.eob.me.viewmodel.mergeSubscriptionStatus
-import app.eob.me.viewmodel.subscriptionStateToTier
+import app.eob.me.billing.RevenueCatConfig
+import app.eob.me.billing.mergeSubscriptionStatus
+import app.eob.me.billing.subscriptionStateToTier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -168,6 +169,12 @@ class SubscriptionBillingTest {
         viewModel.applySubscriptionState(SubscriptionState.Gold)
         assertFalse(viewModel.uiState.value.paywallVisible)
         assertFalse(viewModel.uiState.value.paywallPurchasePending)
+    }
+
+    @Test
+    fun revenueCatConfigDefinesGoldAndSilverEntitlements() {
+        assertEquals("gold", RevenueCatConfig.ENTITLEMENT_GOLD)
+        assertEquals("silver", RevenueCatConfig.ENTITLEMENT_SILVER)
     }
 
     @Test
