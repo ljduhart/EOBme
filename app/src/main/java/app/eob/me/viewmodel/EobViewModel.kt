@@ -236,7 +236,7 @@ class EobViewModel : ViewModel() {
         }
         settingsStore?.saveAppPin(pin)
         _uiState.update { state ->
-            state.copy(hubSettings = state.hubSettings.copy(pinConfigured = true))
+            state.copy(hubSettings = state.hubSettings.copy(pinConfigured = isAppPinConfigured()))
         }
         return EobStrings.t(language, "settingsPinSaved")
     }

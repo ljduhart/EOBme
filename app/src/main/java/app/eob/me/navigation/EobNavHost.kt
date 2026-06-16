@@ -820,6 +820,7 @@ private fun MainHubNavHost(
                             val message = eobViewModel.saveAppPin(pin, confirmPin, language)
                             eobViewModel.updateSettingsNotice(message)
                             onActivity()
+                            message == EobStrings.t(language, "settingsPinSaved")
                         },
                         onAppLockTimeoutSelected = {
                             eobViewModel.setAppLockTimeout(it)

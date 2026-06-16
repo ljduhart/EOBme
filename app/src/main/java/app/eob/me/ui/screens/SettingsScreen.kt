@@ -73,7 +73,7 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onDeleteAccountConfirmed: () -> Unit,
     onPinLockToggle: (Boolean) -> Unit,
-    onSavePin: (String, String) -> Unit,
+    onSavePin: (String, String) -> Boolean,
     onAppLockTimeoutSelected: (AppLockTimeout) -> Unit,
     onCrashlyticsToggle: (Boolean) -> Unit,
     onWifiOnlyToggle: (Boolean) -> Unit,
@@ -276,7 +276,7 @@ private fun SecuritySettingsTab(
     language: AppLanguage,
     hubSettings: HubSettingsState,
     onPinLockToggle: (Boolean) -> Unit,
-    onSavePin: (String, String) -> Unit,
+    onSavePin: (String, String) -> Boolean,
     onAppLockTimeoutSelected: (AppLockTimeout) -> Unit,
     onCrashlyticsToggle: (Boolean) -> Unit
 ) {
@@ -372,8 +372,11 @@ private fun SecuritySettingsTab(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onSavePin(pinDraft, confirmPinDraft)
-                        showPinDialog = false
+                        if (onSavePin(pinDraft, confirmPinDraft)) {
+                            pinDraft = ""
+                            confirmPinDraft = ""
+                            showPinDialog = false
+                        }
                     }
                 ) {
                     Text(EobStrings.t(language, "settingsPinSave"))
