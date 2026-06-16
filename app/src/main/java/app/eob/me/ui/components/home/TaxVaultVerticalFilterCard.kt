@@ -73,6 +73,9 @@ private val VaultGradient = Brush.verticalGradient(
     )
 )
 private val GlowGreen = Color(0xFF3DDC84)
+private val VaultGoldText = Color(0xFFFFD166)
+/** Matches care-team smart card primary ink ([HomeCareTeamCards] CardInk / [EobBrandBlue]). */
+private val VaultNeonText = EobBrandBlue
 
 @Composable
 fun TaxVaultVerticalFilterCard(
@@ -163,7 +166,7 @@ fun TaxVaultVerticalFilterCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "\$f",
-                    color = Color.White,
+                    color = VaultNeonText,
                     fontWeight = FontWeight.Black,
                     fontSize = 34.sp,
                     lineHeight = 34.sp
@@ -172,7 +175,7 @@ fun TaxVaultVerticalFilterCard(
                     text = EobStrings.t(language, "taxVaultFilterTitle"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = VaultNeonText,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -183,7 +186,7 @@ fun TaxVaultVerticalFilterCard(
             Text(
                 text = EobStrings.t(language, "taxVaultGoldLocked"),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFFFFD166),
+                color = VaultGoldText,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -191,7 +194,7 @@ fun TaxVaultVerticalFilterCard(
         Text(
             text = EobStrings.t(language, "taxVaultFundTypePrompt"),
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.88f),
+            color = VaultNeonText.copy(alpha = 0.88f),
             maxLines = 2
         )
 
@@ -222,7 +225,7 @@ fun TaxVaultVerticalFilterCard(
             Text(
                 text = EobStrings.tf(language, "taxVaultShowLabel", eligibilityLabel),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.92f),
+                color = VaultNeonText.copy(alpha = 0.92f),
                 maxLines = 2
             )
             Slider(
@@ -254,7 +257,7 @@ fun TaxVaultVerticalFilterCard(
                         color = if (mode == visibilityMode && controlsEnabled) {
                             GlowGreen
                         } else {
-                            Color.White.copy(alpha = 0.68f)
+                            VaultNeonText.copy(alpha = 0.68f)
                         },
                         textAlign = TextAlign.Center,
                         maxLines = 2,
@@ -285,7 +288,7 @@ fun TaxVaultVerticalFilterCard(
                 Text(
                     text = statusText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.92f),
+                    color = VaultNeonText.copy(alpha = 0.92f),
                     fontWeight = FontWeight.Medium,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
@@ -363,7 +366,7 @@ private fun FundTypePill(
     modifier: Modifier = Modifier
 ) {
     val background = if (selected) Color.White else Color.White.copy(alpha = 0.14f)
-    val textColor = if (selected) Color(0xFF0B1F45) else Color.White.copy(alpha = 0.88f)
+    val textColor = if (selected) Color(0xFF0B1F45) else VaultNeonText.copy(alpha = 0.88f)
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
@@ -430,7 +433,7 @@ private fun VaultDoorGlyph(
                     .align(Alignment.TopEnd)
                     .size(16.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFFFFD166)),
+                    .background(VaultGoldText),
                 contentAlignment = Alignment.Center
             ) {
                 Text(text = "🔒", fontSize = 9.sp)
