@@ -424,7 +424,9 @@ class EobFlowArchitectureTest {
             "HubSettingsGearIcon",
             "SettingsScreen",
             "hubSettings",
-            "setBiometricLoginEnabled",
+            "setPinLockEnabled",
+            "saveAppPin",
+            "verifyAppPinAndUnlock",
             "setUploadOverWifiOnly",
             "setImageCompressionLevel",
             "setAutoCropEnabled",
@@ -450,9 +452,9 @@ class EobFlowArchitectureTest {
                     readSource("viewmodel/EobViewModel.kt").contains(snippet)
             )
         }
-        assertTrue(EobRoute.Settings.route in hubBackRoutes)
-        assertTrue(manifestSource.contains("USE_BIOMETRIC"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("fun canUploadOnCurrentNetwork()"))
+        assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
+        assertTrue(readSource("data/HubSettingsStore.kt").contains("saveAppPin"))
     }
 
     @Test

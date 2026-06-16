@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +36,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
@@ -44,7 +47,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.viewmodel.SubscriptionViewModel
-import app.eob.me.security.BiometricAuthManager
 import app.eob.me.ui.components.HubSettingsGearIcon
 import app.eob.me.ui.screens.SettingsScreen
 import androidx.navigation.compose.NavHost
@@ -314,8 +316,8 @@ private fun MainHubNavHost(
         }
     }
 
-    DisposableEffect(lifecycleOwner, uiState.hubSettings.biometricLoginEnabled) {
-        if (!uiState.hubSettings.biometricLoginEnabled) {
+    DisposableEffect(lifecycleOwner, uiState.hubSettings.pinLockEnabled) {
+        if (!uiState.hubSettings.pinLockEnabled) {
             return@DisposableEffect onDispose { }
         }
         val observer = LifecycleEventObserver { _, event ->
@@ -329,8 +331,8 @@ private fun MainHubNavHost(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(uiState.hubSettings.biometricLoginEnabled) {
-        if (!uiState.hubSettings.biometricLoginEnabled && uiState.hubSettings.appLocked) {
+    LaunchedEffect(uiState.hubSettings.pinLockEnabled) {
+        if (!uiState.hubSettings.pinLockEnabled && uiState.hubSettings.appLocked) {
             eobViewModel.unlockApp()
         }
     }
@@ -390,13 +392,7 @@ private fun MainHubNavHost(
             context.packageManager.getPackageInfo(context.packageName, 0)
         }.getOrNull()
         val versionName = packageInfo?.versionName.orEmpty().ifBlank { "1.0.0" }
-        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageInfo?.longVersionCode?.toInt() ?: 0
-        } else {
-            @Suppress("DEPRECATION")
-            packageInfo?.versionCode ?: 0
-        }
-        EobStrings.tf(language, "settingsAppVersion", versionName, versionCode)
+        EobStrings.tf(language, "settingsAppVersion", versionName)
     }
 
     LaunchedEffect(currentRoute) {
@@ -810,19 +806,19 @@ private fun MainHubNavHost(
                             }
                             onActivity()
                         },
-                        onBiometricToggle = { enabled ->
-                            if (enabled) {
-                                val hostActivity = activity
-                                if (hostActivity == null || !BiometricAuthManager.canAuthenticate(hostActivity)) {
-                                    eobViewModel.updateSettingsNotice(
-                                        EobStrings.t(language, "settingsBiometricUnavailable")
-                                    )
-                                } else {
-                                    eobViewModel.setBiometricLoginEnabled(true)
-                                }
+                        onPinLockToggle = { enabled ->
+                            if (enabled && !eobViewModel.isAppPinConfigured()) {
+                                eobViewModel.updateSettingsNotice(
+                                    EobStrings.t(language, "settingsPinRequired")
+                                )
                             } else {
-                                eobViewModel.setBiometricLoginEnabled(false)
+                                eobViewModel.setPinLockEnabled(enabled)
                             }
+                            onActivity()
+                        },
+                        onSavePin = { pin, confirmPin ->
+                            val message = eobViewModel.saveAppPin(pin, confirmPin, language)
+                            eobViewModel.updateSettingsNotice(message)
                             onActivity()
                         },
                         onAppLockTimeoutSelected = {
@@ -894,6 +890,8 @@ private fun MainHubNavHost(
             }
             }
             if (uiState.hubSettings.appLocked) {
+                var unlockPin by remember { mutableStateOf("") }
+                var unlockPinError by remember { mutableStateOf("") }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -902,24 +900,21 @@ private fun MainHubNavHost(
                 ) {
                     AppLockOverlay(
                         language = language,
+                        pinInput = unlockPin,
+                        pinError = unlockPinError,
+                        onPinInputChanged = { value ->
+                            if (value.length <= 5 && value.all { it.isDigit() }) {
+                                unlockPin = value
+                                unlockPinError = ""
+                            }
+                        },
                         onUnlock = {
-                            val hostActivity = activity
-                            if (hostActivity == null || !BiometricAuthManager.canAuthenticate(hostActivity)) {
-                                eobViewModel.updateSettingsNotice(
-                                    EobStrings.t(language, "settingsBiometricUnavailable")
-                                )
+                            if (eobViewModel.verifyAppPinAndUnlock(unlockPin)) {
+                                unlockPin = ""
+                                unlockPinError = ""
+                                eobViewModel.updateSettingsNotice("")
                             } else {
-                                BiometricAuthManager.showPrompt(
-                                    activity = hostActivity,
-                                    language = language,
-                                    onSuccess = {
-                                        eobViewModel.unlockApp()
-                                        eobViewModel.updateSettingsNotice("")
-                                    },
-                                    onError = { message ->
-                                        eobViewModel.updateSettingsNotice(message)
-                                    }
-                                )
+                                unlockPinError = EobStrings.t(language, "settingsPinIncorrect")
                             }
                         }
                     )
@@ -1069,6 +1064,9 @@ private fun HubHeader(
 @Composable
 private fun AppLockOverlay(
     language: AppLanguage,
+    pinInput: String,
+    pinError: String,
+    onPinInputChanged: (String) -> Unit,
     onUnlock: () -> Unit
 ) {
     Box(
@@ -1079,13 +1077,37 @@ private fun AppLockOverlay(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = EobStrings.t(language, "settingsAppLocked"),
                 style = MaterialTheme.typography.headlineSmall
             )
-            Button(onClick = onUnlock) {
+            Text(
+                text = EobStrings.t(language, "settingsEnterPin"),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = pinInput,
+                onValueChange = onPinInputChanged,
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (pinError.isNotBlank()) {
+                Text(
+                    text = pinError,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            Button(
+                onClick = onUnlock,
+                enabled = pinInput.length == 5
+            ) {
                 Text(EobStrings.t(language, "settingsUnlock"))
             }
         }

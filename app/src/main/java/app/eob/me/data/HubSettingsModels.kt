@@ -15,14 +15,14 @@ enum class SubscriptionTier {
 }
 
 enum class AppLockTimeout(val millis: Long) {
-    Immediately(0L),
-    OneMinute(60_000L),
-    FiveMinutes(300_000L);
+    FiveMinutes(300_000L),
+    FifteenMinutes(900_000L),
+    ThirtyMinutes(1_800_000L);
 
     fun labelKey(): String = when (this) {
-        Immediately -> "settingsLockImmediately"
-        OneMinute -> "settingsLockOneMinute"
         FiveMinutes -> "settingsLockFiveMinutes"
+        FifteenMinutes -> "settingsLockFifteenMinutes"
+        ThirtyMinutes -> "settingsLockThirtyMinutes"
     }
 }
 
@@ -55,7 +55,8 @@ enum class SettingsTab {
 }
 
 data class HubSettingsState(
-    val biometricLoginEnabled: Boolean = false,
+    val pinLockEnabled: Boolean = false,
+    val pinConfigured: Boolean = false,
     val appLockTimeout: AppLockTimeout = AppLockTimeout.FiveMinutes,
     val crashlyticsOptIn: Boolean = true,
     val uploadOverWifiOnly: Boolean = false,

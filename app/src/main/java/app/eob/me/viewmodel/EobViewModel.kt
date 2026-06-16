@@ -69,6 +69,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 
+private val FIVE_DIGIT_PIN = Regex("^\\d{5}$")
+
 data class HubUiState(
     val selectedRecord: EobRecord? = null,
     val uploadNotice: String = "",
@@ -216,11 +218,37 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(hubSettings = it.hubSettings.copy(selectedTab = tab)) }
     }
 
-    fun setBiometricLoginEnabled(enabled: Boolean) {
-        updateHubSettings { it.copy(biometricLoginEnabled = enabled) }
+    fun setPinLockEnabled(enabled: Boolean) {
+        val store = settingsStore
+        if (enabled && store != null && !store.hasAppPin()) return
+        updateHubSettings { it.copy(pinLockEnabled = enabled) }
         if (!enabled) {
             _uiState.update { state -> state.copy(hubSettings = state.hubSettings.copy(appLocked = false)) }
         }
+    }
+
+    fun saveAppPin(pin: String, confirmPin: String, language: AppLanguage): String {
+        if (!FIVE_DIGIT_PIN.matches(pin)) {
+            return EobStrings.t(language, "settingsPinInvalid")
+        }
+        if (pin != confirmPin) {
+            return EobStrings.t(language, "settingsPinMismatch")
+        }
+        settingsStore?.saveAppPin(pin)
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(pinConfigured = true))
+        }
+        return EobStrings.t(language, "settingsPinSaved")
+    }
+
+    fun verifyAppPinAndUnlock(pin: String): Boolean {
+        if (settingsStore?.verifyAppPin(pin) != true) return false
+        unlockApp()
+        return true
+    }
+
+    fun isAppPinConfigured(): Boolean {
+        return settingsStore?.hasAppPin() == true
     }
 
     fun setAppLockTimeout(timeout: AppLockTimeout) {
@@ -414,7 +442,7 @@ class EobViewModel : ViewModel() {
     fun onAppForegrounded() {
         if (!hasBeenBackgrounded) return
         val settings = _uiState.value.hubSettings
-        if (!settings.biometricLoginEnabled) return
+        if (!settings.pinLockEnabled) return
         val elapsed = System.currentTimeMillis() - lastBackgroundAt
         if (elapsed >= settings.appLockTimeout.millis) {
             _uiState.update { state ->

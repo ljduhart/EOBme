@@ -37,13 +37,13 @@ object BiometricAuthManager {
             }
 
             override fun onAuthenticationFailed() {
-                onError(EobStrings.t(language, "settingsBiometricFailed"))
+                onError(EobStrings.t(language, "settingsPinIncorrect"))
             }
         }
         val prompt = BiometricPrompt(activity, executor, callback)
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(EobStrings.t(language, "settingsBiometricTitle"))
-            .setSubtitle(EobStrings.t(language, "settingsBiometricSubtitle"))
+            .setTitle(EobStrings.t(language, "settingsAppLocked"))
+            .setSubtitle(EobStrings.t(language, "settingsEnterPin"))
             .setNegativeButtonText(EobStrings.t(language, "cancel"))
             .build()
         prompt.authenticate(promptInfo)
