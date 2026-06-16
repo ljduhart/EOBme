@@ -119,7 +119,6 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.crashlytics)
-    implementation("androidx.biometric:biometric:1.4.0-alpha05")
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation(libs.mlkit.text.recognition)
     implementation(libs.androidx.camera.core)

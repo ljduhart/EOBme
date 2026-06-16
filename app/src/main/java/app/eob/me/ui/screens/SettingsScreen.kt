@@ -2,8 +2,8 @@ package app.eob.me.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -40,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppLockTimeout
@@ -69,7 +72,8 @@ fun SettingsScreen(
     onManageSubscription: () -> Unit,
     onLogout: () -> Unit,
     onDeleteAccountConfirmed: () -> Unit,
-    onBiometricToggle: (Boolean) -> Unit,
+    onPinLockToggle: (Boolean) -> Unit,
+    onSavePin: (String, String) -> Boolean,
     onAppLockTimeoutSelected: (AppLockTimeout) -> Unit,
     onCrashlyticsToggle: (Boolean) -> Unit,
     onWifiOnlyToggle: (Boolean) -> Unit,
@@ -122,7 +126,8 @@ fun SettingsScreen(
                 SettingsTab.Security -> SecuritySettingsTab(
                     language = language,
                     hubSettings = hubSettings,
-                    onBiometricToggle = onBiometricToggle,
+                    onPinLockToggle = onPinLockToggle,
+                    onSavePin = onSavePin,
                     onAppLockTimeoutSelected = onAppLockTimeoutSelected,
                     onCrashlyticsToggle = onCrashlyticsToggle
                 )
@@ -270,19 +275,51 @@ private fun AccountSettingsTab(
 private fun SecuritySettingsTab(
     language: AppLanguage,
     hubSettings: HubSettingsState,
-    onBiometricToggle: (Boolean) -> Unit,
+    onPinLockToggle: (Boolean) -> Unit,
+    onSavePin: (String, String) -> Boolean,
     onAppLockTimeoutSelected: (AppLockTimeout) -> Unit,
     onCrashlyticsToggle: (Boolean) -> Unit
 ) {
+    var showPinDialog by remember { mutableStateOf(false) }
+    var pinDraft by remember { mutableStateOf("") }
+    var confirmPinDraft by remember { mutableStateOf("") }
+
     Text(EobStrings.t(language, "settingsSecurityTitle"), style = MaterialTheme.typography.titleLarge)
-    SettingsToggleRow(
-        label = EobStrings.t(language, "settingsBiometricLogin"),
-        checked = hubSettings.biometricLoginEnabled,
-        onCheckedChange = onBiometricToggle
-    )
+    if (!hubSettings.pinConfigured) {
+        Button(
+            onClick = {
+                pinDraft = ""
+                confirmPinDraft = ""
+                showPinDialog = true
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(EobStrings.t(language, "settingsCreatePin"))
+        }
+    } else {
+        OutlinedButton(
+            onClick = {
+                pinDraft = ""
+                confirmPinDraft = ""
+                showPinDialog = true
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(EobStrings.t(language, "settingsChangePin"))
+        }
+        SettingsToggleRow(
+            label = EobStrings.t(language, "settingsPinLock"),
+            checked = hubSettings.pinLockEnabled,
+            onCheckedChange = { enabled ->
+                if (enabled && !hubSettings.pinConfigured) return@SettingsToggleRow
+                onPinLockToggle(enabled)
+            }
+        )
+    }
     AppLockTimeoutDropdown(
         language = language,
         selectedTimeout = hubSettings.appLockTimeout,
+        enabled = hubSettings.pinLockEnabled,
         onTimeoutSelected = onAppLockTimeoutSelected
     )
     SettingsToggleRow(
@@ -290,6 +327,68 @@ private fun SecuritySettingsTab(
         checked = hubSettings.crashlyticsOptIn,
         onCheckedChange = onCrashlyticsToggle
     )
+
+    if (showPinDialog) {
+        AlertDialog(
+            onDismissRequest = { showPinDialog = false },
+            title = {
+                Text(
+                    EobStrings.t(
+                        language,
+                        if (hubSettings.pinConfigured) "settingsPinDialogChangeTitle" else "settingsPinDialogTitle"
+                    )
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = pinDraft,
+                        onValueChange = { value ->
+                            if (value.length <= 5 && value.all { it.isDigit() }) {
+                                pinDraft = value
+                            }
+                        },
+                        label = { Text(EobStrings.t(language, "settingsPinEntry")) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = confirmPinDraft,
+                        onValueChange = { value ->
+                            if (value.length <= 5 && value.all { it.isDigit() }) {
+                                confirmPinDraft = value
+                            }
+                        },
+                        label = { Text(EobStrings.t(language, "settingsPinConfirm")) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (onSavePin(pinDraft, confirmPinDraft)) {
+                            pinDraft = ""
+                            confirmPinDraft = ""
+                            showPinDialog = false
+                        }
+                    }
+                ) {
+                    Text(EobStrings.t(language, "settingsPinSave"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPinDialog = false }) {
+                    Text(EobStrings.t(language, "cancel"))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -372,18 +471,20 @@ private fun LegalSettingsTab(
 private fun AppLockTimeoutDropdown(
     language: AppLanguage,
     selectedTimeout: AppLockTimeout,
+    enabled: Boolean,
     onTimeoutSelected: (AppLockTimeout) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = it },
+        onExpandedChange = { if (enabled) expanded = it },
         modifier = Modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
             value = EobStrings.t(language, selectedTimeout.labelKey()),
             onValueChange = {},
             readOnly = true,
+            enabled = enabled,
             label = { Text(EobStrings.t(language, "settingsAppLockTimeout")) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier

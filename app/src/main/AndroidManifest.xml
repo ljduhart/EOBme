@@ -11,8 +11,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel) -->
     <uses-permission android:name="com.android.vending.BILLING" />
-    <!-- USE_BIOMETRIC — Settings biometric login via BiometricPrompt -->
-    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel.
          Sign-up LegalAcceptanceText opens policy URLs with ACTION_VIEW (queries below). -->
     <queries>

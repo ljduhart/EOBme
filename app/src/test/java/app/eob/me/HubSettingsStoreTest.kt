@@ -25,4 +25,20 @@ class HubSettingsStoreTest {
         store.write(store.read().copy(darkModeEnabled = false))
         assertFalse(store.read().darkModeEnabled)
     }
+
+    @Test
+    fun appPinSaveVerifyAndClear() {
+        val context = RuntimeEnvironment.getApplication()
+        val store = HubSettingsStore(context)
+
+        assertFalse(store.hasAppPin())
+        store.saveAppPin("12345")
+        assertTrue(store.hasAppPin())
+        assertTrue(store.verifyAppPin("12345"))
+        assertFalse(store.verifyAppPin("54321"))
+
+        store.clearAppPin()
+        assertFalse(store.hasAppPin())
+        assertFalse(store.verifyAppPin("12345"))
+    }
 }

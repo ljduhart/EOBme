@@ -260,10 +260,10 @@ class EobViewModelFlowTest {
         val viewModel = EobViewModel()
         viewModel.setSettingsTab(SettingsTab.Security)
         assertEquals(SettingsTab.Security, viewModel.uiState.value.hubSettings.selectedTab)
-        viewModel.setBiometricLoginEnabled(true)
-        assertTrue(viewModel.uiState.value.hubSettings.biometricLoginEnabled)
-        viewModel.setAppLockTimeout(AppLockTimeout.OneMinute)
-        assertEquals(AppLockTimeout.OneMinute, viewModel.uiState.value.hubSettings.appLockTimeout)
+        viewModel.setPinLockEnabled(true)
+        assertTrue(viewModel.uiState.value.hubSettings.pinLockEnabled)
+        viewModel.setAppLockTimeout(AppLockTimeout.FifteenMinutes)
+        assertEquals(AppLockTimeout.FifteenMinutes, viewModel.uiState.value.hubSettings.appLockTimeout)
         viewModel.setUploadOverWifiOnly(true)
         assertTrue(viewModel.uiState.value.hubSettings.uploadOverWifiOnly)
         viewModel.setImageCompressionLevel(ImageCompressionLevel.High)
@@ -279,9 +279,12 @@ class EobViewModelFlowTest {
     @Test
     fun appLockRequiresUnlockAfterBackgroundTimeout() {
         val viewModel = EobViewModel()
-        viewModel.setBiometricLoginEnabled(true)
-        viewModel.setAppLockTimeout(AppLockTimeout.Immediately)
+        viewModel.setPinLockEnabled(true)
+        viewModel.setAppLockTimeout(AppLockTimeout.FiveMinutes)
         viewModel.onAppBackgrounded()
+        val backgroundField = EobViewModel::class.java.getDeclaredField("lastBackgroundAt")
+        backgroundField.isAccessible = true
+        backgroundField.setLong(viewModel, System.currentTimeMillis() - 301_000L)
         viewModel.onAppForegrounded()
         assertTrue(viewModel.uiState.value.hubSettings.appLocked)
         viewModel.unlockApp()
@@ -301,8 +304,8 @@ class EobViewModelFlowTest {
     @Test
     fun appLockDoesNotTriggerBeforeFirstBackground() {
         val viewModel = EobViewModel()
-        viewModel.setBiometricLoginEnabled(true)
-        viewModel.setAppLockTimeout(AppLockTimeout.Immediately)
+        viewModel.setPinLockEnabled(true)
+        viewModel.setAppLockTimeout(AppLockTimeout.FiveMinutes)
         viewModel.onAppForegrounded()
         assertFalse(viewModel.uiState.value.hubSettings.appLocked)
     }
