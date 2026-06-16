@@ -55,8 +55,10 @@ import app.eob.me.util.NetworkUploadGate
 import app.eob.me.util.HubCrashlyticsGate
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -138,6 +140,7 @@ class EobViewModel : ViewModel() {
     private var liveHealthcareDiveNewsPool: List<NewsRelease> = emptyList()
     private var firebaseNews: List<NewsRelease> = emptyList()
     private var deletedNewsKeys: Set<String> = emptySet()
+    private var newsRotationJob: Job? = null
     private val _syncProfile = MutableStateFlow(UserProfile())
     private var eobListener: ListenerRegistration? = null
 
@@ -194,14 +197,15 @@ class EobViewModel : ViewModel() {
     }
 
     private fun startInsuranceNewsRotationClock() {
-        viewModelScope.launch {
-            while (true) {
+        newsRotationJob?.cancel()
+        newsRotationJob = viewModelScope.launch {
+            while (isActive) {
                 val delayMs = InsuranceNewsRotation.millisUntilNextRotation()
-                if (delayMs <= 0L) {
-                    bumpNewsFeedRevision()
-                    continue
+                if (delayMs > 0L) {
+                    delay(delayMs)
+                } else {
+                    delay(1_000L)
                 }
-                delay(delayMs)
                 bumpNewsFeedRevision()
             }
         }
@@ -223,15 +227,23 @@ class EobViewModel : ViewModel() {
                 )
             }.getOrElse { emptyList() }
 
-            if (beckersNews.isEmpty() && diveNews.isEmpty()) return@launch
+            if (beckersNews.isNotEmpty()) {
+                liveBeckersNewsPool = beckersNews
+            }
+            if (diveNews.isNotEmpty()) {
+                liveHealthcareDiveNewsPool = diveNews
+            }
+            if (!hasLiveInsuranceNewsPools()) return@launch
 
             withContext(Dispatchers.Main) {
-                liveBeckersNewsPool = beckersNews
-                liveHealthcareDiveNewsPool = diveNews
                 firebaseNews = rotatedLiveInsuranceIntelligence()
                 bumpNewsFeedRevision()
             }
         }
+    }
+
+    private fun hasLiveInsuranceNewsPools(): Boolean {
+        return liveBeckersNewsPool.isNotEmpty() || liveHealthcareDiveNewsPool.isNotEmpty()
     }
 
     private fun rotatedLiveInsuranceIntelligence(): List<NewsRelease> {
@@ -915,10 +927,12 @@ class EobViewModel : ViewModel() {
     }
 
     fun currentNewsReleases(fallbackNews: List<NewsRelease>): List<NewsRelease> {
-        val rotatedLiveNews = rotatedLiveInsuranceIntelligence()
-            .filterNot { it.key() in deletedNewsKeys }
-        if (rotatedLiveNews.isNotEmpty()) {
-            return rotatedLiveNews
+        if (hasLiveInsuranceNewsPools()) {
+            val rotatedLiveNews = rotatedLiveInsuranceIntelligence()
+                .filterNot { it.key() in deletedNewsKeys }
+            if (rotatedLiveNews.isNotEmpty()) {
+                return rotatedLiveNews
+            }
         }
         val ranked = personalizedNewsFeed.value.filterNot { it.key() in deletedNewsKeys }
         val source = ranked.ifEmpty { visibleNews(fallbackNews) }

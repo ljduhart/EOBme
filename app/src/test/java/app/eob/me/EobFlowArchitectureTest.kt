@@ -459,6 +459,8 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("network/RssNewsMapper.kt").contains("BECKERS_RSS_URL"))
         assertTrue(readSource("network/RssNetworkModels.kt").contains("data class RssResponse"))
         assertTrue(readSource("network/InsuranceNewsRotation.kt").contains("BECKERS_VISIBLE_COUNT"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("hasLiveInsuranceNewsPools"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("startInsuranceNewsRotationClock"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("RetrofitClient.api.getFeed"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon"))

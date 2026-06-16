@@ -75,6 +75,22 @@ class InsuranceNewsRotationTest {
     }
 
     @Test
+    fun combineRotatedIntelligenceUsesBeckersOnlyWhenHealthcareDivePoolEmpty() {
+        val beckersPool = (1..5).map { index ->
+            release(RssNewsMapper.BECKERS_COMPANY, "Becker $index", index)
+        }
+
+        val rotated = InsuranceNewsRotation.combineRotatedIntelligence(
+            beckersPool = beckersPool,
+            healthcareDivePool = emptyList(),
+            slot = 0L
+        )
+
+        assertEquals(3, rotated.size)
+        assertTrue(rotated.all { it.company == RssNewsMapper.BECKERS_COMPANY })
+    }
+
+    @Test
     fun rotationSlotChangesEveryTwoHours() {
         val period = InsuranceNewsRotation.ROTATION_PERIOD_MS
         val slotAtStart = InsuranceNewsRotation.rotationSlot(0L)
