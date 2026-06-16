@@ -196,6 +196,13 @@ class SubscriptionBillingTest {
         assertTrue(source.contains("FIELD_IS_PREMIUM = \"isPremium\""))
     }
 
+    @Test
+    fun subscriptionViewModelBindUserBlankResolvesFreeWithoutMergingPlayTier() {
+        val source = readSource("viewmodel/SubscriptionViewModel.kt")
+        assertTrue(source.contains("if (userId.isBlank())"))
+        assertTrue(source.contains("_subscriptionState.value = SubscriptionState.Free"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             java.io.File("src/main/java/app/eob/me/$relativePath"),

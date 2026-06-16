@@ -40,6 +40,10 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         if (boundUserId == userId && observeJob?.isActive == true) return
         boundUserId = userId
         observeJob?.cancel()
+        if (userId.isBlank()) {
+            _subscriptionState.value = SubscriptionState.Free
+            return
+        }
         _subscriptionState.value = SubscriptionState.Loading
         observeJob = viewModelScope.launch {
             combine(

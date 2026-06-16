@@ -477,7 +477,8 @@ class EobViewModel : ViewModel() {
         val preservedSettings = _uiState.value.hubSettings.copy(
             settingsAccountEditing = false,
             settingsNotice = "",
-            appLocked = false
+            appLocked = false,
+            subscriptionTier = SubscriptionTier.Free
         )
         _uiState.value = HubUiState(hubSettings = preservedSettings)
         _syncProfile.value = UserProfile()
