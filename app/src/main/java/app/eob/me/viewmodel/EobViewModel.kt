@@ -174,10 +174,8 @@ class EobViewModel : ViewModel() {
         rankNewsReleases(releases, contextTags)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-
     fun insuranceBriefings(): List<InsuranceArticle> {
-        return EobInsuranceNews.articlesForYear(currentYear)
+        return EobInsuranceNews.articlesForYear()
     }
 
     fun insuranceNewsRotationSlot(): Long {
@@ -592,6 +590,8 @@ class EobViewModel : ViewModel() {
         liveHealthcareDiveNewsPool = emptyList()
         firebaseNews = emptyList()
         deletedNewsKeys = emptySet()
+        newsRotationJob?.cancel()
+        newsRotationJob = null
     }
 
     fun startFirestoreSync(userId: String, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
@@ -1158,6 +1158,7 @@ class EobViewModel : ViewModel() {
     }
 
     override fun onCleared() {
+        newsRotationJob?.cancel()
         eobListener?.remove()
         profileListener?.remove()
         super.onCleared()
