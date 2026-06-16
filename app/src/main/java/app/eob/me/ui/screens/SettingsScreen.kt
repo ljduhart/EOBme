@@ -23,7 +23,10 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -53,6 +56,7 @@ import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.data.SettingsTab
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.UserProfile
+import app.eob.me.ui.components.HubHelpfulHintsIcon
 import app.eob.me.util.CacheSizeCalculator
 
 @Composable
@@ -85,19 +89,34 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showHelpfulHintsDialog by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        PrimaryScrollableTabRow(
-            selectedTabIndex = hubSettings.selectedTab.ordinal,
-            edgePadding = 8.dp
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            SettingsTab.entries.forEach { tab ->
-                Tab(
-                    selected = hubSettings.selectedTab == tab,
-                    onClick = { onTabSelected(tab) },
-                    text = { Text(EobStrings.t(language, tab.labelKey())) }
+            PrimaryScrollableTabRow(
+                selectedTabIndex = hubSettings.selectedTab.ordinal,
+                edgePadding = 8.dp,
+                modifier = Modifier.weight(1f)
+            ) {
+                SettingsTab.entries.forEach { tab ->
+                    Tab(
+                        selected = hubSettings.selectedTab == tab,
+                        onClick = { onTabSelected(tab) },
+                        text = { Text(EobStrings.t(language, tab.labelKey())) }
+                    )
+                }
+            }
+            IconButton(onClick = { showHelpfulHintsDialog = true }) {
+                Icon(
+                    imageVector = HubHelpfulHintsIcon.Lightbulb,
+                    contentDescription = EobStrings.t(language, "settingsHelpfulHintsTitle"),
+                    tint = androidx.compose.ui.graphics.Color.Unspecified
                 )
             }
+            Spacer(modifier = Modifier.width(4.dp))
         }
         Column(
             modifier = Modifier
@@ -166,6 +185,34 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (showHelpfulHintsDialog) {
+        AlertDialog(
+            onDismissRequest = { showHelpfulHintsDialog = false },
+            title = { Text(EobStrings.t(language, "settingsHelpfulHintsTitle")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    listOf(
+                        "settingsHelpfulHint1",
+                        "settingsHelpfulHint2",
+                        "settingsHelpfulHint3",
+                        "settingsHelpfulHint4",
+                        "settingsHelpfulHint5"
+                    ).forEachIndexed { index, key ->
+                        Text(
+                            text = "${index + 1}. ${EobStrings.t(language, key)}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showHelpfulHintsDialog = false }) {
+                    Text(EobStrings.t(language, "cancel"))
+                }
+            }
+        )
     }
 
     if (showDeleteDialog) {
@@ -319,7 +366,6 @@ private fun SecuritySettingsTab(
     AppLockTimeoutDropdown(
         language = language,
         selectedTimeout = hubSettings.appLockTimeout,
-        enabled = hubSettings.pinLockEnabled,
         onTimeoutSelected = onAppLockTimeoutSelected
     )
     SettingsToggleRow(
@@ -471,20 +517,18 @@ private fun LegalSettingsTab(
 private fun AppLockTimeoutDropdown(
     language: AppLanguage,
     selectedTimeout: AppLockTimeout,
-    enabled: Boolean,
     onTimeoutSelected: (AppLockTimeout) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { if (enabled) expanded = it },
+        onExpandedChange = { expanded = it },
         modifier = Modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
             value = EobStrings.t(language, selectedTimeout.labelKey()),
             onValueChange = {},
             readOnly = true,
-            enabled = enabled,
             label = { Text(EobStrings.t(language, "settingsAppLockTimeout")) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier

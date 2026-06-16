@@ -454,7 +454,10 @@ class EobFlowArchitectureTest {
         }
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("fun canUploadOnCurrentNetwork()"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
+        assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon"))
+        assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsHelpfulHintsTitle"))
         assertTrue(readSource("data/HubSettingsStore.kt").contains("saveAppPin"))
+        assertTrue(readSource("ui/components/home/TaxVaultVerticalFilterCard.kt").contains("VaultNeonText"))
     }
 
     @Test
