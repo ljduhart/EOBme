@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- INTERNET — Firebase Auth, Firestore, Storage; EOB upload/sync (EobRepository / EobViewModel);
-         live insurance RSS via RetrofitClient / fetchLiveInsuranceNews in EobViewModel -->
+         live insurance RSS via RetrofitClient / fetchLiveInsuranceNews in EobViewModel;
+         Insurance Intelligence rotation (3 Becker's + 4 Healthcare Dive / 2h) via InsuranceNewsRotation -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- ACCESS_NETWORK_STATE — connectivity checks before remote operations -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

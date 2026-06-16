@@ -458,12 +458,18 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("network/NewsApiService.kt").contains("RetrofitClient"))
         assertTrue(readSource("network/RssNewsMapper.kt").contains("BECKERS_RSS_URL"))
         assertTrue(readSource("network/RssNetworkModels.kt").contains("data class RssResponse"))
+        assertTrue(readSource("network/InsuranceNewsRotation.kt").contains("BECKERS_VISIBLE_COUNT"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("hasLiveInsuranceNewsPools"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("startInsuranceNewsRotationClock"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("RetrofitClient.api.getFeed"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsHelpfulHintsTitle"))
         assertTrue(readSource("data/HubSettingsStore.kt").contains("saveAppPin"))
         assertTrue(readSource("ui/components/home/TaxVaultVerticalFilterCard.kt").contains("VaultNeonText"))
+        assertTrue(readSource("ui/components/home/TaxVaultVerticalFilterCard.kt").contains("EobInsuranceGradientStart"))
+        assertTrue(readSource("ui/components/home/TaxVaultVerticalFilterCard.kt").contains("TaxVaultShimmerOverlay"))
+        assertTrue(readSource("ui/components/home/TaxVaultVerticalFilterCard.kt").contains("10_000"))
     }
 
     @Test
@@ -560,7 +566,8 @@ class EobFlowArchitectureTest {
         listOf(
             "HubUiState",
             "sortedEobRecords",
-            "insuranceArticles",
+            "insuranceBriefings",
+            "insuranceNewsRotationSlot",
             "invoiceProcessingPhase",
             "historyBentoFilter",
             "preferredDoctors",
@@ -607,7 +614,9 @@ class EobFlowArchitectureTest {
             "eobViewModel.yearlyHealthCostSummary",
             "eobViewModel.historyRecordsForDisplay",
             "eobViewModel.totalBillingErrors",
+            "eobViewModel.insuranceBriefings",
             "eobViewModel.currentNewsReleases",
+            "insuranceNewsRotationSlot",
             "uiState.firebaseSyncStatus",
             "eobViewModel.updateSyncProfile",
             "eobViewModel.hubTimeKey"

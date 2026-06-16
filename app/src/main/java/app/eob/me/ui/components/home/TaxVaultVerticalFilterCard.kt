@@ -2,8 +2,14 @@ package app.eob.me.ui.components.home
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,7 +21,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,6 +61,9 @@ import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.ui.theme.EobBrandGlow
+import app.eob.me.ui.theme.EobInsuranceGradientEnd
+import app.eob.me.ui.theme.EobInsuranceGradientMid
+import app.eob.me.ui.theme.EobInsuranceGradientStart
 import kotlinx.coroutines.delay
 
 private enum class VaultUiPhase {
@@ -65,12 +73,14 @@ private enum class VaultUiPhase {
 }
 
 private val VaultCardCornerRadius = 12.dp
-private val VaultGradient = Brush.verticalGradient(
+private val VaultCardBackground = Brush.linearGradient(
     colors = listOf(
-        Color(0xFF0B1F45),
-        Color(0xFF12356B),
-        Color(0xFF0A224F)
-    )
+        EobInsuranceGradientStart,
+        EobInsuranceGradientMid,
+        EobInsuranceGradientEnd
+    ),
+    start = Offset(0f, 0f),
+    end = Offset(900f, 1200f)
 )
 private val GlowGreen = Color(0xFF3DDC84)
 private val VaultGoldText = Color(0xFFFFD166)
@@ -126,23 +136,26 @@ fun TaxVaultVerticalFilterCard(
 
     val controlsEnabled = isGoldTier && uiPhase == VaultUiPhase.ON
 
-    Column(
+    Box(
         modifier = modifier
             .clip(RoundedCornerShape(VaultCardCornerRadius))
             .taxVaultCareTeamBorder(VaultCardCornerRadius)
-            .background(VaultGradient)
-            .drawBehind {
-                if (rippleAlpha > 0f) {
-                    drawCircle(
-                        color = GlowGreen.copy(alpha = rippleAlpha * 0.35f),
-                        radius = size.minDimension * (0.4f + rippleAlpha * 0.2f),
-                        center = Offset(size.width * 0.22f, size.height * 0.12f)
-                    )
-                }
-            }
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .background(VaultCardBackground)
+                .drawBehind {
+                    if (rippleAlpha > 0f) {
+                        drawCircle(
+                            color = GlowGreen.copy(alpha = rippleAlpha * 0.35f),
+                            radius = size.minDimension * (0.4f + rippleAlpha * 0.2f),
+                            center = Offset(size.width * 0.22f, size.height * 0.12f)
+                        )
+                    }
+                }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -309,6 +322,9 @@ fun TaxVaultVerticalFilterCard(
                 }
             }
         }
+        }
+
+        TaxVaultShimmerOverlay(modifier = Modifier.matchParentSize())
     }
 
     LaunchedEffect(uiPhase) {
@@ -318,6 +334,39 @@ fun TaxVaultVerticalFilterCard(
             onFilterSelected(TaxVaultFilterState.HSA)
             uiPhase = VaultUiPhase.ON
         }
+    }
+}
+
+@Composable
+private fun TaxVaultShimmerOverlay(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "taxVaultShimmer")
+    val progress by transition.animateFloat(
+        initialValue = -0.4f,
+        targetValue = 1.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 10_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "taxVaultShimmerProgress"
+    )
+    Canvas(modifier = modifier) {
+        val streakWidth = size.width * 0.48f
+        val x = size.width * progress - streakWidth / 2f
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    EobBrandGlow.copy(alpha = 0.15f),
+                    EobBrandBlue.copy(alpha = 0.45f),
+                    EobBrandBlue.copy(alpha = 0.35f),
+                    EobBrandBlue.copy(alpha = 0.3f),
+                    Color.Transparent
+                ),
+                start = Offset(x, 0f),
+                end = Offset(x + streakWidth, size.height)
+            ),
+            size = size
+        )
     }
 }
 
