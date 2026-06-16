@@ -197,6 +197,7 @@ class EobFlowArchitectureTest {
             "ui/components/bento/CptTrackerBentoCell.kt",
             "ui/components/bento/YtdExpenseBentoCell.kt",
             "ui/components/bento/AppealGeneratorBentoCell.kt",
+            "ui/components/bento/InsuranceNewsBentoCell.kt",
             "ui/components/bento/BentoGridCell.kt"
         ).forEach { path ->
             assertTrue("Missing bento component $path", File(appModuleRoot, path).isFile)
@@ -456,6 +457,8 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("fetchLiveInsuranceNews"))
         assertTrue(readSource("network/NewsApiService.kt").contains("RetrofitClient"))
         assertTrue(readSource("network/RssNewsMapper.kt").contains("BECKERS_RSS_URL"))
+        assertTrue(readSource("network/RssNetworkModels.kt").contains("data class RssResponse"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("RetrofitClient.api.getFeed"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsHelpfulHintsTitle"))
@@ -571,6 +574,7 @@ class EobFlowArchitectureTest {
             "cptBentoSnapshot",
             "ytdDeductibleBentoSnapshot",
             "insuranceNewsBentoSnapshot",
+            "fetchLiveInsuranceNews",
             "newsFeedRevision",
             "historyBentoSnapshot",
             "providerAvatarPreviews",

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- INTERNET — Firebase Auth, Firestore, Storage; EOB upload/sync (EobRepository / EobViewModel) -->
+    <!-- INTERNET — Firebase Auth, Firestore, Storage; EOB upload/sync (EobRepository / EobViewModel);
+         live insurance RSS via RetrofitClient / fetchLiveInsuranceNews in EobViewModel -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- ACCESS_NETWORK_STATE — connectivity checks before remote operations -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
