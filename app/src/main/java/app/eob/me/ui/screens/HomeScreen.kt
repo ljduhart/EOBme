@@ -49,8 +49,10 @@ import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderDirectoryAssurance
+import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.TaxVaultBudgetSummary
 import app.eob.me.data.TaxVaultFilterState
+import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.UserProfile
 import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
@@ -60,7 +62,7 @@ import app.eob.me.ui.components.bento.BentoGridCell
 import app.eob.me.ui.components.home.HomeAppointmentsSection
 import app.eob.me.ui.components.home.HomeCareTeamCards
 import app.eob.me.ui.components.home.HomeWeekCalendar
-import app.eob.me.ui.components.home.TaxVaultHorizontalFilterCard
+import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
 
 private val DarkHomeBackground = Brush.verticalGradient(
     colors = listOf(
@@ -129,8 +131,11 @@ fun HomeScreen(
     onAppealGeneratorProcessingFinished: () -> Unit,
     onBentoSelected: (HubBentoDestination) -> Unit,
     taxVaultFilterState: TaxVaultFilterState,
+    taxVaultVisibilityMode: TaxVaultVisibilityMode,
     taxVaultBudgetSummary: TaxVaultBudgetSummary,
+    subscriptionTier: SubscriptionTier,
     onTaxVaultFilterSelected: (TaxVaultFilterState) -> Unit,
+    onTaxVaultVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var appointmentPrefillDate by remember { mutableStateOf("") }
@@ -264,19 +269,6 @@ fun HomeScreen(
             }
 
             item {
-                TaxVaultHorizontalFilterCard(
-                    language = language,
-                    darkModeEnabled = darkModeEnabled,
-                    filterState = taxVaultFilterState,
-                    budgetSummary = taxVaultBudgetSummary,
-                    onFilterSelected = onTaxVaultFilterSelected,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp)
-                )
-            }
-
-            item {
                 Text(
                     text = EobStrings.t(language, "featuresSection"),
                     style = MaterialTheme.typography.titleMedium,
@@ -297,6 +289,9 @@ fun HomeScreen(
                                 language = language,
                                 destination = destination,
                                 historySnapshot = historySnapshot,
+                                taxVaultActive = taxVaultFilterState != TaxVaultFilterState.OFF,
+                                taxVaultBudgetSummary = taxVaultBudgetSummary,
+                                taxVaultFilterState = taxVaultFilterState,
                                 processingPhase = processingPhase,
                                 isLoadingInvoice = isLoadingInvoice,
                                 historyFilter = historyFilter,
@@ -330,6 +325,22 @@ fun HomeScreen(
                         openAppointmentDialog = true
                     },
                     modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                TaxVaultVerticalFilterCard(
+                    language = language,
+                    darkModeEnabled = darkModeEnabled,
+                    isGoldTier = subscriptionTier.isGold(),
+                    filterState = taxVaultFilterState,
+                    visibilityMode = taxVaultVisibilityMode,
+                    budgetSummary = taxVaultBudgetSummary,
+                    onFilterSelected = onTaxVaultFilterSelected,
+                    onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
                 )
             }
 

@@ -83,7 +83,7 @@ internal fun mergeSubscriptionStatus(
     val firestorePremium = (firestoreSnapshot as? FirestorePremiumSnapshot.Resolved)?.isPremium == true
 
     if (playPremium == true || firestorePremium) {
-        return SubscriptionState.Premium
+        return SubscriptionState.Gold
     }
 
     if (firestoreSnapshot is FirestorePremiumSnapshot.Error && playPremium == false) {

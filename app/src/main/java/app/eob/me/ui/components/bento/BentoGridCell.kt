@@ -8,6 +8,8 @@ import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InsuranceNewsBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
+import app.eob.me.data.TaxVaultBudgetSummary
+import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.YtdBentoViewMode
@@ -19,6 +21,9 @@ fun BentoGridCell(
     language: AppLanguage,
     destination: HubBentoDestination,
     historySnapshot: HistoryBentoSnapshot,
+    taxVaultActive: Boolean = false,
+    taxVaultBudgetSummary: TaxVaultBudgetSummary = TaxVaultBudgetSummary(0.0, 0.0),
+    taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     processingPhase: InvoiceProcessingPhase,
     isLoadingInvoice: Boolean,
     historyFilter: HistoryBentoFilter,
@@ -41,6 +46,9 @@ fun BentoGridCell(
             HistoryBentoCell(
                 language = language,
                 snapshot = historySnapshot,
+                taxVaultActive = taxVaultActive,
+                taxVaultBudgetSummary = taxVaultBudgetSummary,
+                taxVaultFilterState = taxVaultFilterState,
                 processingPhase = processingPhase,
                 isLoadingInvoice = isLoadingInvoice,
                 activeFilter = historyFilter,

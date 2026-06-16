@@ -292,9 +292,22 @@ enum class TaxVaultFilterState {
     FSA
 }
 
+enum class TaxVaultVisibilityMode {
+    ALL,
+    GATED,
+    OPEN;
+
+    fun labelKey(): String = when (this) {
+        ALL -> "taxVaultVisibilityAll"
+        GATED -> "taxVaultVisibilityGated"
+        OPEN -> "taxVaultVisibilityOpen"
+    }
+}
+
 data class TaxVaultBudgetSummary(
     val eligibleAmount: Double,
-    val allocationLimit: Double
+    val allocationLimit: Double,
+    val savedAmount: Double = 0.0
 )
 
 enum class HistoryBentoFilter {

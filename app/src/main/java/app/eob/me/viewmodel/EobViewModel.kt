@@ -43,6 +43,7 @@ import app.eob.me.data.HubSettingsStore
 import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.data.TaxVaultBudgetSummary
 import app.eob.me.data.TaxVaultFilterState
+import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.SettingsTab
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.EobRepository
@@ -112,6 +113,9 @@ class EobViewModel : ViewModel() {
 
     private val _taxVaultFilterState = MutableStateFlow(TaxVaultFilterState.OFF)
     val taxVaultFilterState: StateFlow<TaxVaultFilterState> = _taxVaultFilterState.asStateFlow()
+
+    private val _taxVaultVisibilityMode = MutableStateFlow(TaxVaultVisibilityMode.GATED)
+    val taxVaultVisibilityMode: StateFlow<TaxVaultVisibilityMode> = _taxVaultVisibilityMode.asStateFlow()
 
     val sortedEobRecords: StateFlow<List<EobRecord>> = eobRecords
         .map { records -> records.sortedByDescending { it.serviceDateSortKey } }
@@ -291,10 +295,23 @@ class EobViewModel : ViewModel() {
     /** Applies merged subscription status from [SubscriptionViewModel] into hub settings. */
     fun applySubscriptionState(state: SubscriptionState) {
         when (state) {
-            SubscriptionState.Premium -> setSubscriptionTier(SubscriptionTier.Premium)
+            SubscriptionState.Gold -> setSubscriptionTier(SubscriptionTier.Gold)
+            SubscriptionState.Silver -> setSubscriptionTier(SubscriptionTier.Silver)
             SubscriptionState.Free -> setSubscriptionTier(SubscriptionTier.Free)
             SubscriptionState.Loading, is SubscriptionState.Error -> Unit
         }
+    }
+
+    fun isTaxVaultGoldUnlocked(): Boolean {
+        return _uiState.value.hubSettings.subscriptionTier.isGold()
+    }
+
+    fun isTaxVaultActive(): Boolean {
+        return _taxVaultFilterState.value != TaxVaultFilterState.OFF
+    }
+
+    fun isTaxVaultHistoryGated(): Boolean {
+        return isTaxVaultActive() && _taxVaultVisibilityMode.value == TaxVaultVisibilityMode.GATED
     }
 
     fun enableSettingsAccountEditing() {
@@ -405,6 +422,7 @@ class EobViewModel : ViewModel() {
         _uiState.value = HubUiState(hubSettings = preservedSettings)
         _syncProfile.value = UserProfile()
         _taxVaultFilterState.value = TaxVaultFilterState.OFF
+        _taxVaultVisibilityMode.value = TaxVaultVisibilityMode.GATED
         uploadText = ""
         firebaseNews = emptyList()
         deletedNewsKeys = emptySet()
@@ -664,13 +682,19 @@ class EobViewModel : ViewModel() {
     }
 
     fun setTaxVaultFilterState(state: TaxVaultFilterState) {
+        if (state != TaxVaultFilterState.OFF && !isTaxVaultGoldUnlocked()) return
         _taxVaultFilterState.value = state
+    }
+
+    fun setTaxVaultVisibilityMode(mode: TaxVaultVisibilityMode) {
+        if (!isTaxVaultGoldUnlocked()) return
+        _taxVaultVisibilityMode.value = mode
     }
 
     fun taxVaultBudgetSummary(profile: UserProfile): TaxVaultBudgetSummary {
         val filter = _taxVaultFilterState.value
         if (filter == TaxVaultFilterState.OFF) {
-            return TaxVaultBudgetSummary(eligibleAmount = 0.0, allocationLimit = 0.0)
+            return TaxVaultBudgetSummary(eligibleAmount = 0.0, allocationLimit = 0.0, savedAmount = 0.0)
         }
         val safeProfile = profile.sanitizedPlanLimits()
         val eligibleRecords = EobAnalyzer.recordsForTaxVaultFilter(_eobRecords.value, filter)
@@ -680,14 +704,20 @@ class EobViewModel : ViewModel() {
             TaxVaultFilterState.FSA -> safeProfile.fsaAllocation
             TaxVaultFilterState.OFF -> 0.0
         }
+        val savedAmount = (allocationLimit - eligibleAmount).coerceAtLeast(0.0)
         return TaxVaultBudgetSummary(
             eligibleAmount = eligibleAmount,
-            allocationLimit = allocationLimit
+            allocationLimit = allocationLimit,
+            savedAmount = savedAmount
         )
     }
 
     private fun recordsForHistoryPipeline(): List<EobRecord> {
-        return EobAnalyzer.recordsForTaxVaultFilter(_eobRecords.value, _taxVaultFilterState.value)
+        val records = _eobRecords.value
+        val filter = _taxVaultFilterState.value
+        if (filter == TaxVaultFilterState.OFF) return records
+        if (_taxVaultVisibilityMode.value != TaxVaultVisibilityMode.GATED) return records
+        return EobAnalyzer.recordsForTaxVaultFilter(records, filter)
     }
 
     fun historyBentoSnapshot(): HistoryBentoSnapshot {

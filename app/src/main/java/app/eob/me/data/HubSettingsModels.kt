@@ -2,12 +2,16 @@ package app.eob.me.data
 
 enum class SubscriptionTier {
     Free,
-    Premium;
+    Silver,
+    Gold;
 
     fun labelKey(): String = when (this) {
         Free -> "settingsTierFree"
-        Premium -> "settingsTierPremium"
+        Silver -> "settingsTierSilver"
+        Gold -> "settingsTierGold"
     }
+
+    fun isGold(): Boolean = this == Gold
 }
 
 enum class AppLockTimeout(val millis: Long) {

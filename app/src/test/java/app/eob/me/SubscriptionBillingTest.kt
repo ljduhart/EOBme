@@ -44,14 +44,14 @@ class SubscriptionBillingTest {
     @Test
     fun mergeSubscriptionStatusPrefersPremiumFromEitherSource() {
         assertEquals(
-            SubscriptionState.Premium,
+            SubscriptionState.Gold,
             mergeSubscriptionStatus(
                 playPremium = true,
                 firestoreSnapshot = FirestorePremiumSnapshot.Resolved(isPremium = false)
             )
         )
         assertEquals(
-            SubscriptionState.Premium,
+            SubscriptionState.Gold,
             mergeSubscriptionStatus(
                 playPremium = false,
                 firestoreSnapshot = FirestorePremiumSnapshot.Resolved(isPremium = true)
@@ -101,8 +101,8 @@ class SubscriptionBillingTest {
     @Test
     fun eobViewModelApplySubscriptionStateUpdatesHubTier() {
         val viewModel = EobViewModel()
-        viewModel.applySubscriptionState(SubscriptionState.Premium)
-        assertEquals(SubscriptionTier.Premium, viewModel.uiState.value.hubSettings.subscriptionTier)
+        viewModel.applySubscriptionState(SubscriptionState.Gold)
+        assertEquals(SubscriptionTier.Gold, viewModel.uiState.value.hubSettings.subscriptionTier)
         viewModel.applySubscriptionState(SubscriptionState.Free)
         assertEquals(SubscriptionTier.Free, viewModel.uiState.value.hubSettings.subscriptionTier)
         viewModel.applySubscriptionState(SubscriptionState.Loading)

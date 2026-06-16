@@ -212,20 +212,29 @@ class EobFlowArchitectureTest {
     fun homeTaxVaultFilterWiresThroughViewModel() {
         val homeSource = readSource("ui/screens/HomeScreen.kt")
         val vmSource = readSource("viewmodel/EobViewModel.kt")
-        val taxVaultSource = readSource("ui/components/home/TaxVaultHorizontalFilterCard.kt")
+        val taxVaultSource = readSource("ui/components/home/TaxVaultVerticalFilterCard.kt")
         listOf(
-            "TaxVaultHorizontalFilterCard",
+            "TaxVaultVerticalFilterCard",
             "taxVaultFilterState",
+            "taxVaultVisibilityMode",
             "taxVaultBudgetSummary",
+            "subscriptionTier.isGold()",
             "onTaxVaultFilterSelected",
-            "padding(vertical = 12.dp)"
+            "HomeWeekCalendar"
         ).forEach { snippet ->
             assertTrue("HomeScreen missing tax vault wiring: $snippet", homeSource.contains(snippet))
         }
+        assertTrue(
+            "Tax Vault card must sit below expandable calendar",
+            homeSource.indexOf("HomeWeekCalendar") < homeSource.indexOf("TaxVaultVerticalFilterCard")
+        )
         listOf(
             "enum class TaxVaultFilterState",
+            "enum class TaxVaultVisibilityMode",
             "MutableStateFlow(TaxVaultFilterState.OFF)",
             "setTaxVaultFilterState",
+            "setTaxVaultVisibilityMode",
+            "isTaxVaultGoldUnlocked",
             "taxVaultBudgetSummary",
             "recordsForTaxVaultFilter",
             "isHsaEligible",
@@ -234,22 +243,26 @@ class EobFlowArchitectureTest {
             assertTrue("EobViewModel/data missing tax vault logic: $snippet", vmSource.contains(snippet) || readSource("data/EobModels.kt").contains(snippet) || readSource("data/EobAnalyzer.kt").contains(snippet))
         }
         listOf(
-            "TaxVaultHorizontalFilterCard",
-            "FilterChip",
-            "taxVaultFilterTitle"
+            "TaxVaultVerticalFilterCard",
+            "taxVaultFilterTitle",
+            "taxVaultGoldLocked",
+            "VaultUiPhase"
         ).forEach { snippet ->
-            assertTrue("TaxVaultHorizontalFilterCard missing: $snippet", taxVaultSource.contains(snippet))
+            assertTrue("TaxVaultVerticalFilterCard missing: $snippet", taxVaultSource.contains(snippet))
         }
         listOf(
             "taxVaultFilterState",
+            "taxVaultVisibilityMode",
             "taxVaultBudgetSummary",
-            "setTaxVaultFilterState"
+            "setTaxVaultFilterState",
+            "setTaxVaultVisibilityMode"
         ).forEach { snippet ->
             assertTrue("EobNavHost missing tax vault wiring: $snippet", navHostSource.contains(snippet))
         }
         assertTrue(
             "History route must recompute when tax vault filter changes",
-            navHostSource.contains("remember(sortedEobRecords, searchQuery, historyBentoFilter, taxVaultFilterState)")
+            navHostSource.contains("taxVaultFilterState") &&
+                navHostSource.contains("taxVaultVisibilityMode")
         )
     }
 
@@ -331,7 +344,8 @@ class EobFlowArchitectureTest {
         }
         assertTrue(
             subscriptionStateSource.contains("sealed interface SubscriptionState") &&
-                subscriptionStateSource.contains("Premium") &&
+                subscriptionStateSource.contains("Gold") &&
+                subscriptionStateSource.contains("Silver") &&
                 subscriptionStateSource.contains("Free") &&
                 subscriptionStateSource.contains("Error")
         )

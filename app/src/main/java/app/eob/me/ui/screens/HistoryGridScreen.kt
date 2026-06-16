@@ -1,6 +1,7 @@
 package app.eob.me.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import app.eob.me.data.asCurrency
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +36,7 @@ import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
-import app.eob.me.data.asCurrency
+import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.ui.components.HolographicGlassCard
 import app.eob.me.ui.history.HistoryPagination
 import app.eob.me.ui.theme.EobBlue40
@@ -48,6 +50,8 @@ fun HistoryGridScreen(
     onPageChange: (Int) -> Unit,
     onSelected: (EobRecord) -> Unit,
     onDeleteEob: (EobRecord) -> Unit,
+    showVaultFilterBanner: Boolean = false,
+    taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     modifier: Modifier = Modifier
 ) {
     val sortedRecords = records.sortedByDescending { it.serviceDateSortKey }
@@ -82,6 +86,19 @@ fun HistoryGridScreen(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
 
+        if (showVaultFilterBanner) {
+            Text(
+                text = EobStrings.t(language, "taxVaultFilteredBanner"),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF3DDC84).copy(alpha = 0.14f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1B7F4B)
+            )
+        }
+
         if (sortedRecords.isEmpty()) {
             Spacer(modifier = Modifier.weight(1f))
             Text(
@@ -104,6 +121,8 @@ fun HistoryGridScreen(
                         language = language,
                         record = record,
                         isSelected = selectedRecord?.id == record.id,
+                        taxVaultFilterState = taxVaultFilterState,
+                        showEligibilityChip = showVaultFilterBanner,
                         onClick = { onSelected(record) },
                         onDelete = { onDeleteEob(record) }
                     )
@@ -129,6 +148,8 @@ private fun EobSmartCard(
     language: AppLanguage,
     record: EobRecord,
     isSelected: Boolean,
+    taxVaultFilterState: TaxVaultFilterState,
+    showEligibilityChip: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -175,6 +196,33 @@ private fun EobSmartCard(
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1
             )
+            if (showEligibilityChip) {
+                val chipLabel = when {
+                    taxVaultFilterState == TaxVaultFilterState.HSA && record.isHsaEligible ->
+                        EobStrings.t(language, "taxVaultHsaEligibleChip")
+                    taxVaultFilterState == TaxVaultFilterState.FSA && record.isFsaEligible ->
+                        EobStrings.t(language, "taxVaultFsaEligibleChip")
+                    record.isHsaEligible ->
+                        EobStrings.t(language, "taxVaultHsaEligibleChip")
+                    record.isFsaEligible ->
+                        EobStrings.t(language, "taxVaultFsaEligibleChip")
+                    else -> null
+                }
+                chipLabel?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B7F4B),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF3DDC84).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 4.dp, vertical = 1.dp),
+                        maxLines = 1
+                    )
+                }
+            }
             TextButton(
                 onClick = onDelete,
                 modifier = Modifier.fillMaxWidth(),

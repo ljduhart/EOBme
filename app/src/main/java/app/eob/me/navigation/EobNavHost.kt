@@ -474,7 +474,13 @@ private fun MainHubNavHost(
                 composable(EobRoute.Home.route) {
                     val hubTimeKey = eobViewModel.hubTimeKey()
                     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
-                    val historySnapshot = remember(sortedEobRecords, hubTimeKey, taxVaultFilterState) {
+                    val taxVaultVisibilityMode by eobViewModel.taxVaultVisibilityMode.collectAsStateWithLifecycle()
+                    val historySnapshot = remember(
+                        sortedEobRecords,
+                        hubTimeKey,
+                        taxVaultFilterState,
+                        taxVaultVisibilityMode
+                    ) {
                         eobViewModel.historyBentoSnapshot()
                     }
                     val taxVaultBudgetSummary = remember(
@@ -620,9 +626,15 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         taxVaultFilterState = taxVaultFilterState,
+                        taxVaultVisibilityMode = taxVaultVisibilityMode,
                         taxVaultBudgetSummary = taxVaultBudgetSummary,
+                        subscriptionTier = uiState.hubSettings.subscriptionTier,
                         onTaxVaultFilterSelected = { filter ->
                             eobViewModel.setTaxVaultFilterState(filter)
+                            onActivity()
+                        },
+                        onTaxVaultVisibilityModeSelected = { mode ->
+                            eobViewModel.setTaxVaultVisibilityMode(mode)
                             onActivity()
                         },
                         modifier = Modifier.fillMaxSize()
@@ -923,7 +935,14 @@ private fun HistoryRoute(
 
     val historyBentoFilter = uiState.historyBentoFilter
     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
-    val filteredRecords by remember(sortedEobRecords, searchQuery, historyBentoFilter, taxVaultFilterState) {
+    val taxVaultVisibilityMode by eobViewModel.taxVaultVisibilityMode.collectAsStateWithLifecycle()
+    val filteredRecords by remember(
+        sortedEobRecords,
+        searchQuery,
+        historyBentoFilter,
+        taxVaultFilterState,
+        taxVaultVisibilityMode
+    ) {
         derivedStateOf {
             eobViewModel.historyRecordsForDisplay(historyBentoFilter, searchQuery)
         }
@@ -978,6 +997,8 @@ private fun HistoryRoute(
                         onActivity()
                     },
                     onDeleteEob = onDeleteEob,
+                    showVaultFilterBanner = eobViewModel.isTaxVaultHistoryGated(),
+                    taxVaultFilterState = taxVaultFilterState,
                     modifier = Modifier.fillMaxSize()
                 )
             }

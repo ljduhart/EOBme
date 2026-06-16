@@ -6,7 +6,9 @@ import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobRecord
 import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.TaxVaultFilterState
+import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.UserProfile
 import app.eob.me.viewmodel.EobViewModel
 import org.junit.Assert.assertEquals
@@ -67,6 +69,7 @@ class TaxVaultFilterTest {
     @Test
     fun eobViewModelTaxVaultBudgetSummaryUsesProfileAllocations() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Gold)
         viewModel.replaceRecords(
             listOf(
                 sampleRecord(id = 1, hsa = true, fsa = true, responsibility = 1250.0),
@@ -81,11 +84,13 @@ class TaxVaultFilterTest {
         )
         assertEquals(1750.0, summary.eligibleAmount, 0.01)
         assertEquals(3050.0, summary.allocationLimit, 0.01)
+        assertEquals(1300.0, summary.savedAmount, 0.01)
     }
 
     @Test
     fun eobViewModelHistoryRecordsForDisplayRespectsTaxVaultFilter() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Gold)
         viewModel.replaceRecords(
             listOf(
                 sampleRecord(id = 1, hsa = true, fsa = false, responsibility = 100.0),
@@ -98,6 +103,38 @@ class TaxVaultFilterTest {
         val records = viewModel.historyRecordsForDisplay(HistoryBentoFilter.All, searchQuery = "")
         assertEquals(1, records.size)
         assertTrue(records.first().isHsaEligible)
+    }
+
+    @Test
+    fun taxVaultFilterBlockedForNonGoldTiers() {
+        val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
+        viewModel.setTaxVaultFilterState(TaxVaultFilterState.HSA)
+        assertEquals(TaxVaultFilterState.OFF, viewModel.taxVaultFilterState.value)
+
+        viewModel.setSubscriptionTier(SubscriptionTier.Free)
+        viewModel.setTaxVaultFilterState(TaxVaultFilterState.FSA)
+        assertEquals(TaxVaultFilterState.OFF, viewModel.taxVaultFilterState.value)
+    }
+
+    @Test
+    fun taxVaultVisibilityAllShowsFullHistoryWhileFilterActive() {
+        val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Gold)
+        viewModel.replaceRecords(
+            listOf(
+                sampleRecord(id = 1, hsa = true, fsa = false, responsibility = 100.0),
+                sampleRecord(id = 2, hsa = false, fsa = false, responsibility = 200.0)
+            ),
+            profile = UserProfile()
+        )
+        waitForHubRecords(viewModel, expectedCount = 2)
+        viewModel.setTaxVaultFilterState(TaxVaultFilterState.HSA)
+        viewModel.setTaxVaultVisibilityMode(TaxVaultVisibilityMode.ALL)
+        val records = viewModel.historyRecordsForDisplay(HistoryBentoFilter.All, searchQuery = "")
+        assertEquals(2, records.size)
+        assertTrue(viewModel.isTaxVaultActive())
+        assertFalse(viewModel.isTaxVaultHistoryGated())
     }
 
     private fun waitForHubRecords(viewModel: EobViewModel, expectedCount: Int) {

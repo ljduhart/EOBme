@@ -48,6 +48,9 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
+import app.eob.me.data.TaxVaultBudgetSummary
+import app.eob.me.data.TaxVaultFilterState
+import app.eob.me.data.asCurrency
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.ui.theme.EobBrandGlow
@@ -62,6 +65,9 @@ private val GlowCyan = EobBrandGlow
 fun HistoryBentoCell(
     language: AppLanguage,
     snapshot: HistoryBentoSnapshot,
+    taxVaultActive: Boolean = false,
+    taxVaultBudgetSummary: TaxVaultBudgetSummary = TaxVaultBudgetSummary(0.0, 0.0),
+    taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     processingPhase: InvoiceProcessingPhase,
     isLoadingInvoice: Boolean,
     activeFilter: HistoryBentoFilter,
@@ -133,15 +139,37 @@ fun HistoryBentoCell(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = HubBentoDestination.EobHistory.title(language),
+                    text = if (taxVaultActive) {
+                        EobStrings.t(language, "taxVaultSnapshotTitle")
+                    } else {
+                        HubBentoDestination.EobHistory.title(language)
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if (taxVaultActive) Color(0xFF3DDC84) else MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 1
                 )
 
+                if (taxVaultActive) {
+                    Text(
+                        text = EobStrings.t(language, "taxVaultFilteredBanner"),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 7.sp,
+                        color = Color(0xFF3DDC84).copy(alpha = 0.9f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Color(0xFF3DDC84).copy(alpha = 0.12f),
+                                RoundedCornerShape(6.dp)
+                            )
+                            .padding(vertical = 2.dp)
+                    )
+                }
+
+                if (!taxVaultActive) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
@@ -165,7 +193,25 @@ fun HistoryBentoCell(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                }
 
+                if (taxVaultActive) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)
+                    ) {
+                        VaultSnapshotMetric(
+                            label = EobStrings.t(language, "taxVaultTotalEligible"),
+                            value = taxVaultBudgetSummary.eligibleAmount.asCurrency()
+                        )
+                        VaultSnapshotMetric(
+                            label = EobStrings.t(language, "taxVaultTotalSaved"),
+                            value = taxVaultBudgetSummary.savedAmount.asCurrency()
+                        )
+                    }
+                } else {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -201,6 +247,7 @@ fun HistoryBentoCell(
                         )
                     }
                 }
+                }
             }
 
             if (showFileDrop && dropProgress > 0f) {
@@ -210,6 +257,32 @@ fun HistoryBentoCell(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun VaultSnapshotMetric(label: String, value: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF3DDC84).copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 7.sp,
+            color = GlowBlue,
+            maxLines = 1
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3DDC84),
+            maxLines = 1
+        )
     }
 }
 
