@@ -68,8 +68,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 
@@ -186,33 +184,28 @@ class EobViewModel : ViewModel() {
 
     fun fetchLiveInsuranceNews() {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val beckersDeferred = async {
-                    RetrofitClient.api.getFeed(RssNewsMapper.BECKERS_RSS_URL)
-                }
-                val diveDeferred = async {
-                    RetrofitClient.api.getFeed(RssNewsMapper.HEALTHCARE_DIVE_RSS_URL)
-                }
-                val (beckersResponse, diveResponse) = awaitAll(beckersDeferred, diveDeferred)
-
-                val beckersNews = RssNewsMapper.mapResponse(
+            val beckersNews = runCatching {
+                RssNewsMapper.mapResponse(
                     company = RssNewsMapper.BECKERS_COMPANY,
-                    response = beckersResponse
+                    response = RetrofitClient.api.getFeed(RssNewsMapper.BECKERS_RSS_URL)
                 )
-                val diveNews = RssNewsMapper.mapResponse(
+            }.getOrElse { emptyList() }
+
+            val diveNews = runCatching {
+                RssNewsMapper.mapResponse(
                     company = RssNewsMapper.HEALTHCARE_DIVE_COMPANY,
-                    response = diveResponse
+                    response = RetrofitClient.api.getFeed(RssNewsMapper.HEALTHCARE_DIVE_RSS_URL)
                 )
+            }.getOrElse { emptyList() }
 
-                val combinedLiveNews = (beckersNews + diveNews)
-                    .sortedByDescending { RssNewsMapper.sortKey(it.date) }
+            val combinedLiveNews = (beckersNews + diveNews)
+                .sortedByDescending { RssNewsMapper.sortKey(it.date) }
 
-                withContext(Dispatchers.Main) {
-                    firebaseNews = combinedLiveNews
-                    bumpNewsFeedRevision()
-                }
-            } catch (_: Exception) {
-                // Keep the existing fallback news pipeline when RSS middleware is unavailable.
+            if (combinedLiveNews.isEmpty()) return@launch
+
+            withContext(Dispatchers.Main) {
+                firebaseNews = combinedLiveNews
+                bumpNewsFeedRevision()
             }
         }
     }

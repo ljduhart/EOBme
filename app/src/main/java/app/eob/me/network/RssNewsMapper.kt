@@ -10,13 +10,14 @@ object RssNewsMapper {
     const val BECKERS_COMPANY = "Becker's Payer Issues"
     const val HEALTHCARE_DIVE_COMPANY = "Healthcare Dive"
 
-    const val BECKERS_RSS_URL = "https://www.beckerspayer.com/?format=feed&type=rss"
+    const val BECKERS_RSS_URL = "https://www.beckerspayer.com/feed/"
     const val HEALTHCARE_DIVE_RSS_URL = "https://www.healthcaredive.com/feeds/news/"
 
     private val displayDateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.US)
     private val sortableDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     private val pubDateParsers = listOf(
+        SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US),
         SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US),
         SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.US),
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US),

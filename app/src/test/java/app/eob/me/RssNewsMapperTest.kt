@@ -69,6 +69,28 @@ class RssNewsMapperTest {
     }
 
     @Test
+    fun mapResponseParsesRss2JsonPubDateFormat() {
+        val response = RssResponse(
+            status = "ok",
+            feed = null,
+            items = listOf(
+                RssItem(
+                    title = "Live payer headline",
+                    pubDate = "2026-06-16 15:23:00",
+                    link = "https://example.com/live",
+                    content = "<p>Live summary</p>",
+                    description = null
+                )
+            )
+        )
+
+        val mapped = RssNewsMapper.mapResponse(RssNewsMapper.HEALTHCARE_DIVE_COMPANY, response)
+        assertEquals(1, mapped.size)
+        assertEquals("Live payer headline", mapped.first().headline)
+        assertEquals("06/16/2026", mapped.first().date)
+    }
+
+    @Test
     fun isWithinLiveNewsWindowAcceptsJanuary2026ThroughToday() {
         assertTrue(RssNewsMapper.isWithinLiveNewsWindow("2026-01-01"))
         assertFalse(RssNewsMapper.isWithinLiveNewsWindow("2025-12-31"))

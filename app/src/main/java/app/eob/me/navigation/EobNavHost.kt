@@ -719,13 +719,17 @@ private fun MainHubNavHost(
                     }
                 }
                 composable(EobRoute.News.route) {
+                    val newsFeedRevision = uiState.newsFeedRevision
+                    val newsItems = remember(newsFeedRevision, personalizedNewsFeed) {
+                        eobViewModel.currentNewsReleases(EobKnowledgeBase.newsReleases)
+                    }
                     NewsScreen(
                         language = language,
                         insuranceArticles = insuranceArticles,
                         selectedInsuranceArticle = uiState.selectedInsuranceArticle,
                         onInsuranceArticleSelected = eobViewModel::openInsuranceArticle,
                         onDismissInsuranceArticle = eobViewModel::dismissInsuranceArticle,
-                        newsItems = eobViewModel.currentNewsReleases(EobKnowledgeBase.newsReleases),
+                        newsItems = newsItems,
                         onDeleteNews = { eobViewModel.deleteNews(it) }
                     )
                 }
