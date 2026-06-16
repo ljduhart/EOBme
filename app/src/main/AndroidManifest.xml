@@ -30,7 +30,8 @@
          insurance card via EobViewModel, Appeal letter edit/save gated by
          EobViewModel.appealLetterEditingEnabled, hub Settings gear → EobRoute.Settings with
          EobViewModel hubSettings, SubscriptionViewModel + BillingRepository for
-         premium_access_tier, Firestore users/{uid}.isPremium) + EobRepository; care team dial uses ACTION_DIAL only
+         premium_access_tier + Silver/Gold SKUs, Firestore users/{uid}.subscriptionTier
+         with legacy isPremium) + EobRepository; care team dial uses ACTION_DIAL only
          (no CALL_PHONE). Profile darkModeEnabled persisted in hubSettings. Runtime permissions in EobNavHost. -->
     <uses-feature
         android:name="android.hardware.camera"

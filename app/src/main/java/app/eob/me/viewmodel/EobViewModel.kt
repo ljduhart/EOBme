@@ -88,6 +88,9 @@ data class HubUiState(
     val newsFeedRevision: Int = 0,
     val appealGeneratorBentoProcessing: Boolean = false,
     val appealLetterEditingEnabled: Boolean = false,
+    val paywallVisible: Boolean = false,
+    val paywallMessage: String = "",
+    val paywallPurchasePending: Boolean = false,
     val hubSettings: HubSettingsState = HubSettingsState()
 )
 
@@ -295,11 +298,44 @@ class EobViewModel : ViewModel() {
     /** Applies merged subscription status from [SubscriptionViewModel] into hub settings. */
     fun applySubscriptionState(state: SubscriptionState) {
         when (state) {
-            SubscriptionState.Gold -> setSubscriptionTier(SubscriptionTier.Gold)
-            SubscriptionState.Silver -> setSubscriptionTier(SubscriptionTier.Silver)
+            SubscriptionState.Gold -> {
+                setSubscriptionTier(SubscriptionTier.Gold)
+                dismissPaywall()
+            }
+            SubscriptionState.Silver -> {
+                setSubscriptionTier(SubscriptionTier.Silver)
+                dismissPaywall()
+            }
             SubscriptionState.Free -> setSubscriptionTier(SubscriptionTier.Free)
             SubscriptionState.Loading, is SubscriptionState.Error -> Unit
         }
+    }
+
+    fun showPaywall(message: String = "") {
+        _uiState.update { it.copy(paywallVisible = true, paywallMessage = message) }
+    }
+
+    fun dismissPaywall() {
+        _uiState.update {
+            it.copy(paywallVisible = false, paywallMessage = "", paywallPurchasePending = false)
+        }
+    }
+
+    /** Hides paywall so Google Play billing can present; errors re-open paywall via [handleBillingNoticeForPaywall]. */
+    fun beginPaywallPurchase() {
+        _uiState.update {
+            it.copy(paywallPurchasePending = true, paywallVisible = false, paywallMessage = "")
+        }
+    }
+
+    fun billingNoticeForPaywall(language: AppLanguage): String {
+        val notice = _uiState.value.hubSettings.settingsNotice
+        val billingNotices = setOf(
+            EobStrings.t(language, "billingNotReady"),
+            EobStrings.t(language, "billingProductUnavailable"),
+            EobStrings.t(language, "billingFlowFailed")
+        )
+        return notice.takeIf { it in billingNotices }.orEmpty()
     }
 
     fun isTaxVaultGoldUnlocked(): Boolean {
@@ -333,12 +369,36 @@ class EobViewModel : ViewModel() {
     }
 
     fun updateBillingNotice(language: AppLanguage, noticeKey: String) {
-        val message = when (noticeKey) {
+        updateSettingsNotice(localizedBillingNotice(language, noticeKey))
+    }
+
+    fun handleBillingNoticeForPaywall(language: AppLanguage, noticeKey: String) {
+        val message = localizedBillingNotice(language, noticeKey)
+        _uiState.update { state ->
+            when {
+                state.paywallPurchasePending -> state.copy(
+                    paywallPurchasePending = false,
+                    paywallVisible = true,
+                    paywallMessage = message,
+                    hubSettings = state.hubSettings.copy(settingsNotice = message)
+                )
+
+                state.paywallVisible -> state.copy(
+                    paywallMessage = message,
+                    hubSettings = state.hubSettings.copy(settingsNotice = message)
+                )
+
+                else -> state
+            }
+        }
+    }
+
+    private fun localizedBillingNotice(language: AppLanguage, noticeKey: String): String {
+        return when (noticeKey) {
             "billing_not_ready" -> EobStrings.t(language, "billingNotReady")
             "billing_product_unavailable" -> EobStrings.t(language, "billingProductUnavailable")
             else -> EobStrings.t(language, "billingFlowFailed")
         }
-        updateSettingsNotice(message)
     }
 
     fun canUploadOnCurrentNetwork(): Boolean {

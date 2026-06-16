@@ -2,6 +2,9 @@ package app.eob.me.billing
 
 import android.app.Activity
 import android.content.Context
+import app.eob.me.data.BillingInterval
+import app.eob.me.data.SubscriptionCatalog
+import app.eob.me.data.SubscriptionTier
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -19,21 +22,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Google Play Billing integration for the `premium_access_tier` subscription SKU.
- * Purchase state is exposed via [isPlayPremium] for [app.eob.me.viewmodel.SubscriptionViewModel].
+ * Google Play Billing for EOBme Silver and Gold tiers (monthly + annual SKUs).
+ * Active tier is exposed via [activePlayTier] for [app.eob.me.viewmodel.SubscriptionViewModel].
  */
 class BillingRepository(
     private val context: Context
 ) : PurchasesUpdatedListener {
 
-    private val _isPlayPremium = MutableStateFlow<Boolean?>(null)
-    val isPlayPremium: StateFlow<Boolean?> = _isPlayPremium.asStateFlow()
+    private val _activePlayTier = MutableStateFlow<SubscriptionTier?>(null)
+    val activePlayTier: StateFlow<SubscriptionTier?> = _activePlayTier.asStateFlow()
 
     private val _billingErrorKey = MutableStateFlow<String?>(null)
     val billingErrorKey: StateFlow<String?> = _billingErrorKey.asStateFlow()
 
-    private var premiumProductDetails: ProductDetails? = null
-    private var pendingLaunchActivity: WeakReference<Activity>? = null
+    private val productDetailsById = mutableMapOf<String, ProductDetails>()
+    private var pendingLaunch: PendingBillingLaunch? = null
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
@@ -48,22 +51,22 @@ class BillingRepository(
         _billingErrorKey.value = null
         if (billingClient.isReady) {
             refreshPurchases()
-            queryPremiumProductDetails()
+            querySubscriptionProductDetails()
             return
         }
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                     refreshPurchases()
-                    queryPremiumProductDetails()
+                    querySubscriptionProductDetails()
                 } else {
-                    _isPlayPremium.value = null
+                    _activePlayTier.value = null
                     _billingErrorKey.value = "billing_not_ready"
                 }
             }
 
             override fun onBillingServiceDisconnected() {
-                _isPlayPremium.value = null
+                _activePlayTier.value = null
             }
         })
     }
@@ -72,24 +75,33 @@ class BillingRepository(
         if (billingClient.isReady) {
             billingClient.endConnection()
         }
-        premiumProductDetails = null
-        pendingLaunchActivity = null
-        _isPlayPremium.value = null
+        productDetailsById.clear()
+        pendingLaunch = null
+        _activePlayTier.value = null
         _billingErrorKey.value = null
     }
 
-    fun launchBillingFlow(activity: Activity) {
+    fun launchBillingFlow(
+        activity: Activity,
+        tier: SubscriptionTier,
+        interval: BillingInterval
+    ) {
         _billingErrorKey.value = null
+        val productId = SubscriptionCatalog.productId(tier, interval)
+        if (productId == null) {
+            _billingErrorKey.value = "billing_product_unavailable"
+            return
+        }
         if (!billingClient.isReady) {
-            pendingLaunchActivity = WeakReference(activity)
+            pendingLaunch = PendingBillingLaunch(WeakReference(activity), tier, interval)
             _billingErrorKey.value = "billing_not_ready"
             startConnection()
             return
         }
-        val product = premiumProductDetails
+        val product = productDetailsById[productId]
         if (product == null) {
-            pendingLaunchActivity = WeakReference(activity)
-            queryPremiumProductDetails()
+            pendingLaunch = PendingBillingLaunch(WeakReference(activity), tier, interval)
+            querySubscriptionProductDetails()
             return
         }
         launchBillingFlowInternal(activity, product)
@@ -119,25 +131,27 @@ class BillingRepository(
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                 handlePurchases(purchases)
             } else {
-                _isPlayPremium.value = null
+                _activePlayTier.value = null
                 _billingErrorKey.value = "billing_not_ready"
             }
         }
     }
 
     private fun handlePurchases(purchases: List<Purchase>) {
-        val activePremium = purchases.any { purchase ->
-            purchase.products.contains(PREMIUM_PRODUCT_ID) &&
-                purchase.purchaseState == Purchase.PurchaseState.PURCHASED
-        }
+        var resolvedTier = SubscriptionTier.Free
         purchases.filter { purchase ->
-            purchase.products.contains(PREMIUM_PRODUCT_ID) &&
-                purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
-                !purchase.isAcknowledged
+            purchase.purchaseState == Purchase.PurchaseState.PURCHASED
         }.forEach { purchase ->
-            acknowledgePurchase(purchase)
+            purchase.products.forEach { productId ->
+                SubscriptionCatalog.tierForProductId(productId)?.let { tier ->
+                    resolvedTier = SubscriptionCatalog.highestTier(resolvedTier, tier)
+                }
+            }
+            if (!purchase.isAcknowledged) {
+                acknowledgePurchase(purchase)
+            }
         }
-        _isPlayPremium.value = activePremium
+        _activePlayTier.value = resolvedTier
     }
 
     private fun acknowledgePurchase(purchase: Purchase) {
@@ -152,30 +166,41 @@ class BillingRepository(
         }
     }
 
-    private fun queryPremiumProductDetails() {
+    private fun querySubscriptionProductDetails() {
         if (!billingClient.isReady) return
-        val productList = listOf(
+        val productList = SubscriptionCatalog.ALL_PRODUCT_IDS.map { productId ->
             QueryProductDetailsParams.Product.newBuilder()
-                .setProductId(PREMIUM_PRODUCT_ID)
+                .setProductId(productId)
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build()
-        )
+        }
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(productList)
             .build()
         billingClient.queryProductDetailsAsync(params) { result, details ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                premiumProductDetails = details.productDetailsList.firstOrNull()
-                val product = premiumProductDetails
-                val pendingActivity = pendingLaunchActivity?.get()
-                pendingLaunchActivity = null
+                productDetailsById.clear()
+                details.productDetailsList.forEach { product ->
+                    productDetailsById[product.productId] = product
+                }
+                val pending = pendingLaunch
+                pendingLaunch = null
+                val pendingActivity = pending?.activityRef?.get()
+                val pendingProductId = pending?.let {
+                    SubscriptionCatalog.productId(it.tier, it.interval)
+                }
+                val pendingProduct = pendingProductId?.let(productDetailsById::get)
                 when {
-                    product == null -> {
-                        _billingErrorKey.value = "billing_product_unavailable"
+                    pending != null &&
+                        pendingActivity != null &&
+                        !pendingActivity.isFinishing &&
+                        !pendingActivity.isDestroyed &&
+                        pendingProduct != null -> {
+                        launchBillingFlowInternal(pendingActivity, pendingProduct)
                     }
 
-                    pendingActivity != null && !pendingActivity.isFinishing && !pendingActivity.isDestroyed -> {
-                        launchBillingFlowInternal(pendingActivity, product)
+                    pending != null && pendingProduct == null -> {
+                        _billingErrorKey.value = "billing_product_unavailable"
                     }
                 }
             } else {
@@ -204,7 +229,13 @@ class BillingRepository(
         }
     }
 
+    private data class PendingBillingLaunch(
+        val activityRef: WeakReference<Activity>,
+        val tier: SubscriptionTier,
+        val interval: BillingInterval
+    )
+
     companion object {
-        const val PREMIUM_PRODUCT_ID = "premium_access_tier"
+        const val PREMIUM_PRODUCT_ID: String = SubscriptionCatalog.LEGACY_PREMIUM_PRODUCT_ID
     }
 }

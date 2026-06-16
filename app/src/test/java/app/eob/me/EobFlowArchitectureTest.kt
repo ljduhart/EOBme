@@ -334,7 +334,8 @@ class EobFlowArchitectureTest {
         val subscriptionStateSource = readSource("billing/SubscriptionState.kt")
         val subscriptionVmSource = readSource("viewmodel/SubscriptionViewModel.kt")
         listOf(
-            "PREMIUM_PRODUCT_ID = \"premium_access_tier\"",
+            "LEGACY_PREMIUM_PRODUCT_ID",
+            "SubscriptionCatalog.ALL_PRODUCT_IDS",
             "launchBillingFlow",
             "queryProductDetailsAsync",
             "BillingRepository",
@@ -355,8 +356,8 @@ class EobFlowArchitectureTest {
             "collectAsStateWithLifecycle",
             "applySubscriptionState",
             "FirestoreSubscriptionRepository",
-            "observeIsPremium",
-            "isPremium"
+            "observeSubscriptionTier",
+            "subscriptionTier"
         ).forEach { snippet ->
             assertTrue(
                 "Subscription wiring missing: $snippet",
@@ -400,7 +401,10 @@ class EobFlowArchitectureTest {
             "SubscriptionViewModel",
             "subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle",
             "eobViewModel.applySubscriptionState",
-            "launchManageSubscriptionFlow"
+            "launchManageSubscriptionFlow",
+            "PaywallDialog",
+            "launchTierPurchaseFlow",
+            "handleBillingNoticeForPaywall"
         ).forEach { snippet ->
             assertTrue("MainHubNavHost must wire news and billing together: $snippet", navHostSource.contains(snippet))
         }

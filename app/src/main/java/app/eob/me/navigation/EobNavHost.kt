@@ -77,6 +77,9 @@ import app.eob.me.ui.screens.IntroScreen
 import app.eob.me.ui.screens.LanguageScreen
 import app.eob.me.ui.screens.LoadingInvoiceScreen
 import app.eob.me.ui.screens.NewsScreen
+import app.eob.me.data.BillingInterval
+import app.eob.me.data.SubscriptionTier
+import app.eob.me.ui.screens.PaywallDialog
 import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
 import app.eob.me.ui.screens.YearlyExpenseScreen
@@ -276,8 +279,14 @@ private fun MainHubNavHost(
     val billingNoticeKey by subscriptionViewModel.billingNoticeKey.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
+        eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+        onActivity()
+    }
+
+    fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
         val host = activity ?: return
-        subscriptionViewModel.launchPurchaseFlow(host)
+        eobViewModel.beginPaywallPurchase()
+        subscriptionViewModel.launchPurchaseFlow(host, tier, interval)
         onActivity()
     }
 
@@ -295,7 +304,7 @@ private fun MainHubNavHost(
 
     LaunchedEffect(billingNoticeKey, language) {
         billingNoticeKey?.let { key ->
-            eobViewModel.updateBillingNotice(language, key)
+            eobViewModel.handleBillingNoticeForPaywall(language, key)
         }
     }
 
@@ -915,6 +924,16 @@ private fun MainHubNavHost(
                         }
                     )
                 }
+            }
+            if (uiState.paywallVisible) {
+                PaywallDialog(
+                    message = uiState.paywallMessage,
+                    onPurchaseClicked = ::launchTierPurchaseFlow,
+                    onDismiss = {
+                        eobViewModel.dismissPaywall()
+                        onActivity()
+                    }
+                )
             }
         }
     }
