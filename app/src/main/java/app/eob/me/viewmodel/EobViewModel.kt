@@ -47,6 +47,8 @@ import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.SettingsTab
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.network.RetrofitClient
+import app.eob.me.network.RssNewsMapper
 import app.eob.me.util.CacheSizeCalculator
 import app.eob.me.util.NetworkUploadGate
 import app.eob.me.util.HubCrashlyticsGate
@@ -66,6 +68,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 
@@ -177,6 +181,40 @@ class EobViewModel : ViewModel() {
         loadHubSettings()
         refreshCacheSize()
         refreshFirebaseStatus()
+        fetchLiveInsuranceNews()
+    }
+
+    fun fetchLiveInsuranceNews() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val beckersDeferred = async {
+                    RetrofitClient.api.getFeed(RssNewsMapper.BECKERS_RSS_URL)
+                }
+                val diveDeferred = async {
+                    RetrofitClient.api.getFeed(RssNewsMapper.HEALTHCARE_DIVE_RSS_URL)
+                }
+                val (beckersResponse, diveResponse) = awaitAll(beckersDeferred, diveDeferred)
+
+                val beckersNews = RssNewsMapper.mapResponse(
+                    company = RssNewsMapper.BECKERS_COMPANY,
+                    response = beckersResponse
+                )
+                val diveNews = RssNewsMapper.mapResponse(
+                    company = RssNewsMapper.HEALTHCARE_DIVE_COMPANY,
+                    response = diveResponse
+                )
+
+                val combinedLiveNews = (beckersNews + diveNews)
+                    .sortedByDescending { RssNewsMapper.sortKey(it.date) }
+
+                withContext(Dispatchers.Main) {
+                    firebaseNews = combinedLiveNews
+                    bumpNewsFeedRevision()
+                }
+            } catch (_: Exception) {
+                // Keep the existing fallback news pipeline when RSS middleware is unavailable.
+            }
+        }
     }
 
     private fun loadHubSettings() {
@@ -848,6 +886,12 @@ class EobViewModel : ViewModel() {
     }
 
     fun currentNewsReleases(fallbackNews: List<NewsRelease>): List<NewsRelease> {
+        val liveNews = firebaseNews
+            .filterNot { it.key() in deletedNewsKeys }
+            .sortedByDescending { RssNewsMapper.sortKey(it.date) }
+        if (liveNews.isNotEmpty()) {
+            return liveNews
+        }
         val ranked = personalizedNewsFeed.value.filterNot { it.key() in deletedNewsKeys }
         val source = ranked.ifEmpty { visibleNews(fallbackNews) }
         return EobKnowledgeBase.currentNewsReleases(source)

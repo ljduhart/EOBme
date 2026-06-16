@@ -453,6 +453,9 @@ class EobFlowArchitectureTest {
             )
         }
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("fun canUploadOnCurrentNetwork()"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("fetchLiveInsuranceNews"))
+        assertTrue(readSource("network/NewsApiService.kt").contains("RetrofitClient"))
+        assertTrue(readSource("network/RssNewsMapper.kt").contains("BECKERS_RSS_URL"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsHelpfulHintsTitle"))
@@ -540,6 +543,7 @@ class EobFlowArchitectureTest {
             assertTrue("Sync flow missing: $snippet", navHostSource.contains(snippet))
         }
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("fetchHistoryFromFirestore"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("fetchLiveInsuranceNews()"))
     }
 
     @Test
