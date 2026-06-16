@@ -192,7 +192,10 @@ fun SettingsScreen(
             onDismissRequest = { showHelpfulHintsDialog = false },
             title = { Text(EobStrings.t(language, "settingsHelpfulHintsTitle")) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     listOf(
                         "settingsHelpfulHint1",
                         "settingsHelpfulHint2",
@@ -209,7 +212,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showHelpfulHintsDialog = false }) {
-                    Text(EobStrings.t(language, "cancel"))
+                    Text(EobStrings.t(language, "settingsHelpfulHintsClose"))
                 }
             }
         )

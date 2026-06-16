@@ -479,6 +479,7 @@ object EobStrings {
         "settingsUnlock" to "Unlock with PIN",
         "settingsEnterPin" to "Enter your 5-digit PIN",
         "settingsHelpfulHintsTitle" to "Helpful Hints",
+        "settingsHelpfulHintsClose" to "Close",
         "settingsHelpfulHint1" to "Input all user credentials correctly and fill out all Insurance Card information to ensure the most accurate, detailed application.",
         "settingsHelpfulHint2" to "When scanning EOBs, only scan the portion that shows billing charges, financial adjustments, and patient charges.",
         "settingsHelpfulHint3" to "All EOBs are safely scanned and reviewed via (Veryfi/Firestore). All files are encrypted and transmitted securely.",
