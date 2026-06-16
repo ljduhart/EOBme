@@ -220,13 +220,16 @@ class EobFlowArchitectureTest {
             "taxVaultBudgetSummary",
             "subscriptionTier.isGold()",
             "onTaxVaultFilterSelected",
-            "HomeWeekCalendar"
+            "HomeWeekCalendar",
+            "BoxWithConstraints"
         ).forEach { snippet ->
             assertTrue("HomeScreen missing tax vault wiring: $snippet", homeSource.contains(snippet))
         }
         assertTrue(
-            "Tax Vault card must sit below expandable calendar",
-            homeSource.indexOf("HomeWeekCalendar") < homeSource.indexOf("TaxVaultVerticalFilterCard")
+            "Tax Vault card must sit below expandable calendar and be bento-sized",
+            homeSource.indexOf("HomeWeekCalendar") < homeSource.indexOf("TaxVaultVerticalFilterCard") &&
+                homeSource.contains("BoxWithConstraints") &&
+                homeSource.contains("BentoCellLayout.ASPECT_RATIO")
         )
         listOf(
             "enum class TaxVaultFilterState",
@@ -246,6 +249,7 @@ class EobFlowArchitectureTest {
             "TaxVaultVerticalFilterCard",
             "taxVaultFilterTitle",
             "taxVaultGoldLocked",
+            "taxVaultCareTeamBorder",
             "VaultUiPhase"
         ).forEach { snippet ->
             assertTrue("TaxVaultVerticalFilterCard missing: $snippet", taxVaultSource.contains(snippet))

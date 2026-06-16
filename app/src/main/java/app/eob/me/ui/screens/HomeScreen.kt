@@ -58,10 +58,14 @@ import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.CleanInsuranceCard
+import app.eob.me.ui.components.bento.BentoCellLayout
 import app.eob.me.ui.components.bento.BentoGridCell
 import app.eob.me.ui.components.home.HomeAppointmentsSection
 import app.eob.me.ui.components.home.HomeCareTeamCards
 import app.eob.me.ui.components.home.HomeWeekCalendar
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
 
 private val DarkHomeBackground = Brush.verticalGradient(
@@ -329,19 +333,28 @@ fun HomeScreen(
             }
 
             item {
-                TaxVaultVerticalFilterCard(
-                    language = language,
-                    darkModeEnabled = darkModeEnabled,
-                    isGoldTier = subscriptionTier.isGold(),
-                    filterState = taxVaultFilterState,
-                    visibilityMode = taxVaultVisibilityMode,
-                    budgetSummary = taxVaultBudgetSummary,
-                    onFilterSelected = onTaxVaultFilterSelected,
-                    onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                )
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val bentoColumnWidth = (maxWidth - 56.dp) / 3f
+                    val bentoCellHeight = bentoColumnWidth / BentoCellLayout.ASPECT_RATIO
+                    val vaultHeight = bentoCellHeight * 2 + 28.dp
+                    val vaultWidth = (maxWidth - 28.dp) / 2f
+                    TaxVaultVerticalFilterCard(
+                        language = language,
+                        darkModeEnabled = darkModeEnabled,
+                        isGoldTier = subscriptionTier.isGold(),
+                        filterState = taxVaultFilterState,
+                        visibilityMode = taxVaultVisibilityMode,
+                        budgetSummary = taxVaultBudgetSummary,
+                        onFilterSelected = onTaxVaultFilterSelected,
+                        onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
+                        modifier = Modifier
+                            .width(vaultWidth)
+                            .height(vaultHeight)
+                    )
+                }
             }
 
             item {
