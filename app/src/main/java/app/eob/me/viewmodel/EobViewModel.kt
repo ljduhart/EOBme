@@ -47,6 +47,7 @@ import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.SettingsTab
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.network.InsuranceNewsRotation
 import app.eob.me.network.RetrofitClient
 import app.eob.me.network.RssNewsMapper
 import app.eob.me.util.CacheSizeCalculator
@@ -54,6 +55,7 @@ import app.eob.me.util.NetworkUploadGate
 import app.eob.me.util.HubCrashlyticsGate
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,7 +104,7 @@ data class HubUiState(
  * Single source of truth for authenticated hub state: EOB records, selection, appeals, news, uploads,
  * and derived hub snapshots (care team, bento, history, providers, yearly costs).
  *
- * UI layers observe [eobRecords], [sortedEobRecords], [insuranceArticles], and [uiState]; all
+ * UI layers observe [eobRecords], [sortedEobRecords], [insuranceBriefings], and [uiState]; all
  * analytics and card state flow through ViewModel methods. Firestore sync goes through [EobRepository].
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -132,6 +134,8 @@ class EobViewModel : ViewModel() {
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
 
     private var uploadText: String = ""
+    private var liveBeckersNewsPool: List<NewsRelease> = emptyList()
+    private var liveHealthcareDiveNewsPool: List<NewsRelease> = emptyList()
     private var firebaseNews: List<NewsRelease> = emptyList()
     private var deletedNewsKeys: Set<String> = emptySet()
     private val _syncProfile = MutableStateFlow(UserProfile())
@@ -168,8 +172,14 @@ class EobViewModel : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-    private val _insuranceArticles = MutableStateFlow(EobInsuranceNews.articlesForYear(currentYear))
-    val insuranceArticles: StateFlow<List<InsuranceArticle>> = _insuranceArticles.asStateFlow()
+
+    fun insuranceBriefings(): List<InsuranceArticle> {
+        return EobInsuranceNews.articlesForYear(currentYear)
+    }
+
+    fun insuranceNewsRotationSlot(): Long {
+        return InsuranceNewsRotation.rotationSlot()
+    }
 
     fun attachRepository(repo: EobRepository, context: Context) {
         repository = repo
@@ -180,6 +190,21 @@ class EobViewModel : ViewModel() {
         refreshCacheSize()
         refreshFirebaseStatus()
         fetchLiveInsuranceNews()
+        startInsuranceNewsRotationClock()
+    }
+
+    private fun startInsuranceNewsRotationClock() {
+        viewModelScope.launch {
+            while (true) {
+                val delayMs = InsuranceNewsRotation.millisUntilNextRotation()
+                if (delayMs <= 0L) {
+                    bumpNewsFeedRevision()
+                    continue
+                }
+                delay(delayMs)
+                bumpNewsFeedRevision()
+            }
+        }
     }
 
     fun fetchLiveInsuranceNews() {
@@ -198,16 +223,23 @@ class EobViewModel : ViewModel() {
                 )
             }.getOrElse { emptyList() }
 
-            val combinedLiveNews = (beckersNews + diveNews)
-                .sortedByDescending { RssNewsMapper.sortKey(it.date) }
-
-            if (combinedLiveNews.isEmpty()) return@launch
+            if (beckersNews.isEmpty() && diveNews.isEmpty()) return@launch
 
             withContext(Dispatchers.Main) {
-                firebaseNews = combinedLiveNews
+                liveBeckersNewsPool = beckersNews
+                liveHealthcareDiveNewsPool = diveNews
+                firebaseNews = rotatedLiveInsuranceIntelligence()
                 bumpNewsFeedRevision()
             }
         }
+    }
+
+    private fun rotatedLiveInsuranceIntelligence(): List<NewsRelease> {
+        return InsuranceNewsRotation.combineRotatedIntelligence(
+            beckersPool = liveBeckersNewsPool,
+            healthcareDivePool = liveHealthcareDiveNewsPool,
+            slot = insuranceNewsRotationSlot()
+        )
     }
 
     private fun loadHubSettings() {
@@ -544,6 +576,8 @@ class EobViewModel : ViewModel() {
         _taxVaultFilterState.value = TaxVaultFilterState.OFF
         _taxVaultVisibilityMode.value = TaxVaultVisibilityMode.GATED
         uploadText = ""
+        liveBeckersNewsPool = emptyList()
+        liveHealthcareDiveNewsPool = emptyList()
         firebaseNews = emptyList()
         deletedNewsKeys = emptySet()
     }
@@ -675,7 +709,9 @@ class EobViewModel : ViewModel() {
 
     fun deleteNews(news: NewsRelease) {
         deletedNewsKeys = deletedNewsKeys + news.key()
-        firebaseNews = firebaseNews.filterNot { it.key() == news.key() }
+        liveBeckersNewsPool = liveBeckersNewsPool.filterNot { it.key() == news.key() }
+        liveHealthcareDiveNewsPool = liveHealthcareDiveNewsPool.filterNot { it.key() == news.key() }
+        firebaseNews = rotatedLiveInsuranceIntelligence()
         bumpNewsFeedRevision()
     }
 
@@ -879,11 +915,10 @@ class EobViewModel : ViewModel() {
     }
 
     fun currentNewsReleases(fallbackNews: List<NewsRelease>): List<NewsRelease> {
-        val liveNews = firebaseNews
+        val rotatedLiveNews = rotatedLiveInsuranceIntelligence()
             .filterNot { it.key() in deletedNewsKeys }
-            .sortedByDescending { RssNewsMapper.sortKey(it.date) }
-        if (liveNews.isNotEmpty()) {
-            return liveNews
+        if (rotatedLiveNews.isNotEmpty()) {
+            return rotatedLiveNews
         }
         val ranked = personalizedNewsFeed.value.filterNot { it.key() in deletedNewsKeys }
         val source = ranked.ifEmpty { visibleNews(fallbackNews) }

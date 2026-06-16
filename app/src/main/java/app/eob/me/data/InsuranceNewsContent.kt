@@ -22,9 +22,15 @@ enum class MajorInsuranceCarrier(val displayName: String) {
 }
 
 object EobInsuranceNews {
-    fun articlesForYear(year: Int = Calendar.getInstance().get(Calendar.YEAR)): List<InsuranceArticle> {
+    fun articlesForYear(
+        year: Int = Calendar.getInstance().get(Calendar.YEAR),
+        throughMonth: Int = Calendar.getInstance().get(Calendar.MONTH)
+    ): List<InsuranceArticle> {
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        if (year != currentYear) return emptyList()
+        val lastMonth = throughMonth.coerceIn(Calendar.JANUARY, Calendar.DECEMBER)
         return MajorInsuranceCarrier.entries.flatMap { carrier ->
-            (Calendar.JANUARY..Calendar.DECEMBER).map { monthIndex ->
+            (Calendar.JANUARY..lastMonth).map { monthIndex ->
                 val monthLabel = monthName(monthIndex)
                 InsuranceArticle(
                     id = "${carrier.name}_${year}_$monthIndex",

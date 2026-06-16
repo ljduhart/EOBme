@@ -214,7 +214,6 @@ private fun MainHubNavHost(
     val eobRepository: EobRepository = appViewModel.eobRepository
 
     val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
-    val insuranceArticles by eobViewModel.insuranceArticles.collectAsStateWithLifecycle()
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
     val personalizedNewsFeed by eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
@@ -534,11 +533,13 @@ private fun MainHubNavHost(
                     ) {
                         eobViewModel.ytdDeductibleBentoSnapshot(profile)
                     }
+                    val insuranceNewsRotationSlot = eobViewModel.insuranceNewsRotationSlot()
                     val insuranceNewsBentoSnapshot = remember(
                         sortedEobRecords,
                         language,
                         hubTimeKey,
                         uiState.newsFeedRevision,
+                        insuranceNewsRotationSlot,
                         personalizedNewsFeed,
                         uiState.selectedCptCategory,
                         profile.city,
@@ -720,7 +721,12 @@ private fun MainHubNavHost(
                 }
                 composable(EobRoute.News.route) {
                     val newsFeedRevision = uiState.newsFeedRevision
-                    val newsItems = remember(newsFeedRevision, personalizedNewsFeed) {
+                    val hubTimeKey = eobViewModel.hubTimeKey()
+                    val insuranceNewsRotationSlot = eobViewModel.insuranceNewsRotationSlot()
+                    val insuranceArticles = remember(hubTimeKey) {
+                        eobViewModel.insuranceBriefings()
+                    }
+                    val newsItems = remember(newsFeedRevision, insuranceNewsRotationSlot, personalizedNewsFeed) {
                         eobViewModel.currentNewsReleases(EobKnowledgeBase.newsReleases)
                     }
                     NewsScreen(
