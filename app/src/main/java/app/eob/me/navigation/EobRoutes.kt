@@ -31,7 +31,7 @@ val hubBackRoutes = hubFeatureRoutes + setOf(
     EobRoute.Settings.route
 )
 
-/** Routes where the bottom navigation bar is hidden (full-screen camera). */
+/** Routes where the bottom navigation bar and hub header are hidden (full-screen camera). */
 val hubRoutesWithoutBottomBar = setOf(
     EobRoute.CameraCapture.route
 )

@@ -324,11 +324,6 @@ private fun MainHubNavHost(
         }
     }
 
-    val mlKitCameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) launchDocumentScanner()
-        else Toast.makeText(context, EobStrings.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
-    }
-
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -432,6 +427,7 @@ private fun MainHubNavHost(
     val showBack = currentRoute in hubBackRoutes
     val showSettingsGear = currentRoute == EobRoute.Home.route
     val showBottomBar = currentRoute !in hubRoutesWithoutBottomBar
+    val showHubHeader = currentRoute !in hubRoutesWithoutBottomBar
     val selectedBottomTab = HubBottomTab.fromRoute(currentRoute)
     var settingsDraftFirstName by remember(profile.firstName) { mutableStateOf(profile.firstName) }
     var settingsDraftLastName by remember(profile.lastName) { mutableStateOf(profile.lastName) }
@@ -487,7 +483,7 @@ private fun MainHubNavHost(
                             }
                             HubBottomTab.ScanEob -> {
                                 if (userId.isNotBlank()) {
-                                    mlKitCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                                 } else {
                                     Toast.makeText(
                                         context,
@@ -515,23 +511,31 @@ private fun MainHubNavHost(
                 .padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-            HubHeader(
-                language = language,
-                showBack = showBack,
-                showSettingsGear = showSettingsGear,
-                onBack = {
-                    navController.navigate(EobRoute.Home.route) {
-                        popUpTo(EobRoute.Home.route) { inclusive = true }
-                        launchSingleTop = true
+            if (showHubHeader) {
+                HubHeader(
+                    language = language,
+                    showBack = showBack,
+                    showSettingsGear = showSettingsGear,
+                    onBack = {
+                        navController.navigate(EobRoute.Home.route) {
+                            popUpTo(EobRoute.Home.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                        onActivity()
+                    },
+                    onOpenSettings = {
+                        navController.navigate(EobRoute.Settings.route) { launchSingleTop = true }
+                        onActivity()
                     }
-                    onActivity()
-                },
-                onOpenSettings = {
-                    navController.navigate(EobRoute.Settings.route) { launchSingleTop = true }
-                    onActivity()
-                }
-            )
-            NavHost(navController = navController, startDestination = EobRoute.Home.route) {
+                )
+            }
+            NavHost(
+                navController = navController,
+                startDestination = EobRoute.Home.route,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
                 composable(EobRoute.Home.route) {
                     val hubTimeKey = eobViewModel.hubTimeKey()
                     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
@@ -720,9 +724,6 @@ private fun MainHubNavHost(
                         onDeleteEob = { deleteEob(it) },
                         onLibraryUpload = {
                             libraryUploadLauncher.launch(arrayOf("image/*", "application/pdf"))
-                        },
-                        onCameraScan = {
-                            customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         },
                         onActivity = onActivity
                     )
@@ -1045,7 +1046,6 @@ private fun HistoryRoute(
     eobViewModel: EobViewModel,
     onDeleteEob: (EobRecord) -> Unit,
     onLibraryUpload: () -> Unit,
-    onCameraScan: () -> Unit,
     onActivity: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -1086,9 +1086,6 @@ private fun HistoryRoute(
             )
             Button(onClick = onLibraryUpload) {
                 Text(EobStrings.t(language, "uploadFromLibrary"))
-            }
-            Button(onClick = onCameraScan) {
-                Text(EobStrings.t(language, "scanWithCamera"))
             }
         }
         if (totalBillingErrors > 0) {

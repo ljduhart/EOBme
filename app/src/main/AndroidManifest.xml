@@ -32,8 +32,10 @@
          EobViewModel.appealLetterEditingEnabled, hub Settings gear → EobRoute.Settings with
          EobViewModel hubSettings, SubscriptionViewModel + BillingRepository for
          premium_access_tier + Silver/Gold SKUs, Firestore users/{uid}.subscriptionTier
-         with legacy isPremium, RevenueCat Purchases via EobApplication) + EobRepository; ML Kit document scanner upload pipeline via
+         with legacy isPremium, RevenueCat Purchases via EobApplication) + EobRepository;
+         hub Scan EOB bottom tab → EobRoute.CameraCapture (CameraX 85/15) →
          EobViewModel.processScannedDocument → Firebase Storage → Veryfi Cloud Function;
+         ML Kit document scanner helpers retained for hybrid pipeline utilities;
          care team dial uses ACTION_DIAL only
          (no CALL_PHONE). Profile darkModeEnabled persisted in hubSettings. Runtime permissions in EobNavHost. -->
     <uses-feature

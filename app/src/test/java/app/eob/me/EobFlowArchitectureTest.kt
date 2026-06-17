@@ -600,9 +600,10 @@ class EobFlowArchitectureTest {
     @Test
     fun hubBottomBarScanOpensCameraPermissionPath() {
         assertEquals(HubBottomTab.ScanEob, HubBottomTab.entries[1])
-        assertTrue(navHostSource.contains("launchDocumentScanner"))
-        assertTrue(navHostSource.contains("StartIntentSenderForResult"))
+        assertTrue(navHostSource.contains("customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)"))
+        assertTrue(navHostSource.contains("EobRoute.CameraCapture.route"))
         assertTrue(navHostSource.contains("DocumentProcessingOverlay"))
+        assertTrue(navHostSource.contains("showHubHeader"))
         assertTrue(EobRoute.CameraCapture.route in hubRoutesWithoutBottomBar)
         assertTrue(EobRoute.Home.route !in hubBackRoutes)
         assertTrue(hubFeatureRoutes.contains(EobRoute.History.route))
@@ -618,7 +619,7 @@ class EobFlowArchitectureTest {
         assertTrue(navHostSource.contains("processScannedDocument"))
         assertTrue(navHostSource.contains("imageCompressionLevel()"))
         assertTrue(navHostSource.contains("customCameraPermissionLauncher"))
-        assertTrue(navHostSource.contains("onCameraScan"))
+        assertFalse(navHostSource.contains("onCameraScan"))
         assertFalse(
             "Camera capture must not bypass hybrid pipeline via prepareAndUpload",
             navHostSource.contains("prepareAndUpload(uri, EobStrings.t(language, \"cameraScan\"))")
