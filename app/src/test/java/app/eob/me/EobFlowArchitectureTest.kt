@@ -97,6 +97,7 @@ class EobFlowArchitectureTest {
             assertTrue("Manifest missing $permission", manifestSource.contains(permission))
         }
         assertTrue(manifestSource.contains("MainActivity"))
+        assertTrue(manifestSource.contains("EobApplication"))
         assertTrue(manifestSource.contains("EobFirebaseMessagingService"))
         assertFalse(
             "Manifest should not declare CALL_PHONE",
@@ -378,6 +379,14 @@ class EobFlowArchitectureTest {
         )
         assertTrue(manifestSource.contains("com.android.vending.BILLING"))
         assertTrue(manifestSource.contains("com.android.vending"))
+        assertTrue(
+            "RevenueCat must initialize from EobApplication",
+            readSource("EobApplication.kt").contains("Purchases.configure")
+        )
+        assertTrue(
+            "Manifest must register EobApplication",
+            manifestSource.contains("android:name=\".EobApplication\"")
+        )
         assertTrue(
             "SubscriptionViewModel must use Application-only constructor for viewModel()",
             subscriptionVmSource.contains(
