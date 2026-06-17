@@ -324,7 +324,7 @@ class EobFlowArchitectureTest {
             "prepareAndUpload",
             "libraryUploadLauncher",
             "EobRoute.CameraCapture.route",
-            "cameraPermissionLauncher",
+            "customCameraPermissionLauncher",
             "setLoadingInvoice",
             "acknowledgeInvoiceFileDropAnimation",
             "canUploadOnCurrentNetwork",
@@ -617,6 +617,8 @@ class EobFlowArchitectureTest {
         assertTrue(navHostSource.contains("EobRoute.CameraCapture.route"))
         assertTrue(navHostSource.contains("processScannedDocument"))
         assertTrue(navHostSource.contains("imageCompressionLevel()"))
+        assertTrue(navHostSource.contains("customCameraPermissionLauncher"))
+        assertTrue(navHostSource.contains("onCameraScan"))
         assertFalse(
             "Camera capture must not bypass hybrid pipeline via prepareAndUpload",
             navHostSource.contains("prepareAndUpload(uri, EobStrings.t(language, \"cameraScan\"))")

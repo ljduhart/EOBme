@@ -242,6 +242,20 @@ class CameraCaptureViewModel(application: Application) : AndroidViewModel(applic
         refreshMotionState()
     }
 
+    fun onExportFailed(message: String) {
+        _uiState.update {
+            it.copy(
+                phase = if (it.capturedBitmap != null) {
+                    CameraCapturePhase.POST_CAPTURE_ADJUST
+                } else {
+                    CameraCapturePhase.LIVE_PREVIEW
+                },
+                isCapturing = false,
+                statusMessage = message
+            )
+        }
+    }
+
     fun updateAdjustableCorner(index: Int, offset: Offset) {
         val corners = _uiState.value.adjustableCorners ?: return
         val point = PointF(offset.x, offset.y)
@@ -319,7 +333,11 @@ class CameraCaptureViewModel(application: Application) : AndroidViewModel(applic
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
-                        phase = CameraCapturePhase.POST_CAPTURE_ADJUST,
+                        phase = if (it.capturedBitmap != null) {
+                            CameraCapturePhase.POST_CAPTURE_ADJUST
+                        } else {
+                            CameraCapturePhase.LIVE_PREVIEW
+                        },
                         isCapturing = false,
                         statusMessage = error.localizedMessage.orEmpty()
                     )

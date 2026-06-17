@@ -58,7 +58,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -70,6 +70,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.scanner.DocumentCorners
+import app.eob.me.scanner.ImageScaleMode
 import app.eob.me.scanner.ScanFilterMode
 import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.viewmodel.CameraCapturePhase
@@ -79,7 +80,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.io.File
 import java.util.concurrent.TimeUnit
-import kotlin.math.roundToInt
 
 private val ScannerBackdrop = Color(0xFF0A0D14)
 private val ScannerControlBar = Color(0xFF121722)
@@ -219,7 +219,7 @@ fun CameraCaptureScreen(
                     viewModel.confirmCapture(
                         compression = imageCompression,
                         onComplete = onImageCaptured,
-                        onError = { message -> viewModel.onCaptureFailed(message) }
+                        onError = viewModel::onExportFailed
                     )
                 }
             )
@@ -406,7 +406,8 @@ private fun DocumentEdgeOverlay(
             sourceWidth = analysisWidth.toFloat(),
             sourceHeight = analysisHeight.toFloat(),
             viewWidth = size.width,
-            viewHeight = size.height
+            viewHeight = size.height,
+            scaleMode = ImageScaleMode.FILL
         )
         val points = mapped.toPolygonOffsets()
         val path = Path().apply {
@@ -469,8 +470,20 @@ private fun MagneticCropScreen(
             val viewHeight = constraints.maxHeight.toFloat()
             val bitmapWidth = bitmap.width.toFloat()
             val bitmapHeight = bitmap.height.toFloat()
-            val viewCorners = corners.mapToView(bitmapWidth, bitmapHeight, viewWidth, viewHeight)
-            val viewToBitmap = corners.mapFromView(bitmapWidth, bitmapHeight, viewWidth, viewHeight)
+            val viewCorners = corners.mapToView(
+                bitmapWidth,
+                bitmapHeight,
+                viewWidth,
+                viewHeight,
+                scaleMode = ImageScaleMode.FIT
+            )
+            val viewToBitmap = corners.mapFromView(
+                bitmapWidth,
+                bitmapHeight,
+                viewWidth,
+                viewHeight,
+                scaleMode = ImageScaleMode.FIT
+            )
 
             Image(
                 bitmap = bitmap.asImageBitmap(),

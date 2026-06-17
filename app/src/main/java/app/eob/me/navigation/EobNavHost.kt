@@ -313,7 +313,18 @@ private fun MainHubNavHost(
         )
     }
 
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    val customCameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            navController.navigate(EobRoute.CameraCapture.route) {
+                launchSingleTop = true
+            }
+            onActivity()
+        } else {
+            Toast.makeText(context, EobStrings.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val mlKitCameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) launchDocumentScanner()
         else Toast.makeText(context, EobStrings.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
     }
@@ -476,7 +487,7 @@ private fun MainHubNavHost(
                             }
                             HubBottomTab.ScanEob -> {
                                 if (userId.isNotBlank()) {
-                                    launchDocumentScanner()
+                                    mlKitCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                                 } else {
                                     Toast.makeText(
                                         context,
@@ -709,6 +720,9 @@ private fun MainHubNavHost(
                         onDeleteEob = { deleteEob(it) },
                         onLibraryUpload = {
                             libraryUploadLauncher.launch(arrayOf("image/*", "application/pdf"))
+                        },
+                        onCameraScan = {
+                            customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         },
                         onActivity = onActivity
                     )
@@ -1031,6 +1045,7 @@ private fun HistoryRoute(
     eobViewModel: EobViewModel,
     onDeleteEob: (EobRecord) -> Unit,
     onLibraryUpload: () -> Unit,
+    onCameraScan: () -> Unit,
     onActivity: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -1071,6 +1086,9 @@ private fun HistoryRoute(
             )
             Button(onClick = onLibraryUpload) {
                 Text(EobStrings.t(language, "uploadFromLibrary"))
+            }
+            Button(onClick = onCameraScan) {
+                Text(EobStrings.t(language, "scanWithCamera"))
             }
         }
         if (totalBillingErrors > 0) {

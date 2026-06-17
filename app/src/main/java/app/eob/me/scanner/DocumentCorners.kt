@@ -20,9 +20,10 @@ data class DocumentCorners(
         sourceWidth: Float,
         sourceHeight: Float,
         viewWidth: Float,
-        viewHeight: Float
+        viewHeight: Float,
+        scaleMode: ImageScaleMode = ImageScaleMode.FIT
     ): DocumentCorners {
-        val layout = FittedImageLayout.forBitmap(sourceWidth, sourceHeight, viewWidth, viewHeight)
+        val layout = FittedImageLayout.forBitmap(sourceWidth, sourceHeight, viewWidth, viewHeight, scaleMode)
         return mapWith { point -> layout.bitmapToView(point) }
     }
 
@@ -30,9 +31,10 @@ data class DocumentCorners(
         sourceWidth: Float,
         sourceHeight: Float,
         viewWidth: Float,
-        viewHeight: Float
+        viewHeight: Float,
+        scaleMode: ImageScaleMode = ImageScaleMode.FIT
     ): (Offset) -> PointF {
-        val layout = FittedImageLayout.forBitmap(sourceWidth, sourceHeight, viewWidth, viewHeight)
+        val layout = FittedImageLayout.forBitmap(sourceWidth, sourceHeight, viewWidth, viewHeight, scaleMode)
         return { offset -> layout.viewToBitmap(offset) }
     }
 
@@ -79,8 +81,15 @@ data class DocumentCorners(
 }
 
 /**
- * Maps bitmap pixel coordinates to a FIT_CENTER preview region inside a view.
+ * Maps bitmap pixel coordinates to a preview region inside a view.
  */
+enum class ImageScaleMode {
+    /** Matches PreviewView.ScaleType.FIT_CENTER and Compose ContentScale.Fit. */
+    FIT,
+    /** Matches PreviewView.ScaleType.FILL_CENTER. */
+    FILL
+}
+
 data class FittedImageLayout(
     val scale: Float,
     val offsetX: Float,
@@ -106,9 +115,13 @@ data class FittedImageLayout(
             bitmapWidth: Float,
             bitmapHeight: Float,
             viewWidth: Float,
-            viewHeight: Float
+            viewHeight: Float,
+            scaleMode: ImageScaleMode = ImageScaleMode.FIT
         ): FittedImageLayout {
-            val scale = minOf(viewWidth / bitmapWidth, viewHeight / bitmapHeight)
+            val scale = when (scaleMode) {
+                ImageScaleMode.FIT -> minOf(viewWidth / bitmapWidth, viewHeight / bitmapHeight)
+                ImageScaleMode.FILL -> maxOf(viewWidth / bitmapWidth, viewHeight / bitmapHeight)
+            }
             val displayWidth = bitmapWidth * scale
             val displayHeight = bitmapHeight * scale
             return FittedImageLayout(
