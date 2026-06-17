@@ -1,13 +1,17 @@
 package app.eob.me.data.remote
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import app.eob.me.data.EobRecord
+import app.eob.me.data.DocumentScanPipelineRepository
+import app.eob.me.data.DocumentUploadResult
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.util.EobDocumentOcrPreCheck
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.Flow
 
@@ -17,6 +21,8 @@ import kotlinx.coroutines.flow.Flow
 class FirebaseEobRemoteDataSource(
     private val firebase: FirebaseEobRepository
 ) : EobRepository {
+
+    private val documentScanPipeline = DocumentScanPipelineRepository(firebase)
 
     override fun status(): FirebaseSyncStatus = firebase.status()
 
@@ -63,6 +69,37 @@ class FirebaseEobRemoteDataSource(
     override fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, onComplete: (String) -> Unit) {
         firebase.uploadEobBitmap(userId, bitmap, sourceName, onComplete)
     }
+
+    override suspend fun uploadEobFileAwaitDownload(
+        userId: String,
+        uri: Uri,
+        sourceName: String,
+        fileName: String?
+    ): DocumentUploadResult = firebase.uploadEobFileAwaitDownload(userId, uri, sourceName, fileName)
+
+    override suspend fun runDocumentOcrPreCheck(
+        context: Context,
+        uri: Uri
+    ): EobDocumentOcrPreCheck.Result = documentScanPipeline.runOcrPreCheck(context, uri)
+
+    override suspend fun extractUploadedDocument(
+        userId: String,
+        upload: DocumentUploadResult
+    ): EobRecord = documentScanPipeline.extractUploadedDocument(userId, upload)
+
+    override suspend fun processHybridScannedDocument(
+        context: Context,
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): EobRecord = documentScanPipeline.processHybridDocument(context, userId, uri, sourceName)
+
+    override suspend fun uploadAndExtractDocument(
+        context: Context,
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): Result<EobRecord> = documentScanPipeline.uploadAndExtractDocument(context, userId, uri, sourceName)
 
     override fun deleteAccount(userId: String, onComplete: (String) -> Unit) {
         firebase.deleteAccount(userId, onComplete)

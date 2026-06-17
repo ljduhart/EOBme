@@ -29,6 +29,7 @@ import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.FirebaseSyncStatus
+import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.ProviderAvatarPreview
@@ -53,6 +54,7 @@ import app.eob.me.network.RssNewsMapper
 import app.eob.me.util.CacheSizeCalculator
 import app.eob.me.util.NetworkUploadGate
 import app.eob.me.util.HubCrashlyticsGate
+import app.eob.me.util.OcrProcessor
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Job
@@ -134,6 +136,9 @@ class EobViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(HubUiState())
     val uiState: StateFlow<HubUiState> = _uiState.asStateFlow()
+
+    private val _documentScanState = MutableStateFlow<DocumentScanPipelineState>(DocumentScanPipelineState.Idle)
+    val documentScanState: StateFlow<DocumentScanPipelineState> = _documentScanState.asStateFlow()
 
     private var uploadText: String = ""
     private var liveBeckersNewsPool: List<NewsRelease> = emptyList()
@@ -592,6 +597,7 @@ class EobViewModel : ViewModel() {
         deletedNewsKeys = emptySet()
         newsRotationJob?.cancel()
         newsRotationJob = null
+        _documentScanState.value = DocumentScanPipelineState.Idle
     }
 
     fun startFirestoreSync(userId: String, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
@@ -1085,6 +1091,122 @@ class EobViewModel : ViewModel() {
             updateUploadNotice(notice)
             if (message.contains("failed", ignoreCase = true)) {
                 setLoadingInvoice(false)
+            }
+        }
+    }
+
+    fun onDocumentScanStarted() {
+        _documentScanState.value = DocumentScanPipelineState.LocalScanning
+    }
+
+    fun onDocumentScanCancelled() {
+        _documentScanState.value = DocumentScanPipelineState.Idle
+    }
+
+    fun onDocumentScanLaunchFailed(language: AppLanguage, message: String) {
+        _documentScanState.value = DocumentScanPipelineState.Error(
+            message.ifBlank { EobStrings.t(language, "documentScanLaunchFailed") }
+        )
+    }
+
+    fun dismissDocumentScanState() {
+        _documentScanState.value = DocumentScanPipelineState.Idle
+    }
+
+    fun processScannedDocument(
+        userId: String,
+        uri: Uri,
+        sourceName: String,
+        language: AppLanguage
+    ) {
+        val repo = repository ?: return
+        val context = appContext ?: return
+        if (userId.isBlank()) {
+            _documentScanState.value = DocumentScanPipelineState.Error(
+                EobStrings.t(language, "signInBeforeUpload")
+            )
+            return
+        }
+        if (!canUploadOnCurrentNetwork(context)) {
+            _documentScanState.value = DocumentScanPipelineState.Error(
+                EobStrings.t(language, "settingsUploadWifiBlocked")
+            )
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                setLoadingInvoice(true)
+                _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
+            }
+
+            val preCheck = runCatching {
+                repo.runDocumentOcrPreCheck(context, uri)
+            }.getOrElse { error ->
+                withContext(Dispatchers.Main) {
+                    setLoadingInvoice(false)
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "documentScanOcrFailed")
+                    )
+                    updateUploadNotice(error.localizedMessage.orEmpty())
+                }
+                return@launch
+            }
+            if (!preCheck.passed) {
+                withContext(Dispatchers.Main) {
+                    setLoadingInvoice(false)
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "documentScanOcrPreCheckFailed")
+                    )
+                    updateUploadNotice(EobStrings.t(language, "documentScanOcrPreCheckFailed"))
+                }
+                return@launch
+            }
+
+            val preparedUri = runCatching {
+                OcrProcessor.prepareUriForUpload(context, uri, imageCompressionLevel())
+            }.getOrElse { error ->
+                withContext(Dispatchers.Main) {
+                    setLoadingInvoice(false)
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "imagePrepFailed")
+                    )
+                    updateUploadNotice(error.localizedMessage.orEmpty())
+                }
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                _documentScanState.value = DocumentScanPipelineState.UploadingAndProcessing
+            }
+
+            val extraction = runCatching {
+                repo.processHybridScannedDocument(
+                    context = context,
+                    userId = userId,
+                    uri = preparedUri,
+                    sourceName = sourceName
+                )
+            }
+            withContext(Dispatchers.Main) {
+                extraction.fold(
+                    onSuccess = { record ->
+                        _documentScanState.value = DocumentScanPipelineState.Success(record)
+                        updateUploadNotice(EobStrings.t(language, "documentScanSuccess"))
+                        setLoadingInvoice(false)
+                    },
+                    onFailure = { error ->
+                        setLoadingInvoice(false)
+                        val message = when (error) {
+                            is kotlinx.coroutines.TimeoutCancellationException ->
+                                EobStrings.t(language, "documentScanVeryfiTimeout")
+                            else -> error.localizedMessage
+                                ?.takeIf { it.isNotBlank() }
+                                ?: EobStrings.t(language, "documentScanFailed")
+                        }
+                        _documentScanState.value = DocumentScanPipelineState.Error(message)
+                        updateUploadNotice(message)
+                    }
+                )
             }
         }
     }

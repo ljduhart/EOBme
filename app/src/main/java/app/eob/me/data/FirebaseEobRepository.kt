@@ -12,9 +12,12 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import java.io.ByteArrayOutputStream
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 data class FirebaseSyncStatus(
     val isConfigured: Boolean,
@@ -346,6 +349,55 @@ class FirebaseEobRepository(private val context: Context) {
         ref.putFile(uri, metadata)
             .addOnSuccessListener { onComplete("EOB uploaded. Veryfi processing started.") }
             .addOnFailureListener { onComplete("EOB upload failed: ${it.localizedMessage}") }
+    }
+
+    suspend fun uploadEobFileAwaitDownload(
+        userId: String,
+        uri: Uri,
+        sourceName: String,
+        fileName: String? = null
+    ): DocumentUploadResult {
+        if (!configured || userId.isBlank()) {
+            throw IllegalStateException("Please sign in before uploading an EOB.")
+        }
+        val contentType = context.contentResolver.getType(uri)
+            ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
+        val extension = HybridDocumentRef.extensionForContentType(contentType)
+        val resolvedFileName = fileName?.takeIf { it.isNotBlank() }
+            ?: HybridDocumentRef.fileNameForUpload(extension)
+        val documentRefId = HybridDocumentRef.documentRefId(resolvedFileName)
+        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/$resolvedFileName")
+        val metadata = StorageMetadata.Builder()
+            .setContentType(contentType)
+            .setCustomMetadata("sourceName", sourceName)
+            .build()
+        return suspendCancellableCoroutine { continuation ->
+            val uploadTask = ref.putFile(uri, metadata)
+            uploadTask
+                .continueWithTask { task ->
+                    if (!task.isSuccessful) {
+                        throw task.exception ?: IllegalStateException("EOB upload failed.")
+                    }
+                    ref.downloadUrl
+                }
+                .addOnSuccessListener { downloadUrl ->
+                    continuation.resume(
+                        DocumentUploadResult(
+                            storagePath = ref.path,
+                            downloadUrl = downloadUrl.toString(),
+                            contentType = contentType,
+                            fileName = resolvedFileName,
+                            documentRefId = documentRefId
+                        )
+                    )
+                }
+                .addOnFailureListener { error ->
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(error)
+                    }
+                }
+            continuation.invokeOnCancellation { uploadTask.cancel() }
+        }
     }
 
     fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, onComplete: (String) -> Unit) {

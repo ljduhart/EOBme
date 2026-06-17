@@ -54,6 +54,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
@@ -62,6 +63,7 @@ import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.ui.components.DocumentProcessingOverlay
 import app.eob.me.ui.components.EobDeleteBar
 import app.eob.me.ui.components.HubBottomBar
 import app.eob.me.navigation.HubBentoDestination
@@ -86,6 +88,7 @@ import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
 import app.eob.me.ui.screens.YearlyExpenseScreen
 import app.eob.me.ui.history.HistoryPagination
+import app.eob.me.scanner.GmsDocumentScannerLauncher
 import app.eob.me.util.OcrProcessor
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
@@ -214,6 +217,7 @@ private fun MainHubNavHost(
     val eobRepository: EobRepository = appViewModel.eobRepository
 
     val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
+    val documentScanState by eobViewModel.documentScanState.collectAsStateWithLifecycle()
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
     val personalizedNewsFeed by eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
@@ -267,14 +271,56 @@ private fun MainHubNavHost(
         }
     }
 
+    val activity = context as? FragmentActivity
+
+    val documentScannerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        val scannedUri = GmsDocumentScannerLauncher.parseScanResult(result.resultCode, result.data)
+        if (scannedUri != null) {
+            eobViewModel.processScannedDocument(
+                userId = firebaseUser?.uid.orEmpty(),
+                uri = scannedUri,
+                sourceName = EobStrings.t(language, "documentScannerSource"),
+                language = language
+            )
+            navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+            onActivity()
+        } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) {
+            eobViewModel.onDocumentScanLaunchFailed(
+                language = language,
+                message = EobStrings.t(language, "documentScanNoResult")
+            )
+        } else {
+            eobViewModel.onDocumentScanCancelled()
+        }
+    }
+
+    fun launchDocumentScanner() {
+        val host = activity ?: return
+        GmsDocumentScannerLauncher.buildScanRequest(
+            activity = host,
+            onReady = { request ->
+                eobViewModel.onDocumentScanStarted()
+                documentScannerLauncher.launch(request)
+            },
+            onFailure = { error ->
+                eobViewModel.onDocumentScanLaunchFailed(
+                    language = language,
+                    message = error.localizedMessage.orEmpty()
+                )
+            }
+        )
+    }
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) navController.navigate(EobRoute.CameraCapture.route)
+        if (granted) launchDocumentScanner()
         else Toast.makeText(context, EobStrings.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
     }
+
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val activity = context as? FragmentActivity
     val subscriptionViewModel: SubscriptionViewModel = viewModel()
     val subscriptionState by subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle()
     val billingNoticeKey by subscriptionViewModel.billingNoticeKey.collectAsStateWithLifecycle()
@@ -430,7 +476,7 @@ private fun MainHubNavHost(
                             }
                             HubBottomTab.ScanEob -> {
                                 if (userId.isNotBlank()) {
-                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    launchDocumentScanner()
                                 } else {
                                     Toast.makeText(
                                         context,
@@ -899,6 +945,28 @@ private fun MainHubNavHost(
                     )
                 }
             }
+            }
+            DocumentProcessingOverlay(
+                language = language,
+                state = documentScanState,
+                modifier = Modifier.fillMaxSize()
+            )
+            LaunchedEffect(documentScanState) {
+                when (val state = documentScanState) {
+                    is DocumentScanPipelineState.Success -> {
+                        Toast.makeText(
+                            context,
+                            EobStrings.t(language, "documentScanSuccess"),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        eobViewModel.dismissDocumentScanState()
+                    }
+                    is DocumentScanPipelineState.Error -> {
+                        Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                        eobViewModel.dismissDocumentScanState()
+                    }
+                    else -> Unit
+                }
             }
             if (uiState.hubSettings.appLocked) {
                 var unlockPin by remember { mutableStateOf("") }

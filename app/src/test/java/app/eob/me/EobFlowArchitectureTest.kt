@@ -461,7 +461,18 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("network/InsuranceNewsRotation.kt").contains("BECKERS_VISIBLE_COUNT"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("hasLiveInsuranceNewsPools"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("startInsuranceNewsRotationClock"))
-        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("RetrofitClient.api.getFeed"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("processScannedDocument"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("documentScanState"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("processHybridScannedDocument"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("runDocumentOcrPreCheck(context, uri)"))
+        assertTrue(readSource("data/DocumentScanPipelineRepository.kt").contains("runCatching { streamDeferred.await() }"))
+        assertTrue(readSource("scanner/GmsDocumentScannerLauncher.kt").contains("SCANNER_MODE_FULL"))
+        assertTrue(readSource("network/VeryfiDocumentClient.kt").contains("awaitVeryfiExtraction"))
+        assertTrue(readSource("network/VeryfiDocumentClient.kt").contains("streamExtractDocument"))
+        assertTrue(readSource("network/VeryfiDocumentClient.kt").contains("writeReconciliationFindings"))
+        assertTrue(readSource("data/DocumentScanPipelineRepository.kt").contains("processHybridDocument"))
+        assertTrue(readSource("util/EobDocumentOcrPreCheck.kt").contains("validate"))
+        assertTrue(readSource("ui/components/DocumentProcessingOverlay.kt").contains("DocumentProcessingOverlay"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsHelpfulHintsTitle"))
@@ -527,7 +538,9 @@ class EobFlowArchitectureTest {
     @Test
     fun hubBottomBarScanOpensCameraPermissionPath() {
         assertEquals(HubBottomTab.ScanEob, HubBottomTab.entries[1])
-        assertTrue(navHostSource.contains("Manifest.permission.CAMERA"))
+        assertTrue(navHostSource.contains("launchDocumentScanner"))
+        assertTrue(navHostSource.contains("StartIntentSenderForResult"))
+        assertTrue(navHostSource.contains("DocumentProcessingOverlay"))
         assertTrue(EobRoute.CameraCapture.route in hubRoutesWithoutBottomBar)
         assertTrue(EobRoute.Home.route !in hubBackRoutes)
         assertTrue(hubFeatureRoutes.contains(EobRoute.History.route))
@@ -536,7 +549,7 @@ class EobFlowArchitectureTest {
     @Test
     fun pasteAndDeleteFlowsExistOnViewModel() {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
-        listOf("savePastedEob", "deleteRecord", "deleteRecordRemote", "uploadEobFile", "uploadEobBitmap")
+        listOf("savePastedEob", "deleteRecord", "deleteRecordRemote", "uploadEobFile", "uploadEobBitmap", "processScannedDocument")
             .forEach { snippet ->
                 assertTrue("EobViewModel missing $snippet", viewModelSource.contains(snippet))
             }

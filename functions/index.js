@@ -3,6 +3,7 @@
 const admin = require("firebase-admin");
 const {onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onObjectFinalized} = require("firebase-functions/v2/storage");
+const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const {
   comparableEobData,
@@ -63,6 +64,24 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
     userRef.collection("eobs").doc(docId).set(payload, {merge: true}),
     userRef.collection("eob_records").doc(docId).set(payload, {merge: true})
   ]);
+});
+
+exports.extractVeryfiHybridStream = onCall({
+  secrets: [veryfiClientId, veryfiUsername, veryfiApiKey]
+}, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Sign in is required for hybrid Veryfi extraction.");
+  }
+  const {fileBase64, fileName, contentType} = request.data || {};
+  if (!fileBase64 || !fileName) {
+    throw new HttpsError("invalid-argument", "fileBase64 and fileName are required.");
+  }
+  const fileBytes = Buffer.from(fileBase64, "base64");
+  const veryfiResponse = await extractWithVeryfi(fileBytes, {
+    fileName,
+    contentType: contentType || "application/octet-stream"
+  });
+  return {veryfi: veryfiResponse};
 });
 
 async function extractWithVeryfi(fileBytes, fileMetadata) {

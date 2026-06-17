@@ -321,6 +321,29 @@ enum class InvoiceProcessingPhase {
     FileDropReveal
 }
 
+sealed class DocumentScanPipelineState {
+    data object Idle : DocumentScanPipelineState()
+    data object LocalScanning : DocumentScanPipelineState()
+    data object OcrPreCheck : DocumentScanPipelineState()
+    data object UploadingAndProcessing : DocumentScanPipelineState()
+    data class Success(val record: EobRecord) : DocumentScanPipelineState()
+    data class Error(val message: String) : DocumentScanPipelineState()
+}
+
+data class DocumentUploadResult(
+    val storagePath: String,
+    val downloadUrl: String,
+    val contentType: String,
+    val fileName: String,
+    val documentRefId: String
+)
+
+data class VeryfiStreamExtraction(
+    val documentRefId: String,
+    val sourceFilePath: String,
+    val payload: Map<String, Any?>
+)
+
 data class HistoryBentoSnapshot(
     val monthlySpend: List<Double>,
     val cornerstoneQuadrants: List<Float>,

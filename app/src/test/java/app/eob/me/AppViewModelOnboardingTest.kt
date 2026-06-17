@@ -7,11 +7,13 @@ import app.eob.me.data.UserProfile
 import app.eob.me.navigation.Screen
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
+import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -21,6 +23,14 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class AppViewModelOnboardingTest {
+    @Before
+    fun setUpFirebase() {
+        val context = RuntimeEnvironment.getApplication()
+        if (FirebaseApp.getApps(context).isEmpty()) {
+            FirebaseApp.initializeApp(context)
+        }
+    }
+
     private fun createViewModel(): AppViewModel {
         val app = RuntimeEnvironment.getApplication() as Application
         return AppViewModel(app)

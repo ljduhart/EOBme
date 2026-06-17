@@ -1,8 +1,11 @@
 package app.eob.me.data.repository
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import app.eob.me.data.EobRecord
+import app.eob.me.data.DocumentUploadResult
+import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
@@ -45,6 +48,34 @@ interface EobRepository {
     fun uploadEobFile(userId: String, uri: Uri, sourceName: String, onComplete: (String) -> Unit)
 
     fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, onComplete: (String) -> Unit)
+
+    suspend fun uploadEobFileAwaitDownload(
+        userId: String,
+        uri: Uri,
+        sourceName: String,
+        fileName: String? = null
+    ): DocumentUploadResult
+
+    suspend fun runDocumentOcrPreCheck(context: Context, uri: Uri): EobDocumentOcrPreCheck.Result
+
+    suspend fun extractUploadedDocument(
+        userId: String,
+        upload: DocumentUploadResult
+    ): EobRecord
+
+    suspend fun processHybridScannedDocument(
+        context: Context,
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): EobRecord
+
+    suspend fun uploadAndExtractDocument(
+        context: Context,
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): Result<EobRecord>
 
     fun deleteAccount(userId: String, onComplete: (String) -> Unit)
 }
