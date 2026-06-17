@@ -3,6 +3,7 @@ package app.eob.me.ui.screens
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -18,22 +19,30 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -45,42 +54,53 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
-import app.eob.me.ui.components.CameraScanningOverlay
-import app.eob.me.util.DocumentScanCrop
-import android.graphics.BitmapFactory
-import java.io.File
-import java.io.FileOutputStream
-import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-
+import app.eob.me.data.ImageCompressionLevel
+import app.eob.me.scanner.DocumentCorners
+import app.eob.me.scanner.ScanFilterMode
 import app.eob.me.ui.theme.EobBrandBlue
+import app.eob.me.viewmodel.CameraCapturePhase
+import app.eob.me.viewmodel.CameraCaptureViewModel
+import app.eob.me.viewmodel.CameraFlashMode
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.io.File
+import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 
-private val BrandBlue = EobBrandBlue
-private const val TapFocusReticleActiveMs = 500L
-
-data class TapFocusState(val offset: Offset, val triggerTime: Long)
+private val ScannerBackdrop = Color(0xFF0A0D14)
+private val ScannerControlBar = Color(0xFF121722)
+private val EdgeStableColor = Color(0xFF3DDC97)
+private val EdgeSearchingColor = Color(0xFFFFC857)
+private val MotionWarningColor = Color(0xFFFF6B6B)
+private val CaptureRingIdle = Color(0xFFE8ECF5)
+private val CaptureRingAuto = Color(0xFF3DDC97)
 
 @Composable
 fun CameraCaptureScreen(
     language: AppLanguage,
     autoCropEnabled: Boolean = true,
+    imageCompression: ImageCompressionLevel = ImageCompressionLevel.Medium,
     onImageCaptured: (Uri) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    viewModel: CameraCaptureViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val previewView = remember {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
@@ -89,56 +109,53 @@ fun CameraCaptureScreen(
     }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var hasPermission by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
     }
-    var statusMessage by remember { mutableStateOf("") }
     var isCameraReady by remember { mutableStateOf(false) }
-    var isCapturing by remember { mutableStateOf(false) }
     var boundCamera by remember { mutableStateOf<Camera?>(null) }
-    var tapFocusState by remember { mutableStateOf<TapFocusState?>(null) }
-    val reticleScale = remember { Animatable(2.0f) }
-    val reticleAlpha = remember { Animatable(1.0f) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         hasPermission = granted
-        if (!granted) statusMessage = EobStrings.t(language, "cameraPermissionRequired")
+        if (!granted) viewModel.onCaptureFailed(EobStrings.t(language, "cameraPermissionRequired"))
     }
 
     LaunchedEffect(Unit) {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    LaunchedEffect(tapFocusState) {
-        tapFocusState?.let {
-            reticleScale.snapTo(2.0f)
-            reticleAlpha.snapTo(1.0f)
-            launch {
-                reticleScale.animateTo(
-                    targetValue = 1.0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                )
+    DisposableEffect(Unit) {
+        viewModel.startMotionMonitoring()
+        onDispose { viewModel.stopMotionMonitoring() }
+    }
+
+    LaunchedEffect(isCameraReady) {
+        while (isActive && isCameraReady && uiState.phase == CameraCapturePhase.LIVE_PREVIEW) {
+            viewModel.refreshMotionState()
+            previewView.bitmap?.let { frame ->
+                viewModel.onPreviewFrame(frame.copy(frame.config ?: Bitmap.Config.ARGB_8888, false))
             }
-            launch {
-                delay(250)
-                reticleAlpha.animateTo(
-                    targetValue = 0.0f,
-                    animationSpec = tween(durationMillis = 250, easing = LinearEasing)
-                )
-            }
+            delay(180L)
         }
     }
 
-    LaunchedEffect(tapFocusState) {
-        val state = tapFocusState ?: return@LaunchedEffect
-        delay(TapFocusReticleActiveMs)
-        if (tapFocusState?.triggerTime == state.triggerTime) {
-            tapFocusState = null
+    LaunchedEffect(uiState.autoCaptureActive, isCameraReady) {
+        if (isCameraReady && viewModel.shouldTriggerAutoCapture()) {
+            viewModel.markAutoCaptureTriggered()
+            viewModel.onManualCaptureRequested()
+            captureImage(
+                context = context,
+                language = language,
+                imageCapture = imageCapture,
+                viewModel = viewModel,
+                autoCropEnabled = autoCropEnabled,
+                imageCompression = imageCompression,
+                onImageCaptured = onImageCaptured
+            )
         }
     }
 
-    DisposableEffect(hasPermission) {
+    DisposableEffect(hasPermission, uiState.flashMode) {
         if (!hasPermission) {
             onDispose { }
         } else {
@@ -154,37 +171,32 @@ fun CameraCaptureScreen(
                     }
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .setJpegQuality(92)
+                        .setJpegQuality(imageCompression.jpegQuality)
+                        .setFlashMode(flashModeToImageCapture(uiState.flashMode))
                         .setTargetRotation(previewView.display?.rotation ?: Surface.ROTATION_0)
                         .build()
                     val selector = availableCameraSelector(cameraProvider)
                     cameraProvider.unbindAll()
-                    val camera = cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        selector,
-                        preview,
-                        capture
-                    )
+                    val camera = cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview, capture)
                     boundCamera = camera
                     imageCapture = capture
+                    applyTorch(camera, uiState.flashMode)
                     isCameraReady = true
-                    statusMessage = ""
                     focusRunnable = autofocusRunnable(previewView, camera).also { focusHandler.postDelayed(it, 400) }
                 }.onFailure { error ->
                     boundCamera = null
                     isCameraReady = false
                     imageCapture = null
-                    statusMessage = error.localizedMessage
-                        ?: EobStrings.t(language, "cameraOpenFailed")
+                    viewModel.onCaptureFailed(
+                        error.localizedMessage ?: EobStrings.t(language, "cameraOpenFailed")
+                    )
                 }
             }
             cameraProviderFuture.addListener(listener, executor)
             onDispose {
                 focusRunnable?.let { focusHandler.removeCallbacks(it) }
                 runCatching {
-                    if (cameraProviderFuture.isDone) {
-                        cameraProviderFuture.get().unbindAll()
-                    }
+                    if (cameraProviderFuture.isDone) cameraProviderFuture.get().unbindAll()
                 }
                 boundCamera = null
                 imageCapture = null
@@ -193,126 +205,351 @@ fun CameraCaptureScreen(
         }
     }
 
-    if (hasPermission) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Block 1: The Secure Viewfinder & Gesture Layer
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(Unit) {
-                        detectTapGestures { offset ->
-                            tapFocusState = TapFocusState(offset, System.currentTimeMillis())
-                            focusAtPoint(
-                                previewView = previewView,
-                                camera = boundCamera,
-                                offset = offset
+    when (uiState.phase) {
+        CameraCapturePhase.POST_CAPTURE_ADJUST -> {
+            MagneticCropScreen(
+                language = language,
+                bitmap = uiState.capturedBitmap,
+                corners = uiState.adjustableCorners,
+                statusMessage = uiState.statusMessage,
+                onCornerMoved = viewModel::updateAdjustableCorner,
+                onSnapCorners = viewModel::snapCornersMagnetically,
+                onRetake = viewModel::resetToLivePreview,
+                onConfirm = {
+                    viewModel.confirmCapture(
+                        compression = imageCompression,
+                        onComplete = onImageCaptured,
+                        onError = { message -> viewModel.onCaptureFailed(message) }
+                    )
+                }
+            )
+        }
+        CameraCapturePhase.PROCESSING -> {
+            ProcessingScreen(language = language)
+        }
+        CameraCapturePhase.LIVE_PREVIEW -> {
+            if (hasPermission) {
+                Column(modifier = Modifier.fillMaxSize().background(ScannerBackdrop)) {
+                    Box(
+                        modifier = Modifier
+                            .weight(0.85f)
+                            .fillMaxWidth()
+                            .pointerInput(Unit) {
+                                detectTapGestures { offset ->
+                                    focusAtPoint(previewView, boundCamera, offset)
+                                }
+                            }
+                    ) {
+                        AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+                        DocumentEdgeOverlay(
+                            corners = uiState.detectedCorners,
+                            analysisWidth = uiState.analysisWidth,
+                            analysisHeight = uiState.analysisHeight,
+                            edgesStable = uiState.edgesStable,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        if (uiState.motionBlurWarning) {
+                            MotionBlurBanner(
+                                language = language,
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 16.dp)
+                            )
+                        }
+                        if (uiState.statusMessage.isNotBlank()) {
+                            Text(
+                                text = uiState.statusMessage,
+                                color = MotionWarningColor,
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 56.dp, start = 16.dp, end = 16.dp),
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
-            ) {
-                CameraViewfinderStream(
-                    previewView = previewView,
+                    ScannerControlBar(
+                        language = language,
+                        flashMode = uiState.flashMode,
+                        filterMode = uiState.filterMode,
+                        autoCaptureEnabled = uiState.autoCaptureEnabled,
+                        autoCaptureActive = uiState.autoCaptureActive,
+                        isCapturing = uiState.isCapturing,
+                        isCameraReady = isCameraReady,
+                        onClose = onClose,
+                        onCapture = {
+                            viewModel.onManualCaptureRequested()
+                            captureImage(
+                                context = context,
+                                language = language,
+                                imageCapture = imageCapture,
+                                viewModel = viewModel,
+                                autoCropEnabled = autoCropEnabled,
+                                imageCompression = imageCompression,
+                                onImageCaptured = onImageCaptured
+                            )
+                        },
+                        onToggleFlash = {
+                            viewModel.cycleFlashMode()
+                            applyTorch(boundCamera, viewModel.uiState.value.flashMode)
+                        },
+                        onToggleFilter = viewModel::cycleFilterMode,
+                        onToggleAutoCapture = viewModel::toggleAutoCapture,
+                        modifier = Modifier
+                            .weight(0.15f)
+                            .fillMaxWidth()
+                    )
+                }
+            } else {
+                CameraPermissionPrompt(
+                    language = language,
+                    statusMessage = uiState.statusMessage,
+                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
                     modifier = Modifier.fillMaxSize()
                 )
-                CameraScanningOverlay(modifier = Modifier.fillMaxSize())
-                tapFocusState?.let { state ->
-                    if (System.currentTimeMillis() - state.triggerTime < TapFocusReticleActiveMs) {
-                        TapFocusReticleOverlay(
-                            state = state,
-                            scale = reticleScale.value,
-                            alpha = reticleAlpha.value,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScannerControlBar(
+    language: AppLanguage,
+    flashMode: CameraFlashMode,
+    filterMode: ScanFilterMode,
+    autoCaptureEnabled: Boolean,
+    autoCaptureActive: Boolean,
+    isCapturing: Boolean,
+    isCameraReady: Boolean,
+    onClose: () -> Unit,
+    onCapture: () -> Unit,
+    onToggleFlash: () -> Unit,
+    onToggleFilter: () -> Unit,
+    onToggleAutoCapture: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(color = ScannerControlBar, modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(onClick = onClose) {
+                Text(EobStrings.t(language, "close"), color = Color.White)
+            }
+            CaptureButton(
+                enabled = isCameraReady && !isCapturing,
+                autoCaptureActive = autoCaptureActive,
+                onClick = onCapture
+            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                TextButton(onClick = onToggleFlash) {
+                    Text(flashLabel(language, flashMode), color = Color.White)
+                }
+                TextButton(onClick = onToggleFilter) {
+                    Text(filterLabel(language, filterMode), color = Color.White)
+                }
+                TextButton(onClick = onToggleAutoCapture) {
+                    Text(
+                        if (autoCaptureEnabled) {
+                            EobStrings.t(language, "cameraAutoCaptureOn")
+                        } else {
+                            EobStrings.t(language, "cameraAutoCaptureOff")
+                        },
+                        color = if (autoCaptureActive) CaptureRingAuto else Color.White,
+                        style = MaterialTheme.typography.labelSmall
+                    )
                 }
             }
-            // Block 2: The Interactive HUD Control Interface Layer (Sits on top)
-            CameraControlHudElements(
-                language = language,
-                statusMessage = statusMessage,
-                isCameraReady = isCameraReady,
-                isCapturing = isCapturing,
-                onClose = onClose,
-                onRequestCapture = {
-                    val capture = imageCapture
-                    if (capture == null || !isCameraReady) {
-                        statusMessage = EobStrings.t(language, "cameraStarting")
-                    } else {
-                        isCapturing = true
-                        captureImage(
-                            context = context,
-                            language = language,
-                            imageCapture = capture,
-                            autoCropEnabled = autoCropEnabled,
-                            onImageCaptured = {
-                                isCapturing = false
-                                onImageCaptured(it)
-                            },
-                            onError = {
-                                isCapturing = false
-                                statusMessage = it
-                            }
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
         }
-    } else {
-        CameraPermissionPrompt(
-            language = language,
-            statusMessage = statusMessage,
-            onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-            modifier = Modifier.fillMaxSize()
+    }
+}
+
+@Composable
+private fun CaptureButton(
+    enabled: Boolean,
+    autoCaptureActive: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.size(72.dp),
+        shape = CircleShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (autoCaptureActive) CaptureRingAuto else EobBrandBlue,
+            disabledContainerColor = CaptureRingIdle.copy(alpha = 0.35f)
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .background(Color.White.copy(alpha = if (enabled) 0.92f else 0.35f), CircleShape)
         )
     }
 }
 
 @Composable
-private fun CameraViewfinderStream(
-    previewView: PreviewView,
+private fun DocumentEdgeOverlay(
+    corners: DocumentCorners?,
+    analysisWidth: Int,
+    analysisHeight: Int,
+    edgesStable: Boolean,
     modifier: Modifier = Modifier
 ) {
-    AndroidView(
-        factory = { previewView },
-        modifier = modifier
-    )
+    Canvas(modifier = modifier) {
+        if (corners == null || analysisWidth <= 0 || analysisHeight <= 0) return@Canvas
+        val mapped = corners.mapToView(
+            sourceWidth = analysisWidth.toFloat(),
+            sourceHeight = analysisHeight.toFloat(),
+            viewWidth = size.width,
+            viewHeight = size.height
+        )
+        val points = mapped.toPolygonOffsets()
+        val path = Path().apply {
+            moveTo(points[0].x, points[0].y)
+            lineTo(points[1].x, points[1].y)
+            lineTo(points[2].x, points[2].y)
+            lineTo(points[3].x, points[3].y)
+            close()
+        }
+        drawPath(
+            path = path,
+            color = if (edgesStable) EdgeStableColor else EdgeSearchingColor,
+            style = Stroke(width = 4.dp.toPx())
+        )
+    }
 }
 
 @Composable
-private fun CameraControlHudElements(
-    language: AppLanguage,
-    statusMessage: String,
-    isCameraReady: Boolean,
-    isCapturing: Boolean,
-    onClose: () -> Unit,
-    onRequestCapture: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Bottom,
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun MotionBlurBanner(language: AppLanguage, modifier: Modifier = Modifier) {
+    Surface(
+        color = MotionWarningColor.copy(alpha = 0.92f),
+        modifier = modifier,
+        shape = MaterialTheme.shapes.small
     ) {
-        if (statusMessage.isNotBlank()) {
-            Text(statusMessage, color = MaterialTheme.colorScheme.error)
-        }
-        Button(
-            onClick = onRequestCapture,
-            enabled = isCameraReady && !isCapturing,
-            modifier = Modifier.fillMaxWidth()
+        Text(
+            text = EobStrings.t(language, "cameraMotionBlurWarning"),
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun MagneticCropScreen(
+    language: AppLanguage,
+    bitmap: Bitmap?,
+    corners: DocumentCorners?,
+    statusMessage: String,
+    onCornerMoved: (Int, Offset) -> Unit,
+    onSnapCorners: () -> Unit,
+    onRetake: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    if (bitmap == null || corners == null) {
+        ProcessingScreen(language = language)
+        return
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ScannerBackdrop)
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .weight(0.85f)
+                .fillMaxWidth()
         ) {
-            Text(
-                if (isCapturing) {
-                    EobStrings.t(language, "capturing")
-                } else {
-                    EobStrings.t(language, "scanBill")
-                }
+            val viewWidth = constraints.maxWidth.toFloat()
+            val viewHeight = constraints.maxHeight.toFloat()
+            val bitmapWidth = bitmap.width.toFloat()
+            val bitmapHeight = bitmap.height.toFloat()
+            val viewCorners = corners.mapToView(bitmapWidth, bitmapHeight, viewWidth, viewHeight)
+            val viewToBitmap = corners.mapFromView(bitmapWidth, bitmapHeight, viewWidth, viewHeight)
+
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
             )
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(viewCorners) {
+                        detectDragGestures { change, _ ->
+                            val index = nearestCornerIndex(viewCorners, change.position)
+                            val bitmapPoint = viewToBitmap(change.position)
+                            onCornerMoved(index, Offset(bitmapPoint.x, bitmapPoint.y))
+                        }
+                    }
+            ) {
+                val points = viewCorners.toPolygonOffsets()
+                val path = Path().apply {
+                    moveTo(points[0].x, points[0].y)
+                    lineTo(points[1].x, points[1].y)
+                    lineTo(points[2].x, points[2].y)
+                    lineTo(points[3].x, points[3].y)
+                    close()
+                }
+                drawPath(path = path, color = EdgeStableColor, style = Stroke(width = 3.dp.toPx()))
+                points.forEach { point ->
+                    drawCircle(color = Color.White, radius = 12.dp.toPx(), center = point)
+                    drawCircle(color = EobBrandBlue, radius = 8.dp.toPx(), center = point)
+                }
+            }
         }
-        Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
-            Text(EobStrings.t(language, "close"))
+        Surface(color = ScannerControlBar, modifier = Modifier.weight(0.15f).fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(12.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = EobStrings.t(language, "cameraMagneticCropHint"),
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (statusMessage.isNotBlank()) {
+                    Text(statusMessage, color = MotionWarningColor, style = MaterialTheme.typography.bodySmall)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TextButton(onClick = onRetake) {
+                        Text(EobStrings.t(language, "cameraRetake"), color = Color.White)
+                    }
+                    TextButton(onClick = onSnapCorners) {
+                        Text(EobStrings.t(language, "cameraSnapCorners"), color = Color.White)
+                    }
+                    Button(onClick = onConfirm) {
+                        Text(EobStrings.t(language, "cameraUseScan"))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProcessingScreen(language: AppLanguage) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ScannerBackdrop),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = EobBrandBlue)
+            Text(
+                text = EobStrings.t(language, "cameraProcessingScan"),
+                color = Color.White,
+                modifier = Modifier.padding(top = 16.dp)
+            )
         }
     }
 }
@@ -336,54 +573,27 @@ private fun CameraPermissionPrompt(
     }
 }
 
-@Composable
-private fun TapFocusReticleOverlay(
-    state: TapFocusState,
-    scale: Float,
-    alpha: Float,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val center = state.offset
-        val radius = 36.dp.toPx()
-        val strokeWidth = 2.dp.toPx()
-        val tickLength = 12.dp.toPx()
-        val reticleColor = BrandBlue.copy(alpha = alpha)
+private fun flashLabel(language: AppLanguage, mode: CameraFlashMode): String = when (mode) {
+    CameraFlashMode.AUTO -> EobStrings.t(language, "cameraFlashAuto")
+    CameraFlashMode.ON -> EobStrings.t(language, "cameraFlashOn")
+    CameraFlashMode.OFF -> EobStrings.t(language, "cameraFlashOff")
+}
 
-        translate(center.x, center.y) {
-            scale(scale) {
-                drawCircle(
-                    color = reticleColor,
-                    radius = radius,
-                    style = Stroke(width = strokeWidth)
-                )
-                drawLine(
-                    color = reticleColor,
-                    start = Offset(-tickLength, 0f),
-                    end = Offset(-radius + 6.dp.toPx(), 0f),
-                    strokeWidth = strokeWidth
-                )
-                drawLine(
-                    color = reticleColor,
-                    start = Offset(radius - 6.dp.toPx(), 0f),
-                    end = Offset(tickLength, 0f),
-                    strokeWidth = strokeWidth
-                )
-                drawLine(
-                    color = reticleColor,
-                    start = Offset(0f, -tickLength),
-                    end = Offset(0f, -radius + 6.dp.toPx()),
-                    strokeWidth = strokeWidth
-                )
-                drawLine(
-                    color = reticleColor,
-                    start = Offset(0f, radius - 6.dp.toPx()),
-                    end = Offset(0f, tickLength),
-                    strokeWidth = strokeWidth
-                )
-            }
-        }
-    }
+private fun filterLabel(language: AppLanguage, mode: ScanFilterMode): String = when (mode) {
+    ScanFilterMode.COLOR -> EobStrings.t(language, "cameraFilterColor")
+    ScanFilterMode.GRAYSCALE -> EobStrings.t(language, "cameraFilterGrayscale")
+    ScanFilterMode.BLACK_WHITE -> EobStrings.t(language, "cameraFilterBlackWhite")
+}
+
+private fun flashModeToImageCapture(mode: CameraFlashMode): Int = when (mode) {
+    CameraFlashMode.ON -> ImageCapture.FLASH_MODE_ON
+    CameraFlashMode.AUTO -> ImageCapture.FLASH_MODE_AUTO
+    CameraFlashMode.OFF -> ImageCapture.FLASH_MODE_OFF
+}
+
+private fun applyTorch(camera: Camera?, mode: CameraFlashMode) {
+    val enabled = mode == CameraFlashMode.ON
+    runCatching { camera?.cameraControl?.enableTorch(enabled) }
 }
 
 private fun focusAtPoint(previewView: PreviewView, camera: Camera?, offset: Offset) {
@@ -427,37 +637,48 @@ private fun availableCameraSelector(cameraProvider: ProcessCameraProvider): Came
 private fun captureImage(
     context: Context,
     language: AppLanguage,
-    imageCapture: ImageCapture,
+    imageCapture: ImageCapture?,
+    viewModel: CameraCaptureViewModel,
     autoCropEnabled: Boolean,
-    onImageCaptured: (Uri) -> Unit,
-    onError: (String) -> Unit
+    imageCompression: ImageCompressionLevel,
+    onImageCaptured: (Uri) -> Unit
 ) {
+    val capture = imageCapture
+    if (capture == null) {
+        viewModel.onCaptureFailed(EobStrings.t(language, "cameraStarting"))
+        return
+    }
     val file = File(context.cacheDir, "eob_camera_${System.currentTimeMillis()}.jpg")
     val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
-    imageCapture.takePicture(
+    capture.takePicture(
         outputOptions,
         ContextCompat.getMainExecutor(context),
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                if (autoCropEnabled) {
-                    runCatching {
-                        val decoded = BitmapFactory.decodeFile(file.absolutePath) ?: return@runCatching
-                        val cropped = DocumentScanCrop.applyGuideCrop(decoded)
-                        FileOutputStream(file).use { output ->
-                            cropped.compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, output)
-                        }
-                        if (cropped !== decoded) decoded.recycle()
-                        cropped.recycle()
-                    }
-                }
-                onImageCaptured(Uri.fromFile(file))
+                viewModel.handleCapturedFile(
+                    filePath = file.absolutePath,
+                    autoCropEnabled = autoCropEnabled,
+                    compression = imageCompression,
+                    onComplete = onImageCaptured,
+                    onError = { message -> viewModel.onCaptureFailed(message) }
+                )
             }
 
             override fun onError(exception: ImageCaptureException) {
-                onError(
+                viewModel.onCaptureFailed(
                     exception.localizedMessage ?: EobStrings.t(language, "cameraCaptureFailed")
                 )
             }
         }
     )
+}
+
+private fun nearestCornerIndex(corners: DocumentCorners, touch: Offset): Int {
+    val points = corners.toPolygonOffsets()
+    return points.indices.minByOrNull { index ->
+        val point = points[index]
+        val dx = point.x - touch.x
+        val dy = point.y - touch.y
+        dx * dx + dy * dy
+    } ?: 0
 }

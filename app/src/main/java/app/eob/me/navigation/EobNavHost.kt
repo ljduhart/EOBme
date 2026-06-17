@@ -739,9 +739,18 @@ private fun MainHubNavHost(
                     CameraCaptureScreen(
                         language = language,
                         autoCropEnabled = uiState.hubSettings.autoCropEnabled,
+                        imageCompression = eobViewModel.imageCompressionLevel(),
                         onImageCaptured = { uri ->
-                            prepareAndUpload(uri, EobStrings.t(language, "cameraScan"))
-                            navController.popBackStack(EobRoute.History.route, inclusive = false)
+                            eobViewModel.processScannedDocument(
+                                userId = firebaseUser?.uid.orEmpty(),
+                                uri = uri,
+                                sourceName = EobStrings.t(language, "cameraScan"),
+                                language = language
+                            )
+                            navController.navigate(EobRoute.History.route) {
+                                launchSingleTop = true
+                            }
+                            onActivity()
                         },
                         onClose = { navController.popBackStack() }
                     )

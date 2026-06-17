@@ -609,6 +609,21 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun cameraCaptureRouteUsesHybridDocumentPipeline() {
+        val cameraScreenSource = readSource("ui/screens/CameraCaptureScreen.kt")
+        assertTrue(cameraScreenSource.contains("CameraCaptureViewModel"))
+        assertTrue(cameraScreenSource.contains("weight(0.85f)"))
+        assertTrue(cameraScreenSource.contains("weight(0.15f)"))
+        assertTrue(navHostSource.contains("EobRoute.CameraCapture.route"))
+        assertTrue(navHostSource.contains("processScannedDocument"))
+        assertTrue(navHostSource.contains("imageCompressionLevel()"))
+        assertFalse(
+            "Camera capture must not bypass hybrid pipeline via prepareAndUpload",
+            navHostSource.contains("prepareAndUpload(uri, EobStrings.t(language, \"cameraScan\"))")
+        )
+    }
+
+    @Test
     fun pasteAndDeleteFlowsExistOnViewModel() {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         listOf("savePastedEob", "deleteRecord", "deleteRecordRemote", "uploadEobFile", "uploadEobBitmap", "processScannedDocument")
