@@ -66,22 +66,27 @@ object SubscriptionCatalog {
     fun features(tier: SubscriptionTier): List<String> = when (tier) {
         SubscriptionTier.Free -> listOf(
             "2 EOB Scans",
-            "1 Automated Appeal",
-            "2 Providers",
-            "Basic History"
+            "2 Providers Storage",
+            "CPT Tracker",
+            "Appointment Calendar"
         )
         SubscriptionTier.Silver -> listOf(
-            "6 EOB Scans",
-            "2 Automated Appeals",
-            "5 Providers",
-            "Dispute Tracking"
+            "5 EOB Scans",
+            "5 Providers Storage",
+            "Billing Error Detection",
+            "2 Automated Appeal Letters",
+            "CPT Tracker"
         )
         SubscriptionTier.Gold -> listOf(
             "Unlimited EOB Scans",
-            "Unlimited Appeals",
-            "Unlimited Providers",
+            "Unlimited Providers Storage",
+            "Unlimited Appeal Letters",
+            "Billing Error Detection",
+            "Real Time Insurance News",
+            "CPT Tracker",
             "Smart Card Summaries",
-            "Real-Time News"
+            "Y-T-D Expense Tracker",
+            "Tax Vault Filter (HSA/FSA)"
         )
     }
 

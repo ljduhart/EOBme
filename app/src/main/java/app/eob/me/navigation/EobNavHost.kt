@@ -696,6 +696,10 @@ private fun MainHubNavHost(
                         taxVaultVisibilityMode = taxVaultVisibilityMode,
                         taxVaultBudgetSummary = taxVaultBudgetSummary,
                         subscriptionTier = uiState.hubSettings.subscriptionTier,
+                        onPremiumFeatureLocked = {
+                            eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                            onActivity()
+                        },
                         onTaxVaultFilterSelected = { filter ->
                             eobViewModel.setTaxVaultFilterState(filter)
                             onActivity()

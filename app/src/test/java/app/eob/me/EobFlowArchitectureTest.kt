@@ -409,9 +409,15 @@ class EobFlowArchitectureTest {
             "BillingRepository must remain independent from RevenueCat during Play Billing migration",
             billingSource.contains("com.revenuecat")
         )
-        assertFalse(
-            "SubscriptionViewModel must keep Play Billing as purchase source of truth",
-            subscriptionVmSource.contains("com.revenuecat")
+        assertTrue(
+            "SubscriptionViewModel must observe RevenueCat entitlements via coroutines",
+            subscriptionVmSource.contains("refreshSubscriptionState") &&
+                subscriptionVmSource.contains("awaitCustomerInfo") &&
+                subscriptionVmSource.contains("currentTier")
+        )
+        assertTrue(
+            "Play Billing remains the purchase flow source of truth",
+            subscriptionVmSource.contains("launchBillingFlow")
         )
         assertTrue(
             "Gradle must declare RevenueCat purchases SDK",
@@ -458,6 +464,19 @@ class EobFlowArchitectureTest {
             viewModelSource.contains("processScannedDocument") &&
                 viewModelSource.contains("documentScanState")
         )
+    }
+
+    @Test
+    fun featureGateArchitectureIsWiredIntoHubBento() {
+        val featureGateSource = readSource("data/FeatureGate.kt")
+        val premiumBoxSource = readSource("ui/components/PremiumBentoBox.kt")
+        val bentoSource = readSource("ui/components/bento/BentoGridCell.kt")
+        assertTrue(featureGateSource.contains("object EobmeFeatureGate"))
+        assertTrue(premiumBoxSource.contains("Modifier.blur(16.dp)"))
+        assertTrue(premiumBoxSource.contains("premiumUpgradeToUnlock"))
+        assertTrue(bentoSource.contains("PremiumBentoBox"))
+        assertTrue(bentoSource.contains("requiresPremiumGate"))
+        assertTrue(navHostSource.contains("onPremiumFeatureLocked"))
     }
 
     @Test

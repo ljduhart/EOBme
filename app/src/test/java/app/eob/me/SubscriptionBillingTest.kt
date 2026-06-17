@@ -50,6 +50,18 @@ class SubscriptionBillingTest {
     }
 
     @Test
+    fun mergeSubscriptionStatusPrefersGoldFromRevenueCat() {
+        assertEquals(
+            SubscriptionState.Gold,
+            mergeSubscriptionStatus(
+                playTier = SubscriptionTier.Free,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Resolved(SubscriptionTier.Free),
+                revenueCatTier = SubscriptionTier.Gold
+            )
+        )
+    }
+
+    @Test
     fun mergeSubscriptionStatusPrefersGoldFromEitherSource() {
         assertEquals(
             SubscriptionState.Gold,

@@ -138,6 +138,7 @@ fun HomeScreen(
     taxVaultVisibilityMode: TaxVaultVisibilityMode,
     taxVaultBudgetSummary: TaxVaultBudgetSummary,
     subscriptionTier: SubscriptionTier,
+    onPremiumFeatureLocked: () -> Unit,
     onTaxVaultFilterSelected: (TaxVaultFilterState) -> Unit,
     onTaxVaultVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
     modifier: Modifier = Modifier
@@ -307,6 +308,8 @@ fun HomeScreen(
                                 ytdBentoViewMode = ytdBentoViewMode,
                                 onYtdViewModeSelected = onYtdBentoViewModeSelected,
                                 appealGeneratorBentoProcessing = appealGeneratorBentoProcessing,
+                                subscriptionTier = subscriptionTier,
+                                onLockedClick = onPremiumFeatureLocked,
                                 onClick = { onBentoSelected(destination) },
                                 onHistoryFilterSelected = onHistoryFilterSelected,
                                 onInvoiceFileDropFinished = onInvoiceFileDropFinished,
