@@ -18,8 +18,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class TaxVaultFilterTest {
     @Test
     fun detectTaxVaultEligibilityUsesExplicitHsaKeywords() {
@@ -138,10 +140,9 @@ class TaxVaultFilterTest {
     }
 
     private fun waitForHubRecords(viewModel: EobViewModel, expectedCount: Int) {
-        var attempts = 0
-        while (viewModel.eobRecords.value.size < expectedCount && attempts < 1_000) {
+        val deadlineMs = System.currentTimeMillis() + 10_000
+        while (viewModel.eobRecords.value.size < expectedCount && System.currentTimeMillis() < deadlineMs) {
             shadowOf(Looper.getMainLooper()).idle()
-            attempts++
         }
         assertEquals(expectedCount, viewModel.eobRecords.value.size)
     }
