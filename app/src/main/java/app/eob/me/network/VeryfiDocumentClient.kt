@@ -155,7 +155,7 @@ class VeryfiDocumentClient(
 
     private fun buildReconciliationPayload(extraction: VeryfiStreamExtraction): Map<String, Any?> {
         return mapOf(
-            "veryfiClientStream" to extraction.payload,
+            "veryfiClientStream" to sanitizeForFirestore(extraction.payload),
             "veryfiClientStreamAt" to FieldValue.serverTimestamp(),
             "sourceFilePath" to extraction.sourceFilePath,
             "hybridValidationTrack" to "client_stream",
@@ -163,6 +163,21 @@ class VeryfiDocumentClient(
             "processedByClientStream" to "veryfi_hybrid",
             "updatedAt" to FieldValue.serverTimestamp()
         )
+    }
+
+    private fun sanitizeForFirestore(value: Any?): Any? {
+        return when (value) {
+            null -> null
+            is String, is Boolean, is Long, is Int, is Double, is Float -> value
+            is Map<*, *> -> value.entries
+                .mapNotNull { (key, nestedValue) ->
+                    val fieldName = key as? String ?: return@mapNotNull null
+                    fieldName to sanitizeForFirestore(nestedValue)
+                }
+                .toMap()
+            is List<*> -> value.map { sanitizeForFirestore(it) }
+            else -> value.toString()
+        }
     }
 
     private fun Map<String, Any?>.stringField(vararg keys: String): String {

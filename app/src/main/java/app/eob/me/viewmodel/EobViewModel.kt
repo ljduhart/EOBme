@@ -1134,22 +1134,13 @@ class EobViewModel : ViewModel() {
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
-            _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
-            val preparedUri = runCatching {
-                OcrProcessor.prepareUriForUpload(context, uri, imageCompressionLevel())
-            }.getOrElse { error ->
-                withContext(Dispatchers.Main) {
-                    setLoadingInvoice(false)
-                    _documentScanState.value = DocumentScanPipelineState.Error(
-                        EobStrings.t(language, "imagePrepFailed")
-                    )
-                    updateUploadNotice(error.localizedMessage.orEmpty())
-                }
-                return@launch
+            withContext(Dispatchers.Main) {
+                setLoadingInvoice(true)
+                _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
             }
 
             val preCheck = runCatching {
-                repo.runDocumentOcrPreCheck(context, preparedUri)
+                repo.runDocumentOcrPreCheck(context, uri)
             }.getOrElse { error ->
                 withContext(Dispatchers.Main) {
                     setLoadingInvoice(false)
@@ -1171,9 +1162,21 @@ class EobViewModel : ViewModel() {
                 return@launch
             }
 
+            val preparedUri = runCatching {
+                OcrProcessor.prepareUriForUpload(context, uri, imageCompressionLevel())
+            }.getOrElse { error ->
+                withContext(Dispatchers.Main) {
+                    setLoadingInvoice(false)
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "imagePrepFailed")
+                    )
+                    updateUploadNotice(error.localizedMessage.orEmpty())
+                }
+                return@launch
+            }
+
             withContext(Dispatchers.Main) {
                 _documentScanState.value = DocumentScanPipelineState.UploadingAndProcessing
-                setLoadingInvoice(true)
             }
 
             val extraction = runCatching {
