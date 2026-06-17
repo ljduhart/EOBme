@@ -15,6 +15,7 @@ firebaseCrashlyticsGradle = "3.0.6"
 navigationCompose = "2.9.8"
 mlkitTextRecognition = "16.0.1"
 camerax = "1.5.1"
+revenuecatPurchases = "10.8.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -47,6 +48,7 @@ androidx-camera-core = { group = "androidx.camera", name = "camera-core", versio
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+revenuecat-purchases = { group = "com.revenuecat.purchases", name = "purchases", version.ref = "revenuecatPurchases" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

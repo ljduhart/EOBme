@@ -416,7 +416,7 @@ class EobFlowArchitectureTest {
         assertTrue(
             "Gradle must declare RevenueCat purchases SDK",
             File(appModuleRoot, "../../../../../../build.gradle.kts").readText()
-                .contains("com.revenuecat.purchases:purchases")
+                .contains("libs.revenuecat.purchases")
         )
     }
 
