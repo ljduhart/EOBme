@@ -321,6 +321,21 @@ enum class InvoiceProcessingPhase {
     FileDropReveal
 }
 
+sealed class DocumentScanPipelineState {
+    data object Idle : DocumentScanPipelineState()
+    data object Scanning : DocumentScanPipelineState()
+    data object UploadingToFirebase : DocumentScanPipelineState()
+    data object ExtractingWithVeryfi : DocumentScanPipelineState()
+    data class Success(val record: EobRecord) : DocumentScanPipelineState()
+    data class Error(val message: String) : DocumentScanPipelineState()
+}
+
+data class DocumentUploadResult(
+    val storagePath: String,
+    val downloadUrl: String,
+    val contentType: String
+)
+
 data class HistoryBentoSnapshot(
     val monthlySpend: List<Double>,
     val cornerstoneQuadrants: List<Float>,

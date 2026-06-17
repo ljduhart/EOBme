@@ -3,6 +3,8 @@ package app.eob.me.data.remote
 import android.graphics.Bitmap
 import android.net.Uri
 import app.eob.me.data.EobRecord
+import app.eob.me.data.DocumentScanPipelineRepository
+import app.eob.me.data.DocumentUploadResult
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.Flow
 class FirebaseEobRemoteDataSource(
     private val firebase: FirebaseEobRepository
 ) : EobRepository {
+
+    private val documentScanPipeline = DocumentScanPipelineRepository(firebase)
 
     override fun status(): FirebaseSyncStatus = firebase.status()
 
@@ -63,6 +67,23 @@ class FirebaseEobRemoteDataSource(
     override fun uploadEobBitmap(userId: String, bitmap: Bitmap, sourceName: String, onComplete: (String) -> Unit) {
         firebase.uploadEobBitmap(userId, bitmap, sourceName, onComplete)
     }
+
+    override suspend fun uploadEobFileAwaitDownload(
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): DocumentUploadResult = firebase.uploadEobFileAwaitDownload(userId, uri, sourceName)
+
+    override suspend fun extractUploadedDocument(
+        userId: String,
+        upload: DocumentUploadResult
+    ): EobRecord = documentScanPipeline.extractUploadedDocument(userId, upload)
+
+    override suspend fun uploadAndExtractDocument(
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): Result<EobRecord> = documentScanPipeline.uploadAndExtractDocument(userId, uri, sourceName)
 
     override fun deleteAccount(userId: String, onComplete: (String) -> Unit) {
         firebase.deleteAccount(userId, onComplete)
