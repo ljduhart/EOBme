@@ -11,7 +11,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- POST_NOTIFICATIONS — EobFirebaseMessagingService; runtime request API 33+ in EobNavHost -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel) -->
+    <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel)
+         and RevenueCat SDK (EobApplication / Purchases.configure) -->
     <uses-permission android:name="com.android.vending.BILLING" />
     <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel.
          Sign-up LegalAcceptanceText opens policy URLs with ACTION_VIEW (queries below). -->
@@ -31,7 +32,7 @@
          EobViewModel.appealLetterEditingEnabled, hub Settings gear → EobRoute.Settings with
          EobViewModel hubSettings, SubscriptionViewModel + BillingRepository for
          premium_access_tier + Silver/Gold SKUs, Firestore users/{uid}.subscriptionTier
-         with legacy isPremium) + EobRepository; ML Kit document scanner upload pipeline via
+         with legacy isPremium, RevenueCat Purchases via EobApplication) + EobRepository; ML Kit document scanner upload pipeline via
          EobViewModel.processScannedDocument → Firebase Storage → Veryfi Cloud Function;
          care team dial uses ACTION_DIAL only
          (no CALL_PHONE). Profile darkModeEnabled persisted in hubSettings. Runtime permissions in EobNavHost. -->
@@ -43,6 +44,7 @@
         android:required="false" />
 
     <application
+        android:name=".EobApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
