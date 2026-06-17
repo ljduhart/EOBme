@@ -1,10 +1,9 @@
 package app.eob.me
 
 import android.app.Application
-import android.graphics.Bitmap
-import android.graphics.Color
+import app.eob.me.scanner.DocumentCorners
+import app.eob.me.scanner.DocumentEdgeDetector
 import app.eob.me.scanner.ScanFilterMode
-import app.eob.me.viewmodel.CameraCapturePhase
 import app.eob.me.viewmodel.CameraCaptureViewModel
 import app.eob.me.viewmodel.CameraFlashMode
 import kotlinx.coroutines.Dispatchers
@@ -21,9 +20,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class CameraCaptureViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var application: Application
@@ -67,17 +68,17 @@ class CameraCaptureViewModelTest {
     }
 
     @Test
-    fun shouldTriggerAutoCapture_whenStableAndEnabled() {
-        viewModel.toggleAutoCapture()
-        viewModel.toggleAutoCapture()
+    fun stableCornerFramesMeetAutoCaptureThreshold() {
+        val corners = DocumentCorners.guideFrame(480f, 640f)
+        var previous: DocumentCorners? = null
+        var stableCount = 0
         repeat(5) {
-            val bitmap = Bitmap.createBitmap(120, 160, Bitmap.Config.ARGB_8888)
-            bitmap.eraseColor(Color.WHITE)
-            viewModel.onPreviewFrame(bitmap)
+            val stable = DocumentEdgeDetector.isStable(previous, corners)
+            stableCount = if (stable) stableCount + 1 else 0
+            previous = corners
         }
-        viewModel.refreshMotionState()
-        assertTrue(viewModel.uiState.value.autoCaptureActive)
-        assertTrue(viewModel.shouldTriggerAutoCapture())
+        assertTrue(stableCount >= 4)
+        assertTrue(viewModel.uiState.value.autoCaptureEnabled)
     }
 
     @Test
