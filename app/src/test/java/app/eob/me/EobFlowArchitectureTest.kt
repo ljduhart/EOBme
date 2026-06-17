@@ -405,6 +405,59 @@ class EobFlowArchitectureTest {
             "AppViewModel and SubscriptionViewModel must share the same viewModel() constructor contract",
             readSource("viewmodel/AppViewModel.kt").contains("class AppViewModel(application: Application) : AndroidViewModel(application)")
         )
+        assertFalse(
+            "BillingRepository must remain independent from RevenueCat during Play Billing migration",
+            billingSource.contains("com.revenuecat")
+        )
+        assertFalse(
+            "SubscriptionViewModel must keep Play Billing as purchase source of truth",
+            subscriptionVmSource.contains("com.revenuecat")
+        )
+        assertTrue(
+            "Gradle must declare RevenueCat purchases SDK",
+            File(appModuleRoot, "../../../../../../build.gradle.kts").readText()
+                .contains("com.revenuecat.purchases:purchases")
+        )
+    }
+
+    @Test
+    fun revenueCatInitCoexistsWithHybridFirebaseVeryfiPipeline() {
+        val applicationSource = readSource("EobApplication.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        listOf(
+            "Purchases.configure",
+            "PurchasesConfiguration.Builder"
+        ).forEach { snippet ->
+            assertTrue("EobApplication missing RevenueCat init: $snippet", applicationSource.contains(snippet))
+        }
+        listOf(
+            "processHybridDocument",
+            "uploadEobFileAwaitDownload",
+            "streamExtractDocument",
+            "writeReconciliationFindings",
+            "awaitVeryfiExtraction"
+        ).forEach { snippet ->
+            assertTrue(
+                "Hybrid Firebase/Veryfi pipeline missing: $snippet",
+                hybridRepoSource.contains(snippet) || veryfiSource.contains(snippet)
+            )
+        }
+        assertTrue(
+            "Remote data source must delegate hybrid scans through repository pipeline",
+            remoteSource.contains("processHybridScannedDocument")
+        )
+        assertFalse(
+            "EobViewModel must not call RevenueCat directly",
+            viewModelSource.contains("com.revenuecat")
+        )
+        assertTrue(
+            "EobViewModel remains scan pipeline source of truth",
+            viewModelSource.contains("processScannedDocument") &&
+                viewModelSource.contains("documentScanState")
+        )
     }
 
     @Test
