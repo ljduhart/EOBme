@@ -1096,7 +1096,7 @@ class EobViewModel : ViewModel() {
     }
 
     fun onDocumentScanStarted() {
-        _documentScanState.value = DocumentScanPipelineState.Scanning
+        _documentScanState.value = DocumentScanPipelineState.LocalScanning
     }
 
     fun onDocumentScanCancelled() {
@@ -1134,8 +1134,7 @@ class EobViewModel : ViewModel() {
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
-            _documentScanState.value = DocumentScanPipelineState.UploadingToFirebase
-            setLoadingInvoice(true)
+            _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
             val preparedUri = runCatching {
                 OcrProcessor.prepareUriForUpload(context, uri, imageCompressionLevel())
             }.getOrElse { error ->
@@ -1148,29 +1147,42 @@ class EobViewModel : ViewModel() {
                 }
                 return@launch
             }
-            val uploadResult = runCatching {
-                repo.uploadEobFileAwaitDownload(
+
+            val preCheck = runCatching {
+                repo.runDocumentOcrPreCheck(context, preparedUri)
+            }.getOrElse { error ->
+                withContext(Dispatchers.Main) {
+                    setLoadingInvoice(false)
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "documentScanOcrFailed")
+                    )
+                    updateUploadNotice(error.localizedMessage.orEmpty())
+                }
+                return@launch
+            }
+            if (!preCheck.passed) {
+                withContext(Dispatchers.Main) {
+                    setLoadingInvoice(false)
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "documentScanOcrPreCheckFailed")
+                    )
+                    updateUploadNotice(EobStrings.t(language, "documentScanOcrPreCheckFailed"))
+                }
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                _documentScanState.value = DocumentScanPipelineState.UploadingAndProcessing
+                setLoadingInvoice(true)
+            }
+
+            val extraction = runCatching {
+                repo.processHybridScannedDocument(
+                    context = context,
                     userId = userId,
                     uri = preparedUri,
                     sourceName = sourceName
                 )
-            }
-            val upload = uploadResult.getOrElse { error ->
-                withContext(Dispatchers.Main) {
-                    setLoadingInvoice(false)
-                    val message = error.localizedMessage
-                        ?.takeIf { it.isNotBlank() }
-                        ?: EobStrings.t(language, "documentScanUploadFailed")
-                    _documentScanState.value = DocumentScanPipelineState.Error(message)
-                    updateUploadNotice(message)
-                }
-                return@launch
-            }
-            withContext(Dispatchers.Main) {
-                _documentScanState.value = DocumentScanPipelineState.ExtractingWithVeryfi
-            }
-            val extraction = runCatching {
-                repo.extractUploadedDocument(userId = userId, upload = upload)
             }
             withContext(Dispatchers.Main) {
                 extraction.fold(

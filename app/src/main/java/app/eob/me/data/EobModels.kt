@@ -323,9 +323,9 @@ enum class InvoiceProcessingPhase {
 
 sealed class DocumentScanPipelineState {
     data object Idle : DocumentScanPipelineState()
-    data object Scanning : DocumentScanPipelineState()
-    data object UploadingToFirebase : DocumentScanPipelineState()
-    data object ExtractingWithVeryfi : DocumentScanPipelineState()
+    data object LocalScanning : DocumentScanPipelineState()
+    data object OcrPreCheck : DocumentScanPipelineState()
+    data object UploadingAndProcessing : DocumentScanPipelineState()
     data class Success(val record: EobRecord) : DocumentScanPipelineState()
     data class Error(val message: String) : DocumentScanPipelineState()
 }
@@ -333,7 +333,15 @@ sealed class DocumentScanPipelineState {
 data class DocumentUploadResult(
     val storagePath: String,
     val downloadUrl: String,
-    val contentType: String
+    val contentType: String,
+    val fileName: String,
+    val documentRefId: String
+)
+
+data class VeryfiStreamExtraction(
+    val documentRefId: String,
+    val sourceFilePath: String,
+    val payload: Map<String, Any?>
 )
 
 data class HistoryBentoSnapshot(

@@ -354,16 +354,19 @@ class FirebaseEobRepository(private val context: Context) {
     suspend fun uploadEobFileAwaitDownload(
         userId: String,
         uri: Uri,
-        sourceName: String
+        sourceName: String,
+        fileName: String? = null
     ): DocumentUploadResult {
         if (!configured || userId.isBlank()) {
             throw IllegalStateException("Please sign in before uploading an EOB.")
         }
         val contentType = context.contentResolver.getType(uri)
             ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
-        val extension = if (contentType == "application/pdf") "pdf" else "jpg"
-        val fileName = "eob_${System.currentTimeMillis()}.$extension"
-        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/$fileName")
+        val extension = HybridDocumentRef.extensionForContentType(contentType)
+        val resolvedFileName = fileName?.takeIf { it.isNotBlank() }
+            ?: HybridDocumentRef.fileNameForUpload(extension)
+        val documentRefId = HybridDocumentRef.documentRefId(resolvedFileName)
+        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/$resolvedFileName")
         val metadata = StorageMetadata.Builder()
             .setContentType(contentType)
             .setCustomMetadata("sourceName", sourceName)
@@ -382,7 +385,9 @@ class FirebaseEobRepository(private val context: Context) {
                         DocumentUploadResult(
                             storagePath = ref.path,
                             downloadUrl = downloadUrl.toString(),
-                            contentType = contentType
+                            contentType = contentType,
+                            fileName = resolvedFileName,
+                            documentRefId = documentRefId
                         )
                     )
                 }

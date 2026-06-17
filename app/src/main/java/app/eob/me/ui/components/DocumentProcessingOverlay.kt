@@ -38,17 +38,17 @@ fun DocumentProcessingOverlay(
     state: DocumentScanPipelineState,
     modifier: Modifier = Modifier
 ) {
-    if (state !is DocumentScanPipelineState.UploadingToFirebase &&
-        state !is DocumentScanPipelineState.ExtractingWithVeryfi
+    if (state !is DocumentScanPipelineState.OcrPreCheck &&
+        state !is DocumentScanPipelineState.UploadingAndProcessing
     ) {
         return
     }
 
     val statusText = when (state) {
-        DocumentScanPipelineState.UploadingToFirebase ->
-            EobStrings.t(language, "documentScanUploading")
-        DocumentScanPipelineState.ExtractingWithVeryfi ->
-            EobStrings.t(language, "documentScanExtracting")
+        DocumentScanPipelineState.OcrPreCheck ->
+            EobStrings.t(language, "documentScanOcrPreCheck")
+        DocumentScanPipelineState.UploadingAndProcessing ->
+            EobStrings.t(language, "documentScanHybridProcessing")
         else -> EobStrings.t(language, "documentScanProcessing")
     }
 

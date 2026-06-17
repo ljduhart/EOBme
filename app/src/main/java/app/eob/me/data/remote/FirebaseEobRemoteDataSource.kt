@@ -1,5 +1,6 @@
 package app.eob.me.data.remote
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import app.eob.me.data.EobRecord
@@ -10,6 +11,7 @@ import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.util.EobDocumentOcrPreCheck
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.Flow
 
@@ -71,19 +73,33 @@ class FirebaseEobRemoteDataSource(
     override suspend fun uploadEobFileAwaitDownload(
         userId: String,
         uri: Uri,
-        sourceName: String
-    ): DocumentUploadResult = firebase.uploadEobFileAwaitDownload(userId, uri, sourceName)
+        sourceName: String,
+        fileName: String?
+    ): DocumentUploadResult = firebase.uploadEobFileAwaitDownload(userId, uri, sourceName, fileName)
+
+    override suspend fun runDocumentOcrPreCheck(
+        context: Context,
+        uri: Uri
+    ): EobDocumentOcrPreCheck.Result = documentScanPipeline.runOcrPreCheck(context, uri)
 
     override suspend fun extractUploadedDocument(
         userId: String,
         upload: DocumentUploadResult
     ): EobRecord = documentScanPipeline.extractUploadedDocument(userId, upload)
 
-    override suspend fun uploadAndExtractDocument(
+    override suspend fun processHybridScannedDocument(
+        context: Context,
         userId: String,
         uri: Uri,
         sourceName: String
-    ): Result<EobRecord> = documentScanPipeline.uploadAndExtractDocument(userId, uri, sourceName)
+    ): EobRecord = documentScanPipeline.processHybridDocument(context, userId, uri, sourceName)
+
+    override suspend fun uploadAndExtractDocument(
+        context: Context,
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): Result<EobRecord> = documentScanPipeline.uploadAndExtractDocument(context, userId, uri, sourceName)
 
     override fun deleteAccount(userId: String, onComplete: (String) -> Unit) {
         firebase.deleteAccount(userId, onComplete)

@@ -118,6 +118,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.functions)
     implementation(libs.firebase.crashlytics)
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation(libs.mlkit.text.recognition)
