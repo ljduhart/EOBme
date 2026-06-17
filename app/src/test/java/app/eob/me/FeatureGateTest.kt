@@ -11,10 +11,35 @@ import org.junit.Test
 
 class FeatureGateTest {
     @Test
-    fun subscriptionCatalogFeaturesMatchTierStrategy() {
-        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Free).contains("CPT Tracker"))
-        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Silver).contains("Billing Error Detection"))
-        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Tax Vault Filter (HSA/FSA)"))
+    fun subscriptionCatalogSilverFeaturesMatchManageSubscriptionCopy() {
+        assertEquals(
+            listOf(
+                "5 EOB Scans",
+                "5 Providers Storage",
+                "Billing Error Detection",
+                "2 Automated Appeal Letters",
+                "CPT Tracker"
+            ),
+            SubscriptionCatalog.features(SubscriptionTier.Silver)
+        )
+    }
+
+    @Test
+    fun subscriptionCatalogGoldFeaturesMatchManageSubscriptionCopy() {
+        assertEquals(
+            listOf(
+                "Unlimited EOB Scans",
+                "Unlimited Providers Storage",
+                "Unlimited Appeal Letters",
+                "Billing Error Detection",
+                "Real Time Insurance News",
+                "CPT Tracker",
+                "Smart Card Summaries",
+                "Y-T-D Expense Tracker",
+                "Tax Vault Filter (HSA/FSA)"
+            ),
+            SubscriptionCatalog.features(SubscriptionTier.Gold)
+        )
     }
 
     @Test

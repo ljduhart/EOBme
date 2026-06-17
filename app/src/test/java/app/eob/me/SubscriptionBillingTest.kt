@@ -215,6 +215,21 @@ class SubscriptionBillingTest {
         assertTrue(source.contains("_subscriptionState.value = SubscriptionState.Free"))
     }
 
+    @Test
+    fun paywallDialogSourcesTierFeaturesFromSubscriptionCatalog() {
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Silver)"))
+        assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Gold)"))
+        assertTrue(paywallSource.contains("Column(verticalArrangement = Arrangement.spacedBy"))
+    }
+
+    @Test
+    fun subscriptionViewModelRefreshesRevenueCatWhenPlayTierChanges() {
+        val source = readSource("viewmodel/SubscriptionViewModel.kt")
+        assertTrue(source.contains("billingRepository.activePlayTier.collect"))
+        assertTrue(source.contains("refreshSubscriptionState()"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             java.io.File("src/main/java/app/eob/me/$relativePath"),

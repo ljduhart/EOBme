@@ -38,6 +38,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
     val billingNoticeKey: StateFlow<String?> = billingRepository.billingErrorKey
 
     private var observeJob: Job? = null
+    private var playTierObserveJob: Job? = null
     private var boundUserId: String? = null
 
     fun bindUser(userId: String) {
@@ -82,12 +83,25 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
     fun startBilling() {
         billingRepository.startConnection()
         refreshSubscriptionState()
+        playTierObserveJob?.cancel()
+        playTierObserveJob = viewModelScope.launch {
+            var previousPlayTier: SubscriptionTier? = null
+            billingRepository.activePlayTier.collect { playTier ->
+                val resolved = playTier ?: SubscriptionTier.Free
+                if (resolved != previousPlayTier) {
+                    previousPlayTier = resolved
+                    refreshSubscriptionState()
+                }
+            }
+        }
     }
 
     fun stopBilling() {
         billingRepository.endConnection()
         observeJob?.cancel()
         observeJob = null
+        playTierObserveJob?.cancel()
+        playTierObserveJob = null
         boundUserId = null
         _currentTier.value = SubscriptionTier.Free
         _subscriptionState.value = SubscriptionState.Loading

@@ -214,15 +214,24 @@ private fun TierSelectorCard(
                 fontWeight = FontWeight.Black
             )
             Spacer(modifier = Modifier.height(8.dp))
-            features.forEach { feature ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "✓",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = feature, style = MaterialTheme.typography.bodyMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                features.forEach { feature ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "✓",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = feature,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
