@@ -269,6 +269,7 @@ class SubscriptionBillingTest {
         assertTrue(billingSource.contains("SubscriptionCatalog.offerRef"))
         assertTrue(billingSource.contains("ALL_SUBSCRIPTION_PRODUCT_IDS"))
         assertTrue(billingSource.contains("billing_user_canceled"))
+        assertTrue(billingSource.contains("ITEM_ALREADY_OWNED"))
         assertFalse(
             "Offer token must match exact base plan, not fall back to first offer",
             billingSource.contains("offers.firstOrNull()?.offerToken")

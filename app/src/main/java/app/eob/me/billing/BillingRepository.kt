@@ -121,6 +121,10 @@ class BillingRepository(
                 _billingErrorKey.value = "billing_user_canceled"
             }
 
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                refreshPurchases()
+            }
+
             else -> {
                 _billingErrorKey.value = "billing_flow_failed"
             }
@@ -240,8 +244,10 @@ class BillingRepository(
             .setProductDetailsParamsList(listOf(productDetailsParams))
             .build()
         val launchResult = billingClient.launchBillingFlow(activity, flowParams)
-        if (launchResult.responseCode != BillingClient.BillingResponseCode.OK) {
-            _billingErrorKey.value = "billing_flow_failed"
+        when (launchResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> Unit
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> refreshPurchases()
+            else -> _billingErrorKey.value = "billing_flow_failed"
         }
     }
 
