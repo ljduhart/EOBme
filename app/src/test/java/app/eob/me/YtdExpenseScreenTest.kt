@@ -75,6 +75,14 @@ class YtdExpenseScreenTest {
         assertTrue(navSource.contains("ytdExpenseData"))
         assertTrue(!navSource.contains("YearlyExpenseScreen"))
         assertTrue(viewModelSource.contains("fun ytdExpenseData"))
+        assertTrue(!fileExists("ui/screens/MainScreens.kt"))
+    }
+
+    private fun fileExists(relativePath: String): Boolean {
+        return listOf(
+            java.io.File("src/main/java/app/eob/me/$relativePath"),
+            java.io.File("app/src/main/java/app/eob/me/$relativePath")
+        ).any { it.isFile }
     }
 
     @Test
