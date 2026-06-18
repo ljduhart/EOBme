@@ -33,12 +33,43 @@ class SubscriptionBillingTest {
     }
 
     @Test
-    fun subscriptionCatalogDefinesAllTierSkus() {
-        assertEquals("eobme_silver_monthly", SubscriptionCatalog.SILVER_MONTHLY_PRODUCT_ID)
-        assertEquals("eobme_silver_annual", SubscriptionCatalog.SILVER_ANNUAL_PRODUCT_ID)
-        assertEquals("eobme_gold_monthly", SubscriptionCatalog.GOLD_MONTHLY_PRODUCT_ID)
-        assertEquals("eobme_gold_annual", SubscriptionCatalog.GOLD_ANNUAL_PRODUCT_ID)
+    fun subscriptionCatalogDefinesPlayBasePlanStructure() {
+        assertEquals("eobme_silver", SubscriptionCatalog.SILVER_SUBSCRIPTION_ID)
+        assertEquals("eobme_gold", SubscriptionCatalog.GOLD_SUBSCRIPTION_ID)
+        assertEquals("monthly", SubscriptionCatalog.BASE_PLAN_MONTHLY)
+        assertEquals("annual", SubscriptionCatalog.BASE_PLAN_ANNUAL)
         assertEquals("premium_access_tier", SubscriptionCatalog.LEGACY_PREMIUM_PRODUCT_ID)
+        assertEquals(
+            setOf("eobme_silver", "eobme_gold", "premium_access_tier"),
+            SubscriptionCatalog.ALL_SUBSCRIPTION_PRODUCT_IDS
+        )
+    }
+
+    @Test
+    fun subscriptionCatalogOfferRefsMatchRevenueCatIdentifiers() {
+        assertEquals(
+            SubscriptionCatalog.SubscriptionOfferRef("eobme_silver", "monthly"),
+            SubscriptionCatalog.offerRef(SubscriptionTier.Silver, BillingInterval.MONTHLY)
+        )
+        assertEquals(
+            "eobme_silver:annual",
+            SubscriptionCatalog.revenueCatProductIdentifier(SubscriptionTier.Silver, BillingInterval.ANNUAL)
+        )
+        assertEquals(
+            "eobme_gold:monthly",
+            SubscriptionCatalog.revenueCatProductIdentifier(SubscriptionTier.Gold, BillingInterval.MONTHLY)
+        )
+        assertEquals(
+            "eobme_gold:annual",
+            SubscriptionCatalog.revenueCatProductIdentifier(SubscriptionTier.Gold, BillingInterval.ANNUAL)
+        )
+    }
+
+    @Test
+    fun tierForProductIdResolvesParentSubscriptionIds() {
+        assertEquals(SubscriptionTier.Silver, SubscriptionCatalog.tierForProductId("eobme_silver"))
+        assertEquals(SubscriptionTier.Gold, SubscriptionCatalog.tierForProductId("eobme_gold"))
+        assertEquals(SubscriptionTier.Gold, SubscriptionCatalog.tierForProductId("premium_access_tier"))
     }
 
     @Test
@@ -228,6 +259,15 @@ class SubscriptionBillingTest {
         val source = readSource("viewmodel/SubscriptionViewModel.kt")
         assertTrue(source.contains("billingRepository.activePlayTier.collect"))
         assertTrue(source.contains("refreshSubscriptionState()"))
+    }
+
+    @Test
+    fun billingRepositoryResolvesBasePlanOfferTokens() {
+        val billingSource = readSource("billing/BillingRepository.kt")
+        assertTrue(billingSource.contains("resolveOfferToken"))
+        assertTrue(billingSource.contains("basePlanId"))
+        assertTrue(billingSource.contains("SubscriptionCatalog.offerRef"))
+        assertTrue(billingSource.contains("ALL_SUBSCRIPTION_PRODUCT_IDS"))
     }
 
     private fun readSource(relativePath: String): String {

@@ -341,7 +341,10 @@ class EobFlowArchitectureTest {
         val subscriptionVmSource = readSource("viewmodel/SubscriptionViewModel.kt")
         listOf(
             "LEGACY_PREMIUM_PRODUCT_ID",
-            "SubscriptionCatalog.ALL_PRODUCT_IDS",
+            "SubscriptionCatalog.ALL_SUBSCRIPTION_PRODUCT_IDS",
+            "SubscriptionCatalog.offerRef",
+            "basePlanId",
+            "resolveOfferToken",
             "launchBillingFlow",
             "queryProductDetailsAsync",
             "BillingRepository",

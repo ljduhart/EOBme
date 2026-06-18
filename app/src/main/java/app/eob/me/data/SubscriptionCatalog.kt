@@ -1,41 +1,59 @@
 package app.eob.me.data
 
 /**
- * Play Console SKUs and marketing copy for Free, Silver, and Gold tiers.
- * Annual pricing is the default in [app.eob.me.ui.screens.PaywallDialog].
+ * Play Console subscription parents with base plans and RevenueCat product identifiers.
+ * Google Play subscription IDs: [SILVER_SUBSCRIPTION_ID], [GOLD_SUBSCRIPTION_ID].
+ * Base plan IDs: [BASE_PLAN_MONTHLY], [BASE_PLAN_ANNUAL] (e.g. eobme_gold + monthly).
+ * RevenueCat identifiers follow parent:basePlan (e.g. eobme_gold:monthly).
  */
 object SubscriptionCatalog {
-    const val SILVER_MONTHLY_PRODUCT_ID = "eobme_silver_monthly"
-    const val SILVER_ANNUAL_PRODUCT_ID = "eobme_silver_annual"
-    const val GOLD_MONTHLY_PRODUCT_ID = "eobme_gold_monthly"
-    const val GOLD_ANNUAL_PRODUCT_ID = "eobme_gold_annual"
+    const val SILVER_SUBSCRIPTION_ID = "eobme_silver"
+    const val GOLD_SUBSCRIPTION_ID = "eobme_gold"
+    const val BASE_PLAN_MONTHLY = "monthly"
+    const val BASE_PLAN_ANNUAL = "annual"
 
     /** Legacy single-SKU entitlement maps to Gold. */
     const val LEGACY_PREMIUM_PRODUCT_ID = "premium_access_tier"
 
-    val ALL_PRODUCT_IDS: Set<String> = setOf(
-        SILVER_MONTHLY_PRODUCT_ID,
-        SILVER_ANNUAL_PRODUCT_ID,
-        GOLD_MONTHLY_PRODUCT_ID,
-        GOLD_ANNUAL_PRODUCT_ID,
+    data class SubscriptionOfferRef(
+        val subscriptionProductId: String,
+        val basePlanId: String
+    ) {
+        val revenueCatProductIdentifier: String
+            get() = "$subscriptionProductId:$basePlanId"
+    }
+
+    val ALL_SUBSCRIPTION_PRODUCT_IDS: Set<String> = setOf(
+        SILVER_SUBSCRIPTION_ID,
+        GOLD_SUBSCRIPTION_ID,
         LEGACY_PREMIUM_PRODUCT_ID
     )
 
-    fun productId(tier: SubscriptionTier, interval: BillingInterval): String? = when (tier) {
+    fun subscriptionProductId(tier: SubscriptionTier): String? = when (tier) {
         SubscriptionTier.Free -> null
-        SubscriptionTier.Silver -> when (interval) {
-            BillingInterval.MONTHLY -> SILVER_MONTHLY_PRODUCT_ID
-            BillingInterval.ANNUAL -> SILVER_ANNUAL_PRODUCT_ID
-        }
-        SubscriptionTier.Gold -> when (interval) {
-            BillingInterval.MONTHLY -> GOLD_MONTHLY_PRODUCT_ID
-            BillingInterval.ANNUAL -> GOLD_ANNUAL_PRODUCT_ID
-        }
+        SubscriptionTier.Silver -> SILVER_SUBSCRIPTION_ID
+        SubscriptionTier.Gold -> GOLD_SUBSCRIPTION_ID
     }
 
+    fun basePlanId(interval: BillingInterval): String = when (interval) {
+        BillingInterval.MONTHLY -> BASE_PLAN_MONTHLY
+        BillingInterval.ANNUAL -> BASE_PLAN_ANNUAL
+    }
+
+    fun offerRef(tier: SubscriptionTier, interval: BillingInterval): SubscriptionOfferRef? {
+        val subscriptionProductId = subscriptionProductId(tier) ?: return null
+        return SubscriptionOfferRef(
+            subscriptionProductId = subscriptionProductId,
+            basePlanId = basePlanId(interval)
+        )
+    }
+
+    fun revenueCatProductIdentifier(tier: SubscriptionTier, interval: BillingInterval): String? =
+        offerRef(tier, interval)?.revenueCatProductIdentifier
+
     fun tierForProductId(productId: String): SubscriptionTier? = when (productId) {
-        SILVER_MONTHLY_PRODUCT_ID, SILVER_ANNUAL_PRODUCT_ID -> SubscriptionTier.Silver
-        GOLD_MONTHLY_PRODUCT_ID, GOLD_ANNUAL_PRODUCT_ID, LEGACY_PREMIUM_PRODUCT_ID -> SubscriptionTier.Gold
+        SILVER_SUBSCRIPTION_ID -> SubscriptionTier.Silver
+        GOLD_SUBSCRIPTION_ID, LEGACY_PREMIUM_PRODUCT_ID -> SubscriptionTier.Gold
         else -> null
     }
 

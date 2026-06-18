@@ -31,7 +31,8 @@
          insurance card via EobViewModel, Appeal letter edit/save gated by
          EobViewModel.appealLetterEditingEnabled, hub Settings gear → EobRoute.Settings with
          EobViewModel hubSettings, SubscriptionViewModel + BillingRepository for
-         premium_access_tier + Silver/Gold SKUs, Firestore users/{uid}.subscriptionTier
+         eobme_silver / eobme_gold subscriptions (monthly + annual base plans),
+         legacy premium_access_tier, Firestore users/{uid}.subscriptionTier
          with legacy isPremium, RevenueCat Purchases via EobApplication) + EobRepository;
          hub Scan EOB bottom tab → EobRoute.CameraCapture (CameraX 85/15) →
          EobViewModel.processScannedDocument → Firebase Storage → Veryfi Cloud Function;
