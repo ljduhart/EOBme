@@ -756,7 +756,13 @@ private fun MainHubNavHost(
                         language = language,
                         providers = providers,
                         records = sortedEobRecords,
-                        onDeleteEob = { deleteEob(it) },
+                        onViewProviderRecords = { providerName ->
+                            eobViewModel.openProviderRecordHistory(providerName)
+                            navController.navigate(EobRoute.History.route) {
+                                launchSingleTop = true
+                            }
+                            onActivity()
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -1059,6 +1065,13 @@ private fun HistoryRoute(
     onActivity: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(uiState.historyProviderSearch) {
+        if (uiState.historyProviderSearch.isNotBlank()) {
+            searchQuery = uiState.historyProviderSearch
+            eobViewModel.clearHistoryProviderSearch()
+        }
+    }
 
     val historyBentoFilter = uiState.historyBentoFilter
     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()

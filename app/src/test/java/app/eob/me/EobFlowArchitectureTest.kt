@@ -168,6 +168,14 @@ class EobFlowArchitectureTest {
             )
             assertTrue("Missing screen $screenFile", File(appModuleRoot, "ui/screens/$screenFile").isFile)
         }
+        assertTrue(
+            "Animated provider directory screen must exist",
+            File(appModuleRoot, "ui/screens/AnimatedProviderDirectory.kt").isFile
+        )
+        assertTrue(
+            "Provider directory must route View Records through EobViewModel",
+            navHostSource.contains("openProviderRecordHistory")
+        )
     }
 
     @Test

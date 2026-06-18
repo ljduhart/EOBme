@@ -359,7 +359,8 @@ class EobStringsCoverageTest {
             "AppealScreen.kt",
             "ProfileScreen.kt",
             "CameraCaptureScreen.kt",
-            "ProviderDirectoryScreen.kt"
+            "ProviderDirectoryScreen.kt",
+            "AnimatedProviderDirectory.kt"
         )
         val root = File("src/main/java/app/eob/me/ui/screens").let { dir ->
             when {

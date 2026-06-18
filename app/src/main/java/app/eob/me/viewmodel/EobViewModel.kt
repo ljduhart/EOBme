@@ -89,6 +89,7 @@ data class HubUiState(
     val isLoadingInvoice: Boolean = false,
     val invoiceProcessingPhase: InvoiceProcessingPhase = InvoiceProcessingPhase.Idle,
     val historyBentoFilter: HistoryBentoFilter = HistoryBentoFilter.All,
+    val historyProviderSearch: String = "",
     val historyPage: Int = 0,
     val calendarExpanded: Boolean = false,
     val selectedInsuranceArticle: InsuranceArticle? = null,
@@ -854,6 +855,19 @@ class EobViewModel : ViewModel() {
 
     fun setHistoryBentoFilter(filter: HistoryBentoFilter) {
         _uiState.update { it.copy(historyBentoFilter = filter) }
+    }
+
+    fun openProviderRecordHistory(providerName: String) {
+        _uiState.update {
+            it.copy(
+                historyProviderSearch = providerName.trim(),
+                historyPage = 0
+            )
+        }
+    }
+
+    fun clearHistoryProviderSearch() {
+        _uiState.update { it.copy(historyProviderSearch = "") }
     }
 
     fun setTaxVaultFilterState(state: TaxVaultFilterState) {
