@@ -1073,6 +1073,7 @@ private fun HistoryRoute(
     }
 
     val historyBentoFilter = uiState.historyBentoFilter
+    val historyPaymentFilter = uiState.historyPaymentFilter
     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
     val taxVaultVisibilityMode by eobViewModel.taxVaultVisibilityMode.collectAsStateWithLifecycle()
     val filteredRecords by remember(
@@ -1084,6 +1085,24 @@ private fun HistoryRoute(
     ) {
         derivedStateOf {
             eobViewModel.historyRecordsForDisplay(historyBentoFilter, searchQuery)
+        }
+    }
+
+    val timelineSections by remember(
+        searchQuery,
+        historyBentoFilter,
+        historyPaymentFilter,
+        taxVaultFilterState,
+        taxVaultVisibilityMode,
+        sortedEobRecords
+    ) {
+        derivedStateOf {
+            eobViewModel.historyTimelineSections(
+                bentoFilter = historyBentoFilter,
+                searchQuery = searchQuery,
+                paymentFilter = historyPaymentFilter,
+                language = language
+            )
         }
     }
 
@@ -1121,9 +1140,18 @@ private fun HistoryRoute(
             } else {
                 EobHistoryScreen(
                     language = language,
-                    records = filteredRecords,
+                    timelineSections = timelineSections,
+                    paymentFilter = historyPaymentFilter,
+                    onPaymentFilterSelected = { filter ->
+                        eobViewModel.setHistoryPaymentFilter(filter)
+                        onActivity()
+                    },
                     onDeleteEob = onDeleteEob,
                     onUploadEob = onLibraryUpload,
+                    onRecordSelected = { record ->
+                        eobViewModel.selectRecord(record, profile)
+                        onActivity()
+                    },
                     showVaultFilterBanner = eobViewModel.isTaxVaultHistoryGated(),
                     taxVaultFilterState = taxVaultFilterState,
                     modifier = Modifier.fillMaxSize()

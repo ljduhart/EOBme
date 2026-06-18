@@ -51,16 +51,21 @@ class EobHistoryScreenTest {
     @Test
     fun historyRouteDelegatesToEobHistoryScreen() {
         val navSource = readSource("navigation/EobNavHost.kt")
+        val screenSource = readSource("ui/screens/EobHistoryScreen.kt")
         assertTrue(navSource.contains("EobHistoryScreen"))
-        assertTrue(navSource.contains("historyRecordsForDisplay"))
+        assertTrue(navSource.contains("historyTimelineSections"))
+        assertTrue(navSource.contains("setHistoryPaymentFilter"))
+        assertTrue(navSource.contains("selectRecord"))
         assertTrue(!navSource.contains("HistoryGridScreen"))
+        assertTrue(!screenSource.contains("EobAnalyzer.filterHistoryByPayment"))
     }
 
     @Test
     fun eobViewModelExposesHistoryTimelineSections() {
         val source = readSource("viewmodel/EobViewModel.kt")
         assertTrue(source.contains("fun historyTimelineSections"))
-        assertTrue(source.contains("filterHistoryByPayment"))
+        assertTrue(source.contains("fun setHistoryPaymentFilter"))
+        assertTrue(source.contains("historyPaymentFilter"))
     }
 
     private fun sampleRecord(id: Int, rawText: String): EobRecord {

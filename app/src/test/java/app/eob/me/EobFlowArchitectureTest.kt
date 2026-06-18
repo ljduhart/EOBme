@@ -581,17 +581,18 @@ class EobFlowArchitectureTest {
     fun historyFlowWiresFilterTimelineAndDelete() {
         listOf(
             "setHistoryBentoFilter",
+            "setHistoryPaymentFilter",
             "historyBentoFilter",
+            "historyPaymentFilter",
             "historyRecordsForDisplay",
+            "historyTimelineSections",
+            "selectRecord",
             "deleteRecordRemote",
             "HistoryRoute",
             "EobHistoryScreen"
         ).forEach { snippet ->
             assertTrue("History flow missing: $snippet", navHostSource.contains(snippet))
         }
-        assertTrue(
-            readSource("viewmodel/EobViewModel.kt").contains("historyTimelineSections")
-        )
     }
 
     @Test

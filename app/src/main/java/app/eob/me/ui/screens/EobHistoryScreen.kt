@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -54,13 +53,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
-import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
@@ -72,24 +69,21 @@ import app.eob.me.data.asCurrency
 @Composable
 fun EobHistoryScreen(
     language: AppLanguage,
-    records: List<EobRecord>,
+    timelineSections: List<Pair<String, List<HistoryTimelineRow>>>,
+    paymentFilter: EobHistoryPaymentFilter,
+    onPaymentFilterSelected: (EobHistoryPaymentFilter) -> Unit,
     onDeleteEob: (EobRecord) -> Unit,
     onUploadEob: () -> Unit,
+    onRecordSelected: (EobRecord) -> Unit,
     showVaultFilterBanner: Boolean = false,
     taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     modifier: Modifier = Modifier
 ) {
-    var paymentFilter by remember { mutableStateOf(EobHistoryPaymentFilter.All) }
     var expandedRecordId by remember { mutableIntStateOf(-1) }
     val listState = rememberLazyListState()
     var fabExpanded by remember { mutableStateOf(true) }
     var previousFirstIndex by remember { mutableIntStateOf(0) }
     var previousScrollOffset by remember { mutableIntStateOf(0) }
-
-    val timelineSections = remember(records, paymentFilter, language) {
-        val paymentFiltered = EobAnalyzer.filterHistoryByPayment(records, paymentFilter)
-        EobAnalyzer.groupHistoryByMonth(paymentFiltered, language)
-    }
 
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -159,7 +153,7 @@ fun EobHistoryScreen(
                     language = language,
                     selectedFilter = paymentFilter,
                     onFilterSelected = {
-                        paymentFilter = it
+                        onPaymentFilterSelected(it)
                         expandedRecordId = -1
                     }
                 )
@@ -205,8 +199,11 @@ fun EobHistoryScreen(
                     expandedRecordId = expandedRecordId,
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
-                    onExpandToggle = { recordId ->
-                        expandedRecordId = if (expandedRecordId == recordId) -1 else recordId
+                    onExpandToggle = { record ->
+                        if (expandedRecordId != record.id) {
+                            onRecordSelected(record)
+                        }
+                        expandedRecordId = if (expandedRecordId == record.id) -1 else record.id
                     },
                     onDeleteEob = onDeleteEob
                 )
@@ -257,7 +254,7 @@ private fun HistoryTimelineList(
     expandedRecordId: Int,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
-    onExpandToggle: (Int) -> Unit,
+    onExpandToggle: (EobRecord) -> Unit,
     onDeleteEob: (EobRecord) -> Unit
 ) {
     LazyColumn(
@@ -280,7 +277,7 @@ private fun HistoryTimelineList(
                     isExpanded = expandedRecordId == row.record.id,
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
-                    onExpandToggle = { onExpandToggle(row.record.id) },
+                    onExpandToggle = { onExpandToggle(row.record) },
                     onDeleteEob = { onDeleteEob(row.record) }
                 )
             }
@@ -317,9 +314,11 @@ private fun HistoryTimelineItemRow(
     onDeleteEob: () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState()
+    var deleteTriggered by remember(row.record.id) { mutableStateOf(false) }
 
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+    LaunchedEffect(dismissState.currentValue, row.record.id) {
+        if (!deleteTriggered && dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            deleteTriggered = true
             onDeleteEob()
         }
     }
