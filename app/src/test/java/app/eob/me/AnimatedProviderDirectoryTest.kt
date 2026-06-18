@@ -4,6 +4,7 @@ import app.eob.me.data.EobRecord
 import app.eob.me.data.ProviderSummary
 import app.eob.me.ui.screens.NetworkStatus
 import app.eob.me.ui.screens.toPremiumProviderSummary
+import app.eob.me.viewmodel.EobViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -49,6 +50,7 @@ class AnimatedProviderDirectoryTest {
         assertTrue(source.contains("HorizontalDivider"))
         assertTrue(source.contains("AssuranceBadge"))
         assertTrue(source.contains("MutableTransitionState"))
+        assertTrue(source.contains("bottom = 88.dp"))
     }
 
     @Test
@@ -59,6 +61,17 @@ class AnimatedProviderDirectoryTest {
         assertTrue(screenSource.contains("toPremiumProviderSummary"))
         assertTrue(navSource.contains("openProviderRecordHistory"))
         assertTrue(navSource.contains("onViewProviderRecords"))
+    }
+
+    @Test
+    fun eobViewModelOpenProviderRecordHistoryPrefillsAndClearsSearch() {
+        val viewModel = EobViewModel()
+        viewModel.openProviderRecordHistory("Regional Clinic")
+        assertEquals("Regional Clinic", viewModel.uiState.value.historyProviderSearch)
+        assertEquals(0, viewModel.uiState.value.historyPage)
+
+        viewModel.clearHistoryProviderSearch()
+        assertEquals("", viewModel.uiState.value.historyProviderSearch)
     }
 
     private fun sampleRecord(id: Int, providerName: String, rawText: String): EobRecord {

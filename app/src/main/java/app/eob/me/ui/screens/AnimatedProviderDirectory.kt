@@ -132,11 +132,11 @@ fun AnimatedProviderDirectoryScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             itemsIndexed(items = providers, key = { _, item -> item.id }) { index, provider ->
-                val visibleState = remember { MutableTransitionState(false) }
+                val visibleState = remember(provider.id) { MutableTransitionState(false) }
                 LaunchedEffect(provider.id) {
                     delay(index * 75L)
                     visibleState.targetState = true
@@ -179,12 +179,13 @@ fun ExpandableProviderCard(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing))
-            .clickable { expanded = !expanded }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
             ) {
                 Box(
                     modifier = Modifier
