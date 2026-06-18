@@ -28,8 +28,8 @@ android {
         applicationId = "app.eob.me"
         minSdk = 24
         targetSdk = 35
-        versionCode = 52
-        versionName = "6.1"
+        versionCode = 144
+        versionName = "15.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
