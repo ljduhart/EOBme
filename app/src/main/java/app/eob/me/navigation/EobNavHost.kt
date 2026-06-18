@@ -75,7 +75,7 @@ import app.eob.me.ui.screens.CameraCaptureScreen
 import app.eob.me.ui.screens.CptCountScreen
 import app.eob.me.ui.screens.DashboardScreen
 import app.eob.me.ui.screens.EobSplashScreen
-import app.eob.me.ui.screens.HistoryGridScreen
+import app.eob.me.ui.screens.EobHistoryScreen
 import app.eob.me.ui.screens.HomeScreen
 import app.eob.me.ui.screens.IntroScreen
 import app.eob.me.ui.screens.LanguageScreen
@@ -87,7 +87,6 @@ import app.eob.me.ui.screens.PaywallDialog
 import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
 import app.eob.me.ui.screens.YearlyExpenseScreen
-import app.eob.me.ui.history.HistoryPagination
 import app.eob.me.scanner.GmsDocumentScannerLauncher
 import app.eob.me.util.OcrProcessor
 import app.eob.me.viewmodel.AppViewModel
@@ -1102,14 +1101,11 @@ private fun HistoryRoute(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 label = { Text(EobStrings.t(language, "history")) },
                 placeholder = { Text(EobStrings.t(language, "provider")) },
                 singleLine = true
             )
-            Button(onClick = onLibraryUpload) {
-                Text(EobStrings.t(language, "uploadFromLibrary"))
-            }
         }
         if (totalBillingErrors > 0) {
             Text(
@@ -1123,20 +1119,11 @@ private fun HistoryRoute(
             if (uiState.isLoadingInvoice) {
                 LoadingInvoiceScreen(modifier = Modifier.fillMaxSize())
             } else {
-                HistoryGridScreen(
+                EobHistoryScreen(
                     language = language,
-                    records = filteredRecords.take(HistoryPagination.MAX_EOBS),
-                    selectedRecord = uiState.selectedRecord,
-                    currentPage = uiState.historyPage,
-                    onPageChange = {
-                        eobViewModel.setHistoryPage(it)
-                        onActivity()
-                    },
-                    onSelected = {
-                        eobViewModel.selectRecord(it, profile)
-                        onActivity()
-                    },
+                    records = filteredRecords,
                     onDeleteEob = onDeleteEob,
+                    onUploadEob = onLibraryUpload,
                     showVaultFilterBanner = eobViewModel.isTaxVaultHistoryGated(),
                     taxVaultFilterState = taxVaultFilterState,
                     modifier = Modifier.fillMaxSize()

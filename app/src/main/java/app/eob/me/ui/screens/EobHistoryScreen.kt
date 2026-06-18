@@ -1,0 +1,610 @@
+package app.eob.me.ui.screens
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobHistoryPaymentFilter
+import app.eob.me.data.EobRecord
+import app.eob.me.data.EobStrings
+import app.eob.me.data.HistoryTimelineRow
+import app.eob.me.data.TaxVaultFilterState
+import app.eob.me.data.asCurrency
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun EobHistoryScreen(
+    language: AppLanguage,
+    records: List<EobRecord>,
+    onDeleteEob: (EobRecord) -> Unit,
+    onUploadEob: () -> Unit,
+    showVaultFilterBanner: Boolean = false,
+    taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
+    modifier: Modifier = Modifier
+) {
+    var paymentFilter by remember { mutableStateOf(EobHistoryPaymentFilter.All) }
+    var expandedRecordId by remember { mutableIntStateOf(-1) }
+    val listState = rememberLazyListState()
+    var fabExpanded by remember { mutableStateOf(true) }
+    var previousFirstIndex by remember { mutableIntStateOf(0) }
+    var previousScrollOffset by remember { mutableIntStateOf(0) }
+
+    val timelineSections = remember(records, paymentFilter, language) {
+        val paymentFiltered = EobAnalyzer.filterHistoryByPayment(records, paymentFilter)
+        EobAnalyzer.groupHistoryByMonth(paymentFiltered, language)
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            Triple(
+                listState.firstVisibleItemIndex,
+                listState.firstVisibleItemScrollOffset,
+                listState.isScrollInProgress
+            )
+        }.collect { (index, offset, scrolling) ->
+            if (scrolling) {
+                val scrollingDown = index > previousFirstIndex ||
+                    (index == previousFirstIndex && offset > previousScrollOffset)
+                fabExpanded = !scrollingDown
+            } else if (index == 0 && offset == 0) {
+                fabExpanded = true
+            }
+            previousFirstIndex = index
+            previousScrollOffset = offset
+        }
+    }
+
+    val recordCount = remember(timelineSections) {
+        timelineSections.sumOf { it.second.size }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                expanded = fabExpanded,
+                onClick = onUploadEob,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = EobStrings.t(language, "uploadEob")
+                    )
+                },
+                text = {
+                    Text(
+                        text = EobStrings.t(language, "uploadEob"),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text(
+                    text = EobStrings.t(language, "history"),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "$recordCount ${EobStrings.t(language, "eobs")}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                HistoryPaymentFilterChips(
+                    language = language,
+                    selectedFilter = paymentFilter,
+                    onFilterSelected = {
+                        paymentFilter = it
+                        expandedRecordId = -1
+                    }
+                )
+            }
+
+            if (showVaultFilterBanner) {
+                Text(
+                    text = EobStrings.t(language, "taxVaultFilteredBanner"),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .background(
+                            Color(0xFF3DDC84).copy(alpha = 0.14f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1B7F4B)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (recordCount == 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = EobStrings.t(language, "historyEmptyHint"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                HistoryTimelineList(
+                    language = language,
+                    timelineSections = timelineSections,
+                    listState = listState,
+                    expandedRecordId = expandedRecordId,
+                    taxVaultFilterState = taxVaultFilterState,
+                    showVaultFilterBanner = showVaultFilterBanner,
+                    onExpandToggle = { recordId ->
+                        expandedRecordId = if (expandedRecordId == recordId) -1 else recordId
+                    },
+                    onDeleteEob = onDeleteEob
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryPaymentFilterChips(
+    language: AppLanguage,
+    selectedFilter: EobHistoryPaymentFilter,
+    onFilterSelected: (EobHistoryPaymentFilter) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selectedFilter == EobHistoryPaymentFilter.All,
+                onClick = { onFilterSelected(EobHistoryPaymentFilter.All) },
+                label = { Text(EobStrings.t(language, "historyFilterAll")) }
+            )
+        }
+        item {
+            FilterChip(
+                selected = selectedFilter == EobHistoryPaymentFilter.Paid,
+                onClick = { onFilterSelected(EobHistoryPaymentFilter.Paid) },
+                label = { Text(EobStrings.t(language, "historyFilterPaid")) }
+            )
+        }
+        item {
+            FilterChip(
+                selected = selectedFilter == EobHistoryPaymentFilter.Pending,
+                onClick = { onFilterSelected(EobHistoryPaymentFilter.Pending) },
+                label = { Text(EobStrings.t(language, "historyFilterPending")) }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun HistoryTimelineList(
+    language: AppLanguage,
+    timelineSections: List<Pair<String, List<HistoryTimelineRow>>>,
+    listState: LazyListState,
+    expandedRecordId: Int,
+    taxVaultFilterState: TaxVaultFilterState,
+    showVaultFilterBanner: Boolean,
+    onExpandToggle: (Int) -> Unit,
+    onDeleteEob: (EobRecord) -> Unit
+) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        timelineSections.forEach { (header, rows) ->
+            stickyHeader(key = "header-$header") {
+                HistoryMonthHeader(title = header)
+            }
+            items(
+                items = rows,
+                key = { it.record.id }
+            ) { row ->
+                HistoryTimelineItemRow(
+                    language = language,
+                    row = row,
+                    isExpanded = expandedRecordId == row.record.id,
+                    taxVaultFilterState = taxVaultFilterState,
+                    showVaultFilterBanner = showVaultFilterBanner,
+                    onExpandToggle = { onExpandToggle(row.record.id) },
+                    onDeleteEob = { onDeleteEob(row.record) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryMonthHeader(title: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier.padding(vertical = 8.dp),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = MaterialTheme.typography.titleSmall.letterSpacing
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistoryTimelineItemRow(
+    language: AppLanguage,
+    row: HistoryTimelineRow,
+    isExpanded: Boolean,
+    taxVaultFilterState: TaxVaultFilterState,
+    showVaultFilterBanner: Boolean,
+    onExpandToggle: () -> Unit,
+    onDeleteEob: () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState()
+
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            onDeleteEob()
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        TimelineNodeCanvas(
+            isFirstInMonth = row.isFirstInMonth,
+            isLastInMonth = row.isLastInMonth,
+            modifier = Modifier
+                .width(28.dp)
+                .height(if (isExpanded) 220.dp else 132.dp)
+        )
+
+        SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = false,
+            modifier = Modifier.weight(1f),
+            backgroundContent = {
+                val direction = dismissState.dismissDirection
+                if (direction == SwipeToDismissBoxValue.EndToStart) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                color = Color(0xFFE53935),
+                                shape = RoundedCornerShape(16.dp)
+                            ),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Delete,
+                            contentDescription = EobStrings.t(language, "delete"),
+                            tint = Color.White,
+                            modifier = Modifier.padding(end = 24.dp)
+                        )
+                    }
+                }
+            },
+            content = {
+                WalletReceiptCard(
+                    language = language,
+                    record = row.record,
+                    isExpanded = isExpanded,
+                    taxVaultFilterState = taxVaultFilterState,
+                    showVaultFilterBanner = showVaultFilterBanner,
+                    onExpandToggle = onExpandToggle
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun TimelineNodeCanvas(
+    isFirstInMonth: Boolean,
+    isLastInMonth: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val lineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+    val nodeColor = MaterialTheme.colorScheme.primary
+
+    Canvas(modifier = modifier) {
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
+        val lineWidth = 2.dp.toPx()
+        val nodeRadius = 5.dp.toPx()
+
+        if (!isFirstInMonth) {
+            drawLine(
+                color = lineColor,
+                start = Offset(centerX, 0f),
+                end = Offset(centerX, centerY - nodeRadius),
+                strokeWidth = lineWidth
+            )
+        }
+        if (!isLastInMonth) {
+            drawLine(
+                color = lineColor,
+                start = Offset(centerX, centerY + nodeRadius),
+                end = Offset(centerX, size.height),
+                strokeWidth = lineWidth
+            )
+        }
+        drawCircle(
+            color = nodeColor,
+            radius = nodeRadius,
+            center = Offset(centerX, centerY)
+        )
+        drawCircle(
+            color = Color.White,
+            radius = nodeRadius * 0.45f,
+            center = Offset(centerX, centerY)
+        )
+    }
+}
+
+@Composable
+private fun WalletReceiptCard(
+    language: AppLanguage,
+    record: EobRecord,
+    isExpanded: Boolean,
+    taxVaultFilterState: TaxVaultFilterState,
+    showVaultFilterBanner: Boolean,
+    onExpandToggle: () -> Unit
+) {
+    val lineCount = record.charges.size.coerceAtLeast(1)
+    val elevation = if (isExpanded) 12.dp else 3.dp
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing))
+            .clickable(onClick = onExpandToggle),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = record.providerName.ifBlank {
+                            EobStrings.t(language, "providerNameMissing")
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = if (isExpanded) 2 else 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = record.serviceDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = EobStrings.tf(language, "historyReceiptLineCount", lineCount),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
+            if (showVaultFilterBanner) {
+                val chipLabel = vaultEligibilityLabel(language, record, taxVaultFilterState)
+                chipLabel?.let { label ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B7F4B),
+                        modifier = Modifier
+                            .background(Color(0xFF3DDC84).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = EobStrings.t(language, "patientResponsibility"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = record.totalPatientResponsibility.asCurrency(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (record.totalPatientResponsibility > 0) {
+                        Color(0xFFE53935)
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    }
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(14.dp))
+                ReceiptDashedDivider()
+                Spacer(modifier = Modifier.height(14.dp))
+                ReceiptAmountRow(
+                    label = EobStrings.t(language, "billed"),
+                    amount = record.totalBilledAmount.asCurrency()
+                )
+                ReceiptAmountRow(
+                    label = EobStrings.t(language, "contractualAdjustment"),
+                    amount = record.totalContractualAdjustmentAmount.asCurrency()
+                )
+                ReceiptAmountRow(
+                    label = EobStrings.t(language, "paid"),
+                    amount = record.totalInsurancePaidAmount.asCurrency()
+                )
+                ReceiptAmountRow(
+                    label = EobStrings.t(language, "patientResponsibility"),
+                    amount = record.totalPatientResponsibility.asCurrency(),
+                    emphasized = true
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReceiptDashedDivider() {
+    val dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+    ) {
+        drawLine(
+            color = dividerColor,
+            start = Offset(0f, size.height / 2f),
+            end = Offset(size.width, size.height / 2f),
+            strokeWidth = 1.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
+        )
+    }
+}
+
+@Composable
+private fun ReceiptAmountRow(
+    label: String,
+    amount: String,
+    emphasized: Boolean = false
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(end = 12.dp)
+        )
+        Text(
+            text = amount,
+            style = if (emphasized) {
+                MaterialTheme.typography.titleSmall
+            } else {
+                MaterialTheme.typography.bodyMedium
+            },
+            fontWeight = if (emphasized) FontWeight.ExtraBold else FontWeight.SemiBold,
+            color = if (emphasized) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+private fun vaultEligibilityLabel(
+    language: AppLanguage,
+    record: EobRecord,
+    taxVaultFilterState: TaxVaultFilterState
+): String? {
+    return when {
+        taxVaultFilterState == TaxVaultFilterState.HSA && record.isHsaEligible ->
+            EobStrings.t(language, "taxVaultHsaEligibleChip")
+        taxVaultFilterState == TaxVaultFilterState.FSA && record.isFsaEligible ->
+            EobStrings.t(language, "taxVaultFsaEligibleChip")
+        record.isHsaEligible -> EobStrings.t(language, "taxVaultHsaEligibleChip")
+        record.isFsaEligible -> EobStrings.t(language, "taxVaultFsaEligibleChip")
+        else -> null
+    }
+}

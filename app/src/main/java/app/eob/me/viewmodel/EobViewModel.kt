@@ -21,7 +21,9 @@ import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.CareTeamStateExtractor
+import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.HistoryTimelineRow
 import app.eob.me.data.InsuranceCardDisplay
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InsuranceNewsBentoSnapshot
@@ -939,6 +941,17 @@ class EobViewModel : ViewModel() {
             record.providerName.contains(searchQuery, ignoreCase = true) ||
                 record.insuranceCompany.contains(searchQuery, ignoreCase = true)
         }
+    }
+
+    fun historyTimelineSections(
+        bentoFilter: HistoryBentoFilter,
+        searchQuery: String,
+        paymentFilter: EobHistoryPaymentFilter,
+        language: AppLanguage
+    ): List<Pair<String, List<HistoryTimelineRow>>> {
+        val filtered = historyRecordsForDisplay(bentoFilter, searchQuery)
+        val paymentFiltered = EobAnalyzer.filterHistoryByPayment(filtered, paymentFilter)
+        return EobAnalyzer.groupHistoryByMonth(paymentFiltered, language)
     }
 
     fun totalBillingErrors(records: List<EobRecord>): Int {

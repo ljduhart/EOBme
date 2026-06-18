@@ -563,6 +563,54 @@ object EobAnalyzer {
         return max(0, date.split("/").getOrNull(2)?.toIntOrNull() ?: 0)
     }
 
+    fun isPaymentPending(record: EobRecord): Boolean {
+        return record.totalBilledAmount > 0.0 && record.totalInsurancePaidAmount <= 0.0
+    }
+
+    fun filterHistoryByPayment(
+        records: List<EobRecord>,
+        filter: EobHistoryPaymentFilter
+    ): List<EobRecord> {
+        return when (filter) {
+            EobHistoryPaymentFilter.All -> records
+            EobHistoryPaymentFilter.Paid -> records.filter { it.totalInsurancePaidAmount > 0.0 }
+            EobHistoryPaymentFilter.Pending -> records.filter { isPaymentPending(it) }
+        }
+    }
+
+    fun monthSortKeyFromServiceDate(sortKey: Int): Int = sortKey / 100
+
+    fun formatHistoryMonthHeader(monthSortKey: Int, language: AppLanguage): String {
+        val year = monthSortKey / 100
+        val month = monthSortKey % 100
+        if (month !in 1..12) return EobStrings.t(language, "history")
+        val monthName = java.time.Month.of(month)
+            .getDisplayName(java.time.format.TextStyle.FULL, language.locale())
+        return "${monthName.uppercase(language.locale())} $year"
+    }
+
+    fun groupHistoryByMonth(
+        records: List<EobRecord>,
+        language: AppLanguage
+    ): List<Pair<String, List<HistoryTimelineRow>>> {
+        val sorted = records.sortedByDescending { it.serviceDateSortKey }
+        return sorted
+            .groupBy { monthSortKeyFromServiceDate(it.serviceDateSortKey) }
+            .toList()
+            .sortedByDescending { it.first }
+            .map { (monthKey, monthRecords) ->
+                val header = formatHistoryMonthHeader(monthKey, language)
+                val rows = monthRecords.mapIndexed { index, record ->
+                    HistoryTimelineRow(
+                        record = record,
+                        isFirstInMonth = index == 0,
+                        isLastInMonth = index == monthRecords.lastIndex
+                    )
+                }
+                header to rows
+            }
+    }
+
     private fun normalizeYear(year: String): String {
         return if (year.length == 2) "20$year" else year
     }
