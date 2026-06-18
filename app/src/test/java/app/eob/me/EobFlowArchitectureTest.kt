@@ -150,7 +150,7 @@ class EobFlowArchitectureTest {
     fun hubInnerRoutesAndFeatureScreensExist() {
         val routeToScreen = listOf(
             "EobRoute.Home.route" to "HomeScreen.kt",
-            "EobRoute.History.route" to "HistoryGridScreen.kt",
+            "EobRoute.History.route" to "EobHistoryScreen.kt",
             "EobRoute.Dashboard.route" to "DashboardScreen.kt",
             "EobRoute.YearlyExpense.route" to "YearlyExpenseScreen.kt",
             "EobRoute.CptCount.route" to "CptCountScreen.kt",
@@ -578,18 +578,21 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun historyFlowWiresFilterPaginationAndDelete() {
+    fun historyFlowWiresFilterTimelineAndDelete() {
         listOf(
             "setHistoryBentoFilter",
+            "setHistoryPaymentFilter",
             "historyBentoFilter",
+            "historyPaymentFilter",
             "historyRecordsForDisplay",
-            "setHistoryPage",
+            "historyTimelineSections",
+            "selectRecord",
             "deleteRecordRemote",
-            "HistoryRoute"
+            "HistoryRoute",
+            "EobHistoryScreen"
         ).forEach { snippet ->
             assertTrue("History flow missing: $snippet", navHostSource.contains(snippet))
         }
-        assertEquals(100, HistoryPagination.MAX_EOBS)
     }
 
     @Test

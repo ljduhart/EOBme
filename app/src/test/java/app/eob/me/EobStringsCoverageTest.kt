@@ -351,7 +351,7 @@ class EobStringsCoverageTest {
     fun allMajorHubScreensHaveKotlinSources() {
         val screens = listOf(
             "HomeScreen.kt",
-            "HistoryGridScreen.kt",
+            "EobHistoryScreen.kt",
             "DashboardScreen.kt",
             "YearlyExpenseScreen.kt",
             "CptCountScreen.kt",

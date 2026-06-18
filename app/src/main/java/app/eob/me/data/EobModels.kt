@@ -315,6 +315,18 @@ enum class HistoryBentoFilter {
     Flagged
 }
 
+enum class EobHistoryPaymentFilter {
+    All,
+    Paid,
+    Pending
+}
+
+data class HistoryTimelineRow(
+    val record: EobRecord,
+    val isFirstInMonth: Boolean,
+    val isLastInMonth: Boolean
+)
+
 enum class InvoiceProcessingPhase {
     Idle,
     Processing,
