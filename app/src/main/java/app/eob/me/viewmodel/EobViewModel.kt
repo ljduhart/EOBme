@@ -37,6 +37,7 @@ import app.eob.me.data.NewsRelease
 import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderSummary
 import app.eob.me.data.UserProfile
+import app.eob.me.data.YtdExpenseData
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.BillingIssueSeverity
@@ -930,6 +931,10 @@ class EobViewModel : ViewModel() {
 
     fun yearlyHealthCostSummary(preferredYear: Int? = null): YearlyHealthCostSummary {
         return EobAnalyzer.yearlyHealthCostSummary(_eobRecords.value, preferredYear)
+    }
+
+    fun ytdExpenseData(profile: UserProfile, preferredYear: Int? = null): YtdExpenseData {
+        return EobAnalyzer.ytdExpenseData(_eobRecords.value, profile, preferredYear)
     }
 
     fun historyRecordsForDisplay(

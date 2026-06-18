@@ -86,7 +86,7 @@ import app.eob.me.data.SubscriptionTier
 import app.eob.me.ui.screens.PaywallDialog
 import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
-import app.eob.me.ui.screens.YearlyExpenseScreen
+import app.eob.me.ui.screens.YtdExpenseScreen
 import app.eob.me.scanner.GmsDocumentScannerLauncher
 import app.eob.me.util.OcrProcessor
 import app.eob.me.viewmodel.AppViewModel
@@ -738,12 +738,12 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.YearlyExpense.route) {
-                    val yearlySummary = remember(sortedEobRecords, eobViewModel.hubTimeKey()) {
-                        eobViewModel.yearlyHealthCostSummary()
+                    val ytdExpenseData = remember(sortedEobRecords, profile, eobViewModel.hubTimeKey()) {
+                        eobViewModel.ytdExpenseData(profile)
                     }
-                    YearlyExpenseScreen(
+                    YtdExpenseScreen(
                         language = language,
-                        summary = yearlySummary,
+                        data = ytdExpenseData,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

@@ -222,6 +222,33 @@ object EobAnalyzer {
         )
     }
 
+    fun ytdExpenseData(
+        records: List<EobRecord>,
+        profile: UserProfile,
+        preferredYear: Int? = null
+    ): YtdExpenseData {
+        val summary = yearlyHealthCostSummary(records, preferredYear)
+        val safeProfile = profile.sanitizedPlanLimits()
+        val deductibleMax = safeProfile.annualDeductibleLimit.takeIf { it > 0 } ?: YTD_DEFAULT_DEDUCTIBLE_MAX
+        val outOfPocketMax = safeProfile.annualOutOfPocketMax.takeIf { it > 0 } ?: YTD_DEFAULT_OUT_OF_POCKET_MAX
+        return YtdExpenseData(
+            year = summary.year,
+            eobCount = summary.eobCount,
+            totalBilled = summary.totalBilled,
+            insurancePaid = summary.totalInsurancePaid,
+            adjustments = summary.totalContractualAdjustment,
+            patientResponsibility = summary.totalPatientResponsibility,
+            copays = summary.totalCopay,
+            deductibles = summary.totalDeductible,
+            coinsurance = summary.totalCoinsurance,
+            deductibleMax = deductibleMax,
+            outOfPocketMax = outOfPocketMax
+        )
+    }
+
+    private const val YTD_DEFAULT_DEDUCTIBLE_MAX = 2_000.0
+    private const val YTD_DEFAULT_OUT_OF_POCKET_MAX = 8_550.0
+
     fun detectBillingIssues(record: EobRecord): List<BillingIssue> {
         val issues = mutableListOf<BillingIssue>()
         val review = accuracyReview(record)

@@ -1,0 +1,386 @@
+package app.eob.me.ui.screens
+
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.CreditCard
+import androidx.compose.material.icons.rounded.LocalHospital
+import androidx.compose.material.icons.rounded.Percent
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
+import app.eob.me.data.YtdExpenseData
+import app.eob.me.data.asCurrency
+import kotlin.math.roundToInt
+
+private val GaugeTeal = Color(0xFF00695C)
+private val GaugeGold = Color(0xFFFFB300)
+
+@Composable
+fun YtdExpenseScreen(
+    language: AppLanguage,
+    data: YtdExpenseData,
+    modifier: Modifier = Modifier
+) {
+    var animateEntrance by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        animateEntrance = true
+    }
+
+    val deductibleSweep by animateFloatAsState(
+        targetValue = if (animateEntrance) data.deductibleProgress else 0f,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "deductibleSweep"
+    )
+    val outOfPocketSweep by animateFloatAsState(
+        targetValue = if (animateEntrance) data.outOfPocketProgress else 0f,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "outOfPocketSweep"
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = EobStrings.t(language, "ytdHealthGoalsTitle"),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        YtdSummaryHeaderCard(language = language, data = data)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ProgressGaugeCard(
+                modifier = Modifier.weight(1f),
+                title = EobStrings.t(language, "ytdDeductibleMet"),
+                sweepFraction = deductibleSweep,
+                currentAmount = data.deductibles,
+                maxAmount = data.deductibleMax,
+                towardsGoalLabel = EobStrings.t(language, "ytdTowardsGoal"),
+                paidOfGoalFormatter = { current, max ->
+                    EobStrings.tf(language, "ytdPaidOfGoal", current, max)
+                }
+            )
+            ProgressGaugeCard(
+                modifier = Modifier.weight(1f),
+                title = EobStrings.t(language, "ytdOopMaxProgress"),
+                sweepFraction = outOfPocketSweep,
+                currentAmount = data.patientResponsibility,
+                maxAmount = data.outOfPocketMax,
+                towardsGoalLabel = EobStrings.t(language, "ytdTowardsGoal"),
+                paidOfGoalFormatter = { current, max ->
+                    EobStrings.tf(language, "ytdPaidOfGoal", current, max)
+                }
+            )
+        }
+
+        YtdMetricCardGrid(language = language, data = data)
+
+        Spacer(modifier = Modifier.height(76.dp))
+    }
+}
+
+@Composable
+private fun YtdSummaryHeaderCard(language: AppLanguage, data: YtdExpenseData) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = EobStrings.t(language, "ytdYearlyExpenseSummary"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = if (data.year == 0) {
+                    EobStrings.t(language, "yearlyNoEobs")
+                } else {
+                    EobStrings.tf(language, "ytdYearEobsSubtitle", data.year, data.eobCount)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun ProgressGaugeCard(
+    title: String,
+    sweepFraction: Float,
+    currentAmount: Double,
+    maxAmount: Double,
+    towardsGoalLabel: String,
+    paidOfGoalFormatter: (String, String) -> String,
+    modifier: Modifier = Modifier
+) {
+    val percentLabel = "${(sweepFraction * 100f).roundToInt()}%"
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier.size(128.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeWidth = 30f
+                    val diameter = size.minDimension - strokeWidth
+                    val topLeft = Offset(
+                        (size.width - diameter) / 2f,
+                        (size.height - diameter) / 2f
+                    )
+                    val arcSize = Size(diameter, diameter)
+
+                    drawArc(
+                        color = trackColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+
+                    val sweepAngle = (sweepFraction.coerceIn(0f, 1f) * 360f)
+                    if (sweepAngle > 0f) {
+                        drawArc(
+                            brush = Brush.linearGradient(
+                                colors = listOf(GaugeTeal, GaugeGold),
+                                start = topLeft,
+                                end = Offset(topLeft.x + arcSize.width, topLeft.y + arcSize.height)
+                            ),
+                            startAngle = -90f,
+                            sweepAngle = sweepAngle,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = arcSize,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = percentLabel,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = towardsGoalLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = currentAmount.asCurrency(),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = paidOfGoalFormatter(currentAmount.asCurrency(), maxAmount.asCurrency()),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun YtdMetricCardGrid(language: AppLanguage, data: YtdExpenseData) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricDetailCard(
+                modifier = Modifier.weight(1f),
+                label = EobStrings.t(language, "ytdCopaysPaidYtd"),
+                amount = data.copays,
+                icon = Icons.Rounded.CreditCard,
+                iconBackground = Color(0xFFE3F2FD),
+                iconTint = Color(0xFF1565C0)
+            )
+            MetricDetailCard(
+                modifier = Modifier.weight(1f),
+                label = EobStrings.t(language, "ytdCoinsurancePaidYtd"),
+                amount = data.coinsurance,
+                icon = Icons.Rounded.Percent,
+                iconBackground = Color(0xFFF3E5F5),
+                iconTint = Color(0xFF7B1FA2)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricDetailCard(
+                modifier = Modifier.weight(1f),
+                label = EobStrings.t(language, "totalBilled"),
+                amount = data.totalBilled,
+                icon = Icons.Rounded.LocalHospital,
+                iconBackground = Color(0xFFFFEBEE),
+                iconTint = Color(0xFFC62828)
+            )
+            MetricDetailCard(
+                modifier = Modifier.weight(1f),
+                label = EobStrings.t(language, "ytdInsurancePaidYtd"),
+                amount = data.insurancePaid,
+                icon = Icons.Rounded.Shield,
+                iconBackground = Color(0xFFE8F5E9),
+                iconTint = Color(0xFF2E7D32)
+            )
+        }
+        Row(modifier = Modifier.fillMaxWidth()) {
+            MetricDetailCard(
+                modifier = Modifier.weight(1f),
+                label = EobStrings.t(language, "ytdAdjustmentsYtd"),
+                amount = data.adjustments,
+                icon = Icons.Rounded.AccountBalance,
+                iconBackground = Color(0xFFFFF8E1),
+                iconTint = Color(0xFFF57F17)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+fun MetricDetailCard(
+    label: String,
+    amount: Double,
+    icon: ImageVector,
+    iconBackground: Color,
+    iconTint: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(iconBackground, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = iconTint,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = amount.asCurrency(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
+    }
+}

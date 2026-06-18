@@ -403,6 +403,26 @@ data class YearlyHealthCostSummary(
         get() = totalCopay + totalDeductible + totalCoinsurance
 }
 
+data class YtdExpenseData(
+    val year: Int,
+    val eobCount: Int,
+    val totalBilled: Double,
+    val insurancePaid: Double,
+    val adjustments: Double,
+    val patientResponsibility: Double,
+    val copays: Double,
+    val deductibles: Double,
+    val coinsurance: Double,
+    val deductibleMax: Double,
+    val outOfPocketMax: Double
+) {
+    val deductibleProgress: Float
+        get() = (deductibles / deductibleMax.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f)
+
+    val outOfPocketProgress: Float
+        get() = (patientResponsibility / outOfPocketMax.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f)
+}
+
 enum class BillingIssueType {
     DuplicateCharge,
     MathMismatch,
