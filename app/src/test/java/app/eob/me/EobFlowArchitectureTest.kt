@@ -345,6 +345,8 @@ class EobFlowArchitectureTest {
             "SubscriptionCatalog.offerRef",
             "basePlanId",
             "resolveOfferToken",
+            "billing_user_canceled",
+            "clearBillingNotice",
             "launchBillingFlow",
             "queryProductDetailsAsync",
             "BillingRepository",

@@ -71,6 +71,10 @@ class BillingRepository(
         })
     }
 
+    fun clearBillingNotice() {
+        _billingErrorKey.value = null
+    }
+
     fun endConnection() {
         if (billingClient.isReady) {
             billingClient.endConnection()
@@ -113,7 +117,9 @@ class BillingRepository(
                 handlePurchases(purchases.orEmpty())
             }
 
-            BillingClient.BillingResponseCode.USER_CANCELED -> Unit
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                _billingErrorKey.value = "billing_user_canceled"
+            }
 
             else -> {
                 _billingErrorKey.value = "billing_flow_failed"
@@ -217,7 +223,10 @@ class BillingRepository(
         product: ProductDetails,
         basePlanId: String
     ) {
-        if (activity.isFinishing || activity.isDestroyed) return
+        if (activity.isFinishing || activity.isDestroyed) {
+            _billingErrorKey.value = "billing_flow_failed"
+            return
+        }
         val offerToken = resolveOfferToken(product, basePlanId)
         if (offerToken.isNullOrBlank()) {
             _billingErrorKey.value = "billing_product_unavailable"
@@ -240,9 +249,9 @@ class BillingRepository(
         const val PREMIUM_PRODUCT_ID: String = SubscriptionCatalog.LEGACY_PREMIUM_PRODUCT_ID
 
         internal fun resolveOfferToken(product: ProductDetails, basePlanId: String): String? {
-            val offers = product.subscriptionOfferDetails.orEmpty()
-            return offers.firstOrNull { offer -> offer.basePlanId == basePlanId }?.offerToken
-                ?: offers.firstOrNull()?.offerToken
+            return product.subscriptionOfferDetails
+                ?.firstOrNull { offer -> offer.basePlanId == basePlanId }
+                ?.offerToken
         }
     }
 

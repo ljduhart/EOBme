@@ -115,6 +115,10 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         billingRepository.launchBillingFlow(activity, tier, interval)
     }
 
+    fun clearBillingNotice() {
+        billingRepository.clearBillingNotice()
+    }
+
     private fun mergeSubscriptionState(
         playTier: SubscriptionTier?,
         firestoreSnapshot: FirestoreSubscriptionSnapshot,

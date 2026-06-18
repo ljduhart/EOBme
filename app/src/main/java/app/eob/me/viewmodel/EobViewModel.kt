@@ -503,6 +503,7 @@ class EobViewModel : ViewModel() {
         return when (noticeKey) {
             "billing_not_ready" -> EobStrings.t(language, "billingNotReady")
             "billing_product_unavailable" -> EobStrings.t(language, "billingProductUnavailable")
+            "billing_user_canceled" -> ""
             else -> EobStrings.t(language, "billingFlowFailed")
         }
     }

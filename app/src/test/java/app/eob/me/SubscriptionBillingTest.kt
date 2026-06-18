@@ -268,6 +268,47 @@ class SubscriptionBillingTest {
         assertTrue(billingSource.contains("basePlanId"))
         assertTrue(billingSource.contains("SubscriptionCatalog.offerRef"))
         assertTrue(billingSource.contains("ALL_SUBSCRIPTION_PRODUCT_IDS"))
+        assertTrue(billingSource.contains("billing_user_canceled"))
+        assertFalse(
+            "Offer token must match exact base plan, not fall back to first offer",
+            billingSource.contains("offers.firstOrNull()?.offerToken")
+        )
+    }
+
+    @Test
+    fun eobViewModelRestoresPaywallWhenPurchaseCanceled() {
+        val viewModel = EobViewModel()
+        viewModel.showPaywall()
+        viewModel.beginPaywallPurchase()
+        assertFalse(viewModel.uiState.value.paywallVisible)
+        assertTrue(viewModel.uiState.value.paywallPurchasePending)
+
+        viewModel.handleBillingNoticeForPaywall(AppLanguage.English, "billing_user_canceled")
+
+        assertFalse(viewModel.uiState.value.paywallPurchasePending)
+        assertTrue(viewModel.uiState.value.paywallVisible)
+        assertEquals("", viewModel.uiState.value.paywallMessage)
+    }
+
+    @Test
+    fun subscriptionCatalogDefinesAllFourBasePlanCombinations() {
+        val silverMonthly = SubscriptionCatalog.offerRef(SubscriptionTier.Silver, BillingInterval.MONTHLY)
+        val silverAnnual = SubscriptionCatalog.offerRef(SubscriptionTier.Silver, BillingInterval.ANNUAL)
+        val goldMonthly = SubscriptionCatalog.offerRef(SubscriptionTier.Gold, BillingInterval.MONTHLY)
+        val goldAnnual = SubscriptionCatalog.offerRef(SubscriptionTier.Gold, BillingInterval.ANNUAL)
+        assertEquals("eobme_silver:monthly", silverMonthly?.revenueCatProductIdentifier)
+        assertEquals("eobme_silver:annual", silverAnnual?.revenueCatProductIdentifier)
+        assertEquals("eobme_gold:monthly", goldMonthly?.revenueCatProductIdentifier)
+        assertEquals("eobme_gold:annual", goldAnnual?.revenueCatProductIdentifier)
+    }
+
+    @Test
+    fun subscriptionNavHostClearsBillingNoticeAfterHandling() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("clearBillingNotice"))
+        assertTrue(navSource.contains("handleBillingNoticeForPaywall"))
+        assertTrue(navSource.contains("launchTierPurchaseFlow"))
+        assertTrue(navSource.contains("onPremiumFeatureLocked"))
     }
 
     private fun readSource(relativePath: String): String {

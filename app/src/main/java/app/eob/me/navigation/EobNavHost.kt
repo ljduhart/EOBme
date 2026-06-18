@@ -337,7 +337,12 @@ private fun MainHubNavHost(
     }
 
     fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
-        val host = activity ?: return
+        val host = activity
+        if (host == null) {
+            eobViewModel.handleBillingNoticeForPaywall(language, "billing_flow_failed")
+            onActivity()
+            return
+        }
         eobViewModel.beginPaywallPurchase()
         subscriptionViewModel.launchPurchaseFlow(host, tier, interval)
         onActivity()
@@ -358,6 +363,7 @@ private fun MainHubNavHost(
     LaunchedEffect(billingNoticeKey, language) {
         billingNoticeKey?.let { key ->
             eobViewModel.handleBillingNoticeForPaywall(language, key)
+            subscriptionViewModel.clearBillingNotice()
         }
     }
 
