@@ -21,6 +21,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +29,24 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.FlashOff
+import androidx.compose.material.icons.rounded.FlashOn
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.fillMaxSize
@@ -67,11 +85,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.EobStrings
 import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.scanner.DocumentCorners
 import app.eob.me.scanner.ImageScaleMode
-import app.eob.me.scanner.ScanFilterMode
 import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.viewmodel.CameraCapturePhase
 import app.eob.me.viewmodel.CameraCaptureViewModel
@@ -81,8 +99,8 @@ import kotlinx.coroutines.isActive
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-private val ScannerBackdrop = Color(0xFF0A0D14)
-private val ScannerControlBar = Color(0xFF121722)
+private val ScannerBackdrop = Color(0xFF000000)
+private val ScannerOverlayScrim = Color(0x66000000)
 private val EdgeStableColor = Color(0xFF3DDC97)
 private val EdgeSearchingColor = Color(0xFFFFC857)
 private val MotionWarningColor = Color(0xFFFF6B6B)
@@ -94,6 +112,8 @@ fun CameraCaptureScreen(
     language: AppLanguage,
     autoCropEnabled: Boolean = true,
     imageCompression: ImageCompressionLevel = ImageCompressionLevel.Medium,
+    selectedScanType: CameraScanDocumentType = CameraScanDocumentType.Eob,
+    onScanTypeSelected: (CameraScanDocumentType) -> Unit = {},
     onImageCaptured: (Uri) -> Unit,
     onClose: () -> Unit,
     viewModel: CameraCaptureViewModel = viewModel()
@@ -229,11 +249,14 @@ fun CameraCaptureScreen(
         }
         CameraCapturePhase.LIVE_PREVIEW -> {
             if (hasPermission) {
-                Column(modifier = Modifier.fillMaxSize().background(ScannerBackdrop)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(ScannerBackdrop)
+                ) {
                     Box(
                         modifier = Modifier
-                            .weight(0.85f)
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .pointerInput(Unit) {
                                 detectTapGestures { offset ->
                                     focusAtPoint(previewView, boundCamera, offset)
@@ -248,34 +271,60 @@ fun CameraCaptureScreen(
                             edgesStable = uiState.edgesStable,
                             modifier = Modifier.fillMaxSize()
                         )
-                        if (uiState.motionBlurWarning) {
-                            MotionBlurBanner(
-                                language = language,
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = 16.dp)
-                            )
-                        }
-                        if (uiState.statusMessage.isNotBlank()) {
-                            Text(
-                                text = uiState.statusMessage,
-                                color = MotionWarningColor,
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = 56.dp, start = 16.dp, end = 16.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
                     }
-                    ScannerControlBar(
+
+                    CameraTopUtilityBar(
                         language = language,
                         flashMode = uiState.flashMode,
-                        filterMode = uiState.filterMode,
-                        autoCaptureEnabled = uiState.autoCaptureEnabled,
+                        onClose = onClose,
+                        onToggleFlash = {
+                            viewModel.cycleFlashMode()
+                            applyTorch(boundCamera, viewModel.uiState.value.flashMode)
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding()
+                            .fillMaxWidth()
+                    )
+
+                    if (uiState.motionBlurWarning) {
+                        MotionBlurBanner(
+                            language = language,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .statusBarsPadding()
+                                .padding(top = 64.dp)
+                        )
+                    } else if (isCameraReady && !uiState.edgesStable) {
+                        BordersNotFoundBanner(
+                            language = language,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .statusBarsPadding()
+                                .padding(top = 64.dp, start = 16.dp, end = 16.dp)
+                        )
+                    }
+
+                    if (uiState.statusMessage.isNotBlank()) {
+                        Text(
+                            text = uiState.statusMessage,
+                            color = MotionWarningColor,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .statusBarsPadding()
+                                .padding(top = 112.dp, start = 16.dp, end = 16.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    CameraScanDock(
+                        language = language,
+                        selectedScanType = selectedScanType,
+                        onScanTypeSelected = onScanTypeSelected,
+                        lastCaptureThumbnail = uiState.lastCaptureThumbnail,
                         autoCaptureActive = uiState.autoCaptureActive,
                         isCapturing = uiState.isCapturing,
                         isCameraReady = isCameraReady,
-                        onClose = onClose,
                         onCapture = {
                             viewModel.onManualCaptureRequested()
                             captureImage(
@@ -288,15 +337,10 @@ fun CameraCaptureScreen(
                                 onImageCaptured = onImageCaptured
                             )
                         },
-                        onToggleFlash = {
-                            viewModel.cycleFlashMode()
-                            applyTorch(boundCamera, viewModel.uiState.value.flashMode)
-                        },
-                        onToggleFilter = viewModel::cycleFilterMode,
-                        onToggleAutoCapture = viewModel::toggleAutoCapture,
                         modifier = Modifier
-                            .weight(0.15f)
-                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 28.dp)
                     )
                 }
             } else {
@@ -312,57 +356,183 @@ fun CameraCaptureScreen(
 }
 
 @Composable
-private fun ScannerControlBar(
+private fun CameraTopUtilityBar(
     language: AppLanguage,
     flashMode: CameraFlashMode,
-    filterMode: ScanFilterMode,
-    autoCaptureEnabled: Boolean,
+    onClose: () -> Unit,
+    onToggleFlash: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = EobStrings.t(language, "close"),
+                tint = Color.White
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Surface(
+                color = ScannerOverlayScrim,
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = flashLabel(language, flashMode),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+            IconButton(onClick = onToggleFlash) {
+                Icon(
+                    imageVector = if (flashMode == CameraFlashMode.OFF) {
+                        Icons.Rounded.FlashOff
+                    } else {
+                        Icons.Rounded.FlashOn
+                    },
+                    contentDescription = flashLabel(language, flashMode),
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CameraScanDock(
+    language: AppLanguage,
+    selectedScanType: CameraScanDocumentType,
+    onScanTypeSelected: (CameraScanDocumentType) -> Unit,
+    lastCaptureThumbnail: Bitmap?,
     autoCaptureActive: Boolean,
     isCapturing: Boolean,
     isCameraReady: Boolean,
-    onClose: () -> Unit,
     onCapture: () -> Unit,
-    onToggleFlash: () -> Unit,
-    onToggleFilter: () -> Unit,
-    onToggleAutoCapture: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(color = ScannerControlBar, modifier = modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        CameraScanTypeSelector(
+            language = language,
+            selectedScanType = selectedScanType,
+            onScanTypeSelected = onScanTypeSelected
+        )
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.Center
         ) {
-            TextButton(onClick = onClose) {
-                Text(EobStrings.t(language, "close"), color = Color.White)
-            }
+            LastCaptureThumbnail(
+                thumbnail = lastCaptureThumbnail,
+                modifier = Modifier.size(56.dp)
+            )
+            Spacer(modifier = Modifier.width(28.dp))
             CaptureButton(
                 enabled = isCameraReady && !isCapturing,
                 autoCaptureActive = autoCaptureActive,
                 onClick = onCapture
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                TextButton(onClick = onToggleFlash) {
-                    Text(flashLabel(language, flashMode), color = Color.White)
-                }
-                TextButton(onClick = onToggleFilter) {
-                    Text(filterLabel(language, filterMode), color = Color.White)
-                }
-                TextButton(onClick = onToggleAutoCapture) {
+            Spacer(modifier = Modifier.width(84.dp))
+        }
+    }
+}
+
+@Composable
+private fun CameraScanTypeSelector(
+    language: AppLanguage,
+    selectedScanType: CameraScanDocumentType,
+    onScanTypeSelected: (CameraScanDocumentType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val chipScrollState = rememberScrollState()
+    Row(
+        modifier = modifier
+            .horizontalScroll(chipScrollState)
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CameraScanDocumentType.entries.forEach { type ->
+            val selected = type == selectedScanType
+            FilterChip(
+                selected = selected,
+                onClick = { onScanTypeSelected(type) },
+                label = {
                     Text(
-                        if (autoCaptureEnabled) {
-                            EobStrings.t(language, "cameraAutoCaptureOn")
-                        } else {
-                            EobStrings.t(language, "cameraAutoCaptureOff")
-                        },
-                        color = if (autoCaptureActive) CaptureRingAuto else Color.White,
-                        style = MaterialTheme.typography.labelSmall
+                        text = scanTypeLabel(language, type),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                     )
-                }
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color.White,
+                    selectedLabelColor = Color.Black,
+                    containerColor = ScannerOverlayScrim,
+                    labelColor = Color.White
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun LastCaptureThumbnail(
+    thumbnail: Bitmap?,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = ScannerOverlayScrim,
+        shadowElevation = 2.dp
+    ) {
+        if (thumbnail != null) {
+            Image(
+                bitmap = thumbnail.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "—",
+                    color = Color.White.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun BordersNotFoundBanner(language: AppLanguage, modifier: Modifier = Modifier) {
+    Surface(
+        color = MotionWarningColor.copy(alpha = 0.92f),
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(
+            text = EobStrings.t(language, "cameraBordersNotFound"),
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+        )
     }
 }
 
@@ -373,21 +543,25 @@ private fun CaptureButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.size(72.dp),
-        shape = CircleShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (autoCaptureActive) CaptureRingAuto else EobBrandBlue,
-            disabledContainerColor = CaptureRingIdle.copy(alpha = 0.35f)
-        ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+    Box(
+        modifier = modifier
+            .size(76.dp)
+            .background(Color.Transparent, CircleShape)
+            .border(
+                width = 4.dp,
+                color = if (autoCaptureActive) CaptureRingAuto else CaptureRingIdle,
+                shape = CircleShape
+            )
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .size(54.dp)
-                .background(Color.White.copy(alpha = if (enabled) 0.92f else 0.35f), CircleShape)
+                .size(62.dp)
+                .background(
+                    color = Color.White.copy(alpha = if (enabled) 0.96f else 0.35f),
+                    shape = CircleShape
+                )
         )
     }
 }
@@ -517,7 +691,7 @@ private fun MagneticCropScreen(
                 }
             }
         }
-        Surface(color = ScannerControlBar, modifier = Modifier.weight(0.15f).fillMaxWidth()) {
+        Surface(color = ScannerOverlayScrim, modifier = Modifier.weight(0.15f).fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(12.dp),
                 verticalArrangement = Arrangement.Center,
@@ -586,16 +760,15 @@ private fun CameraPermissionPrompt(
     }
 }
 
+private fun scanTypeLabel(language: AppLanguage, type: CameraScanDocumentType): String = when (type) {
+    CameraScanDocumentType.Eob -> EobStrings.t(language, "cameraScanTypeEob")
+    CameraScanDocumentType.Receipt -> EobStrings.t(language, "cameraScanTypeReceipt")
+}
+
 private fun flashLabel(language: AppLanguage, mode: CameraFlashMode): String = when (mode) {
     CameraFlashMode.AUTO -> EobStrings.t(language, "cameraFlashAuto")
     CameraFlashMode.ON -> EobStrings.t(language, "cameraFlashOn")
     CameraFlashMode.OFF -> EobStrings.t(language, "cameraFlashOff")
-}
-
-private fun filterLabel(language: AppLanguage, mode: ScanFilterMode): String = when (mode) {
-    ScanFilterMode.COLOR -> EobStrings.t(language, "cameraFilterColor")
-    ScanFilterMode.GRAYSCALE -> EobStrings.t(language, "cameraFilterGrayscale")
-    ScanFilterMode.BLACK_WHITE -> EobStrings.t(language, "cameraFilterBlackWhite")
 }
 
 private fun flashModeToImageCapture(mode: CameraFlashMode): Int = when (mode) {

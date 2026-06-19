@@ -44,6 +44,7 @@ import app.eob.me.data.YtdExpenseData
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.BillingIssueSeverity
+import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.HubSettingsState
 import app.eob.me.data.HubSettingsStore
@@ -110,6 +111,7 @@ data class HubUiState(
     val paywallVisible: Boolean = false,
     val paywallMessage: String = "",
     val paywallPurchasePending: Boolean = false,
+    val cameraScanDocumentType: CameraScanDocumentType = CameraScanDocumentType.Eob,
     val hubSettings: HubSettingsState = HubSettingsState()
 )
 
@@ -1117,6 +1119,17 @@ class EobViewModel : ViewModel() {
 
     fun setSelectedCptCategory(category: CptCategory) {
         _uiState.update { it.copy(selectedCptCategory = category) }
+    }
+
+    fun setCameraScanDocumentType(type: CameraScanDocumentType) {
+        _uiState.update { it.copy(cameraScanDocumentType = type) }
+    }
+
+    fun cameraScanSourceLabel(language: AppLanguage): String {
+        return when (_uiState.value.cameraScanDocumentType) {
+            CameraScanDocumentType.Eob -> EobStrings.t(language, "cameraScanTypeEob")
+            CameraScanDocumentType.Receipt -> EobStrings.t(language, "cameraScanTypeReceipt")
+        }
     }
 
     fun cptFlashcardEntries(

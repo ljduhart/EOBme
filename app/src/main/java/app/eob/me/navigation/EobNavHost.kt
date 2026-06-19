@@ -795,11 +795,16 @@ private fun MainHubNavHost(
                         language = language,
                         autoCropEnabled = uiState.hubSettings.autoCropEnabled,
                         imageCompression = eobViewModel.imageCompressionLevel(),
+                        selectedScanType = uiState.cameraScanDocumentType,
+                        onScanTypeSelected = {
+                            eobViewModel.setCameraScanDocumentType(it)
+                            onActivity()
+                        },
                         onImageCaptured = { uri ->
                             eobViewModel.processScannedDocument(
                                 userId = firebaseUser?.uid.orEmpty(),
                                 uri = uri,
-                                sourceName = EobStrings.t(language, "cameraScan"),
+                                sourceName = eobViewModel.cameraScanSourceLabel(language),
                                 language = language
                             )
                             navController.navigate(EobRoute.History.route) {

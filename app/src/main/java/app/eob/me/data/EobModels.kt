@@ -364,6 +364,11 @@ enum class InvoiceProcessingPhase {
     FileDropReveal
 }
 
+enum class CameraScanDocumentType {
+    Eob,
+    Receipt
+}
+
 sealed class DocumentScanPipelineState {
     data object Idle : DocumentScanPipelineState()
     data object LocalScanning : DocumentScanPipelineState()

@@ -49,7 +49,8 @@ data class CameraCaptureUiState(
     val capturedBitmap: Bitmap? = null,
     val isCapturing: Boolean = false,
     val statusMessage: String = "",
-    val processedUri: Uri? = null
+    val processedUri: Uri? = null,
+    val lastCaptureThumbnail: Bitmap? = null
 )
 
 class CameraCaptureViewModel(application: Application) : AndroidViewModel(application) {
@@ -195,13 +196,17 @@ class CameraCaptureViewModel(application: Application) : AndroidViewModel(applic
                 } else {
                     DocumentCorners.guideFrame(decoded.width.toFloat(), decoded.height.toFloat())
                 }
+                val thumbnail = runCatching {
+                    Bitmap.createScaledBitmap(decoded, 96, 96, true)
+                }.getOrNull()
                 _uiState.update {
                     it.copy(
                         phase = CameraCapturePhase.POST_CAPTURE_ADJUST,
                         capturedBitmap = decoded,
                         adjustableCorners = scaled,
                         isCapturing = false,
-                        autoCaptureActive = false
+                        autoCaptureActive = false,
+                        lastCaptureThumbnail = thumbnail ?: it.lastCaptureThumbnail
                     )
                 }
                 return@launch
@@ -295,6 +300,7 @@ class CameraCaptureViewModel(application: Application) : AndroidViewModel(applic
 
     fun resetToLivePreview() {
         _uiState.value.capturedBitmap?.recycle()
+        val thumbnail = _uiState.value.lastCaptureThumbnail
         previousCorners = null
         stableFrameCount = 0
         autoCaptureTriggered = false
@@ -304,7 +310,8 @@ class CameraCaptureViewModel(application: Application) : AndroidViewModel(applic
         _uiState.value = CameraCaptureUiState(
             flashMode = flash,
             filterMode = filter,
-            autoCaptureEnabled = auto
+            autoCaptureEnabled = auto,
+            lastCaptureThumbnail = thumbnail
         )
         refreshMotionState()
     }
@@ -327,8 +334,16 @@ class CameraCaptureViewModel(application: Application) : AndroidViewModel(applic
                     compression = compression
                 )
             }.onSuccess { uri ->
+                val thumbnail = runCatching {
+                    Bitmap.createScaledBitmap(bitmap, 96, 96, true)
+                }.getOrNull()
                 bitmap.recycle()
-                _uiState.update { CameraCaptureUiState(processedUri = uri) }
+                _uiState.update {
+                    CameraCaptureUiState(
+                        processedUri = uri,
+                        lastCaptureThumbnail = thumbnail
+                    )
+                }
                 onComplete(uri)
             }.onFailure { error ->
                 _uiState.update {
