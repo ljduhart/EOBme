@@ -399,12 +399,12 @@ fun NewsBriefingCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (canOpenArticle) {
+            if (canOpenArticle) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     if (showReadMore) {
                         OutlinedButton(
                             onClick = onReadMore,

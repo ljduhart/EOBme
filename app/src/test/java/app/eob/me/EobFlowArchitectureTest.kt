@@ -640,7 +640,9 @@ class EobFlowArchitectureTest {
             "exitHubToSignIn",
             "dismissInsuranceArticle",
             "dismissPaywall",
-            "resetHubState"
+            "resetHubState",
+            "!uiState.paywallVisible",
+            "!uiState.hubSettings.appLocked"
         ).forEach { snippet ->
             assertTrue("MainHubNavHost missing back navigation: $snippet", navHostSource.contains(snippet))
         }

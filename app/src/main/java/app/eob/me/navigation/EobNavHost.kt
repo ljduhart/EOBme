@@ -465,13 +465,13 @@ private fun MainHubNavHost(
         }
     }
 
-    BackHandler(enabled = uiState.hubSettings.appLocked) {
-        // Consume back while the PIN lock overlay is active.
-    }
-
-    BackHandler(enabled = uiState.paywallVisible) {
-        eobViewModel.dismissPaywall()
-        onActivity()
+    BackHandler(
+        enabled = currentRoute == EobRoute.Home.route &&
+            !uiState.paywallVisible &&
+            !uiState.hubSettings.appLocked
+    ) {
+        eobViewModel.resetHubState()
+        appViewModel.exitHubToSignIn()
     }
 
     BackHandler(
@@ -480,9 +480,13 @@ private fun MainHubNavHost(
         eobViewModel.dismissInsuranceArticle()
     }
 
-    BackHandler(enabled = currentRoute == EobRoute.Home.route) {
-        eobViewModel.resetHubState()
-        appViewModel.exitHubToSignIn()
+    BackHandler(enabled = uiState.paywallVisible) {
+        eobViewModel.dismissPaywall()
+        onActivity()
+    }
+
+    BackHandler(enabled = uiState.hubSettings.appLocked) {
+        // Consume back while the PIN lock overlay is active.
     }
 
     fun deleteEob(record: EobRecord) {
