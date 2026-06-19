@@ -3,6 +3,7 @@ package app.eob.me.data.remote
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.EobRecord
 import app.eob.me.data.DocumentScanPipelineRepository
 import app.eob.me.data.DocumentUploadResult
@@ -79,8 +80,9 @@ class FirebaseEobRemoteDataSource(
 
     override suspend fun runDocumentOcrPreCheck(
         context: Context,
-        uri: Uri
-    ): EobDocumentOcrPreCheck.Result = documentScanPipeline.runOcrPreCheck(context, uri)
+        uri: Uri,
+        scanType: CameraScanDocumentType
+    ): EobDocumentOcrPreCheck.Result = documentScanPipeline.runOcrPreCheck(context, uri, scanType)
 
     override suspend fun extractUploadedDocument(
         userId: String,

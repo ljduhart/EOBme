@@ -1244,7 +1244,11 @@ class EobViewModel : ViewModel() {
             }
 
             val preCheck = runCatching {
-                repo.runDocumentOcrPreCheck(context, uri)
+                repo.runDocumentOcrPreCheck(
+                    context = context,
+                    uri = uri,
+                    scanType = _uiState.value.cameraScanDocumentType
+                )
             }.getOrElse { error ->
                 withContext(Dispatchers.Main) {
                     setLoadingInvoice(false)

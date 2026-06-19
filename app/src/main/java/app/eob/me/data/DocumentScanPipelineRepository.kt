@@ -2,6 +2,7 @@ package app.eob.me.data
 
 import android.content.Context
 import android.net.Uri
+import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.network.VeryfiDocumentClient
 import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.util.OcrProcessor
@@ -14,9 +15,13 @@ class DocumentScanPipelineRepository(
     private val firebase: FirebaseEobRepository,
     private val veryfiClient: VeryfiDocumentClient = VeryfiDocumentClient()
 ) {
-    suspend fun runOcrPreCheck(context: Context, uri: Uri): EobDocumentOcrPreCheck.Result {
+    suspend fun runOcrPreCheck(
+        context: Context,
+        uri: Uri,
+        scanType: CameraScanDocumentType = CameraScanDocumentType.Eob
+    ): EobDocumentOcrPreCheck.Result {
         val recognizedText = OcrProcessor.recognizeFromUri(context, uri)
-        return EobDocumentOcrPreCheck.validate(recognizedText)
+        return EobDocumentOcrPreCheck.validateForScanType(recognizedText, scanType)
     }
 
     suspend fun uploadDocument(

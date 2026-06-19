@@ -20,4 +20,23 @@ class EobDocumentOcrPreCheckTest {
         val result = EobDocumentOcrPreCheck.validate("Grocery receipt total $18.44")
         assertFalse(result.passed)
     }
+
+    @Test
+    fun receiptScanTypePassesMedicalReceiptKeywords() {
+        val result = EobDocumentOcrPreCheck.validateForScanType(
+            ocrText = "Medical receipt\nProvider: Downtown Clinic\nTotal: $84.00\nPayment received",
+            scanType = app.eob.me.data.CameraScanDocumentType.Receipt
+        )
+        assertTrue(result.passed)
+        assertTrue(result.matchedKeywords.any { it == "receipt" || it == "provider" })
+    }
+
+    @Test
+    fun receiptScanTypeStillRejectsUnrelatedRetailReceipt() {
+        val result = EobDocumentOcrPreCheck.validateForScanType(
+            ocrText = "Grocery receipt total \$18.44",
+            scanType = app.eob.me.data.CameraScanDocumentType.Receipt
+        )
+        assertFalse(result.passed)
+    }
 }

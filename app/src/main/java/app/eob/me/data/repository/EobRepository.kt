@@ -3,6 +3,7 @@ package app.eob.me.data.repository
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.EobRecord
 import app.eob.me.data.DocumentUploadResult
 import app.eob.me.util.EobDocumentOcrPreCheck
@@ -56,7 +57,11 @@ interface EobRepository {
         fileName: String? = null
     ): DocumentUploadResult
 
-    suspend fun runDocumentOcrPreCheck(context: Context, uri: Uri): EobDocumentOcrPreCheck.Result
+    suspend fun runDocumentOcrPreCheck(
+        context: Context,
+        uri: Uri,
+        scanType: CameraScanDocumentType = CameraScanDocumentType.Eob
+    ): EobDocumentOcrPreCheck.Result
 
     suspend fun extractUploadedDocument(
         userId: String,
