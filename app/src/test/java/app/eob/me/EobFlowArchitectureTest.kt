@@ -603,6 +603,7 @@ class EobFlowArchitectureTest {
             "enableAppealLetterEditing",
             "saveAppealLetter",
             "appealLetterEditingEnabled",
+            "openInsuranceArticle",
             "filteredNewsReleases",
             "deleteNews",
             "DashboardScreen"

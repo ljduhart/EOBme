@@ -43,7 +43,7 @@ class InsuranceNewsScreenTest {
         assertTrue(source.contains("rememberInfiniteTransition"))
         assertTrue(source.contains("CustomTabsIntent"))
         assertTrue(source.contains("LazyRow"))
-        assertTrue(source.contains("itemsIndexed"))
+        assertTrue(source.contains("insuranceNewsMonthlyBriefingsCount"))
         assertFalse(source.contains("HolographicGlassCard"))
         assertFalse(source.contains("HomeInsuranceNewsSection"))
     }
@@ -55,10 +55,42 @@ class InsuranceNewsScreenTest {
         assertTrue(navSource.contains("insuranceCarrierHubItems"))
         assertTrue(navSource.contains("filteredNewsReleases"))
         assertTrue(navSource.contains("setSelectedNewsCarrier"))
+        assertTrue(navSource.contains("openInsuranceArticle"))
         assertTrue(navSource.contains("selectedNewsCarrier"))
         assertTrue(viewModelSource.contains("fun insuranceCarrierHubItems"))
         assertTrue(viewModelSource.contains("fun filteredNewsReleases"))
         assertTrue(viewModelSource.contains("fun setSelectedNewsCarrier"))
+    }
+
+    @Test
+    fun filteredNewsReleasesMatchesCarrierOnFallbackFeed() {
+        val viewModel = EobViewModel()
+        viewModel.setSelectedNewsCarrier(MajorInsuranceCarrier.Aetna)
+        val filtered = viewModel.filteredNewsReleases(
+            fallbackNews = listOf(
+                NewsRelease(
+                    company = "UnitedHealthcare",
+                    headline = "UHC update",
+                    summary = "United update",
+                    date = "06/01/2026"
+                ),
+                NewsRelease(
+                    company = "Aetna",
+                    headline = "Aetna update",
+                    summary = "Aetna update",
+                    date = "06/02/2026"
+                )
+            )
+        )
+        assertEquals(1, filtered.size)
+        assertEquals("Aetna", filtered.first().company)
+    }
+
+    @Test
+    fun openCustomTabRejectsUnsafeSchemes() {
+        val source = readSource("ui/screens/NewsScreen.kt")
+        assertTrue(source.contains("scheme != \"https\""))
+        assertTrue(source.contains("scheme != \"http\""))
     }
 
     @Test

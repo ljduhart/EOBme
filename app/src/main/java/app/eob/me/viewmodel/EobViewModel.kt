@@ -845,6 +845,9 @@ class EobViewModel : ViewModel() {
 
     fun filteredNewsReleases(fallbackNews: List<NewsRelease>): List<NewsRelease> {
         val releases = currentNewsReleases(fallbackNews)
+        if (hasLiveInsuranceNewsPools()) {
+            return releases
+        }
         val carrier = _uiState.value.selectedNewsCarrier
         val keywords = carrier.filterKeywords()
         val filtered = releases.filter { release ->

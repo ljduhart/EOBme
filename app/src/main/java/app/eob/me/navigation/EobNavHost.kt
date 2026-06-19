@@ -826,6 +826,9 @@ private fun MainHubNavHost(
                         selectedCarrier = selectedNewsCarrier,
                         onCarrierSelected = { carrier ->
                             eobViewModel.setSelectedNewsCarrier(carrier)
+                            carrierHubItems.firstOrNull { it.carrier == carrier }
+                                ?.featuredArticle
+                                ?.let(eobViewModel::openInsuranceArticle)
                             onActivity()
                         },
                         selectedInsuranceArticle = uiState.selectedInsuranceArticle,

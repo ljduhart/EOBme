@@ -80,7 +80,10 @@ private val AmberLightbulb = Color(0xFFFFB300)
 fun openCustomTab(context: Context, url: String) {
     val trimmed = url.trim()
     if (trimmed.isBlank()) return
-    CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(trimmed))
+    val uri = Uri.parse(trimmed)
+    val scheme = uri.scheme?.lowercase()
+    if (scheme != "https" && scheme != "http") return
+    CustomTabsIntent.Builder().build().launchUrl(context, uri)
 }
 
 @Composable
@@ -314,7 +317,7 @@ fun CarrierCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = EobStrings.t(language, "insuranceNewsMonthlyBriefingsLabel"),
+                    text = EobStrings.tf(language, "insuranceNewsMonthlyBriefingsCount", item.monthlyBriefingCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -335,6 +338,9 @@ fun NewsBriefingCard(
     onReadFullBriefing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val articleUrl = news.resolvedArticleUrl()
+    val canOpenArticle = articleUrl.isNotBlank()
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -401,6 +407,7 @@ fun NewsBriefingCard(
                 if (showReadMore) {
                     OutlinedButton(
                         onClick = onReadMore,
+                        enabled = canOpenArticle,
                         shape = RoundedCornerShape(50)
                     ) {
                         Text(EobStrings.t(language, "insuranceNewsReadMore"))
@@ -408,7 +415,10 @@ fun NewsBriefingCard(
                 } else {
                     Spacer(modifier = Modifier.width(1.dp))
                 }
-                TextButton(onClick = onReadFullBriefing) {
+                TextButton(
+                    onClick = onReadFullBriefing,
+                    enabled = canOpenArticle
+                ) {
                     Text(EobStrings.t(language, "insuranceNewsReadFullBriefing"))
                 }
             }

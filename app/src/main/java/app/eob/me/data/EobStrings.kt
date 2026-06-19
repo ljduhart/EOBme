@@ -244,6 +244,7 @@ object EobStrings {
         "insuranceNewsSubtitle" to "Updates from United Healthcare, Medicare, Aetna, Blue Cross, and Medicaid.",
         "insuranceNewsMonthlyBriefings" to "Tap to read • 12 monthly briefings",
         "insuranceNewsMonthlyBriefingsLabel" to "12 monthly briefings",
+        "insuranceNewsMonthlyBriefingsCount" to "%d monthly briefings",
         "insuranceNewsCarrierFilterHint" to "Tapping one carrier filters the feed below.",
         "insuranceNewsReadMore" to "Read More",
         "insuranceNewsReadFullBriefing" to "Read Full Briefing →",
