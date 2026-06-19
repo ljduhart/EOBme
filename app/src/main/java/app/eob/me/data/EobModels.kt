@@ -262,6 +262,14 @@ data class CptBentoSnapshot(
     val trendDirection: PriceTrendDirection
 )
 
+data class CptCodeEntry(
+    val code: String,
+    val category: String,
+    val shortName: String,
+    val definition: String,
+    val totalBilled: String
+)
+
 enum class PriceTrendDirection {
     BelowFair,
     NearFair,

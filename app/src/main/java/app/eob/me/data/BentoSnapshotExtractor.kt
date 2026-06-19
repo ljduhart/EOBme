@@ -65,6 +65,35 @@ object BentoSnapshotExtractor {
         )
     }
 
+    fun buildCptFlashcardEntries(
+        language: AppLanguage,
+        records: List<EobRecord>,
+        category: CptCategory
+    ): List<CptCodeEntry> {
+        return records
+            .flatMap { it.charges }
+            .filter { it.category == category }
+            .groupBy { it.cptCode }
+            .map { (code, charges) ->
+                val info = EobKnowledgeBase.cptInfoFor(code)
+                val shortName = cptShortLabel(language, code, info)
+                val chargeDescription = charges.firstOrNull()?.cptDescription.orEmpty()
+                val definition = info.description.ifBlank { chargeDescription }
+                    .ifBlank { EobStrings.t(language, "unspecifiedProcedure") }
+                val totalBilled = charges.sumOf { it.billedAmount }
+                CptCodeEntry(
+                    code = code,
+                    category = EobStrings.cptCategoryLabel(language, category),
+                    shortName = shortName,
+                    definition = definition,
+                    totalBilled = java.util.Locale.US.let { locale ->
+                        String.format(locale, "$%.2f", totalBilled)
+                    }
+                )
+            }
+            .sortedBy { it.code }
+    }
+
     fun buildYtdDeductibleBentoSnapshot(
         records: List<EobRecord>,
         profile: UserProfile

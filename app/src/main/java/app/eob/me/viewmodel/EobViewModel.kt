@@ -9,6 +9,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.BentoSnapshotExtractor
 import app.eob.me.data.CptBentoSnapshot
+import app.eob.me.data.CptCodeEntry
 import app.eob.me.data.CptCategory
 import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
@@ -1116,6 +1117,18 @@ class EobViewModel : ViewModel() {
 
     fun setSelectedCptCategory(category: CptCategory) {
         _uiState.update { it.copy(selectedCptCategory = category) }
+    }
+
+    fun cptFlashcardEntries(
+        records: List<EobRecord>,
+        category: CptCategory,
+        language: AppLanguage
+    ): List<CptCodeEntry> {
+        return BentoSnapshotExtractor.buildCptFlashcardEntries(
+            language = language,
+            records = records,
+            category = category
+        )
     }
 
     fun setYtdBentoViewMode(mode: YtdBentoViewMode) {

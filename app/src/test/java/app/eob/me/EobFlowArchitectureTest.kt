@@ -153,7 +153,7 @@ class EobFlowArchitectureTest {
             "EobRoute.History.route" to "EobHistoryScreen.kt",
             "EobRoute.Dashboard.route" to "DashboardScreen.kt",
             "EobRoute.YearlyExpense.route" to "YtdExpenseScreen.kt",
-            "EobRoute.CptCount.route" to "CptCountScreen.kt",
+            "EobRoute.CptCount.route" to "CptTrackerScreen.kt",
             "EobRoute.News.route" to "NewsScreen.kt",
             "EobRoute.Appeal.route" to "AppealScreen.kt",
             "EobRoute.Profile.route" to "ProfileScreen.kt",
@@ -742,6 +742,7 @@ class EobFlowArchitectureTest {
             "personalizedNewsFeed",
             "observeRegionalNews",
             "setSelectedCptCategory",
+            "cptFlashcardEntries",
             "setYtdBentoViewMode",
             "updateUploadText"
         ).forEach { snippet ->
@@ -845,6 +846,7 @@ class EobFlowArchitectureTest {
         }
         listOf(
             "eobViewModel.cptBentoSnapshot",
+            "eobViewModel.cptFlashcardEntries",
             "eobViewModel.ytdDeductibleBentoSnapshot",
             "setYtdBentoViewMode",
             "uiState.selectedCptCategory",

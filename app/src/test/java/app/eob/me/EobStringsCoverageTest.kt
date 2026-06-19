@@ -354,7 +354,7 @@ class EobStringsCoverageTest {
             "EobHistoryScreen.kt",
             "DashboardScreen.kt",
             "YtdExpenseScreen.kt",
-            "CptCountScreen.kt",
+            "CptTrackerScreen.kt",
             "NewsScreen.kt",
             "AppealScreen.kt",
             "ProfileScreen.kt",

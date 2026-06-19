@@ -73,7 +73,7 @@ import app.eob.me.ui.screens.AppealScreen
 import app.eob.me.ui.screens.AuthChoiceScreen
 import app.eob.me.ui.screens.AuthScreen
 import app.eob.me.ui.screens.CameraCaptureScreen
-import app.eob.me.ui.screens.CptCountScreen
+import app.eob.me.ui.screens.CptTrackerScreen
 import app.eob.me.ui.screens.DashboardScreen
 import app.eob.me.ui.screens.EobSplashScreen
 import app.eob.me.ui.screens.EobHistoryScreen
@@ -811,10 +811,21 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.CptCount.route) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        CptCountScreen(
-                            language = language,
+                    val cptFlashcardEntries = remember(
+                        sortedEobRecords,
+                        uiState.selectedCptCategory,
+                        language
+                    ) {
+                        eobViewModel.cptFlashcardEntries(
                             records = sortedEobRecords,
+                            category = uiState.selectedCptCategory,
+                            language = language
+                        )
+                    }
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        CptTrackerScreen(
+                            language = language,
+                            entries = cptFlashcardEntries,
                             selectedCategory = uiState.selectedCptCategory,
                             onCategorySelected = {
                                 eobViewModel.setSelectedCptCategory(it)
