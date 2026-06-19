@@ -597,6 +597,7 @@ class EobFlowArchitectureTest {
 
     @Test
     fun appealNewsProfileAndDashboardFlowsWireViewModel() {
+        val appealSource = readSource("ui/screens/AppealScreen.kt")
         listOf(
             "regenerateAppeal",
             "updateAppeal",
@@ -609,6 +610,13 @@ class EobFlowArchitectureTest {
             "DashboardScreen"
         ).forEach { snippet ->
             assertTrue("Feature flow missing: $snippet", navHostSource.contains(snippet))
+        }
+        listOf(
+            "fun AppealActionBar",
+            "AnimatedContent",
+            "Intent.ACTION_SEND"
+        ).forEach { snippet ->
+            assertTrue("Appeal print-ready UI missing: $snippet", appealSource.contains(snippet))
         }
         assertTrue(navHostSource.contains("saveProfileAndCredentials"))
     }
