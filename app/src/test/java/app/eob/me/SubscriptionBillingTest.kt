@@ -312,6 +312,25 @@ class SubscriptionBillingTest {
         assertTrue(navSource.contains("onPremiumFeatureLocked"))
     }
 
+    @Test
+    fun revenueCatPublicApiKeyAndPurchaseFlowAreWired() {
+        assertEquals("goog_rmhYQIPDsEWnEBFWUzMRYYlpYMo", app.eob.me.billing.RevenueCatConfig.PUBLIC_API_KEY)
+        val subscriptionSource = readSource("viewmodel/SubscriptionViewModel.kt")
+        assertTrue(subscriptionSource.contains("awaitPurchase"))
+        assertTrue(subscriptionSource.contains("PurchaseParams.Builder"))
+        assertTrue(subscriptionSource.contains("awaitLogIn"))
+        assertTrue(subscriptionSource.contains("awaitLogOut"))
+        assertTrue(subscriptionSource.contains("RevenueCatEntitlementMapper"))
+        assertTrue(readSource("EobApplication.kt").contains("RevenueCatConfig.PUBLIC_API_KEY"))
+    }
+
+    @Test
+    fun revenueCatPackageResolverMatchesCatalogIdentifiers() {
+        val resolverSource = readSource("billing/RevenueCatPackageResolver.kt")
+        assertTrue(resolverSource.contains("revenueCatProductIdentifier"))
+        assertTrue(resolverSource.contains("SubscriptionCatalog.offerRef"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             java.io.File("src/main/java/app/eob/me/$relativePath"),

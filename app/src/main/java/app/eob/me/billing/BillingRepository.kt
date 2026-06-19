@@ -75,6 +75,10 @@ class BillingRepository(
         _billingErrorKey.value = null
     }
 
+    fun emitBillingNotice(noticeKey: String) {
+        _billingErrorKey.value = noticeKey
+    }
+
     fun endConnection() {
         if (billingClient.isReady) {
             billingClient.endConnection()

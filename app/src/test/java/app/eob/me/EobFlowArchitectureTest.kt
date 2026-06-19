@@ -429,8 +429,25 @@ class EobFlowArchitectureTest {
                 subscriptionVmSource.contains("currentTier")
         )
         assertTrue(
-            "Play Billing remains the purchase flow source of truth",
+            "RevenueCat must drive purchases through awaitPurchase with Play Billing fallback",
+            subscriptionVmSource.contains("awaitPurchase") &&
+                subscriptionVmSource.contains("PurchaseParams.Builder") &&
+                subscriptionVmSource.contains("awaitOfferings") &&
+                subscriptionVmSource.contains("RevenueCatPackageResolver")
+        )
+        assertTrue(
+            "Play Billing fallback must remain for offerings sync",
             subscriptionVmSource.contains("launchBillingFlow")
+        )
+        assertTrue(
+            "RevenueCat public API key must be centralized",
+            readSource("billing/RevenueCatConfig.kt").contains("goog_rmhYQIPDsEWnEBFWUzMRYYlpYMo") &&
+                readSource("EobApplication.kt").contains("RevenueCatConfig.PUBLIC_API_KEY")
+        )
+        assertTrue(
+            "SubscriptionViewModel must identify RevenueCat customers on sign-in",
+            subscriptionVmSource.contains("awaitLogIn") &&
+                subscriptionVmSource.contains("awaitLogOut")
         )
         assertTrue(
             "Gradle must declare RevenueCat purchases SDK",
@@ -448,7 +465,8 @@ class EobFlowArchitectureTest {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         listOf(
             "Purchases.configure",
-            "PurchasesConfiguration.Builder"
+            "PurchasesConfiguration.Builder",
+            "RevenueCatConfig.PUBLIC_API_KEY"
         ).forEach { snippet ->
             assertTrue("EobApplication missing RevenueCat init: $snippet", applicationSource.contains(snippet))
         }
