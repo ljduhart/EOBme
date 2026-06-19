@@ -135,7 +135,8 @@ object FirebaseEobMapper {
             summary = data.stringValue("summary"),
             date = data.stringValue("date"),
             targetTags = data.stringListValue("targetTags", "target_tags"),
-            baseRelevance = parsedBaseRelevance.takeIf { it > 0 } ?: 1
+            baseRelevance = parsedBaseRelevance.takeIf { it > 0 } ?: 1,
+            articleUrl = data.stringValue("articleUrl", "article_url")
         )
     }
 

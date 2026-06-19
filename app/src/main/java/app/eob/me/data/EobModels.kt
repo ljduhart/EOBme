@@ -157,7 +157,30 @@ data class NewsRelease(
     val summary: String,
     val date: String,
     val targetTags: List<String> = emptyList(),
-    val baseRelevance: Int = 1
+    val baseRelevance: Int = 1,
+    val articleUrl: String = ""
+) {
+    fun resolvedArticleUrl(): String {
+        if (articleUrl.isNotBlank()) return articleUrl
+        return summary.lineSequence()
+            .map { it.trim() }
+            .lastOrNull { line -> line.startsWith("https://") || line.startsWith("http://") }
+            .orEmpty()
+    }
+
+    fun displaySummary(): String {
+        val url = resolvedArticleUrl()
+        if (url.isBlank()) return summary
+        return summary.replace("\n\n$url", "")
+            .replace(url, "")
+            .trim()
+    }
+}
+
+data class InsuranceNewsCarrierHubItem(
+    val carrier: MajorInsuranceCarrier,
+    val monthlyBriefingCount: Int,
+    val featuredArticle: InsuranceArticle?
 )
 
 data class CptUsage(

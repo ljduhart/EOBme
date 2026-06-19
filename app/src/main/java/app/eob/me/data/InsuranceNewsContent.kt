@@ -13,12 +13,20 @@ data class InsuranceArticle(
     val body: String
 )
 
-enum class MajorInsuranceCarrier(val displayName: String) {
-    UnitedHealthcare("United Healthcare"),
-    Medicare("Medicare"),
-    Aetna("Aetna"),
-    BlueCross("Blue Cross"),
-    Medicaid("Medicaid")
+enum class MajorInsuranceCarrier(val displayName: String, val hubShortName: String) {
+    UnitedHealthcare("United Healthcare", "UHC"),
+    Medicare("Medicare", "Medicare"),
+    Aetna("Aetna", "Aetna"),
+    BlueCross("Blue Cross", "Blue Cross"),
+    Medicaid("Medicaid", "Medicaid");
+
+    fun filterKeywords(): List<String> = when (this) {
+        UnitedHealthcare -> listOf("United", "UHC", "UnitedHealthcare")
+        Medicare -> listOf("Medicare", "CMS", "Humana")
+        Aetna -> listOf("Aetna", "CVS")
+        BlueCross -> listOf("Blue Cross", "BCBS", "Blue Cross Blue Shield")
+        Medicaid -> listOf("Medicaid", "CHIP")
+    }
 }
 
 object EobInsuranceNews {

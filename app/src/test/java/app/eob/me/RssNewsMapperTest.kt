@@ -39,7 +39,8 @@ class RssNewsMapperTest {
             mapped.map { it.headline }.toSet()
         )
         assertTrue(mapped.all { it.company == RssNewsMapper.BECKERS_COMPANY })
-        assertTrue(mapped.any { it.summary.contains("https://example.com/newer") })
+        assertTrue(mapped.any { it.articleUrl == "https://example.com/newer" })
+        assertTrue(mapped.all { !it.summary.contains("https://example.com") })
         assertTrue(mapped.all { it.date.contains("2026") })
     }
 

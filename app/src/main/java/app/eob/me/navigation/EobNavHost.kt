@@ -806,19 +806,29 @@ private fun MainHubNavHost(
                 }
                 composable(EobRoute.News.route) {
                     val newsFeedRevision = uiState.newsFeedRevision
+                    val selectedNewsCarrier = uiState.selectedNewsCarrier
                     val hubTimeKey = eobViewModel.hubTimeKey()
                     val insuranceNewsRotationSlot = eobViewModel.insuranceNewsRotationSlot()
-                    val insuranceArticles = remember(hubTimeKey) {
-                        eobViewModel.insuranceBriefings()
+                    val carrierHubItems = remember(hubTimeKey) {
+                        eobViewModel.insuranceCarrierHubItems()
                     }
-                    val newsItems = remember(newsFeedRevision, insuranceNewsRotationSlot, personalizedNewsFeed) {
-                        eobViewModel.currentNewsReleases(EobKnowledgeBase.newsReleases)
+                    val newsItems = remember(
+                        newsFeedRevision,
+                        insuranceNewsRotationSlot,
+                        personalizedNewsFeed,
+                        selectedNewsCarrier
+                    ) {
+                        eobViewModel.filteredNewsReleases(EobKnowledgeBase.newsReleases)
                     }
                     NewsScreen(
                         language = language,
-                        insuranceArticles = insuranceArticles,
+                        carrierHubItems = carrierHubItems,
+                        selectedCarrier = selectedNewsCarrier,
+                        onCarrierSelected = { carrier ->
+                            eobViewModel.setSelectedNewsCarrier(carrier)
+                            onActivity()
+                        },
                         selectedInsuranceArticle = uiState.selectedInsuranceArticle,
-                        onInsuranceArticleSelected = eobViewModel::openInsuranceArticle,
                         onDismissInsuranceArticle = eobViewModel::dismissInsuranceArticle,
                         newsItems = newsItems,
                         onDeleteNews = { eobViewModel.deleteNews(it) }

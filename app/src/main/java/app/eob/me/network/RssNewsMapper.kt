@@ -46,13 +46,15 @@ object RssNewsMapper {
         if (headline.isBlank()) return null
         val parsedDate = parsePubDate(item.pubDate) ?: return null
         if (!isWithinLiveNewsWindow(parsedDate)) return null
-        val summary = buildSummary(item)
+        val summary = buildSummaryBody(item)
+        val articleUrl = item.link?.trim().orEmpty()
         return NewsRelease(
             company = company,
             headline = headline,
             summary = summary,
             date = formatDisplayDate(parsedDate),
-            targetTags = emptyList()
+            targetTags = emptyList(),
+            articleUrl = articleUrl
         )
     }
 
@@ -92,17 +94,10 @@ object RssNewsMapper {
         return displayDateFormat.format(parsed)
     }
 
-    private fun buildSummary(item: RssItem): String {
-        val body = stripHtml(item.content)
+    private fun buildSummaryBody(item: RssItem): String {
+        return stripHtml(item.content)
             .ifBlank { stripHtml(item.description) }
             .trim()
-        val link = item.link?.trim().orEmpty()
-        return when {
-            body.isNotBlank() && link.isNotBlank() -> "$body\n\n$link"
-            body.isNotBlank() -> body
-            link.isNotBlank() -> link
-            else -> ""
-        }
     }
 
     private fun stripHtml(value: String?): String {

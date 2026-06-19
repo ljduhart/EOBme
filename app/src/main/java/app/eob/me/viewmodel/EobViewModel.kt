@@ -30,6 +30,8 @@ import app.eob.me.data.InsuranceNewsBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.ProviderDirectoryAssurance
 import app.eob.me.data.InsuranceArticle
+import app.eob.me.data.InsuranceNewsCarrierHubItem
+import app.eob.me.data.MajorInsuranceCarrier
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.EobKnowledgeBase
@@ -97,6 +99,7 @@ data class HubUiState(
     val historyPage: Int = 0,
     val calendarExpanded: Boolean = false,
     val selectedInsuranceArticle: InsuranceArticle? = null,
+    val selectedNewsCarrier: MajorInsuranceCarrier = MajorInsuranceCarrier.UnitedHealthcare,
     val ytdBentoViewMode: YtdBentoViewMode = YtdBentoViewMode.CostOverview,
     val selectedCptCategory: CptCategory = CptCategory.OfficeVisit,
     val firebaseSyncStatus: FirebaseSyncStatus = FirebaseSyncStatus(isConfigured = false),
@@ -819,6 +822,40 @@ class EobViewModel : ViewModel() {
 
     fun dismissInsuranceArticle() {
         _uiState.update { it.copy(selectedInsuranceArticle = null) }
+    }
+
+    fun setSelectedNewsCarrier(carrier: MajorInsuranceCarrier) {
+        _uiState.update { it.copy(selectedNewsCarrier = carrier) }
+    }
+
+    fun insuranceCarrierHubItems(): List<InsuranceNewsCarrierHubItem> {
+        val articles = insuranceBriefings()
+        val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
+        return MajorInsuranceCarrier.entries.map { carrier ->
+            val carrierArticles = articles.filter { it.carrier == carrier }
+            val featured = carrierArticles.firstOrNull { it.monthIndex == currentMonth }
+                ?: carrierArticles.minByOrNull { it.monthIndex }
+            InsuranceNewsCarrierHubItem(
+                carrier = carrier,
+                monthlyBriefingCount = carrierArticles.size,
+                featuredArticle = featured
+            )
+        }
+    }
+
+    fun filteredNewsReleases(fallbackNews: List<NewsRelease>): List<NewsRelease> {
+        val releases = currentNewsReleases(fallbackNews)
+        val carrier = _uiState.value.selectedNewsCarrier
+        val keywords = carrier.filterKeywords()
+        val filtered = releases.filter { release ->
+            keywords.any { keyword ->
+                release.company.contains(keyword, ignoreCase = true) ||
+                    release.headline.contains(keyword, ignoreCase = true) ||
+                    release.summary.contains(keyword, ignoreCase = true) ||
+                    release.targetTags.any { tag -> tag.contains(keyword, ignoreCase = true) }
+            }
+        }
+        return filtered.ifEmpty { releases }
     }
 
     fun updateAppeal(text: String) {
