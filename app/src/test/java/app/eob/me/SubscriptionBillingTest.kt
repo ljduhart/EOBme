@@ -251,6 +251,12 @@ class SubscriptionBillingTest {
         val paywallSource = readSource("ui/screens/PaywallDialog.kt")
         assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Silver)"))
         assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Gold)"))
+        assertTrue(paywallSource.contains("paywallPricing.displayPrice"))
+        assertTrue(paywallSource.contains("paywallPricing.checkoutPrice"))
+        assertFalse(
+            "Paywall must not hardcode catalog marketing prices",
+            paywallSource.contains("SubscriptionCatalog.displayPrice")
+        )
         assertTrue(paywallSource.contains("Column(verticalArrangement = Arrangement.spacedBy"))
     }
 
@@ -258,7 +264,7 @@ class SubscriptionBillingTest {
     fun subscriptionViewModelRefreshesRevenueCatWhenPlayTierChanges() {
         val source = readSource("viewmodel/SubscriptionViewModel.kt")
         assertTrue(source.contains("billingRepository.activePlayTier.collect"))
-        assertTrue(source.contains("refreshSubscriptionState()"))
+        assertTrue(source.contains("revenueCatBillingRepository.refreshCustomerInfo()"))
     }
 
     @Test
@@ -315,13 +321,41 @@ class SubscriptionBillingTest {
     @Test
     fun revenueCatPublicApiKeyAndPurchaseFlowAreWired() {
         assertEquals("goog_rmhYQIPDsEWnEBFWUzMRYYlpYMo", app.eob.me.billing.RevenueCatConfig.PUBLIC_API_KEY)
+        val revenueCatBillingSource = readSource("billing/RevenueCatBillingRepository.kt")
         val subscriptionSource = readSource("viewmodel/SubscriptionViewModel.kt")
-        assertTrue(subscriptionSource.contains("awaitPurchase"))
-        assertTrue(subscriptionSource.contains("PurchaseParams.Builder"))
-        assertTrue(subscriptionSource.contains("awaitLogIn"))
-        assertTrue(subscriptionSource.contains("awaitLogOut"))
-        assertTrue(subscriptionSource.contains("RevenueCatEntitlementMapper"))
-        assertTrue(readSource("EobApplication.kt").contains("RevenueCatConfig.PUBLIC_API_KEY"))
+        assertTrue(revenueCatBillingSource.contains("awaitPurchase"))
+        assertTrue(revenueCatBillingSource.contains("PurchaseParams.Builder"))
+        assertTrue(revenueCatBillingSource.contains("awaitLogIn"))
+        assertTrue(revenueCatBillingSource.contains("awaitLogOut"))
+        assertTrue(revenueCatBillingSource.contains("UpdatedCustomerInfoListener"))
+        assertTrue(revenueCatBillingSource.contains("RevenueCatEntitlementMapper"))
+        assertFalse("ViewModel must not call RevenueCat directly", subscriptionSource.contains("com.revenuecat"))
+        val applicationSource = readSource("EobApplication.kt")
+        assertTrue(applicationSource.contains("RevenueCatConfig.PUBLIC_API_KEY"))
+        assertTrue(applicationSource.contains("entitlementVerificationMode"))
+        assertTrue(applicationSource.contains("EntitlementVerificationMode.INFORMATIONAL"))
+    }
+
+    @Test
+    fun revenueCatPurchaseErrorsMapToUserFacingNoticeKeys() {
+        val mapperSource = readSource("billing/RevenueCatPurchaseErrorMapper.kt")
+        assertTrue(mapperSource.contains("billing_user_canceled"))
+        assertTrue(mapperSource.contains("billing_payment_declined"))
+        assertTrue(mapperSource.contains("billing_payment_pending"))
+        assertTrue(mapperSource.contains("billing_product_unavailable"))
+    }
+
+    @Test
+    fun eobViewModelMapsPaymentDeclinedBillingNotice() {
+        val viewModel = EobViewModel()
+        viewModel.showPaywall()
+        viewModel.beginPaywallPurchase()
+        viewModel.handleBillingNoticeForPaywall(AppLanguage.English, "billing_payment_declined")
+        assertTrue(viewModel.uiState.value.paywallVisible)
+        assertEquals(
+            EobStrings.t(AppLanguage.English, "billingPaymentDeclined"),
+            viewModel.uiState.value.paywallMessage
+        )
     }
 
     @Test

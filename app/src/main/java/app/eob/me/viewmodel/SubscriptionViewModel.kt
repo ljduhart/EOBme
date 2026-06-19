@@ -5,49 +5,47 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.eob.me.billing.BillingRepository
-import app.eob.me.billing.RevenueCatEntitlementMapper
-import app.eob.me.billing.RevenueCatPackageResolver
+import app.eob.me.billing.PaywallPricing
+import app.eob.me.billing.RevenueCatBillingRepository
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.BillingInterval
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.remote.FirestoreSubscriptionRepository
 import app.eob.me.data.repository.FirestoreSubscriptionSnapshot
 import app.eob.me.data.repository.SubscriptionRepository
-import com.revenuecat.purchases.PurchaseParams
-import com.revenuecat.purchases.Purchases
-import com.revenuecat.purchases.PurchasesException
-import com.revenuecat.purchases.PurchasesTransactionException
-import com.revenuecat.purchases.awaitCustomerInfo
-import com.revenuecat.purchases.awaitLogIn
-import com.revenuecat.purchases.awaitLogOut
-import com.revenuecat.purchases.awaitOfferings
-import com.revenuecat.purchases.awaitPurchase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
  * Merges Google Play Billing, Firestore `users/{uid}.subscriptionTier`, and RevenueCat
  * entitlements into [subscriptionState]. Hub UI reads tier through [EobViewModel.applySubscriptionState].
  *
- * Purchases are initiated through RevenueCat [awaitPurchase]; Play Billing remains as a
- * reconciliation fallback when offerings are unavailable.
+ * RevenueCat SDK access is isolated in [RevenueCatBillingRepository]; this ViewModel only
+ * orchestrates repository streams and purchase delegation.
  */
 class SubscriptionViewModel(application: Application) : AndroidViewModel(application) {
 
     private val billingRepository: BillingRepository = BillingRepository(application.applicationContext)
+    private val revenueCatBillingRepository: RevenueCatBillingRepository = RevenueCatBillingRepository()
     private val subscriptionRepository: SubscriptionRepository = FirestoreSubscriptionRepository()
 
     private val _subscriptionState = MutableStateFlow<SubscriptionState>(SubscriptionState.Loading)
     val subscriptionState: StateFlow<SubscriptionState> = _subscriptionState.asStateFlow()
 
-    private val _currentTier = MutableStateFlow(SubscriptionTier.Free)
-    val currentTier: StateFlow<SubscriptionTier> = _currentTier.asStateFlow()
+    val paywallPricing: StateFlow<PaywallPricing> = revenueCatBillingRepository.paywallPricing
 
-    val billingNoticeKey: StateFlow<String?> = billingRepository.billingErrorKey
+    val billingNoticeKey: StateFlow<String?> = combine(
+        billingRepository.billingErrorKey,
+        revenueCatBillingRepository.billingNoticeKey
+    ) { playNotice, revenueCatNotice ->
+        playNotice ?: revenueCatNotice
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private var observeJob: Job? = null
     private var playTierObserveJob: Job? = null
@@ -57,23 +55,22 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         if (boundUserId == userId && observeJob?.isActive == true) return
         boundUserId = userId
         observeJob?.cancel()
-        refreshSubscriptionState()
         if (userId.isBlank()) {
             viewModelScope.launch {
-                runCatching { Purchases.sharedInstance.awaitLogOut() }
-                _currentTier.value = SubscriptionTier.Free
+                revenueCatBillingRepository.logOut()
                 _subscriptionState.value = SubscriptionState.Free
             }
             return
         }
         _subscriptionState.value = SubscriptionState.Loading
         observeJob = viewModelScope.launch {
-            runCatching { Purchases.sharedInstance.awaitLogIn(userId) }
-            refreshSubscriptionState()
+            revenueCatBillingRepository.logIn(userId)
+            revenueCatBillingRepository.refreshCustomerInfo()
+            revenueCatBillingRepository.refreshOfferings()
             combine(
                 billingRepository.activePlayTier,
                 subscriptionRepository.observeSubscriptionTier(userId),
-                currentTier
+                revenueCatBillingRepository.activeTier
             ) { playTier, firestoreSnapshot, revenueCatTier ->
                 mergeSubscriptionState(playTier, firestoreSnapshot, revenueCatTier)
             }.collect { merged ->
@@ -82,20 +79,13 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun refreshSubscriptionState() {
-        viewModelScope.launch {
-            try {
-                val customerInfo = Purchases.sharedInstance.awaitCustomerInfo()
-                _currentTier.value = RevenueCatEntitlementMapper.tierFromCustomerInfo(customerInfo)
-            } catch (_: PurchasesException) {
-                _currentTier.value = SubscriptionTier.Free
-            }
-        }
-    }
-
     fun startBilling() {
+        revenueCatBillingRepository.startListening()
         billingRepository.startConnection()
-        refreshSubscriptionState()
+        viewModelScope.launch {
+            revenueCatBillingRepository.refreshCustomerInfo()
+            revenueCatBillingRepository.refreshOfferings()
+        }
         playTierObserveJob?.cancel()
         playTierObserveJob = viewModelScope.launch {
             var previousPlayTier: SubscriptionTier? = null
@@ -103,7 +93,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                 val resolved = playTier ?: SubscriptionTier.Free
                 if (resolved != previousPlayTier) {
                     previousPlayTier = resolved
-                    refreshSubscriptionState()
+                    revenueCatBillingRepository.refreshCustomerInfo()
                 }
             }
         }
@@ -111,14 +101,14 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
 
     fun stopBilling() {
         billingRepository.endConnection()
+        revenueCatBillingRepository.stopListening()
         observeJob?.cancel()
         observeJob = null
         playTierObserveJob?.cancel()
         playTierObserveJob = null
         boundUserId = null
         viewModelScope.launch {
-            runCatching { Purchases.sharedInstance.awaitLogOut() }
-            _currentTier.value = SubscriptionTier.Free
+            revenueCatBillingRepository.logOut()
             _subscriptionState.value = SubscriptionState.Loading
         }
     }
@@ -132,34 +122,21 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
             billingRepository.emitBillingNotice("billing_flow_failed")
             return
         }
-        billingRepository.clearBillingNotice()
+        clearBillingNotice()
         viewModelScope.launch {
-            try {
-                val offerings = Purchases.sharedInstance.awaitOfferings()
-                val revenueCatPackage = RevenueCatPackageResolver.resolve(offerings, tier, interval)
-                if (revenueCatPackage == null) {
-                    billingRepository.launchBillingFlow(activity, tier, interval)
-                    return@launch
-                }
-                val purchaseParams = PurchaseParams.Builder(activity, revenueCatPackage).build()
-                val purchaseResult = Purchases.sharedInstance.awaitPurchase(purchaseParams)
-                _currentTier.value = RevenueCatEntitlementMapper.tierFromCustomerInfo(purchaseResult.customerInfo)
-                refreshSubscriptionState()
-                billingRepository.startConnection()
-            } catch (transactionError: PurchasesTransactionException) {
-                if (transactionError.userCancelled) {
-                    billingRepository.emitBillingNotice("billing_user_canceled")
-                } else {
-                    billingRepository.emitBillingNotice("billing_flow_failed")
-                }
-            } catch (_: PurchasesException) {
+            val handledByRevenueCat = revenueCatBillingRepository.purchase(activity, tier, interval)
+            if (!handledByRevenueCat) {
                 billingRepository.launchBillingFlow(activity, tier, interval)
+                return@launch
             }
+            billingRepository.startConnection()
+            revenueCatBillingRepository.refreshCustomerInfo()
         }
     }
 
     fun clearBillingNotice() {
         billingRepository.clearBillingNotice()
+        revenueCatBillingRepository.clearBillingNotice()
     }
 
     private fun mergeSubscriptionState(

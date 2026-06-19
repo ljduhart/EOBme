@@ -415,6 +415,15 @@ class EobFlowArchitectureTest {
             subscriptionVmSource.contains("BillingRepository(application.applicationContext)")
         )
         assertTrue(
+            "SubscriptionViewModel must delegate RevenueCat to RevenueCatBillingRepository",
+            subscriptionVmSource.contains("RevenueCatBillingRepository()")
+        )
+        assertFalse(
+            "SubscriptionViewModel must not import RevenueCat SDK directly",
+            subscriptionVmSource.contains("com.revenuecat")
+        )
+        val revenueCatBillingSource = readSource("billing/RevenueCatBillingRepository.kt")
+        assertTrue(
             "AppViewModel and SubscriptionViewModel must share the same viewModel() constructor contract",
             readSource("viewmodel/AppViewModel.kt").contains("class AppViewModel(application: Application) : AndroidViewModel(application)")
         )
@@ -423,17 +432,17 @@ class EobFlowArchitectureTest {
             billingSource.contains("com.revenuecat")
         )
         assertTrue(
-            "SubscriptionViewModel must observe RevenueCat entitlements via coroutines",
-            subscriptionVmSource.contains("refreshSubscriptionState") &&
-                subscriptionVmSource.contains("awaitCustomerInfo") &&
-                subscriptionVmSource.contains("currentTier")
+            "RevenueCatBillingRepository must stream entitlements via customer-info listener",
+            revenueCatBillingSource.contains("UpdatedCustomerInfoListener") &&
+                revenueCatBillingSource.contains("updatedCustomerInfoListener") &&
+                revenueCatBillingSource.contains("activeTier")
         )
         assertTrue(
             "RevenueCat must drive purchases through awaitPurchase with Play Billing fallback",
-            subscriptionVmSource.contains("awaitPurchase") &&
-                subscriptionVmSource.contains("PurchaseParams.Builder") &&
-                subscriptionVmSource.contains("awaitOfferings") &&
-                subscriptionVmSource.contains("RevenueCatPackageResolver")
+            revenueCatBillingSource.contains("awaitPurchase") &&
+                revenueCatBillingSource.contains("PurchaseParams.Builder") &&
+                revenueCatBillingSource.contains("awaitOfferings") &&
+                revenueCatBillingSource.contains("RevenueCatPackageResolver")
         )
         assertTrue(
             "Play Billing fallback must remain for offerings sync",
@@ -445,9 +454,19 @@ class EobFlowArchitectureTest {
                 readSource("EobApplication.kt").contains("RevenueCatConfig.PUBLIC_API_KEY")
         )
         assertTrue(
-            "SubscriptionViewModel must identify RevenueCat customers on sign-in",
-            subscriptionVmSource.contains("awaitLogIn") &&
-                subscriptionVmSource.contains("awaitLogOut")
+            "RevenueCat identity must sync on Firebase sign-in and sign-out",
+            revenueCatBillingSource.contains("awaitLogIn") &&
+                revenueCatBillingSource.contains("awaitLogOut")
+        )
+        assertTrue(
+            "RevenueCat must enable entitlement verification at boot",
+            readSource("EobApplication.kt").contains("entitlementVerificationMode") &&
+                readSource("EobApplication.kt").contains("EntitlementVerificationMode.INFORMATIONAL")
+        )
+        assertTrue(
+            "Paywall must use dynamic RevenueCat pricing",
+            readSource("ui/screens/PaywallDialog.kt").contains("paywallPricing.displayPrice") &&
+                readSource("navigation/EobNavHost.kt").contains("paywallPricing")
         )
         assertTrue(
             "Gradle must declare RevenueCat purchases SDK",
@@ -466,7 +485,9 @@ class EobFlowArchitectureTest {
         listOf(
             "Purchases.configure",
             "PurchasesConfiguration.Builder",
-            "RevenueCatConfig.PUBLIC_API_KEY"
+            "RevenueCatConfig.PUBLIC_API_KEY",
+            "entitlementVerificationMode",
+            "EntitlementVerificationMode.INFORMATIONAL"
         ).forEach { snippet ->
             assertTrue("EobApplication missing RevenueCat init: $snippet", applicationSource.contains(snippet))
         }
@@ -517,6 +538,7 @@ class EobFlowArchitectureTest {
             "eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle",
             "SubscriptionViewModel",
             "subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle",
+            "subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle",
             "eobViewModel.applySubscriptionState",
             "launchManageSubscriptionFlow",
             "PaywallDialog",

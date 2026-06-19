@@ -542,6 +542,8 @@ object EobStrings {
         "settingsProfileSaved" to "Profile updated.",
         "billingNotReady" to "Google Play Billing is not ready yet. Please try again.",
         "billingProductUnavailable" to "Subscription product is not available.",
+        "billingPaymentDeclined" to "Your payment method was declined. Update your card in Google Play and try again.",
+        "billingPaymentPending" to "Your payment is pending. Access will unlock once Google Play confirms the purchase.",
         "billingFlowFailed" to "Subscription flow could not be started.",
         "legalAcceptancePrefix" to "By creating an account, you agree to our ",
         "termsOfUse" to "Terms of Use",

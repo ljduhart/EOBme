@@ -330,6 +330,7 @@ private fun MainHubNavHost(
     val subscriptionViewModel: SubscriptionViewModel = viewModel()
     val subscriptionState by subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle()
     val billingNoticeKey by subscriptionViewModel.billingNoticeKey.collectAsStateWithLifecycle()
+    val paywallPricing by subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
         eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
@@ -1090,6 +1091,7 @@ private fun MainHubNavHost(
             if (uiState.paywallVisible) {
                 PaywallDialog(
                     message = uiState.paywallMessage,
+                    paywallPricing = paywallPricing,
                     onPurchaseClicked = ::launchTierPurchaseFlow,
                     onDismiss = {
                         eobViewModel.dismissPaywall()

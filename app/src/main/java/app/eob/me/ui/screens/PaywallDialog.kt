@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.eob.me.billing.PaywallPricing
 import app.eob.me.data.BillingInterval
 import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
@@ -44,6 +45,7 @@ import app.eob.me.data.SubscriptionTier
 @Composable
 fun PaywallDialog(
     message: String,
+    paywallPricing: PaywallPricing,
     onPurchaseClicked: (SubscriptionTier, BillingInterval) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -53,6 +55,7 @@ fun PaywallDialog(
     ) {
         PaywallScreen(
             message = message,
+            paywallPricing = paywallPricing,
             onPurchaseClicked = onPurchaseClicked,
             onDismiss = onDismiss
         )
@@ -63,6 +66,7 @@ fun PaywallDialog(
 @Composable
 private fun PaywallScreen(
     message: String,
+    paywallPricing: PaywallPricing,
     onPurchaseClicked: (SubscriptionTier, BillingInterval) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -120,7 +124,7 @@ private fun PaywallScreen(
 
             TierSelectorCard(
                 title = "Silver Tier",
-                price = SubscriptionCatalog.displayPrice(SubscriptionTier.Silver, billingInterval),
+                price = paywallPricing.displayPrice(SubscriptionTier.Silver, billingInterval),
                 features = SubscriptionCatalog.features(SubscriptionTier.Silver),
                 isSelected = selectedTier == SubscriptionTier.Silver,
                 onClick = { selectedTier = SubscriptionTier.Silver }
@@ -130,7 +134,7 @@ private fun PaywallScreen(
 
             TierSelectorCard(
                 title = "Gold Tier",
-                price = SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, billingInterval),
+                price = paywallPricing.displayPrice(SubscriptionTier.Gold, billingInterval),
                 features = SubscriptionCatalog.features(SubscriptionTier.Gold),
                 isSelected = selectedTier == SubscriptionTier.Gold,
                 isRecommended = true,
@@ -139,7 +143,7 @@ private fun PaywallScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            val finalPrice = SubscriptionCatalog.checkoutPrice(selectedTier, billingInterval)
+            val finalPrice = paywallPricing.checkoutPrice(selectedTier, billingInterval)
 
             Button(
                 onClick = { onPurchaseClicked(selectedTier, billingInterval) },
