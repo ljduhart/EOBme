@@ -415,6 +415,15 @@ class EobFlowArchitectureTest {
             subscriptionVmSource.contains("BillingRepository(application.applicationContext)")
         )
         assertTrue(
+            "SubscriptionViewModel must delegate RevenueCat to RevenueCatBillingRepository",
+            subscriptionVmSource.contains("RevenueCatBillingRepository(application.applicationContext)")
+        )
+        assertFalse(
+            "SubscriptionViewModel must not import RevenueCat SDK directly",
+            subscriptionVmSource.contains("com.revenuecat")
+        )
+        val revenueCatBillingSource = readSource("billing/RevenueCatBillingRepository.kt")
+        assertTrue(
             "AppViewModel and SubscriptionViewModel must share the same viewModel() constructor contract",
             readSource("viewmodel/AppViewModel.kt").contains("class AppViewModel(application: Application) : AndroidViewModel(application)")
         )
@@ -423,14 +432,57 @@ class EobFlowArchitectureTest {
             billingSource.contains("com.revenuecat")
         )
         assertTrue(
-            "SubscriptionViewModel must observe RevenueCat entitlements via coroutines",
-            subscriptionVmSource.contains("refreshSubscriptionState") &&
-                subscriptionVmSource.contains("awaitCustomerInfo") &&
-                subscriptionVmSource.contains("currentTier")
+            "RevenueCatBillingRepository must stream entitlements via customer-info listener",
+            revenueCatBillingSource.contains("UpdatedCustomerInfoListener") &&
+                revenueCatBillingSource.contains("updatedCustomerInfoListener") &&
+                revenueCatBillingSource.contains("activeTier")
         )
         assertTrue(
-            "Play Billing remains the purchase flow source of truth",
+            "RevenueCat must drive purchases through awaitPurchase with Play Billing fallback",
+            revenueCatBillingSource.contains("awaitPurchase") &&
+                revenueCatBillingSource.contains("PurchaseParams.Builder") &&
+                revenueCatBillingSource.contains("awaitOfferings") &&
+                revenueCatBillingSource.contains("RevenueCatPackageResolver")
+        )
+        assertTrue(
+            "Play Billing fallback must remain for offerings sync",
             subscriptionVmSource.contains("launchBillingFlow")
+        )
+        assertTrue(
+            "RevenueCat public API key must be centralized",
+            readSource("billing/RevenueCatConfig.kt").contains("goog_rmhYQIPDsEWnEBFWUzMRYYlpYMo") &&
+                readSource("EobApplication.kt").contains("RevenueCatConfig.PUBLIC_API_KEY")
+        )
+        assertTrue(
+            "RevenueCat identity must sync on Firebase sign-in and sign-out",
+            revenueCatBillingSource.contains("awaitLogIn") &&
+                revenueCatBillingSource.contains("awaitLogOut")
+        )
+        assertTrue(
+            "RevenueCat must expose restore purchases for Google Play policy compliance",
+            revenueCatBillingSource.contains("awaitRestore") &&
+                revenueCatBillingSource.contains("restoreUserPurchases") &&
+                readSource("ui/screens/PaywallDialog.kt").contains("onRestorePurchasesClicked") &&
+                navHostSource.contains("restorePurchases")
+        )
+        assertTrue(
+            "RevenueCat customer profiles must receive email, display name, and cohort attributes",
+            revenueCatBillingSource.contains("setEmail") &&
+                revenueCatBillingSource.contains("setDisplayName") &&
+                revenueCatBillingSource.contains("setAttributes") &&
+                revenueCatBillingSource.contains("attachUserMetadata") &&
+                navHostSource.contains("bindUser(") &&
+                navHostSource.contains("displayName = profile.fullName")
+        )
+        assertTrue(
+            "RevenueCat must enable entitlement verification at boot",
+            readSource("EobApplication.kt").contains("entitlementVerificationMode") &&
+                readSource("EobApplication.kt").contains("EntitlementVerificationMode.INFORMATIONAL")
+        )
+        assertTrue(
+            "Paywall must use dynamic RevenueCat pricing",
+            readSource("ui/screens/PaywallDialog.kt").contains("paywallPricing.displayPrice") &&
+                readSource("navigation/EobNavHost.kt").contains("paywallPricing")
         )
         assertTrue(
             "Gradle must declare RevenueCat purchases SDK",
@@ -448,7 +500,10 @@ class EobFlowArchitectureTest {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         listOf(
             "Purchases.configure",
-            "PurchasesConfiguration.Builder"
+            "PurchasesConfiguration.Builder",
+            "RevenueCatConfig.PUBLIC_API_KEY",
+            "entitlementVerificationMode",
+            "EntitlementVerificationMode.INFORMATIONAL"
         ).forEach { snippet ->
             assertTrue("EobApplication missing RevenueCat init: $snippet", applicationSource.contains(snippet))
         }
@@ -477,6 +532,82 @@ class EobFlowArchitectureTest {
             viewModelSource.contains("processScannedDocument") &&
                 viewModelSource.contains("documentScanState")
         )
+        listOf(
+            "EobRoute.CameraCapture.route",
+            "processScannedDocument",
+            "documentScanState",
+            "subscriptionViewModel.startBilling",
+            "subscriptionViewModel.bindUser",
+            "eobViewModel.applySubscriptionState",
+            "PaywallDialog"
+        ).forEach { snippet ->
+            assertTrue(
+                "Hybrid navigational pipeline must coexist with billing in EobNavHost: $snippet",
+                navHostSource.contains(snippet)
+            )
+        }
+    }
+
+    @Test
+    fun pr100FinalAuditHybridBillingPaywallIntegrity() {
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val subscriptionVmSource = readSource("viewmodel/SubscriptionViewModel.kt")
+        val revenueCatBillingSource = readSource("billing/RevenueCatBillingRepository.kt")
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val settingsSource = readSource("ui/screens/SettingsScreen.kt")
+        val ocrPreCheckSource = readSource("util/EobDocumentOcrPreCheck.kt")
+
+        listOf(
+            "processHybridDocument",
+            "uploadEobFileAwaitDownload",
+            "streamExtractDocument",
+            "writeReconciliationFindings",
+            "awaitVeryfiExtraction",
+            "processHybridScannedDocument",
+            "runDocumentOcrPreCheck"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#100 audit: hybrid pipeline barrier missing $snippet",
+                hybridRepoSource.contains(snippet) ||
+                    veryfiSource.contains(snippet) ||
+                    remoteSource.contains(snippet) ||
+                    viewModelSource.contains(snippet)
+            )
+        }
+        assertTrue("PR#100 audit: OCR pre-check barrier required", ocrPreCheckSource.contains("validate"))
+
+        assertFalse("PR#100 audit: EobViewModel must not import RevenueCat", viewModelSource.contains("com.revenuecat"))
+        assertFalse("PR#100 audit: SubscriptionViewModel must not import RevenueCat", subscriptionVmSource.contains("com.revenuecat"))
+        assertTrue("PR#100 audit: RevenueCat isolated in billing repository", revenueCatBillingSource.contains("Purchases.sharedInstance"))
+        assertTrue("PR#100 audit: restore purchases required", revenueCatBillingSource.contains("awaitRestore"))
+        assertTrue("PR#100 audit: metadata sync required", revenueCatBillingSource.contains("attachUserMetadata"))
+
+        assertTrue("PR#100 audit: paywall uses dynamic pricing", paywallSource.contains("paywallPricing.displayPrice"))
+        assertTrue("PR#100 audit: restore button on paywall", paywallSource.contains("onRestorePurchasesClicked"))
+        assertTrue("PR#100 audit: manage subscription available in settings", settingsSource.contains("onManageSubscription"))
+        assertFalse(
+            "PR#100 audit: manage subscription must not be tier-gated in settings",
+            settingsSource.contains("subscriptionTier") && settingsSource.contains("onManageSubscription") &&
+                settingsSource.contains("if (subscriptionTier")
+        )
+
+        assertTrue("PR#100 audit: EobViewModel owns paywall state", viewModelSource.contains("fun showPaywall"))
+        assertTrue("PR#100 audit: EobViewModel applies subscription state", viewModelSource.contains("fun applySubscriptionState"))
+        assertTrue("PR#100 audit: billing notices carry into paywall", viewModelSource.contains("localizedBillingNotices"))
+
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#100 audit: opening screen must remain untouched ($path)", source.contains("RevenueCat"))
+            assertFalse("PR#100 audit: opening screen must remain untouched ($path)", source.contains("PaywallDialog"))
+        }
     }
 
     @Test
@@ -499,10 +630,13 @@ class EobFlowArchitectureTest {
             "eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle",
             "SubscriptionViewModel",
             "subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle",
+            "subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle",
             "eobViewModel.applySubscriptionState",
             "launchManageSubscriptionFlow",
             "PaywallDialog",
             "launchTierPurchaseFlow",
+            "onRestorePurchasesClicked",
+            "restorePurchases",
             "handleBillingNoticeForPaywall"
         ).forEach { snippet ->
             assertTrue("MainHubNavHost must wire news and billing together: $snippet", navHostSource.contains(snippet))
@@ -674,13 +808,10 @@ class EobFlowArchitectureTest {
     fun cameraCaptureRouteUsesHybridDocumentPipeline() {
         val cameraScreenSource = readSource("ui/screens/CameraCaptureScreen.kt")
         assertTrue(cameraScreenSource.contains("CameraCaptureViewModel"))
-        assertTrue(cameraScreenSource.contains("CameraScanDock"))
-        assertTrue(cameraScreenSource.contains("CameraScanTypeSelector"))
-        assertTrue(cameraScreenSource.contains("DocumentEdgeOverlay"))
+        assertTrue(cameraScreenSource.contains("weight(0.85f)"))
+        assertTrue(cameraScreenSource.contains("weight(0.15f)"))
         assertTrue(navHostSource.contains("EobRoute.CameraCapture.route"))
         assertTrue(navHostSource.contains("processScannedDocument"))
-        assertTrue(navHostSource.contains("cameraScanSourceLabel"))
-        assertTrue(navHostSource.contains("setCameraScanDocumentType"))
         assertTrue(navHostSource.contains("imageCompressionLevel()"))
         assertTrue(navHostSource.contains("customCameraPermissionLauncher"))
         assertFalse(navHostSource.contains("onCameraScan"))

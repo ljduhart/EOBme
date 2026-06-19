@@ -330,6 +330,7 @@ private fun MainHubNavHost(
     val subscriptionViewModel: SubscriptionViewModel = viewModel()
     val subscriptionState by subscriptionViewModel.subscriptionState.collectAsStateWithLifecycle()
     val billingNoticeKey by subscriptionViewModel.billingNoticeKey.collectAsStateWithLifecycle()
+    val paywallPricing by subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
         eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
@@ -348,12 +349,34 @@ private fun MainHubNavHost(
         onActivity()
     }
 
+    fun restorePurchases() {
+        subscriptionViewModel.restoreUserPurchases(
+            onSuccess = { hasActiveSubscription ->
+                if (hasActiveSubscription) {
+                    eobViewModel.dismissPaywall()
+                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreSuccess"))
+                } else {
+                    eobViewModel.handleBillingNoticeForPaywall(language, "billing_restore_none")
+                }
+                onActivity()
+            },
+            onFailure = {
+                eobViewModel.handleBillingNoticeForPaywall(language, "billing_restore_failed")
+                onActivity()
+            }
+        )
+    }
+
     LaunchedEffect(Unit) {
         subscriptionViewModel.startBilling()
     }
 
-    LaunchedEffect(firebaseUser?.uid) {
-        subscriptionViewModel.bindUser(firebaseUser?.uid.orEmpty())
+    LaunchedEffect(firebaseUser?.uid, profile.email, profile.fullName) {
+        subscriptionViewModel.bindUser(
+            userId = firebaseUser?.uid.orEmpty(),
+            email = profile.email.ifBlank { firebaseUser?.email.orEmpty() },
+            displayName = profile.fullName
+        )
     }
 
     LaunchedEffect(subscriptionState) {
@@ -1095,7 +1118,10 @@ private fun MainHubNavHost(
             if (uiState.paywallVisible) {
                 PaywallDialog(
                     message = uiState.paywallMessage,
+                    paywallPricing = paywallPricing,
+                    restorePurchasesLabel = EobStrings.t(language, "billingRestorePurchases"),
                     onPurchaseClicked = ::launchTierPurchaseFlow,
+                    onRestorePurchasesClicked = ::restorePurchases,
                     onDismiss = {
                         eobViewModel.dismissPaywall()
                         onActivity()

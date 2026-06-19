@@ -251,6 +251,12 @@ class SubscriptionBillingTest {
         val paywallSource = readSource("ui/screens/PaywallDialog.kt")
         assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Silver)"))
         assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Gold)"))
+        assertTrue(paywallSource.contains("paywallPricing.displayPrice"))
+        assertTrue(paywallSource.contains("paywallPricing.checkoutPrice"))
+        assertFalse(
+            "Paywall must not hardcode catalog marketing prices",
+            paywallSource.contains("SubscriptionCatalog.displayPrice")
+        )
         assertTrue(paywallSource.contains("Column(verticalArrangement = Arrangement.spacedBy"))
     }
 
@@ -258,7 +264,7 @@ class SubscriptionBillingTest {
     fun subscriptionViewModelRefreshesRevenueCatWhenPlayTierChanges() {
         val source = readSource("viewmodel/SubscriptionViewModel.kt")
         assertTrue(source.contains("billingRepository.activePlayTier.collect"))
-        assertTrue(source.contains("refreshSubscriptionState()"))
+        assertTrue(source.contains("revenueCatBillingRepository.refreshCustomerInfo()"))
     }
 
     @Test
@@ -310,6 +316,125 @@ class SubscriptionBillingTest {
         assertTrue(navSource.contains("handleBillingNoticeForPaywall"))
         assertTrue(navSource.contains("launchTierPurchaseFlow"))
         assertTrue(navSource.contains("onPremiumFeatureLocked"))
+    }
+
+    @Test
+    fun revenueCatPublicApiKeyAndPurchaseFlowAreWired() {
+        assertEquals("goog_rmhYQIPDsEWnEBFWUzMRYYlpYMo", app.eob.me.billing.RevenueCatConfig.PUBLIC_API_KEY)
+        val revenueCatBillingSource = readSource("billing/RevenueCatBillingRepository.kt")
+        val subscriptionSource = readSource("viewmodel/SubscriptionViewModel.kt")
+        assertTrue(revenueCatBillingSource.contains("awaitPurchase"))
+        assertTrue(revenueCatBillingSource.contains("PurchaseParams.Builder"))
+        assertTrue(revenueCatBillingSource.contains("awaitLogIn"))
+        assertTrue(revenueCatBillingSource.contains("awaitLogOut"))
+        assertTrue(revenueCatBillingSource.contains("awaitRestore"))
+        assertTrue(revenueCatBillingSource.contains("restoreUserPurchases"))
+        assertTrue(revenueCatBillingSource.contains("setEmail"))
+        assertTrue(revenueCatBillingSource.contains("setDisplayName"))
+        assertTrue(revenueCatBillingSource.contains("setAttributes"))
+        assertTrue(revenueCatBillingSource.contains("attachUserMetadata"))
+        assertTrue(revenueCatBillingSource.contains("UpdatedCustomerInfoListener"))
+        assertTrue(revenueCatBillingSource.contains("RevenueCatEntitlementMapper"))
+        assertFalse("ViewModel must not call RevenueCat directly", subscriptionSource.contains("com.revenuecat"))
+        assertTrue(subscriptionSource.contains("restoreUserPurchases"))
+        val applicationSource = readSource("EobApplication.kt")
+        assertTrue(applicationSource.contains("RevenueCatConfig.PUBLIC_API_KEY"))
+        assertTrue(applicationSource.contains("entitlementVerificationMode"))
+        assertTrue(applicationSource.contains("EntitlementVerificationMode.INFORMATIONAL"))
+    }
+
+    @Test
+    fun revenueCatPurchaseErrorsMapToUserFacingNoticeKeys() {
+        val mapperSource = readSource("billing/RevenueCatPurchaseErrorMapper.kt")
+        assertTrue(mapperSource.contains("billing_user_canceled"))
+        assertTrue(mapperSource.contains("billing_payment_declined"))
+        assertTrue(mapperSource.contains("billing_payment_pending"))
+        assertTrue(mapperSource.contains("billing_product_unavailable"))
+    }
+
+    @Test
+    fun eobViewModelMapsPaymentDeclinedBillingNotice() {
+        val viewModel = EobViewModel()
+        viewModel.showPaywall()
+        viewModel.beginPaywallPurchase()
+        viewModel.handleBillingNoticeForPaywall(AppLanguage.English, "billing_payment_declined")
+        assertTrue(viewModel.uiState.value.paywallVisible)
+        assertEquals(
+            EobStrings.t(AppLanguage.English, "billingPaymentDeclined"),
+            viewModel.uiState.value.paywallMessage
+        )
+    }
+
+    @Test
+    fun paywallDialogExposesRestorePurchasesControl() {
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(paywallSource.contains("onRestorePurchasesClicked"))
+        assertTrue(paywallSource.contains("restorePurchasesLabel"))
+        assertTrue(navSource.contains("billingRestorePurchases"))
+        assertTrue(navSource.contains("onRestorePurchasesClicked = ::restorePurchases"))
+    }
+
+    @Test
+    fun bindUserPushesRevenueCatCustomerMetadata() {
+        val subscriptionSource = readSource("viewmodel/SubscriptionViewModel.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(subscriptionSource.contains("attachUserMetadata"))
+        assertTrue(subscriptionSource.contains("revenueCatBillingRepository.logIn(userId)"))
+        val bindLaunchBlock = subscriptionSource.substringAfter("observeJob = viewModelScope.launch {")
+        val logInIndex = bindLaunchBlock.indexOf("revenueCatBillingRepository.logIn(userId)")
+        val metadataIndex = bindLaunchBlock.indexOf("revenueCatBillingRepository.attachUserMetadata")
+        assertTrue("Metadata must attach after RevenueCat logIn", logInIndex in 0 until metadataIndex)
+        assertTrue(navSource.contains("displayName = profile.fullName"))
+        assertTrue(navSource.contains("email = profile.email"))
+    }
+
+    @Test
+    fun paywallRemainsAccessibleForEverySubscriptionTier() {
+        val viewModel = EobViewModel()
+        SubscriptionTier.entries.forEach { tier ->
+            viewModel.setSubscriptionTier(tier)
+            viewModel.showPaywall("Upgrade for tier ${tier.name}")
+            assertTrue("Paywall must open on $tier", viewModel.uiState.value.paywallVisible)
+            viewModel.dismissPaywall()
+            assertFalse("Paywall must dismiss on $tier", viewModel.uiState.value.paywallVisible)
+        }
+    }
+
+    @Test
+    fun billingNoticeForPaywallCarriesAllLocalizedBillingMessages() {
+        val viewModel = EobViewModel()
+        val language = AppLanguage.English
+        listOf(
+            "billing_payment_declined" to "billingPaymentDeclined",
+            "billing_payment_pending" to "billingPaymentPending",
+            "billing_restore_none" to "billingRestoreNone",
+            "billing_restore_failed" to "billingRestoreFailed",
+            "billing_restore_success" to "billingRestoreSuccess"
+        ).forEach { (noticeKey, stringKey) ->
+            viewModel.updateBillingNotice(language, noticeKey)
+            assertEquals(
+                EobStrings.t(language, stringKey),
+                viewModel.billingNoticeForPaywall(language)
+            )
+        }
+    }
+
+    @Test
+    fun settingsManageSubscriptionIsNotTierGated() {
+        val settingsSource = readSource("ui/screens/SettingsScreen.kt")
+        assertTrue(settingsSource.contains("onManageSubscription"))
+        assertFalse(
+            "Manage subscription must remain available for Free, Silver, and Gold",
+            settingsSource.contains("if (subscriptionTier") && settingsSource.contains("onManageSubscription")
+        )
+    }
+
+    @Test
+    fun revenueCatPackageResolverMatchesCatalogIdentifiers() {
+        val resolverSource = readSource("billing/RevenueCatPackageResolver.kt")
+        assertTrue(resolverSource.contains("revenueCatProductIdentifier"))
+        assertTrue(resolverSource.contains("SubscriptionCatalog.offerRef"))
     }
 
     private fun readSource(relativePath: String): String {
