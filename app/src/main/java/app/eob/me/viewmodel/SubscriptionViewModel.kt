@@ -54,10 +54,12 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
     private var boundUserId: String? = null
 
     fun bindUser(userId: String, email: String = "", displayName: String = "") {
-        if (email.isNotBlank() || displayName.isNotBlank()) {
-            revenueCatBillingRepository.attachUserMetadata(email = email, displayName = displayName)
+        if (boundUserId == userId && observeJob?.isActive == true) {
+            if (userId.isNotBlank() && (email.isNotBlank() || displayName.isNotBlank())) {
+                revenueCatBillingRepository.attachUserMetadata(email = email, displayName = displayName)
+            }
+            return
         }
-        if (boundUserId == userId && observeJob?.isActive == true) return
         boundUserId = userId
         observeJob?.cancel()
         if (userId.isBlank()) {
@@ -70,6 +72,9 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
         _subscriptionState.value = SubscriptionState.Loading
         observeJob = viewModelScope.launch {
             revenueCatBillingRepository.logIn(userId)
+            if (email.isNotBlank() || displayName.isNotBlank()) {
+                revenueCatBillingRepository.attachUserMetadata(email = email, displayName = displayName)
+            }
             revenueCatBillingRepository.refreshCustomerInfo()
             revenueCatBillingRepository.refreshOfferings()
             combine(

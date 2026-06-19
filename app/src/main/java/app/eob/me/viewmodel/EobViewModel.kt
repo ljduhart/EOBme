@@ -445,13 +445,19 @@ class EobViewModel : ViewModel() {
 
     fun billingNoticeForPaywall(language: AppLanguage): String {
         val notice = _uiState.value.hubSettings.settingsNotice
-        val billingNotices = setOf(
-            EobStrings.t(language, "billingNotReady"),
-            EobStrings.t(language, "billingProductUnavailable"),
-            EobStrings.t(language, "billingFlowFailed")
-        )
-        return notice.takeIf { it in billingNotices }.orEmpty()
+        return notice.takeIf { it in localizedBillingNotices(language) }.orEmpty()
     }
+
+    private fun localizedBillingNotices(language: AppLanguage): Set<String> = setOf(
+        EobStrings.t(language, "billingNotReady"),
+        EobStrings.t(language, "billingProductUnavailable"),
+        EobStrings.t(language, "billingFlowFailed"),
+        EobStrings.t(language, "billingPaymentDeclined"),
+        EobStrings.t(language, "billingPaymentPending"),
+        EobStrings.t(language, "billingRestoreNone"),
+        EobStrings.t(language, "billingRestoreFailed"),
+        EobStrings.t(language, "billingRestoreSuccess")
+    )
 
     fun isTaxVaultGoldUnlocked(): Boolean {
         return _uiState.value.hubSettings.subscriptionTier.isGold()
@@ -516,6 +522,7 @@ class EobViewModel : ViewModel() {
             "billing_payment_pending" -> EobStrings.t(language, "billingPaymentPending")
             "billing_restore_none" -> EobStrings.t(language, "billingRestoreNone")
             "billing_restore_failed" -> EobStrings.t(language, "billingRestoreFailed")
+            "billing_restore_success" -> EobStrings.t(language, "billingRestoreSuccess")
             "billing_user_canceled" -> ""
             else -> EobStrings.t(language, "billingFlowFailed")
         }

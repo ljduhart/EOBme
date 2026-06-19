@@ -380,8 +380,54 @@ class SubscriptionBillingTest {
         val subscriptionSource = readSource("viewmodel/SubscriptionViewModel.kt")
         val navSource = readSource("navigation/EobNavHost.kt")
         assertTrue(subscriptionSource.contains("attachUserMetadata"))
+        assertTrue(subscriptionSource.contains("revenueCatBillingRepository.logIn(userId)"))
+        val bindLaunchBlock = subscriptionSource.substringAfter("observeJob = viewModelScope.launch {")
+        val logInIndex = bindLaunchBlock.indexOf("revenueCatBillingRepository.logIn(userId)")
+        val metadataIndex = bindLaunchBlock.indexOf("revenueCatBillingRepository.attachUserMetadata")
+        assertTrue("Metadata must attach after RevenueCat logIn", logInIndex in 0 until metadataIndex)
         assertTrue(navSource.contains("displayName = profile.fullName"))
         assertTrue(navSource.contains("email = profile.email"))
+    }
+
+    @Test
+    fun paywallRemainsAccessibleForEverySubscriptionTier() {
+        val viewModel = EobViewModel()
+        SubscriptionTier.entries.forEach { tier ->
+            viewModel.setSubscriptionTier(tier)
+            viewModel.showPaywall("Upgrade for tier ${tier.name}")
+            assertTrue("Paywall must open on $tier", viewModel.uiState.value.paywallVisible)
+            viewModel.dismissPaywall()
+            assertFalse("Paywall must dismiss on $tier", viewModel.uiState.value.paywallVisible)
+        }
+    }
+
+    @Test
+    fun billingNoticeForPaywallCarriesAllLocalizedBillingMessages() {
+        val viewModel = EobViewModel()
+        val language = AppLanguage.English
+        listOf(
+            "billing_payment_declined" to "billingPaymentDeclined",
+            "billing_payment_pending" to "billingPaymentPending",
+            "billing_restore_none" to "billingRestoreNone",
+            "billing_restore_failed" to "billingRestoreFailed",
+            "billing_restore_success" to "billingRestoreSuccess"
+        ).forEach { (noticeKey, stringKey) ->
+            viewModel.updateBillingNotice(language, noticeKey)
+            assertEquals(
+                EobStrings.t(language, stringKey),
+                viewModel.billingNoticeForPaywall(language)
+            )
+        }
+    }
+
+    @Test
+    fun settingsManageSubscriptionIsNotTierGated() {
+        val settingsSource = readSource("ui/screens/SettingsScreen.kt")
+        assertTrue(settingsSource.contains("onManageSubscription"))
+        assertFalse(
+            "Manage subscription must remain available for Free, Silver, and Gold",
+            settingsSource.contains("if (subscriptionTier") && settingsSource.contains("onManageSubscription")
+        )
     }
 
     @Test

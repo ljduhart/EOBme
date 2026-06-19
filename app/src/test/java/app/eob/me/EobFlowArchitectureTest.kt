@@ -532,6 +532,82 @@ class EobFlowArchitectureTest {
             viewModelSource.contains("processScannedDocument") &&
                 viewModelSource.contains("documentScanState")
         )
+        listOf(
+            "EobRoute.CameraCapture.route",
+            "processScannedDocument",
+            "documentScanState",
+            "subscriptionViewModel.startBilling",
+            "subscriptionViewModel.bindUser",
+            "eobViewModel.applySubscriptionState",
+            "PaywallDialog"
+        ).forEach { snippet ->
+            assertTrue(
+                "Hybrid navigational pipeline must coexist with billing in EobNavHost: $snippet",
+                navHostSource.contains(snippet)
+            )
+        }
+    }
+
+    @Test
+    fun pr99FinalAuditHybridBillingPaywallIntegrity() {
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val subscriptionVmSource = readSource("viewmodel/SubscriptionViewModel.kt")
+        val revenueCatBillingSource = readSource("billing/RevenueCatBillingRepository.kt")
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val settingsSource = readSource("ui/screens/SettingsScreen.kt")
+        val ocrPreCheckSource = readSource("util/EobDocumentOcrPreCheck.kt")
+
+        listOf(
+            "processHybridDocument",
+            "uploadEobFileAwaitDownload",
+            "streamExtractDocument",
+            "writeReconciliationFindings",
+            "awaitVeryfiExtraction",
+            "processHybridScannedDocument",
+            "runDocumentOcrPreCheck"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#99 audit: hybrid pipeline barrier missing $snippet",
+                hybridRepoSource.contains(snippet) ||
+                    veryfiSource.contains(snippet) ||
+                    remoteSource.contains(snippet) ||
+                    viewModelSource.contains(snippet)
+            )
+        }
+        assertTrue("PR#99 audit: OCR pre-check barrier required", ocrPreCheckSource.contains("validate"))
+
+        assertFalse("PR#99 audit: EobViewModel must not import RevenueCat", viewModelSource.contains("com.revenuecat"))
+        assertFalse("PR#99 audit: SubscriptionViewModel must not import RevenueCat", subscriptionVmSource.contains("com.revenuecat"))
+        assertTrue("PR#99 audit: RevenueCat isolated in billing repository", revenueCatBillingSource.contains("Purchases.sharedInstance"))
+        assertTrue("PR#99 audit: restore purchases required", revenueCatBillingSource.contains("awaitRestore"))
+        assertTrue("PR#99 audit: metadata sync required", revenueCatBillingSource.contains("attachUserMetadata"))
+
+        assertTrue("PR#99 audit: paywall uses dynamic pricing", paywallSource.contains("paywallPricing.displayPrice"))
+        assertTrue("PR#99 audit: restore button on paywall", paywallSource.contains("onRestorePurchasesClicked"))
+        assertTrue("PR#99 audit: manage subscription available in settings", settingsSource.contains("onManageSubscription"))
+        assertFalse(
+            "PR#99 audit: manage subscription must not be tier-gated in settings",
+            settingsSource.contains("subscriptionTier") && settingsSource.contains("onManageSubscription") &&
+                settingsSource.contains("if (subscriptionTier")
+        )
+
+        assertTrue("PR#99 audit: EobViewModel owns paywall state", viewModelSource.contains("fun showPaywall"))
+        assertTrue("PR#99 audit: EobViewModel applies subscription state", viewModelSource.contains("fun applySubscriptionState"))
+        assertTrue("PR#99 audit: billing notices carry into paywall", viewModelSource.contains("localizedBillingNotices"))
+
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#99 audit: opening screen must remain untouched ($path)", source.contains("RevenueCat"))
+            assertFalse("PR#99 audit: opening screen must remain untouched ($path)", source.contains("PaywallDialog"))
+        }
     }
 
     @Test
