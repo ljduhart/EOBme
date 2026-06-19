@@ -84,6 +84,14 @@ class AppViewModelOnboardingTest {
     }
 
     @Test
+    fun exitHubToSignInReplaysSplash() {
+        val viewModel = createViewModel()
+        completeOnboardingThroughIntro(viewModel)
+        viewModel.exitHubToSignIn()
+        assertEquals(Screen.Splash, currentScreen(viewModel))
+    }
+
+    @Test
     fun authSubmitSanitizesPlanLimitsBeforePersistence() {
         val viewModel = createViewModel()
         viewModel.onProfileChanged(

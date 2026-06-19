@@ -44,6 +44,8 @@ class InsuranceNewsScreenTest {
         assertTrue(source.contains("CustomTabsIntent"))
         assertTrue(source.contains("LazyRow"))
         assertTrue(source.contains("insuranceNewsMonthlyBriefingsCount"))
+        assertTrue(source.contains("canOpenArticle"))
+        assertTrue(source.contains("if (canOpenArticle)"))
         assertFalse(source.contains("HolographicGlassCard"))
         assertFalse(source.contains("HomeInsuranceNewsSection"))
     }

@@ -404,22 +404,20 @@ fun NewsBriefingCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (showReadMore) {
-                    OutlinedButton(
-                        onClick = onReadMore,
-                        enabled = canOpenArticle,
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        Text(EobStrings.t(language, "insuranceNewsReadMore"))
+                if (canOpenArticle) {
+                    if (showReadMore) {
+                        OutlinedButton(
+                            onClick = onReadMore,
+                            shape = RoundedCornerShape(50)
+                        ) {
+                            Text(EobStrings.t(language, "insuranceNewsReadMore"))
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
                     }
-                } else {
-                    Spacer(modifier = Modifier.width(1.dp))
-                }
-                TextButton(
-                    onClick = onReadFullBriefing,
-                    enabled = canOpenArticle
-                ) {
-                    Text(EobStrings.t(language, "insuranceNewsReadFullBriefing"))
+                    TextButton(onClick = onReadFullBriefing) {
+                        Text(EobStrings.t(language, "insuranceNewsReadFullBriefing"))
+                    }
                 }
             }
         }

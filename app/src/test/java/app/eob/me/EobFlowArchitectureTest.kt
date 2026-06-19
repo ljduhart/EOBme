@@ -634,6 +634,20 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun hubBackNavigationHandlesHomeOverlayAndPaywallGestures() {
+        listOf(
+            "BackHandler",
+            "exitHubToSignIn",
+            "dismissInsuranceArticle",
+            "dismissPaywall",
+            "resetHubState"
+        ).forEach { snippet ->
+            assertTrue("MainHubNavHost missing back navigation: $snippet", navHostSource.contains(snippet))
+        }
+        assertTrue(readSource("viewmodel/AppViewModel.kt").contains("fun exitHubToSignIn"))
+    }
+
+    @Test
     fun hubBottomBarScanOpensCameraPermissionPath() {
         assertEquals(HubBottomTab.ScanEob, HubBottomTab.entries[1])
         assertTrue(navHostSource.contains("customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)"))

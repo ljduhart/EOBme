@@ -138,6 +138,21 @@ class OnboardingFlowTest {
     }
 
     @Test
+    fun exitHubToSignInGateLandsOnAuthAfterSplash() {
+        assertEquals(
+            Screen.Auth,
+            resolveOnboardingScreen(
+                splashComplete = true,
+                language = AppLanguage.English,
+                introStep = 3,
+                hasVerifiedUser = false,
+                awaitingEmailVerification = false,
+                isSignUp = false
+            )
+        )
+    }
+
+    @Test
     fun outerScreenRoutesAreUnique() {
         val routes = listOf(
             Screen.Splash.route,

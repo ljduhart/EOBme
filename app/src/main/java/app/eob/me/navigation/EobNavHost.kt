@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -462,6 +463,26 @@ private fun MainHubNavHost(
         if (currentRoute != EobRoute.News.route && uiState.selectedInsuranceArticle != null) {
             eobViewModel.dismissInsuranceArticle()
         }
+    }
+
+    BackHandler(enabled = uiState.hubSettings.appLocked) {
+        // Consume back while the PIN lock overlay is active.
+    }
+
+    BackHandler(enabled = uiState.paywallVisible) {
+        eobViewModel.dismissPaywall()
+        onActivity()
+    }
+
+    BackHandler(
+        enabled = currentRoute == EobRoute.News.route && uiState.selectedInsuranceArticle != null
+    ) {
+        eobViewModel.dismissInsuranceArticle()
+    }
+
+    BackHandler(enabled = currentRoute == EobRoute.Home.route) {
+        eobViewModel.resetHubState()
+        appViewModel.exitHubToSignIn()
     }
 
     fun deleteEob(record: EobRecord) {

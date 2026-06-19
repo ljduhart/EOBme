@@ -413,6 +413,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         updateActivityTime()
     }
 
+    /**
+     * Home system-back: replay the opening logo (splash), then land on sign-in — not intro or auth choice.
+     */
+    fun exitHubToSignIn() {
+        _profileEditing.value = false
+        firebaseRepository.signOut()
+        _firebaseUser.value = null
+        _awaitingEmailVerification.value = false
+        _splashComplete.value = false
+        _introStep.value = INTRO_SLIDE_COUNT
+        _isSignUp.value = false
+        _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
+        updateActivityTime()
+    }
+
     private fun resetInactivityTimer() {
         inactivityJob?.cancel()
         if (_firebaseUser.value == null) return
