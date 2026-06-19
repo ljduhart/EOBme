@@ -578,6 +578,10 @@ class EobFlowArchitectureTest {
             )
         }
         assertTrue("PR#100 audit: OCR pre-check barrier required", ocrPreCheckSource.contains("validate"))
+        assertTrue(
+            "PR#100 audit: receipt scan-type OCR barrier required",
+            ocrPreCheckSource.contains("validateForScanType")
+        )
 
         assertFalse("PR#100 audit: EobViewModel must not import RevenueCat", viewModelSource.contains("com.revenuecat"))
         assertFalse("PR#100 audit: SubscriptionViewModel must not import RevenueCat", subscriptionVmSource.contains("com.revenuecat"))
