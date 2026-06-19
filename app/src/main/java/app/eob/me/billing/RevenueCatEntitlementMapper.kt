@@ -12,4 +12,7 @@ internal object RevenueCatEntitlementMapper {
             else -> SubscriptionTier.Free
         }
     }
+
+    fun hasActivePaidEntitlement(customerInfo: CustomerInfo): Boolean =
+        tierFromCustomerInfo(customerInfo) != SubscriptionTier.Free
 }

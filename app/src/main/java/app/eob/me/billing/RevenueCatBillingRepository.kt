@@ -1,6 +1,7 @@
 package app.eob.me.billing
 
 import android.app.Activity
+import android.content.Context
 import app.eob.me.data.BillingInterval
 import app.eob.me.data.SubscriptionTier
 import com.revenuecat.purchases.PurchaseParams
@@ -12,6 +13,7 @@ import com.revenuecat.purchases.awaitLogIn
 import com.revenuecat.purchases.awaitLogOut
 import com.revenuecat.purchases.awaitOfferings
 import com.revenuecat.purchases.awaitPurchase
+import com.revenuecat.purchases.awaitRestore
 import com.revenuecat.purchases.interfaces.UpdatedCustomerInfoListener
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +23,9 @@ import kotlinx.coroutines.flow.asStateFlow
  * Sole owner of [Purchases.sharedInstance]. Streams entitlement tier updates from RevenueCat's
  * customer-info listener so renewals and background Play pings reach the UI immediately.
  */
-class RevenueCatBillingRepository {
+class RevenueCatBillingRepository(
+    private val appContext: Context
+) {
 
     private val _activeTier = MutableStateFlow(SubscriptionTier.Free)
     val activeTier: StateFlow<SubscriptionTier> = _activeTier.asStateFlow()
@@ -121,5 +125,38 @@ class RevenueCatBillingRepository {
         } catch (_: PurchasesException) {
             false
         }
+    }
+
+    suspend fun restoreUserPurchases(): RestorePurchasesOutcome {
+        return try {
+            val customerInfo = Purchases.sharedInstance.awaitRestore()
+            _activeTier.value = RevenueCatEntitlementMapper.tierFromCustomerInfo(customerInfo)
+            RestorePurchasesOutcome.Success(
+                hasActiveSubscription = RevenueCatEntitlementMapper.hasActivePaidEntitlement(customerInfo)
+            )
+        } catch (error: PurchasesException) {
+            RestorePurchasesOutcome.Failure(
+                message = error.message ?: "Failed to reach Google Play servers."
+            )
+        }
+    }
+
+    fun attachUserMetadata(
+        email: String,
+        displayName: String,
+        taxVaultStatus: String = "initialized"
+    ) {
+        if (email.isNotBlank()) {
+            Purchases.sharedInstance.setEmail(email)
+        }
+        if (displayName.isNotBlank()) {
+            Purchases.sharedInstance.setDisplayName(displayName)
+        }
+        Purchases.sharedInstance.setAttributes(
+            mapOf(
+                RevenueCatConfig.ATTRIBUTE_APP_BUILD_VARIANT to RevenueCatConfig.resolveAppBuildVariant(appContext),
+                RevenueCatConfig.ATTRIBUTE_TAX_VAULT_STATUS to taxVaultStatus
+            )
+        )
     }
 }

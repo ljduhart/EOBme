@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.eob.me.billing.BillingRepository
 import app.eob.me.billing.PaywallPricing
+import app.eob.me.billing.RestorePurchasesOutcome
 import app.eob.me.billing.RevenueCatBillingRepository
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.BillingInterval
@@ -32,7 +33,8 @@ import kotlinx.coroutines.launch
 class SubscriptionViewModel(application: Application) : AndroidViewModel(application) {
 
     private val billingRepository: BillingRepository = BillingRepository(application.applicationContext)
-    private val revenueCatBillingRepository: RevenueCatBillingRepository = RevenueCatBillingRepository()
+    private val revenueCatBillingRepository: RevenueCatBillingRepository =
+        RevenueCatBillingRepository(application.applicationContext)
     private val subscriptionRepository: SubscriptionRepository = FirestoreSubscriptionRepository()
 
     private val _subscriptionState = MutableStateFlow<SubscriptionState>(SubscriptionState.Loading)
@@ -51,7 +53,10 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
     private var playTierObserveJob: Job? = null
     private var boundUserId: String? = null
 
-    fun bindUser(userId: String) {
+    fun bindUser(userId: String, email: String = "", displayName: String = "") {
+        if (email.isNotBlank() || displayName.isNotBlank()) {
+            revenueCatBillingRepository.attachUserMetadata(email = email, displayName = displayName)
+        }
         if (boundUserId == userId && observeJob?.isActive == true) return
         boundUserId = userId
         observeJob?.cancel()
@@ -137,6 +142,22 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
     fun clearBillingNotice() {
         billingRepository.clearBillingNotice()
         revenueCatBillingRepository.clearBillingNotice()
+    }
+
+    fun restoreUserPurchases(onSuccess: (Boolean) -> Unit, onFailure: (String) -> Unit) {
+        viewModelScope.launch {
+            when (val outcome = revenueCatBillingRepository.restoreUserPurchases()) {
+                is RestorePurchasesOutcome.Success -> {
+                    billingRepository.startConnection()
+                    revenueCatBillingRepository.refreshCustomerInfo()
+                    onSuccess(outcome.hasActiveSubscription)
+                }
+
+                is RestorePurchasesOutcome.Failure -> {
+                    onFailure(outcome.message)
+                }
+            }
+        }
     }
 
     private fun mergeSubscriptionState(

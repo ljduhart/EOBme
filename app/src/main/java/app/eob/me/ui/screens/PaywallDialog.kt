@@ -46,7 +46,9 @@ import app.eob.me.data.SubscriptionTier
 fun PaywallDialog(
     message: String,
     paywallPricing: PaywallPricing,
+    restorePurchasesLabel: String,
     onPurchaseClicked: (SubscriptionTier, BillingInterval) -> Unit,
+    onRestorePurchasesClicked: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(
@@ -56,7 +58,9 @@ fun PaywallDialog(
         PaywallScreen(
             message = message,
             paywallPricing = paywallPricing,
+            restorePurchasesLabel = restorePurchasesLabel,
             onPurchaseClicked = onPurchaseClicked,
+            onRestorePurchasesClicked = onRestorePurchasesClicked,
             onDismiss = onDismiss
         )
     }
@@ -67,7 +71,9 @@ fun PaywallDialog(
 private fun PaywallScreen(
     message: String,
     paywallPricing: PaywallPricing,
+    restorePurchasesLabel: String,
     onPurchaseClicked: (SubscriptionTier, BillingInterval) -> Unit,
+    onRestorePurchasesClicked: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var isAnnual by remember { mutableStateOf(true) }
@@ -156,6 +162,19 @@ private fun PaywallScreen(
                     text = "Subscribe for $finalPrice",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(
+                onClick = onRestorePurchasesClicked,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = restorePurchasesLabel,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
 

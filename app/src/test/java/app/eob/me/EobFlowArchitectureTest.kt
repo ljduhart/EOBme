@@ -416,7 +416,7 @@ class EobFlowArchitectureTest {
         )
         assertTrue(
             "SubscriptionViewModel must delegate RevenueCat to RevenueCatBillingRepository",
-            subscriptionVmSource.contains("RevenueCatBillingRepository()")
+            subscriptionVmSource.contains("RevenueCatBillingRepository(application.applicationContext)")
         )
         assertFalse(
             "SubscriptionViewModel must not import RevenueCat SDK directly",
@@ -457,6 +457,22 @@ class EobFlowArchitectureTest {
             "RevenueCat identity must sync on Firebase sign-in and sign-out",
             revenueCatBillingSource.contains("awaitLogIn") &&
                 revenueCatBillingSource.contains("awaitLogOut")
+        )
+        assertTrue(
+            "RevenueCat must expose restore purchases for Google Play policy compliance",
+            revenueCatBillingSource.contains("awaitRestore") &&
+                revenueCatBillingSource.contains("restoreUserPurchases") &&
+                readSource("ui/screens/PaywallDialog.kt").contains("onRestorePurchasesClicked") &&
+                navHostSource.contains("restorePurchases")
+        )
+        assertTrue(
+            "RevenueCat customer profiles must receive email, display name, and cohort attributes",
+            revenueCatBillingSource.contains("setEmail") &&
+                revenueCatBillingSource.contains("setDisplayName") &&
+                revenueCatBillingSource.contains("setAttributes") &&
+                revenueCatBillingSource.contains("attachUserMetadata") &&
+                navHostSource.contains("bindUser(") &&
+                navHostSource.contains("displayName = profile.fullName")
         )
         assertTrue(
             "RevenueCat must enable entitlement verification at boot",
@@ -543,6 +559,8 @@ class EobFlowArchitectureTest {
             "launchManageSubscriptionFlow",
             "PaywallDialog",
             "launchTierPurchaseFlow",
+            "onRestorePurchasesClicked",
+            "restorePurchases",
             "handleBillingNoticeForPaywall"
         ).forEach { snippet ->
             assertTrue("MainHubNavHost must wire news and billing together: $snippet", navHostSource.contains(snippet))

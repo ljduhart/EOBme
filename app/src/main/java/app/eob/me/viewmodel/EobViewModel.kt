@@ -514,6 +514,8 @@ class EobViewModel : ViewModel() {
             "billing_product_unavailable" -> EobStrings.t(language, "billingProductUnavailable")
             "billing_payment_declined" -> EobStrings.t(language, "billingPaymentDeclined")
             "billing_payment_pending" -> EobStrings.t(language, "billingPaymentPending")
+            "billing_restore_none" -> EobStrings.t(language, "billingRestoreNone")
+            "billing_restore_failed" -> EobStrings.t(language, "billingRestoreFailed")
             "billing_user_canceled" -> ""
             else -> EobStrings.t(language, "billingFlowFailed")
         }

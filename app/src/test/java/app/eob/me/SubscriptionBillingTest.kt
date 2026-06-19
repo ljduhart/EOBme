@@ -327,9 +327,16 @@ class SubscriptionBillingTest {
         assertTrue(revenueCatBillingSource.contains("PurchaseParams.Builder"))
         assertTrue(revenueCatBillingSource.contains("awaitLogIn"))
         assertTrue(revenueCatBillingSource.contains("awaitLogOut"))
+        assertTrue(revenueCatBillingSource.contains("awaitRestore"))
+        assertTrue(revenueCatBillingSource.contains("restoreUserPurchases"))
+        assertTrue(revenueCatBillingSource.contains("setEmail"))
+        assertTrue(revenueCatBillingSource.contains("setDisplayName"))
+        assertTrue(revenueCatBillingSource.contains("setAttributes"))
+        assertTrue(revenueCatBillingSource.contains("attachUserMetadata"))
         assertTrue(revenueCatBillingSource.contains("UpdatedCustomerInfoListener"))
         assertTrue(revenueCatBillingSource.contains("RevenueCatEntitlementMapper"))
         assertFalse("ViewModel must not call RevenueCat directly", subscriptionSource.contains("com.revenuecat"))
+        assertTrue(subscriptionSource.contains("restoreUserPurchases"))
         val applicationSource = readSource("EobApplication.kt")
         assertTrue(applicationSource.contains("RevenueCatConfig.PUBLIC_API_KEY"))
         assertTrue(applicationSource.contains("entitlementVerificationMode"))
@@ -356,6 +363,25 @@ class SubscriptionBillingTest {
             EobStrings.t(AppLanguage.English, "billingPaymentDeclined"),
             viewModel.uiState.value.paywallMessage
         )
+    }
+
+    @Test
+    fun paywallDialogExposesRestorePurchasesControl() {
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(paywallSource.contains("onRestorePurchasesClicked"))
+        assertTrue(paywallSource.contains("restorePurchasesLabel"))
+        assertTrue(navSource.contains("billingRestorePurchases"))
+        assertTrue(navSource.contains("onRestorePurchasesClicked = ::restorePurchases"))
+    }
+
+    @Test
+    fun bindUserPushesRevenueCatCustomerMetadata() {
+        val subscriptionSource = readSource("viewmodel/SubscriptionViewModel.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(subscriptionSource.contains("attachUserMetadata"))
+        assertTrue(navSource.contains("displayName = profile.fullName"))
+        assertTrue(navSource.contains("email = profile.email"))
     }
 
     @Test
