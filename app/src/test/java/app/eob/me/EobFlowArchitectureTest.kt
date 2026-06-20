@@ -1069,6 +1069,22 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun careTeamDialRoutesThroughDeviceCallingUtilsBarrier() {
+        val careTeamSource = readSource("ui/components/home/HomeCareTeamCards.kt")
+        val utilSource = readSource("util/DeviceCallingUtils.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(careTeamSource.contains("DeviceCallingUtils.safelyDialNumber"))
+        assertTrue(careTeamSource.contains("DeviceCallingUtils.applyPhoneInputChange"))
+        assertFalse(careTeamSource.contains("Intent.ACTION_CALL"))
+        assertFalse(careTeamSource.contains("ACTION_CALL"))
+        assertTrue(utilSource.contains("Intent.ACTION_DIAL"))
+        assertTrue(utilSource.contains("FEATURE_TELEPHONY"))
+        assertTrue(utilSource.contains("resolveActivity"))
+        assertTrue(viewModelSource.contains("fun sanitizeCareTeamPhone"))
+        assertTrue(viewModelSource.contains("sanitizeCareTeamPhone(doctor.phone)"))
+    }
+
+    @Test
     fun allBentoCellsShareUniformAspectRatio() {
         val layoutSource = readSource("ui/components/bento/BentoCellLayout.kt")
         val bentoCells = listOf(

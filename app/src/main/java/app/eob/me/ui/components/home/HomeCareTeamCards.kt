@@ -1,7 +1,7 @@
 package app.eob.me.ui.components.home
 
-import android.content.Intent
-import android.net.Uri
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -56,10 +56,12 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,7 @@ import app.eob.me.data.NetworkAssuranceState
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.TherapistNetworkStatus
 import app.eob.me.ui.components.AssuranceCrimson
+import app.eob.me.util.DeviceCallingUtils
 import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.ui.theme.EobBrandGlow
 import app.eob.me.ui.theme.EobCyberTextPrimary
@@ -246,12 +249,8 @@ private fun CareTeamSmartCard(
                     CareTeamCardFront(
                         language = language,
                         cardState = cardState,
-                        onCall = cardState.phoneDialUri?.let { uri ->
-                            {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_DIAL, Uri.parse(uri))
-                                )
-                            }
+                        onCall = cardState.phoneDialUri?.let {
+                            { dialCareTeamPhone(context, language, doctor.phone) }
                         }
                     )
                 } else {
@@ -260,7 +259,13 @@ private fun CareTeamSmartCard(
                             .fillMaxSize()
                             .graphicsLayer { rotationY = 180f }
                     ) {
-                        CareTeamCardBack(language = language, doctor = doctor)
+                        CareTeamCardBack(
+                            language = language,
+                            doctor = doctor,
+                            onDialPhone = cardState.phoneDialUri?.let {
+                                { dialCareTeamPhone(context, language, doctor.phone) }
+                            }
+                        )
                     }
                 }
             }
@@ -480,9 +485,12 @@ private fun FrostedCardShimmerOverlay(modifier: Modifier = Modifier) {
 @Composable
 private fun CareTeamCardBack(
     language: AppLanguage,
-    doctor: PreferredDoctor
+    doctor: PreferredDoctor,
+    onDialPhone: (() -> Unit)?
 ) {
     val notSet = EobStrings.t(language, "valueNotSet")
+    val phoneDisplay = doctor.phone.ifBlank { notSet }
+    val phoneIsDialable = onDialPhone != null && doctor.phone.isNotBlank()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -505,7 +513,14 @@ private fun CareTeamCardBack(
             CareTeamDetailLine(doctor.name.ifBlank { notSet }, fontSize = 8.sp, maxLines = 1)
             CareTeamDetailLine(doctor.specialty.ifBlank { notSet }, fontSize = 8.sp, maxLines = 1)
             CareTeamDetailLine(doctor.address.ifBlank { notSet }, fontSize = 7.sp, maxLines = 2)
-            CareTeamDetailLine(doctor.phone.ifBlank { notSet }, fontSize = 8.sp, maxLines = 1)
+            CareTeamDetailLine(
+                text = phoneDisplay,
+                fontSize = 8.sp,
+                maxLines = 1,
+                color = if (phoneIsDialable) NeonBlueBorder else CardInkDark,
+                fontWeight = if (phoneIsDialable) FontWeight.SemiBold else FontWeight.Normal,
+                onClick = onDialPhone
+            )
         }
     }
 }
@@ -514,18 +529,46 @@ private fun CareTeamCardBack(
 private fun CareTeamDetailLine(
     text: String,
     fontSize: androidx.compose.ui.unit.TextUnit,
-    maxLines: Int
+    maxLines: Int,
+    color: Color = CardInkDark,
+    fontWeight: FontWeight = FontWeight.Normal,
+    onClick: (() -> Unit)? = null
 ) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
-        color = CardInkDark,
+        color = color,
         textAlign = TextAlign.Center,
         fontSize = fontSize,
         maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.fillMaxWidth()
+        fontWeight = fontWeight,
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.pointerInput(onClick) {
+                        detectTapGestures(onTap = { onClick() })
+                    }
+                } else {
+                    Modifier
+                }
+            )
     )
+}
+
+private fun dialCareTeamPhone(context: Context, language: AppLanguage, phoneNumber: String) {
+    when (DeviceCallingUtils.safelyDialNumber(context, phoneNumber)) {
+        DeviceCallingUtils.DialOutcome.Dialed -> Unit
+        DeviceCallingUtils.DialOutcome.NoTelephony,
+        DeviceCallingUtils.DialOutcome.NoDialer -> {
+            Toast.makeText(
+                context,
+                EobStrings.t(language, "careTeamDialUnavailable"),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 }
 
 @Composable
@@ -569,10 +612,11 @@ private fun PreferredDoctorDialog(
                 )
                 OutlinedTextField(
                     value = phone,
-                    onValueChange = { phone = it },
+                    onValueChange = { phone = DeviceCallingUtils.applyPhoneInputChange(it) },
                     label = { Text(EobStrings.t(language, "careTeamPhone")) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
                 )
             }
         },

@@ -42,6 +42,7 @@ class CareTeamStateExtractorTest {
         )
         val pcp = cards.first { it.type == CareTeamProviderType.Pcp }
         assertEquals("Dr. Smith", pcp.primaryLine)
+        assertEquals("(555) 010-0", pcp.secondaryLine)
         assertTrue(pcp.phoneDialUri?.startsWith("tel:") == true)
     }
 

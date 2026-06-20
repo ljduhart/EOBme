@@ -59,6 +59,7 @@ import app.eob.me.network.InsuranceNewsRotation
 import app.eob.me.network.RetrofitClient
 import app.eob.me.network.RssNewsMapper
 import app.eob.me.util.CacheSizeCalculator
+import app.eob.me.util.DeviceCallingUtils
 import app.eob.me.util.NetworkUploadGate
 import app.eob.me.util.HubCrashlyticsGate
 import app.eob.me.util.OcrProcessor
@@ -764,9 +765,14 @@ class EobViewModel : ViewModel() {
         return firebaseNews.ifEmpty { fallbackNews }.filterNot { it.key() in deletedNewsKeys }
     }
 
+    fun sanitizeCareTeamPhone(phone: String): String {
+        return DeviceCallingUtils.applyPhoneInputChange(phone)
+    }
+
     fun updatePreferredDoctor(doctor: PreferredDoctor) {
+        val sanitizedDoctor = doctor.copy(phone = sanitizeCareTeamPhone(doctor.phone))
         _uiState.update { state ->
-            state.copy(preferredDoctors = state.preferredDoctors + (doctor.type to doctor))
+            state.copy(preferredDoctors = state.preferredDoctors + (sanitizedDoctor.type to sanitizedDoctor))
         }
     }
 

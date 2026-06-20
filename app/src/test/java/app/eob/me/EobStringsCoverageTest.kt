@@ -235,6 +235,7 @@ class EobStringsCoverageTest {
             "careTeamSaveDoctor",
             "careTeamTapToCall",
             "careTeamAddPhone",
+            "careTeamDialUnavailable",
             "careTeamUnassignedHint",
             "careTeamSpecialistRefActive",
             "careTeamSpecialistRefInactive",

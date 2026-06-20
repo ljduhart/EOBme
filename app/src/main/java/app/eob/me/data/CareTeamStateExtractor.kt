@@ -1,5 +1,6 @@
 package app.eob.me.data
 
+import app.eob.me.util.DeviceCallingUtils
 
 /**
  * Derives care-team card display models and provider-directory assurance from hub data.
@@ -109,7 +110,7 @@ object CareTeamStateExtractor {
         assurance: NetworkAssuranceState,
         relatedRecords: List<EobRecord>
     ): CareTeamCardDisplayState {
-        val phoneUri = doctor.phone.takeIf { it.isNotBlank() }?.let { dialUri(it) }
+        val phoneUri = doctor.phone.takeIf { it.isNotBlank() }?.let { DeviceCallingUtils.dialUriFor(it) }
         return when (type) {
             CareTeamProviderType.Pcp, CareTeamProviderType.Dentist -> {
                 val primary = if (doctor.isAssigned) {
@@ -119,7 +120,8 @@ object CareTeamStateExtractor {
                 }
                 val secondary = when {
                     !doctor.isAssigned -> EobStrings.t(language, "careTeamUnassignedHint")
-                    phoneUri != null -> EobStrings.t(language, "careTeamTapToCall")
+                    phoneUri != null -> DeviceCallingUtils.formatPhoneForDisplay(doctor.phone)
+                        .ifBlank { doctor.phone }
                     else -> EobStrings.t(language, "careTeamAddPhone")
                 }
                 CareTeamCardDisplayState(
@@ -213,8 +215,4 @@ object CareTeamStateExtractor {
         }
     }
 
-    private fun dialUri(phone: String): String {
-        val digits = phone.filter { it.isDigit() || it == '+' }
-        return if (digits.isNotBlank()) "tel:$digits" else "tel:${phone.trim()}"
-    }
 }

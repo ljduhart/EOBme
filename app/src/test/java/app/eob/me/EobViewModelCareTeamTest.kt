@@ -29,11 +29,18 @@ class EobViewModelCareTeamTest {
             name = "Dr. Smith",
             specialty = "General dentistry",
             address = "123 Main St",
-            phone = "555-0100"
+            phone = "5555555555"
         )
         viewModel.updatePreferredDoctor(doctor)
         val stored = viewModel.uiState.value.preferredDoctors[CareTeamProviderType.Dentist]
-        assertEquals(doctor, stored)
+        assertEquals("(555) 555-5555", stored?.phone)
+        assertEquals("Dr. Smith", stored?.name)
+    }
+
+    @Test
+    fun sanitizeCareTeamPhoneStripsInvalidCharacters() {
+        val viewModel = EobViewModel()
+        assertEquals("(555) 555-5555", viewModel.sanitizeCareTeamPhone("abc5555555555xyz"))
     }
 
     @Test
