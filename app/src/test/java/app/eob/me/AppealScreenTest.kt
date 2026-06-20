@@ -61,11 +61,13 @@ class AppealScreenTest {
     }
 
     @Test
-    fun appealDocumentAnimationDoesNotRetriggerWhileEditing() {
+    fun appealDocumentAnimationUsesTargetStrategyKeyButRendersAppealLetterState() {
         val source = readSource("ui/screens/AppealScreen.kt")
-        assertTrue(source.contains("appealLetterEditingEnabled"))
         assertTrue(source.contains("documentAnimationKey"))
-        assertFalse(source.contains("EobAnalyzer"))
+        assertTrue(source.contains("selectedTarget.name"))
+        assertTrue(source.contains("selectedDisputeStrategy.name"))
+        assertTrue(source.contains("appealLetter = appealLetter"))
+        assertFalse(source.contains("displayedLetter"))
     }
 
     private fun readSource(relativePath: String): String {

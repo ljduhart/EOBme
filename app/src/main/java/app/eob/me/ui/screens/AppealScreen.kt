@@ -187,11 +187,10 @@ fun AppealScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                ) { animatedKey ->
-                    val displayedLetter = if (animatedKey == "editing") appealLetter else animatedKey
+                ) { _ ->
                     AppealPaperDocument(
                         language = language,
-                        appealLetter = displayedLetter,
+                        appealLetter = appealLetter,
                         appealLetterEditingEnabled = appealLetterEditingEnabled,
                         onEditLetter = onEditLetter,
                         modifier = Modifier.fillMaxSize()
