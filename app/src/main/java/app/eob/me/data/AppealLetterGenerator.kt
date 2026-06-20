@@ -1,8 +1,20 @@
 package app.eob.me.data
 
 object AppealLetterGenerator {
-    fun generate(profile: UserProfile, eob: EobRecord?): String {
-        val selectedEob = eob ?: return emptyDraft(profile)
+    fun generate(
+        profile: UserProfile,
+        eob: EobRecord?,
+        target: AppealTarget = AppealTarget.INSURANCE,
+        strategy: DoctorDisputeStrategy = DoctorDisputeStrategy.ITEMIZED_AUDIT
+    ): String {
+        val selectedEob = eob ?: return emptyDraft(profile, target)
+        return when (target) {
+            AppealTarget.INSURANCE -> generateInsuranceAppeal(profile, selectedEob)
+            AppealTarget.DOCTOR -> generateDoctorAppeal(profile, selectedEob, strategy)
+        }
+    }
+
+    private fun generateInsuranceAppeal(profile: UserProfile, selectedEob: EobRecord): String {
         val memberName = profile.fullName.ifBlank { "[Member name]" }
         val cityState = listOf(profile.city, profile.state).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "[City, State]" }
         val subscriber = profile.insuranceId.ifBlank { "[Insurance ID]" }
@@ -31,6 +43,53 @@ object AppealLetterGenerator {
         """.trimIndent()
     }
 
+    private fun generateDoctorAppeal(
+        profile: UserProfile,
+        selectedEob: EobRecord,
+        strategy: DoctorDisputeStrategy
+    ): String {
+        val memberName = profile.fullName.ifBlank { "[Member name]" }
+        val strategySection = doctorDisputeStrategySection(selectedEob, strategy)
+
+        return """
+            To: ${selectedEob.providerName}
+
+            Re: Patient billing dispute and account review
+
+            Member: $memberName
+            Provider: ${selectedEob.providerName}
+            Date of Service: ${selectedEob.serviceDate}
+
+            $strategySection
+
+            Please respond in writing with your findings and an updated patient responsibility statement if adjustments are warranted.
+
+            Thank you,
+            $memberName
+        """.trimIndent()
+    }
+
+    private fun doctorDisputeStrategySection(
+        selectedEob: EobRecord,
+        strategy: DoctorDisputeStrategy
+    ): String {
+        val serviceDate = selectedEob.serviceDate.ifBlank { "[Date]" }
+        val copayAmount = selectedEob.totalCopayAmount
+            .takeIf { it > 0.0 }
+            ?.asCurrency()
+            ?: selectedEob.charges.map { it.copayAmount }.filter { it > 0.0 }.maxOrNull()?.asCurrency()
+            ?: "[Amount]"
+
+        return when (strategy) {
+            DoctorDisputeStrategy.ITEMIZED_AUDIT ->
+                "I am formally requesting a complete, unbundled itemized billing statement for the services rendered on $serviceDate. Under federal billing transparency regulations, please provide a line-item audit reflecting all specific CPT and HCPCS procedural codes, facility fees, and associated pharmacologic charges. Please place a temporary hold on this account pending the review of these line items."
+            DoctorDisputeStrategy.UNAPPLIED_COPAY ->
+                "I am writing to dispute the remaining balance on this account. My records indicate that the required point-of-service patient copayment/coinsurance of $copayAmount was fully tendered. It appears this payment has not been appropriately credited to the final patient responsibility ledger. Please review your transactional accounting records, apply the missing credit, and issue a corrected statement."
+            DoctorDisputeStrategy.FINANCIAL_HARDSHIP ->
+                "I am requesting a formal review of this balance for a financial hardship adjustment or self-pay fee schedule write-off. As this current liability exceeds my un-budgeted out-of-pocket medical capacity, I ask that you review this account under your facility's Charity Care or uninsured patient forgiveness policies, or offer a negotiated one-time settlement rate."
+        }
+    }
+
     private fun issueAppealSection(issues: List<BillingIssue>): String {
         if (issues.isEmpty()) {
             return "I am requesting confirmation that this claim was processed according to my plan benefits and the provider contract."
@@ -45,20 +104,34 @@ object AppealLetterGenerator {
         }
     }
 
-    private fun emptyDraft(profile: UserProfile): String {
+    private fun emptyDraft(profile: UserProfile, target: AppealTarget): String {
         val memberName = profile.fullName.ifBlank { "[Member name]" }
-        return """
-            To: [Insurance company]
+        return when (target) {
+            AppealTarget.INSURANCE -> """
+                To: [Insurance company]
 
-            Re: Appeal of EOB determination
+                Re: Appeal of EOB determination
 
-            Member: $memberName
-            Insurance ID: ${profile.insuranceId.ifBlank { "[Insurance ID]" }}
+                Member: $memberName
+                Insurance ID: ${profile.insuranceId.ifBlank { "[Insurance ID]" }}
 
-            Please review the attached Explanation of Benefits and reprocess the claim according to the plan benefits and provider contract.
+                Please review the attached Explanation of Benefits and reprocess the claim according to the plan benefits and provider contract.
 
-            Thank you,
-            $memberName
-        """.trimIndent()
+                Thank you,
+                $memberName
+            """.trimIndent()
+            AppealTarget.DOCTOR -> """
+                To: [Provider name]
+
+                Re: Patient billing dispute and account review
+
+                Member: $memberName
+
+                Please review the attached patient statement and provide a written response regarding the disputed balance.
+
+                Thank you,
+                $memberName
+            """.trimIndent()
+        }
     }
 }

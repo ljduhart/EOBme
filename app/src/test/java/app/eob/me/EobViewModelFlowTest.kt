@@ -1,6 +1,8 @@
 package app.eob.me
 
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.AppealTarget
+import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobStrings
 import app.eob.me.data.AppLockTimeout
@@ -253,6 +255,44 @@ class EobViewModelFlowTest {
         val source = resolveViewModelSource()
         assertTrue(source.contains("InvoiceProcessingPhase.FileDropReveal"))
         assertTrue(source.contains("acknowledgeInvoiceFileDropAnimation"))
+    }
+
+    @Test
+    fun saveAppPinReturnsBlankNoticeOnSuccess() {
+        val viewModel = EobViewModel()
+        val message = viewModel.saveAppPin("12345", "12345", AppLanguage.English)
+        assertEquals("", message)
+    }
+
+    @Test
+    fun saveAppPinReturnsValidationMessageOnMismatch() {
+        val viewModel = EobViewModel()
+        val message = viewModel.saveAppPin("12345", "54321", AppLanguage.English)
+        assertEquals(EobStrings.t(AppLanguage.English, "settingsPinMismatch"), message)
+    }
+
+    @Test
+    fun onAppealTargetSwitchedRegeneratesDoctorLetter() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+        viewModel.onAppealTargetSwitched(AppealTarget.DOCTOR)
+        assertEquals(AppealTarget.DOCTOR, viewModel.uiState.value.selectedAppealTarget)
+        assertTrue(viewModel.uiState.value.appealLetter.contains("Appeal Clinic"))
+        assertTrue(viewModel.uiState.value.appealLetter.contains("itemized billing statement"))
+    }
+
+    @Test
+    fun onDisputeStrategySwitchedUpdatesDoctorAppealCopy() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+        viewModel.onAppealTargetSwitched(AppealTarget.DOCTOR)
+        viewModel.onDisputeStrategySwitched(DoctorDisputeStrategy.FINANCIAL_HARDSHIP)
+        assertEquals(DoctorDisputeStrategy.FINANCIAL_HARDSHIP, viewModel.uiState.value.selectedDisputeStrategy)
+        assertTrue(viewModel.uiState.value.appealLetter.contains("financial hardship adjustment"))
     }
 
     @Test

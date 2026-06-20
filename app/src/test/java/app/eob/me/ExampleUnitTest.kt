@@ -139,7 +139,11 @@ class ExampleUnitTest {
             31
         )
 
-        val letter = AppealLetterGenerator.generate(profile, record)
+        val letter = AppealLetterGenerator.generate(
+            profile,
+            record,
+            target = app.eob.me.data.AppealTarget.INSURANCE
+        )
 
         assertTrue(letter.contains("Issues identified for review"))
         assertTrue(letter.contains("Possible denial language"))

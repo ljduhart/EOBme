@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealLetterGenerator
+import app.eob.me.data.AppealTarget
+import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.BentoSnapshotExtractor
 import app.eob.me.data.CptBentoSnapshot
 import app.eob.me.data.CptCodeEntry
@@ -109,6 +111,8 @@ data class HubUiState(
     val newsFeedRevision: Int = 0,
     val appealGeneratorBentoProcessing: Boolean = false,
     val appealLetterEditingEnabled: Boolean = false,
+    val selectedAppealTarget: AppealTarget = AppealTarget.INSURANCE,
+    val selectedDisputeStrategy: DoctorDisputeStrategy = DoctorDisputeStrategy.ITEMIZED_AUDIT,
     val paywallVisible: Boolean = false,
     val paywallMessage: String = "",
     val paywallPurchasePending: Boolean = false,
@@ -328,7 +332,7 @@ class EobViewModel : ViewModel() {
         _uiState.update { state ->
             state.copy(hubSettings = state.hubSettings.copy(pinConfigured = isAppPinConfigured()))
         }
-        return EobStrings.t(language, "settingsPinSaved")
+        return ""
     }
 
     fun verifyAppPinAndUnlock(pin: String): Boolean {
@@ -588,9 +592,19 @@ class EobViewModel : ViewModel() {
         val selected = _uiState.value.selectedRecord
         if (selected != null) {
             _uiState.update {
-                it.copy(appealLetter = AppealLetterGenerator.generate(_syncProfile.value, selected))
+                it.copy(appealLetter = generateAppealLetter(_syncProfile.value, selected))
             }
         }
+    }
+
+    private fun generateAppealLetter(profile: UserProfile, record: EobRecord?): String {
+        val state = _uiState.value
+        return AppealLetterGenerator.generate(
+            profile = profile,
+            eob = record,
+            target = state.selectedAppealTarget,
+            strategy = state.selectedDisputeStrategy
+        )
     }
 
     fun hubTimeKey(): Int {
@@ -689,7 +703,7 @@ class EobViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         selectedRecord = nextSelection,
-                        appealLetter = AppealLetterGenerator.generate(profile, nextSelection),
+                        appealLetter = generateAppealLetter(profile, nextSelection),
                         isLoadingInvoice = false,
                         invoiceProcessingPhase = if (wasProcessing) {
                             InvoiceProcessingPhase.FileDropReveal
@@ -712,7 +726,7 @@ class EobViewModel : ViewModel() {
             it.copy(
                 selectedRecord = record,
                 uploadNotice = "",
-                appealLetter = AppealLetterGenerator.generate(profile, record),
+                appealLetter = generateAppealLetter(profile, record),
                 appealLetterEditingEnabled = false
             )
         }
@@ -725,7 +739,7 @@ class EobViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 selectedRecord = nextSelection,
-                appealLetter = AppealLetterGenerator.generate(profile, nextSelection),
+                appealLetter = generateAppealLetter(profile, nextSelection),
                 appealLetterEditingEnabled = false
             )
         }
@@ -1174,10 +1188,37 @@ class EobViewModel : ViewModel() {
         val selected = _uiState.value.selectedRecord
         _uiState.update {
             it.copy(
-                appealLetter = AppealLetterGenerator.generate(profile, selected),
+                appealLetter = generateAppealLetter(profile, selected),
                 appealLetterEditingEnabled = false
             )
         }
+    }
+
+    fun onAppealTargetSwitched(target: AppealTarget) {
+        if (_uiState.value.selectedAppealTarget == target) return
+        _uiState.update {
+            it.copy(
+                selectedAppealTarget = target,
+                appealLetterEditingEnabled = false
+            )
+        }
+        val profile = _syncProfile.value
+        val selected = _uiState.value.selectedRecord
+        _uiState.update { it.copy(appealLetter = generateAppealLetter(profile, selected)) }
+    }
+
+    fun onDisputeStrategySwitched(strategy: DoctorDisputeStrategy) {
+        if (_uiState.value.selectedDisputeStrategy == strategy) return
+        _uiState.update {
+            it.copy(
+                selectedDisputeStrategy = strategy,
+                appealLetterEditingEnabled = false
+            )
+        }
+        if (_uiState.value.selectedAppealTarget != AppealTarget.DOCTOR) return
+        val profile = _syncProfile.value
+        val selected = _uiState.value.selectedRecord
+        _uiState.update { it.copy(appealLetter = generateAppealLetter(profile, selected)) }
     }
 
     fun activateAppealGeneratorBento(profile: UserProfile) {

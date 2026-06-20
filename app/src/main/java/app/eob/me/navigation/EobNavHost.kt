@@ -890,8 +890,18 @@ private fun MainHubNavHost(
                         language = language,
                         profile = profile,
                         selectedRecord = uiState.selectedRecord,
+                        selectedTarget = uiState.selectedAppealTarget,
+                        selectedDisputeStrategy = uiState.selectedDisputeStrategy,
                         appealLetter = uiState.appealLetter,
                         appealLetterEditingEnabled = uiState.appealLetterEditingEnabled,
+                        onAppealTargetSwitched = { target ->
+                            eobViewModel.onAppealTargetSwitched(target)
+                            onActivity()
+                        },
+                        onDisputeStrategySwitched = { strategy ->
+                            eobViewModel.onDisputeStrategySwitched(strategy)
+                            onActivity()
+                        },
                         onRegenerate = {
                             eobViewModel.regenerateAppeal(profile)
                             onActivity()
@@ -971,9 +981,13 @@ private fun MainHubNavHost(
                         },
                         onSavePin = { pin, confirmPin ->
                             val message = eobViewModel.saveAppPin(pin, confirmPin, language)
-                            eobViewModel.updateSettingsNotice(message)
+                            if (message.isNotBlank()) {
+                                eobViewModel.updateSettingsNotice(message)
+                            } else {
+                                eobViewModel.updateSettingsNotice("")
+                            }
                             onActivity()
-                            message == EobStrings.t(language, "settingsPinSaved")
+                            message.isBlank()
                         },
                         onAppLockTimeoutSelected = {
                             eobViewModel.setAppLockTimeout(it)

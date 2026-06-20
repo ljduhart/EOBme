@@ -739,6 +739,10 @@ class EobFlowArchitectureTest {
         val appealSource = readSource("ui/screens/AppealScreen.kt")
         listOf(
             "regenerateAppeal",
+            "onAppealTargetSwitched",
+            "onDisputeStrategySwitched",
+            "selectedAppealTarget",
+            "selectedDisputeStrategy",
             "updateAppeal",
             "enableAppealLetterEditing",
             "saveAppealLetter",
@@ -752,6 +756,9 @@ class EobFlowArchitectureTest {
         }
         listOf(
             "fun AppealActionBar",
+            "SingleChoiceSegmentedButtonRow",
+            "DoctorDisputeStrategySelector",
+            "AnimatedVisibility",
             "AnimatedContent",
             "Intent.ACTION_SEND"
         ).forEach { snippet ->

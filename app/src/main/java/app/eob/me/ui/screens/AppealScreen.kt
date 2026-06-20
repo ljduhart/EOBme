@@ -5,11 +5,15 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,8 +35,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,7 +58,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.eob.me.data.AppealTarget
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
@@ -59,6 +71,8 @@ private val AppealPillButtonBackground = Color(0xFFE5E5EA)
 private val AppealHeroCyan = Color(0xFF00E5FF)
 private val AppealHeroTeal = Color(0xFF00695C)
 private val AppealHeroGlow = Color(0xFF00BCD4)
+private val AppealDoctorAccent = Color(0xFF5C6BC0)
+private val AppealDoctorChipSelected = Color(0xFFFFB74D)
 
 private val AppealDocumentTypography = TextStyle(
     fontFamily = FontFamily.Serif,
@@ -67,13 +81,18 @@ private val AppealDocumentTypography = TextStyle(
     color = AppealPaperText
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppealScreen(
     language: AppLanguage,
     profile: UserProfile,
     selectedRecord: EobRecord?,
+    selectedTarget: AppealTarget,
+    selectedDisputeStrategy: DoctorDisputeStrategy,
     appealLetter: String,
     appealLetterEditingEnabled: Boolean,
+    onAppealTargetSwitched: (AppealTarget) -> Unit,
+    onDisputeStrategySwitched: (DoctorDisputeStrategy) -> Unit,
     onRegenerate: () -> Unit,
     onEditLetter: (String) -> Unit,
     onEnableEditing: () -> Unit,
@@ -84,7 +103,7 @@ fun AppealScreen(
     val documentAnimationKey = if (appealLetterEditingEnabled) {
         "editing"
     } else {
-        appealLetter
+        "${selectedTarget.name}_${selectedDisputeStrategy.name}_$appealLetter"
     }
 
     Box(
@@ -140,11 +159,29 @@ fun AppealScreen(
                     )
                 }
 
+                AppealTargetSelector(
+                    language = language,
+                    selectedTarget = selectedTarget,
+                    onTargetSelected = onAppealTargetSwitched
+                )
+
+                AnimatedVisibility(
+                    visible = selectedTarget == AppealTarget.DOCTOR,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    DoctorDisputeStrategySelector(
+                        language = language,
+                        selectedStrategy = selectedDisputeStrategy,
+                        onStrategySelected = onDisputeStrategySwitched
+                    )
+                }
+
                 AnimatedContent(
                     targetState = documentAnimationKey,
                     transitionSpec = {
-                        (slideInVertically { height -> height } + fadeIn()) togetherWith
-                            (slideOutVertically { height -> -height } + fadeOut())
+                        (slideInHorizontally { width -> width } + fadeIn()) togetherWith
+                            (slideOutHorizontally { width -> -width } + fadeOut())
                     },
                     label = "appeal_document",
                     modifier = Modifier
@@ -188,6 +225,72 @@ fun AppealScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 24.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppealTargetSelector(
+    language: AppLanguage,
+    selectedTarget: AppealTarget,
+    onTargetSelected: (AppealTarget) -> Unit
+) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 4.dp)
+    ) {
+        AppealTarget.entries.forEachIndexed { index, target ->
+            SegmentedButton(
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    count = AppealTarget.entries.size
+                ),
+                onClick = { onTargetSelected(target) },
+                selected = selectedTarget == target,
+                label = {
+                    Text(
+                        text = EobStrings.t(language, target.labelKey()),
+                        maxLines = 1
+                    )
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun DoctorDisputeStrategySelector(
+    language: AppLanguage,
+    selectedStrategy: DoctorDisputeStrategy,
+    onStrategySelected: (DoctorDisputeStrategy) -> Unit
+) {
+    val chipScrollState = rememberScrollState()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(chipScrollState)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        DoctorDisputeStrategy.entries.forEach { strategy ->
+            FilterChip(
+                selected = selectedStrategy == strategy,
+                onClick = { onStrategySelected(strategy) },
+                label = {
+                    Text(
+                        text = EobStrings.t(language, strategy.labelKey()),
+                        maxLines = 1
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AppealDoctorChipSelected.copy(alpha = 0.35f),
+                    selectedLabelColor = AppealDoctorAccent,
+                    containerColor = Color.White.copy(alpha = 0.12f),
+                    labelColor = Color.White.copy(alpha = 0.88f)
+                )
             )
         }
     }
