@@ -3,21 +3,15 @@ package app.eob.me.ui.components.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,7 +21,6 @@ import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.MajorInsuranceCarrier
 import java.util.Calendar
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeInsuranceNewsSection(
     language: AppLanguage,
@@ -36,8 +29,8 @@ fun HomeInsuranceNewsSection(
     onArticleSelected: (InsuranceArticle) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expandedCarrier by remember { mutableStateOf<MajorInsuranceCarrier?>(null) }
     val articlesByCarrier = remember(articles) { articles.groupBy { it.carrier } }
+    val currentMonthIndex = remember { Calendar.getInstance().get(Calendar.MONTH) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -60,12 +53,9 @@ fun HomeInsuranceNewsSection(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
-            val currentMonthIndex = remember { Calendar.getInstance().get(Calendar.MONTH) }
-
             MajorInsuranceCarrier.entries.forEach { carrier ->
-                val carrierArticles = articlesByCarrier[carrier].orEmpty()
-                val currentMonthArticle = carrierArticles.firstOrNull { it.monthIndex == currentMonthIndex }
-                    ?: carrierArticles.minByOrNull { it.monthIndex }
+                val currentMonthArticle = articlesByCarrier[carrier]
+                    ?.firstOrNull { it.monthIndex == currentMonthIndex }
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -88,23 +78,14 @@ fun HomeInsuranceNewsSection(
                         Text(
                             text = EobStrings.t(language, "insuranceNewsMonthlyBriefings"),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            modifier = Modifier.clickable {
-                                expandedCarrier = if (expandedCarrier == carrier) null else carrier
-                            }
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
-                        if (expandedCarrier == carrier) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                carrierArticles.sortedBy { it.monthIndex }.forEach { article ->
-                                    AssistChip(
-                                        onClick = { onArticleSelected(article) },
-                                        label = { Text(article.monthLabel.take(3)) }
-                                    )
-                                }
-                            }
+                        currentMonthArticle?.let { article ->
+                            Text(
+                                text = article.headline,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 }

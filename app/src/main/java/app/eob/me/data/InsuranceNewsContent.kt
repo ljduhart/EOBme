@@ -30,6 +30,27 @@ enum class MajorInsuranceCarrier(val displayName: String, val hubShortName: Stri
 }
 
 object EobInsuranceNews {
+    fun articlesForCurrentMonth(
+        year: Int = Calendar.getInstance().get(Calendar.YEAR),
+        monthIndex: Int = Calendar.getInstance().get(Calendar.MONTH)
+    ): List<InsuranceArticle> {
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        if (year != currentYear) return emptyList()
+        val month = monthIndex.coerceIn(Calendar.JANUARY, Calendar.DECEMBER)
+        val monthLabel = monthName(month)
+        return MajorInsuranceCarrier.entries.map { carrier ->
+            InsuranceArticle(
+                id = "${carrier.name}_${year}_$month",
+                carrier = carrier,
+                monthIndex = month,
+                monthLabel = monthLabel,
+                year = year,
+                headline = headlineFor(carrier, monthLabel, year),
+                body = bodyFor(carrier, monthLabel, year)
+            )
+        }
+    }
+
     fun articlesForYear(
         year: Int = Calendar.getInstance().get(Calendar.YEAR),
         throughMonth: Int = Calendar.getInstance().get(Calendar.MONTH)
@@ -57,7 +78,7 @@ object EobInsuranceNews {
         carrier: MajorInsuranceCarrier,
         year: Int = Calendar.getInstance().get(Calendar.YEAR)
     ): List<InsuranceArticle> {
-        return articlesForYear(year).filter { it.carrier == carrier }
+        return articlesForCurrentMonth(year).filter { it.carrier == carrier }
     }
 
     private fun monthName(monthIndex: Int): String {

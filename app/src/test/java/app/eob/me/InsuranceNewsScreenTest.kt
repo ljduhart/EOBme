@@ -39,13 +39,16 @@ class InsuranceNewsScreenTest {
         val source = readSource("ui/screens/NewsScreen.kt")
         assertTrue(source.contains("fun CarrierCard"))
         assertTrue(source.contains("fun NewsBriefingCard"))
+        assertTrue(source.contains("SwipeToDismissBox"))
+        assertTrue(source.contains("SwipeableNewsBriefingCard"))
         assertTrue(source.contains("fun openCustomTab"))
         assertTrue(source.contains("rememberInfiniteTransition"))
         assertTrue(source.contains("CustomTabsIntent"))
         assertTrue(source.contains("LazyRow"))
-        assertTrue(source.contains("insuranceNewsMonthlyBriefingsCount"))
+        assertTrue(source.contains("insuranceNewsMonthlyBriefingsLabel"))
         assertTrue(source.contains("canOpenArticle"))
         assertTrue(source.contains("if (canOpenArticle)"))
+        assertFalse(source.contains("Icons.Rounded.Close"))
         assertFalse(source.contains("HolographicGlassCard"))
         assertFalse(source.contains("HomeInsuranceNewsSection"))
     }
@@ -96,11 +99,12 @@ class InsuranceNewsScreenTest {
     }
 
     @Test
-    fun carrierHubItemsExposeAllMajorCarriers() {
+    fun carrierHubItemsExposeAllMajorCarriersWithSingleCurrentMonthBriefing() {
         val viewModel = EobViewModel()
         val items = viewModel.insuranceCarrierHubItems()
         assertEquals(MajorInsuranceCarrier.entries.size, items.size)
-        assertTrue(items.all { it.monthlyBriefingCount > 0 })
+        assertTrue(items.all { it.monthlyBriefingCount == 1 })
+        assertTrue(items.all { it.featuredArticle != null })
     }
 
     @Test

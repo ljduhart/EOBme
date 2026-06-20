@@ -98,14 +98,6 @@ fun HomeScreen(
     darkModeEnabled: Boolean,
     profile: UserProfile,
     insuranceCardDisplay: InsuranceCardDisplay,
-    canEditInsuranceCard: Boolean,
-    onSaveInsuranceCard: (
-        insuranceName: String,
-        memberId: String,
-        groupNumber: String,
-        pcpCopay: String,
-        specialistCopay: String
-    ) -> Unit,
     recordCount: Int,
     firebaseStatusLine: String,
     uploadNotice: String,
@@ -145,22 +137,6 @@ fun HomeScreen(
 ) {
     var appointmentPrefillDate by remember { mutableStateOf("") }
     var openAppointmentDialog by remember { mutableStateOf(false) }
-    var isEditingInsuranceCard by remember { mutableStateOf(false) }
-    var draftInsuranceName by remember { mutableStateOf(profile.insuranceName) }
-    var draftMemberId by remember { mutableStateOf(profile.insuranceId) }
-    var draftGroupNumber by remember { mutableStateOf(profile.groupName) }
-    var draftPcpCopay by remember { mutableStateOf(profile.pcpCopay) }
-    var draftSpecialistCopay by remember { mutableStateOf(profile.specialistCopay) }
-
-    LaunchedEffect(profile, isEditingInsuranceCard) {
-        if (!isEditingInsuranceCard) {
-            draftInsuranceName = profile.insuranceName
-            draftMemberId = profile.insuranceId
-            draftGroupNumber = profile.groupName
-            draftPcpCopay = profile.pcpCopay
-            draftSpecialistCopay = profile.specialistCopay
-        }
-    }
 
     val homeBackground = if (darkModeEnabled) DarkHomeBackground else LightHomeBackground
     val homePrimaryText = if (darkModeEnabled) EobCyberTextPrimary else EobLightTextPrimary
@@ -216,37 +192,6 @@ fun HomeScreen(
                     CleanInsuranceCard(
                         language = language,
                         display = insuranceCardDisplay,
-                        isEditing = isEditingInsuranceCard,
-                        draftInsuranceName = draftInsuranceName,
-                        draftMemberId = draftMemberId,
-                        draftGroupNumber = draftGroupNumber,
-                        draftPcpCopay = draftPcpCopay,
-                        draftSpecialistCopay = draftSpecialistCopay,
-                        canEdit = canEditInsuranceCard,
-                        onDraftInsuranceNameChange = { draftInsuranceName = it },
-                        onDraftMemberIdChange = { draftMemberId = it },
-                        onDraftGroupNumberChange = { draftGroupNumber = it },
-                        onDraftPcpCopayChange = { draftPcpCopay = it },
-                        onDraftSpecialistCopayChange = { draftSpecialistCopay = it },
-                        onEditRequest = { isEditingInsuranceCard = true },
-                        onSave = {
-                            onSaveInsuranceCard(
-                                draftInsuranceName,
-                                draftMemberId,
-                                draftGroupNumber,
-                                draftPcpCopay,
-                                draftSpecialistCopay
-                            )
-                            isEditingInsuranceCard = false
-                        },
-                        onCancel = {
-                            draftInsuranceName = profile.insuranceName
-                            draftMemberId = profile.insuranceId
-                            draftGroupNumber = profile.groupName
-                            draftPcpCopay = profile.pcpCopay
-                            draftSpecialistCopay = profile.specialistCopay
-                            isEditingInsuranceCard = false
-                        },
                         modifier = Modifier.fillMaxWidth(0.92f)
                     )
                 }

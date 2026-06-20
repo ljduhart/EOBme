@@ -191,7 +191,7 @@ class EobViewModel : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun insuranceBriefings(): List<InsuranceArticle> {
-        return EobInsuranceNews.articlesForYear()
+        return EobInsuranceNews.articlesForCurrentMonth()
     }
 
     fun insuranceNewsRotationSlot(): Long {
@@ -844,14 +844,11 @@ class EobViewModel : ViewModel() {
 
     fun insuranceCarrierHubItems(): List<InsuranceNewsCarrierHubItem> {
         val articles = insuranceBriefings()
-        val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
         return MajorInsuranceCarrier.entries.map { carrier ->
-            val carrierArticles = articles.filter { it.carrier == carrier }
-            val featured = carrierArticles.firstOrNull { it.monthIndex == currentMonth }
-                ?: carrierArticles.minByOrNull { it.monthIndex }
+            val featured = articles.firstOrNull { it.carrier == carrier }
             InsuranceNewsCarrierHubItem(
                 carrier = carrier,
-                monthlyBriefingCount = carrierArticles.size,
+                monthlyBriefingCount = if (featured != null) 1 else 0,
                 featuredArticle = featured
             )
         }

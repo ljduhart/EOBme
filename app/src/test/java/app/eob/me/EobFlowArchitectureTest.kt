@@ -1004,34 +1004,36 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun homeScreenWiresEditableCleanInsuranceCardThroughEobViewModel() {
+    fun homeScreenRendersReadOnlyCleanInsuranceCardFromEobViewModel() {
         val homeSource = readSource("ui/screens/HomeScreen.kt")
         val navHostSource = readSource("navigation/EobNavHost.kt")
         val profileSource = readSource("ui/screens/ProfileScreen.kt")
+        val registrationSource = readSource("ui/screens/RegistrationScreen.kt")
         val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         listOf(
             "CleanInsuranceCard",
-            "insuranceCardDisplay",
-            "onSaveInsuranceCard",
-            "isEditingInsuranceCard",
-            "draftInsuranceName",
-            "draftMemberId",
-            "draftGroupNumber",
-            "draftPcpCopay",
-            "draftSpecialistCopay"
+            "insuranceCardDisplay"
         ).forEach { snippet ->
             assertTrue("HomeScreen missing insurance card wiring: $snippet", homeSource.contains(snippet))
         }
+        assertFalse(
+            "HomeScreen must not wire insurance card editing",
+            homeSource.contains("onSaveInsuranceCard")
+        )
+        assertFalse(
+            "HomeScreen must not manage insurance card edit state",
+            homeSource.contains("isEditingInsuranceCard")
+        )
         listOf(
-            "eobViewModel.insuranceCardDisplay",
-            "eobViewModel.applyInsuranceCardEdits",
-            "eobViewModel.updateSyncProfile",
-            "eobViewModel.saveProfileToRemote",
-            "onProfileChanged(updatedProfile)"
+            "eobViewModel.insuranceCardDisplay"
         ).forEach { snippet ->
-            assertTrue("EobNavHost missing insurance card save wiring: $snippet", navHostSource.contains(snippet))
+            assertTrue("EobNavHost missing insurance card display wiring: $snippet", navHostSource.contains(snippet))
         }
+        assertFalse(
+            "EobNavHost must not save insurance card edits from Home",
+            navHostSource.contains("onSaveInsuranceCard")
+        )
         listOf(
             "fun insuranceCardDisplay",
             "fun applyInsuranceCardEdits",
@@ -1043,9 +1045,19 @@ class EobFlowArchitectureTest {
             "ProfileScreen must not render CleanInsuranceCard",
             profileSource.contains("CleanInsuranceCard")
         )
+        listOf(
+            "insuranceName",
+            "insuranceId",
+            "groupName",
+            "pcpCopay",
+            "specialistCopay"
+        ).forEach { snippet ->
+            assertTrue("ProfileFields must expose insurance editing: $snippet", registrationSource.contains(snippet))
+        }
         assertTrue(cardSource.contains("ElevatedCard"))
         assertTrue(cardSource.contains("InsuranceCardDisplay"))
-        assertTrue(cardSource.contains("BasicTextField"))
+        assertFalse("CleanInsuranceCard must be read-only on Home", cardSource.contains("BasicTextField"))
+        assertFalse("CleanInsuranceCard must not be tappable for edit", cardSource.contains("clickable"))
         assertFalse("CleanInsuranceCard must stay stateless", cardSource.contains("mutableStateOf"))
     }
 

@@ -12,6 +12,24 @@ import java.util.Calendar
 
 class InsuranceNewsBriefingsTest {
     @Test
+    fun articlesForCurrentMonthReturnsOneBriefingPerCarrier() {
+        val year = Calendar.getInstance().get(Calendar.YEAR)
+        val month = Calendar.getInstance().get(Calendar.MONTH)
+        val articles = EobInsuranceNews.articlesForCurrentMonth(year = year, monthIndex = month)
+
+        assertEquals(MajorInsuranceCarrier.entries.size, articles.size)
+        assertTrue(articles.all { it.monthIndex == month })
+        assertTrue(articles.all { it.year == year })
+        assertEquals(MajorInsuranceCarrier.entries.size, articles.map { it.carrier }.toSet().size)
+    }
+
+    @Test
+    fun articlesForCurrentMonthReturnsEmptyForNonCurrentYear() {
+        val wrongYear = Calendar.getInstance().get(Calendar.YEAR) - 1
+        assertTrue(EobInsuranceNews.articlesForCurrentMonth(year = wrongYear).isEmpty())
+    }
+
+    @Test
     fun articlesForYearIncludesOnlyMonthsThroughCurrentMonth() {
         val year = Calendar.getInstance().get(Calendar.YEAR)
         val throughMonth = Calendar.JULY

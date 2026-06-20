@@ -31,7 +31,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.LocalHospital
 import androidx.compose.material.icons.rounded.Lightbulb
@@ -40,15 +40,22 @@ import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -212,11 +219,11 @@ fun NewsScreen(
                     items = newsItems,
                     key = { _, news -> "${news.company}|${news.headline}|${news.date}" }
                 ) { index, news ->
-                    NewsBriefingCard(
+                    SwipeableNewsBriefingCard(
                         language = language,
                         news = news,
                         showReadMore = index == 0,
-                        onDismiss = { onDeleteNews(news) },
+                        onDelete = { onDeleteNews(news) },
                         onReadMore = {
                             val url = news.resolvedArticleUrl()
                             if (url.isNotBlank()) {
@@ -317,7 +324,7 @@ fun CarrierCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = EobStrings.tf(language, "insuranceNewsMonthlyBriefingsCount", item.monthlyBriefingCount),
+                    text = EobStrings.t(language, "insuranceNewsMonthlyBriefingsLabel"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -333,7 +340,6 @@ fun NewsBriefingCard(
     language: AppLanguage,
     news: NewsRelease,
     showReadMore: Boolean,
-    onDismiss: () -> Unit,
     onReadMore: () -> Unit,
     onReadFullBriefing: () -> Unit,
     modifier: Modifier = Modifier
@@ -351,33 +357,17 @@ fun NewsBriefingCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = Color.White
             ) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = Color.White
-                ) {
-                    Text(
-                        text = news.company.uppercase(),
-                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = SourcePillText,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = EobStrings.t(language, "deleteNews"),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = news.company.uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = SourcePillText,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
             }
 
             Text(
@@ -422,6 +412,65 @@ fun NewsBriefingCard(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableNewsBriefingCard(
+    language: AppLanguage,
+    news: NewsRelease,
+    showReadMore: Boolean,
+    onDelete: () -> Unit,
+    onReadMore: () -> Unit,
+    onReadFullBriefing: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val dismissState = rememberSwipeToDismissBoxState()
+    val newsKey = "${news.company}|${news.headline}|${news.date}"
+    var deleteTriggered by remember(newsKey) { mutableStateOf(false) }
+
+    LaunchedEffect(dismissState.currentValue, newsKey) {
+        if (!deleteTriggered && dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            deleteTriggered = true
+            onDelete()
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        modifier = modifier,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            if (direction == SwipeToDismissBoxValue.EndToStart) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = Color(0xFFE53935),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = EobStrings.t(language, "deleteNews"),
+                        tint = Color.White,
+                        modifier = Modifier.padding(end = 24.dp)
+                    )
+                }
+            }
+        },
+        content = {
+            NewsBriefingCard(
+                language = language,
+                news = news,
+                showReadMore = showReadMore,
+                onReadMore = onReadMore,
+                onReadFullBriefing = onReadFullBriefing
+            )
+        }
+    )
 }
 
 private fun carrierIcon(carrier: MajorInsuranceCarrier): ImageVector {
