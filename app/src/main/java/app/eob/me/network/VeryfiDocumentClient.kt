@@ -1,10 +1,12 @@
 package app.eob.me.network
 
 import android.util.Base64
+import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
 import app.eob.me.data.FirebaseEobMapper
 import app.eob.me.data.HybridDocumentRef
 import app.eob.me.data.VeryfiStreamExtraction
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -91,30 +93,39 @@ class VeryfiDocumentClient(
         return response["veryfi"] as? Map<String, Any?> ?: response
     }
 
+    /**
+     * Commits the immediate (Track B) Veryfi stream extraction straight to Firestore as an
+     * authoritative EOB document. Both hybrid tracks target [HybridDocumentRef.stableDocumentId] so
+     * the later Storage-triggered backend write merges into the same document instead of duplicating.
+     * Returns the parsed [EobRecord] so the upload resolves without waiting on the backend trigger.
+     */
     suspend fun writeReconciliationFindings(
         userId: String,
-        extraction: VeryfiStreamExtraction
-    ) {
+        extraction: VeryfiStreamExtraction,
+        sourceName: String = "Veryfi"
+    ): EobRecord {
         if (userId.isBlank() || extraction.documentRefId.isBlank()) {
             throw IllegalArgumentException("User id and document reference id are required.")
         }
-        val reconciliationPayload = buildReconciliationPayload(extraction)
+        val storagePath = HybridDocumentRef.normalizeStoragePath(extraction.sourceFilePath)
+        val record = veryfiPayloadToEobRecord(
+            payload = extraction.payload,
+            documentRefId = extraction.documentRefId,
+            sourceName = sourceName
+        )
+        val reconciliationPayload = buildReconciliationPayload(record, extraction.payload, storagePath)
         val userRef = firestore.collection(USERS).document(userId)
+        setMergeAwait(userRef.collection(EOBS).document(record.firestoreId), reconciliationPayload)
+        setMergeAwait(userRef.collection(EOB_RECORDS).document(record.firestoreId), reconciliationPayload)
+        return record
+    }
+
+    private suspend fun setMergeAwait(
+        reference: DocumentReference,
+        payload: Map<String, Any?>
+    ) {
         suspendCancellableCoroutine { continuation ->
-            userRef.collection(EOBS)
-                .document(extraction.documentRefId)
-                .set(reconciliationPayload, SetOptions.merge())
-                .addOnSuccessListener {
-                    if (continuation.isActive) continuation.resume(Unit)
-                }
-                .addOnFailureListener { error ->
-                    if (continuation.isActive) continuation.resumeWithException(error)
-                }
-        }
-        suspendCancellableCoroutine { continuation ->
-            userRef.collection(EOB_RECORDS)
-                .document(extraction.documentRefId)
-                .set(reconciliationPayload, SetOptions.merge())
+            reference.set(payload, SetOptions.merge())
                 .addOnSuccessListener {
                     if (continuation.isActive) continuation.resume(Unit)
                 }
@@ -142,8 +153,8 @@ class VeryfiDocumentClient(
                         }
                         snapshot?.documents.orEmpty().forEach { document ->
                             val data = document.data ?: return@forEach
-                            val sourcePath = data.stringField("sourceFilePath", "source_file_path")
-                            val processedBy = data.stringField("processedBy", "processed_by")
+                            val sourcePath = data.veryfiStringField("sourceFilePath", "source_file_path")
+                            val processedBy = data.veryfiStringField("processedBy", "processed_by")
                             val normalizedTarget = HybridDocumentRef.normalizeStoragePath(storagePath)
                             if (
                                 HybridDocumentRef.normalizeStoragePath(sourcePath) == normalizedTarget &&
@@ -158,14 +169,20 @@ class VeryfiDocumentClient(
         }
     }
 
-    private fun buildReconciliationPayload(extraction: VeryfiStreamExtraction): Map<String, Any?> {
-        return mapOf(
-            "veryfiClientStream" to sanitizeForFirestore(extraction.payload),
-            "veryfiClientStreamAt" to FieldValue.serverTimestamp(),
-            "sourceFilePath" to extraction.sourceFilePath,
-            "hybridValidationTrack" to "client_stream",
-            "hybridReconciliationStatus" to "pending_backend_review",
+    private fun buildReconciliationPayload(
+        record: EobRecord,
+        rawPayload: Map<String, Any?>,
+        storagePath: String
+    ): Map<String, Any?> {
+        return FirebaseEobMapper.eobToMap(record) + mapOf(
+            "sourceFilePath" to storagePath,
+            "processedBy" to "veryfi",
+            "processedAt" to FieldValue.serverTimestamp(),
             "processedByClientStream" to "veryfi_hybrid",
+            "hybridValidationTrack" to "client_stream",
+            "hybridReconciliationStatus" to "client_stream_committed",
+            "veryfiClientStream" to sanitizeForFirestore(rawPayload),
+            "veryfiClientStreamAt" to FieldValue.serverTimestamp(),
             "updatedAt" to FieldValue.serverTimestamp()
         )
     }
@@ -185,14 +202,6 @@ class VeryfiDocumentClient(
         }
     }
 
-    private fun Map<String, Any?>.stringField(vararg keys: String): String {
-        keys.forEach { key ->
-            val value = this[key] as? String
-            if (!value.isNullOrBlank()) return value
-        }
-        return ""
-    }
-
     private companion object {
         const val USERS = "users"
         const val EOBS = "eobs"
@@ -200,4 +209,83 @@ class VeryfiDocumentClient(
         const val EXTRACT_VERYFI_HYBRID_STREAM = "extractVeryfiHybridStream"
         const val DEFAULT_TIMEOUT_MS = 120_000L
     }
+}
+
+/**
+ * Mirrors the backend `veryfiToEobDocument` normalizer so the on-device stream produces an EOB
+ * identical to the Storage-triggered Cloud Function. Field resolution and the shared document id
+ * keep both hybrid tracks in lockstep. Kept top-level/internal so it is unit-testable without a
+ * live Firebase instance.
+ */
+internal fun veryfiPayloadToEobRecord(
+    payload: Map<String, Any?>,
+    documentRefId: String,
+    sourceName: String
+): EobRecord {
+    val rawText = veryfiPayloadToJsonString(payload)
+    val providerName = payload.veryfiStringField("provider_name", "vendor_name")
+        .ifBlank { (payload["vendor"] as? Map<*, *>)?.get("name")?.toString()?.trim().orEmpty() }
+        .ifBlank { EobAnalyzer.findProviderName(rawText) }
+    val insuranceName = payload.veryfiStringField("insurance_name", "payer_name", "insurance")
+        .ifBlank { EobAnalyzer.findInsuranceName(rawText) }
+    val documentId = HybridDocumentRef.stableDocumentId(documentRefId)
+    val normalizedFields = mapOf(
+        "id" to documentId,
+        "sourceName" to sourceName.ifBlank { "Veryfi" },
+        "provider_name" to providerName,
+        "insurance_name" to insuranceName,
+        "date_of_service" to payload.veryfiStringField("date_of_service", "service_date", "date"),
+        "billed_amount" to payload.veryfiNumberField("billed_amount", "total_amount_billed", "total", "subtotal"),
+        "insurance_paid" to payload.veryfiNumberField("insurance_paid", "amount_paid", "payment"),
+        "contractual_adj" to payload.veryfiNumberField("contractual_adj", "contractual_adjustment", "discount"),
+        "copay" to payload.veryfiNumberField("copay", "co_pay"),
+        "deductible" to payload.veryfiNumberField("deductible"),
+        "coinsurance" to payload.veryfiNumberField("coinsurance"),
+        "cptCodes" to veryfiExtractCptCodes(payload),
+        "rawText" to rawText
+    )
+    return FirebaseEobMapper.eobFromMap(normalizedFields, documentId)
+}
+
+private fun veryfiExtractCptCodes(payload: Map<String, Any?>): String {
+    val explicit = listOf("cptCodes", "cpt_codes", "cptCode", "cpt_code")
+        .firstNotNullOfOrNull { key -> payload[key] }
+    return when (explicit) {
+        is String -> explicit
+        is List<*> -> explicit.mapNotNull { it?.toString() }.joinToString(",")
+        else -> ""
+    }
+}
+
+private fun veryfiPayloadToJsonString(value: Any?): String {
+    return when (value) {
+        null -> "null"
+        is String -> "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+        is Boolean, is Number -> value.toString()
+        is Map<*, *> -> value.entries.joinToString(prefix = "{", postfix = "}") { (key, nestedValue) ->
+            "\"${key.toString().replace("\"", "\\\"")}\":${veryfiPayloadToJsonString(nestedValue)}"
+        }
+        is Iterable<*> -> value.joinToString(prefix = "[", postfix = "]") { veryfiPayloadToJsonString(it) }
+        is Array<*> -> value.joinToString(prefix = "[", postfix = "]") { veryfiPayloadToJsonString(it) }
+        else -> "\"${value.toString().replace("\"", "\\\"")}\""
+    }
+}
+
+private fun Map<String, Any?>.veryfiStringField(vararg keys: String): String {
+    keys.forEach { key ->
+        val value = this[key]?.toString()?.trim()
+        if (!value.isNullOrBlank()) return value
+    }
+    return ""
+}
+
+private fun Map<String, Any?>.veryfiNumberField(vararg keys: String): Double {
+    keys.forEach { key ->
+        when (val value = this[key]) {
+            is Number -> return value.toDouble()
+            is String -> value.replace("$", "").replace(",", "").toDoubleOrNull()?.let { return it }
+            else -> Unit
+        }
+    }
+    return 0.0
 }

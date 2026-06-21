@@ -81,14 +81,20 @@ class DocumentScanPipelineRepository(
         val upload = uploadDeferred.await()
         val veryfiPayload = runCatching { streamDeferred.await() }.getOrNull()
         if (veryfiPayload != null) {
-            veryfiClient.writeReconciliationFindings(
-                userId = userId,
-                extraction = VeryfiStreamExtraction(
-                    documentRefId = upload.documentRefId,
-                    sourceFilePath = upload.storagePath,
-                    payload = veryfiPayload
+            val streamedRecord = runCatching {
+                veryfiClient.writeReconciliationFindings(
+                    userId = userId,
+                    extraction = VeryfiStreamExtraction(
+                        documentRefId = upload.documentRefId,
+                        sourceFilePath = upload.storagePath,
+                        payload = veryfiPayload
+                    ),
+                    sourceName = sourceName
                 )
-            )
+            }.getOrNull()
+            if (streamedRecord != null) {
+                return@coroutineScope streamedRecord
+            }
         }
         veryfiClient.awaitVeryfiExtraction(
             userId = userId,
