@@ -13,7 +13,8 @@ import kotlinx.coroutines.withContext
 
 class DocumentScanPipelineRepository(
     private val firebase: FirebaseEobRepository,
-    private val veryfiClient: VeryfiDocumentClient = VeryfiDocumentClient()
+    private val veryfiClient: VeryfiDocumentClient = VeryfiDocumentClient(),
+    private val veryfiAnyDocRepository: VeryfiAnyDocRepository = VeryfiAnyDocRepository(veryfiClient)
 ) {
     suspend fun runOcrPreCheck(
         context: Context,
@@ -52,7 +53,7 @@ class DocumentScanPipelineRepository(
         userId: String,
         uri: Uri,
         sourceName: String
-    ): EobRecord = coroutineScope {
+    ): VeryfiAnyDocExtractionResult = coroutineScope {
         val contentType = context.contentResolver.getType(uri)
             ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
         val extension = HybridDocumentRef.extensionForContentType(contentType)
@@ -68,37 +69,55 @@ class DocumentScanPipelineRepository(
                 fileName = fileName
             )
         }
-        val streamDeferred = async {
-            veryfiClient.streamExtractDocument(
-                userId = userId,
-                documentRefId = documentRefId,
-                fileBytes = fileBytes,
-                fileName = fileName,
-                contentType = contentType
-            )
-        }
 
         val upload = uploadDeferred.await()
-        val veryfiPayload = runCatching { streamDeferred.await() }.getOrNull()
-        if (veryfiPayload != null) {
+        val anyDocResult = veryfiAnyDocRepository.extractHealthInsuranceEob(
+            userId = userId,
+            documentRefId = upload.documentRefId,
+            fileBytes = fileBytes,
+            fileName = fileName,
+            contentType = contentType,
+            sourceName = sourceName
+        ).getOrNull()
+
+        if (anyDocResult != null) {
             val streamedRecord = runCatching {
                 veryfiClient.writeReconciliationFindings(
                     userId = userId,
                     extraction = VeryfiStreamExtraction(
                         documentRefId = upload.documentRefId,
                         sourceFilePath = upload.storagePath,
-                        payload = veryfiPayload
+                        payload = anyDocResult.rawPayload
                     ),
                     sourceName = sourceName
                 )
             }.getOrNull()
             if (streamedRecord != null) {
-                return@coroutineScope streamedRecord
+                return@coroutineScope anyDocResult.copy(record = streamedRecord)
             }
+            return@coroutineScope anyDocResult
         }
-        veryfiClient.awaitVeryfiExtraction(
+
+        val fallbackRecord = veryfiClient.awaitVeryfiExtraction(
             userId = userId,
             storagePath = upload.storagePath
+        )
+        VeryfiAnyDocExtractionResult(
+            extraction = VeryfiHealthInsuranceEob(
+                documentId = upload.documentRefId,
+                blueprintName = "health_insurance_eob",
+                insuranceCompanyName = fallbackRecord.insuranceName,
+                memberName = "",
+                memberId = "",
+                patientName = "",
+                claimId = "",
+                inNetworkOutOfPocketBalance = 0.0,
+                outOfNetworkOutOfPocketBalance = 0.0,
+                dateOfService = fallbackRecord.serviceDate,
+                providerName = fallbackRecord.providerName
+            ),
+            record = fallbackRecord,
+            rawPayload = emptyMap()
         )
     }
 
@@ -107,7 +126,7 @@ class DocumentScanPipelineRepository(
         userId: String,
         uri: Uri,
         sourceName: String
-    ): Result<EobRecord> {
+    ): Result<VeryfiAnyDocExtractionResult> {
         return runCatching {
             processHybridDocument(
                 context = context,

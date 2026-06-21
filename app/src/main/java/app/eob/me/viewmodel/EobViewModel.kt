@@ -37,6 +37,7 @@ import app.eob.me.data.InsuranceNewsCarrierHubItem
 import app.eob.me.data.MajorInsuranceCarrier
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.DocumentScanPipelineState
+import app.eob.me.data.VeryfiAnyDocExtractionState
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.ProviderAvatarPreview
@@ -155,6 +156,11 @@ class EobViewModel : ViewModel() {
 
     private val _documentScanState = MutableStateFlow<DocumentScanPipelineState>(DocumentScanPipelineState.Idle)
     val documentScanState: StateFlow<DocumentScanPipelineState> = _documentScanState.asStateFlow()
+
+    private val _veryfiAnyDocExtractionState =
+        MutableStateFlow<VeryfiAnyDocExtractionState>(VeryfiAnyDocExtractionState.Idle)
+    val veryfiAnyDocExtractionState: StateFlow<VeryfiAnyDocExtractionState> =
+        _veryfiAnyDocExtractionState.asStateFlow()
 
     private var uploadText: String = ""
     private var liveBeckersNewsPool: List<NewsRelease> = emptyList()
@@ -636,6 +642,7 @@ class EobViewModel : ViewModel() {
         newsRotationJob?.cancel()
         newsRotationJob = null
         _documentScanState.value = DocumentScanPipelineState.Idle
+        _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Idle
     }
 
     fun startFirestoreSync(userId: String, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
@@ -1246,6 +1253,7 @@ class EobViewModel : ViewModel() {
 
     fun onDocumentScanCancelled() {
         _documentScanState.value = DocumentScanPipelineState.Idle
+        _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Idle
     }
 
     fun onDocumentScanLaunchFailed(language: AppLanguage, message: String) {
@@ -1256,6 +1264,7 @@ class EobViewModel : ViewModel() {
 
     fun dismissDocumentScanState() {
         _documentScanState.value = DocumentScanPipelineState.Idle
+        _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Idle
     }
 
     fun processScannedDocument(
@@ -1284,6 +1293,7 @@ class EobViewModel : ViewModel() {
             withContext(Dispatchers.Main) {
                 setLoadingInvoice(true)
                 _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
+                _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Loading
             }
 
             val preCheck = runCatching {
@@ -1328,6 +1338,7 @@ class EobViewModel : ViewModel() {
 
             withContext(Dispatchers.Main) {
                 _documentScanState.value = DocumentScanPipelineState.UploadingAndProcessing
+                _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Loading
             }
 
             val extraction = runCatching {
@@ -1340,8 +1351,10 @@ class EobViewModel : ViewModel() {
             }
             withContext(Dispatchers.Main) {
                 extraction.fold(
-                    onSuccess = { record ->
-                        _documentScanState.value = DocumentScanPipelineState.Success(record)
+                    onSuccess = { anyDocResult ->
+                        _veryfiAnyDocExtractionState.value =
+                            VeryfiAnyDocExtractionState.Success(anyDocResult)
+                        _documentScanState.value = DocumentScanPipelineState.Success(anyDocResult.record)
                         updateUploadNotice(EobStrings.t(language, "documentScanSuccess"))
                         setLoadingInvoice(false)
                     },
@@ -1354,6 +1367,7 @@ class EobViewModel : ViewModel() {
                                 ?.takeIf { it.isNotBlank() }
                                 ?: EobStrings.t(language, "documentScanFailed")
                         }
+                        _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Error(message)
                         _documentScanState.value = DocumentScanPipelineState.Error(message)
                         updateUploadNotice(message)
                     }

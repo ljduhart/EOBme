@@ -87,13 +87,9 @@ exports.extractVeryfiHybridStream = onCall({
 async function extractWithVeryfi(fileBytes, fileMetadata) {
   const form = new FormData();
   form.append("file", new Blob([fileBytes], {type: fileMetadata.contentType}), fileMetadata.fileName);
-  form.append("parameters", JSON.stringify({
-    categories: ["Medical", "Health Insurance", "EOB"],
-    tags: ["provider_name", "billed_amount", "insurance_paid", "patient_responsibility", "cpt_codes"],
-    auto_delete: false
-  }));
+  form.append("blueprint_name", "health_insurance_eob");
 
-  const response = await fetch("https://api.veryfi.com/api/v8/partner/documents", {
+  const response = await fetch("https://api.veryfi.com/api/v8/partner/any-documents/", {
     method: "POST",
     headers: {
       "Client-Id": veryfiClientId.value(),
@@ -103,7 +99,7 @@ async function extractWithVeryfi(fileBytes, fileMetadata) {
   });
 
   if (!response.ok) {
-    throw new Error(`Veryfi extraction failed with status ${response.status}: ${await response.text()}`);
+    throw new Error(`Veryfi AnyDocs extraction failed with status ${response.status}: ${await response.text()}`);
   }
   return response.json();
 }

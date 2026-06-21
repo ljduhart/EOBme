@@ -501,6 +501,8 @@ class EobFlowArchitectureTest {
         val applicationSource = readSource("EobApplication.kt")
         val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
         val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val anyDocRepoSource = readSource("data/VeryfiAnyDocRepository.kt")
+        val anyDocConstantsSource = readSource("network/VeryfiAnyDocConstants.kt")
         val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         listOf(
@@ -518,11 +520,17 @@ class EobFlowArchitectureTest {
             "streamExtractDocument",
             "writeReconciliationFindings",
             "awaitVeryfiExtraction",
-            "normalizeStoragePath"
+            "normalizeStoragePath",
+            "VeryfiAnyDocRepository",
+            "health_insurance_eob",
+            "any-documents"
         ).forEach { snippet ->
             assertTrue(
                 "Hybrid Firebase/Veryfi pipeline missing: $snippet",
-                hybridRepoSource.contains(snippet) || veryfiSource.contains(snippet)
+                hybridRepoSource.contains(snippet) ||
+                    veryfiSource.contains(snippet) ||
+                    anyDocRepoSource.contains(snippet) ||
+                    anyDocConstantsSource.contains(snippet)
             )
         }
         assertTrue(
@@ -699,12 +707,16 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("network/InsuranceNewsRotation.kt").contains("BECKERS_VISIBLE_COUNT"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("hasLiveInsuranceNewsPools"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("startInsuranceNewsRotationClock"))
-        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("processScannedDocument"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("veryfiAnyDocExtractionState"))
+        assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("any-documents"))
+        assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("health_insurance_eob"))
+        assertTrue(readSource("network/VeryfiAnyDocApiService.kt").contains("VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("documentScanState"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("processHybridScannedDocument"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("runDocumentOcrPreCheck("))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("cameraScanDocumentType"))
-        assertTrue(readSource("data/DocumentScanPipelineRepository.kt").contains("runCatching { streamDeferred.await() }"))
+        assertTrue(readSource("data/DocumentScanPipelineRepository.kt").contains("veryfiAnyDocRepository.extractHealthInsuranceEob"))
+        assertTrue(readSource("data/VeryfiAnyDocRepository.kt").contains("streamExtractDocument"))
         assertTrue(readSource("scanner/GmsDocumentScannerLauncher.kt").contains("SCANNER_MODE_FULL"))
         assertTrue(readSource("network/VeryfiDocumentClient.kt").contains("awaitVeryfiExtraction"))
         assertTrue(readSource("network/VeryfiDocumentClient.kt").contains("streamExtractDocument"))
@@ -1182,6 +1194,8 @@ class EobFlowArchitectureTest {
         val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
         val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
         val hybridRefSource = readSource("data/HybridDocumentRef.kt")
+        val anyDocRepoSource = readSource("data/VeryfiAnyDocRepository.kt")
+        val anyDocConstantsSource = readSource("network/VeryfiAnyDocConstants.kt")
 
         listOf(
             "processScannedDocument",
@@ -1214,13 +1228,18 @@ class EobFlowArchitectureTest {
             "streamExtractDocument",
             "writeReconciliationFindings",
             "awaitVeryfiExtraction",
-            "normalizeStoragePath"
+            "normalizeStoragePath",
+            "VeryfiAnyDocRepository",
+            "health_insurance_eob",
+            "any-documents"
         ).forEach { snippet ->
             assertTrue(
                 "PR#104 audit: Veryfi/Firestore hybrid pipeline barrier missing $snippet",
                 hybridRepoSource.contains(snippet) ||
                     veryfiSource.contains(snippet) ||
                     hybridRefSource.contains(snippet) ||
+                    anyDocRepoSource.contains(snippet) ||
+                    anyDocConstantsSource.contains(snippet) ||
                     readSource("data/FirebaseEobRepository.kt").contains(snippet)
             )
         }

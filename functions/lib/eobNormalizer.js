@@ -98,6 +98,8 @@ function veryfiToEobDocument(veryfi = {}, metadata = {}) {
     "vendor_name"
   ]) || stringValue(veryfi.vendor || {}, ["name"]) || findProviderName(rawText);
   const insuranceName = stringValue(veryfi, [
+    "insurance_company_name",
+    "insurance_company",
     "insurance_name",
     "payer_name",
     "insurance"
@@ -125,6 +127,19 @@ function veryfiToEobDocument(veryfi = {}, metadata = {}) {
     copay: numberValue(veryfi, ["copay", "co_pay"]),
     deductible: numberValue(veryfi, ["deductible"]),
     coinsurance: numberValue(veryfi, ["coinsurance"]),
+    in_network_out_of_pocket_balance: numberValue(veryfi, [
+      "in_network_out_of_pocket_balance",
+      "in_network_out_of_pocket"
+    ]),
+    out_of_network_out_of_pocket_balance: numberValue(veryfi, [
+      "out_of_network_out_of_pocket_balance",
+      "out_of_network_out_of_pocket"
+    ]),
+    member_name: stringValue(veryfi, ["member_name"]),
+    member_id: stringValue(veryfi, ["member_id", "member_number"]),
+    patient_name: stringValue(veryfi, ["patient_name"]),
+    claim_id: stringValue(veryfi, ["claim_id", "claim_number"]),
+    blueprint_name: stringValue(veryfi, ["blueprint_name"]) || "health_insurance_eob",
     ...(cptCodes.length > 0 ? {cptCodes} : {}),
     rawText,
     sourceFilePath: metadata.sourceFilePath || "",
@@ -133,7 +148,20 @@ function veryfiToEobDocument(veryfi = {}, metadata = {}) {
   return {
     ...normalized,
     sourceFilePath: metadata.sourceFilePath || "",
-    veryfiDocumentId: veryfi.id || veryfi.document_id || ""
+    veryfiDocumentId: veryfi.id || veryfi.document_id || "",
+    blueprint_name: stringValue(veryfi, ["blueprint_name"]) || "health_insurance_eob",
+    member_name: stringValue(veryfi, ["member_name"]),
+    member_id: stringValue(veryfi, ["member_id", "member_number"]),
+    patient_name: stringValue(veryfi, ["patient_name"]),
+    claim_id: stringValue(veryfi, ["claim_id", "claim_number"]),
+    in_network_out_of_pocket_balance: numberValue(veryfi, [
+      "in_network_out_of_pocket_balance",
+      "in_network_out_of_pocket"
+    ]),
+    out_of_network_out_of_pocket_balance: numberValue(veryfi, [
+      "out_of_network_out_of_pocket_balance",
+      "out_of_network_out_of_pocket"
+    ])
   };
 }
 

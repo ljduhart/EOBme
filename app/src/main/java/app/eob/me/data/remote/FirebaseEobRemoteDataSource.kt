@@ -12,6 +12,7 @@ import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.util.EobDocumentOcrPreCheck
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.Flow
@@ -94,14 +95,14 @@ class FirebaseEobRemoteDataSource(
         userId: String,
         uri: Uri,
         sourceName: String
-    ): EobRecord = documentScanPipeline.processHybridDocument(context, userId, uri, sourceName)
+    ): VeryfiAnyDocExtractionResult = documentScanPipeline.processHybridDocument(context, userId, uri, sourceName)
 
     override suspend fun uploadAndExtractDocument(
         context: Context,
         userId: String,
         uri: Uri,
         sourceName: String
-    ): Result<EobRecord> = documentScanPipeline.uploadAndExtractDocument(context, userId, uri, sourceName)
+    ): Result<VeryfiAnyDocExtractionResult> = documentScanPipeline.uploadAndExtractDocument(context, userId, uri, sourceName)
 
     override fun deleteAccount(userId: String, onComplete: (String) -> Unit) {
         firebase.deleteAccount(userId, onComplete)

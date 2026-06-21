@@ -6,6 +6,7 @@ import android.net.Uri
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.EobRecord
 import app.eob.me.data.DocumentUploadResult
+import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
@@ -73,14 +74,14 @@ interface EobRepository {
         userId: String,
         uri: Uri,
         sourceName: String
-    ): EobRecord
+    ): VeryfiAnyDocExtractionResult
 
     suspend fun uploadAndExtractDocument(
         context: Context,
         userId: String,
         uri: Uri,
         sourceName: String
-    ): Result<EobRecord>
+    ): Result<VeryfiAnyDocExtractionResult>
 
     fun deleteAccount(userId: String, onComplete: (String) -> Unit)
 }

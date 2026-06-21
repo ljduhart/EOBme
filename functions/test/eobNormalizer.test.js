@@ -62,7 +62,38 @@ test("parses only valid CPT and HCPCS codes", () => {
   assert.deepEqual(parseCptCodes("99215 01234 Z9999 A0425 J3301 123456"), ["99215", "A0425", "J3301"]);
 });
 
-test("maps Veryfi extraction payload into normalized EOB fields", () => {
+test("maps Veryfi AnyDocs health_insurance_eob payload into normalized EOB fields", () => {
+  const normalized = veryfiToEobDocument({
+    id: "anydoc-1",
+    blueprint_name: "health_insurance_eob",
+    insurance_company_name: "Cigna",
+    member_name: "Alex Patient",
+    member_id: "MEM-7788",
+    patient_name: "Alex Patient",
+    claim_id: "CLM-2200",
+    provider_name: "North Clinic",
+    date_of_service: "2026-03-01",
+    in_network_out_of_pocket_balance: 900,
+    out_of_network_out_of_pocket_balance: 2100,
+    billed_amount: 275,
+    insurance_paid: 180,
+    copay: 20
+  }, {
+    documentId: "storage-file-2",
+    sourceFilePath: "users/u1/eob_uploads/storage-file-2.jpg"
+  });
+
+  assert.equal(normalized.insuranceName, "Cigna");
+  assert.equal(normalized.member_name, "Alex Patient");
+  assert.equal(normalized.member_id, "MEM-7788");
+  assert.equal(normalized.patient_name, "Alex Patient");
+  assert.equal(normalized.claim_id, "CLM-2200");
+  assert.equal(normalized.blueprint_name, "health_insurance_eob");
+  assert.equal(normalized.in_network_out_of_pocket_balance, 900);
+  assert.equal(normalized.out_of_network_out_of_pocket_balance, 2100);
+});
+
+test("maps legacy Veryfi invoice payload into normalized EOB fields", () => {
   const normalized = veryfiToEobDocument({
     id: "veryfi-doc-1",
     vendor: {name: "Downtown Medical Group"},

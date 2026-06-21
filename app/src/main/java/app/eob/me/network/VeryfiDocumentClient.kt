@@ -3,6 +3,8 @@ package app.eob.me.network
 import android.util.Base64
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
+import app.eob.me.network.VeryfiAnyDocConstants
+import app.eob.me.network.VeryfiAnyDocMapper
 import app.eob.me.data.FirebaseEobMapper
 import app.eob.me.data.HybridDocumentRef
 import app.eob.me.data.VeryfiStreamExtraction
@@ -76,7 +78,8 @@ class VeryfiDocumentClient(
                 "fileBase64" to encoded,
                 "fileName" to fileName,
                 "contentType" to contentType,
-                "documentRefId" to documentRefId
+                "documentRefId" to documentRefId,
+                "blueprintName" to VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB
             )
             val task = callable.call(payload)
             task.addOnSuccessListener { result ->
@@ -206,7 +209,7 @@ class VeryfiDocumentClient(
         const val USERS = "users"
         const val EOBS = "eobs"
         const val EOB_RECORDS = "eob_records"
-        const val EXTRACT_VERYFI_HYBRID_STREAM = "extractVeryfiHybridStream"
+        const val EXTRACT_VERYFI_HYBRID_STREAM = VeryfiAnyDocConstants.EXTRACT_VERYFI_HYBRID_STREAM
         const val DEFAULT_TIMEOUT_MS = 120_000L
     }
 }
@@ -222,26 +225,46 @@ internal fun veryfiPayloadToEobRecord(
     documentRefId: String,
     sourceName: String
 ): EobRecord {
-    val rawText = veryfiPayloadToJsonString(payload)
-    val providerName = payload.veryfiStringField("provider_name", "vendor_name")
-        .ifBlank { (payload["vendor"] as? Map<*, *>)?.get("name")?.toString()?.trim().orEmpty() }
+    val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(payload, documentRefId)
+    val rawText = veryfiPayloadToJsonString(mergedPayload)
+    val providerName = mergedPayload.veryfiStringField("provider_name", "vendor_name")
+        .ifBlank { (mergedPayload["vendor"] as? Map<*, *>)?.get("name")?.toString()?.trim().orEmpty() }
         .ifBlank { EobAnalyzer.findProviderName(rawText) }
-    val insuranceName = payload.veryfiStringField("insurance_name", "payer_name", "insurance")
-        .ifBlank { EobAnalyzer.findInsuranceName(rawText) }
+    val insuranceName = mergedPayload.veryfiStringField(
+        "insurance_company_name",
+        "insurance_company",
+        "insurance_name",
+        "payer_name",
+        "insurance"
+    ).ifBlank { EobAnalyzer.findInsuranceName(rawText) }
     val documentId = HybridDocumentRef.stableDocumentId(documentRefId)
     val normalizedFields = mapOf(
         "id" to documentId,
         "sourceName" to sourceName.ifBlank { "Veryfi" },
         "provider_name" to providerName,
         "insurance_name" to insuranceName,
-        "date_of_service" to payload.veryfiStringField("date_of_service", "service_date", "date"),
-        "billed_amount" to payload.veryfiNumberField("billed_amount", "total_amount_billed", "total", "subtotal"),
-        "insurance_paid" to payload.veryfiNumberField("insurance_paid", "amount_paid", "payment"),
-        "contractual_adj" to payload.veryfiNumberField("contractual_adj", "contractual_adjustment", "discount"),
-        "copay" to payload.veryfiNumberField("copay", "co_pay"),
-        "deductible" to payload.veryfiNumberField("deductible"),
-        "coinsurance" to payload.veryfiNumberField("coinsurance"),
-        "cptCodes" to veryfiExtractCptCodes(payload),
+        "date_of_service" to mergedPayload.veryfiStringField("date_of_service", "service_date", "date"),
+        "billed_amount" to mergedPayload.veryfiNumberField("billed_amount", "total_amount_billed", "total", "subtotal"),
+        "insurance_paid" to mergedPayload.veryfiNumberField("insurance_paid", "amount_paid", "payment"),
+        "contractual_adj" to mergedPayload.veryfiNumberField("contractual_adj", "contractual_adjustment", "discount"),
+        "copay" to mergedPayload.veryfiNumberField("copay", "co_pay"),
+        "deductible" to mergedPayload.veryfiNumberField("deductible"),
+        "coinsurance" to mergedPayload.veryfiNumberField("coinsurance"),
+        "member_name" to mergedPayload.veryfiStringField("member_name"),
+        "member_id" to mergedPayload.veryfiStringField("member_id", "member_number"),
+        "patient_name" to mergedPayload.veryfiStringField("patient_name"),
+        "claim_id" to mergedPayload.veryfiStringField("claim_id", "claim_number"),
+        "in_network_out_of_pocket_balance" to mergedPayload.veryfiNumberField(
+            "in_network_out_of_pocket_balance",
+            "in_network_out_of_pocket"
+        ),
+        "out_of_network_out_of_pocket_balance" to mergedPayload.veryfiNumberField(
+            "out_of_network_out_of_pocket_balance",
+            "out_of_network_out_of_pocket"
+        ),
+        "blueprint_name" to mergedPayload.veryfiStringField("blueprint_name")
+            .ifBlank { VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB },
+        "cptCodes" to veryfiExtractCptCodes(mergedPayload),
         "rawText" to rawText
     )
     return FirebaseEobMapper.eobFromMap(normalizedFields, documentId)
