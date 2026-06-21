@@ -82,7 +82,10 @@ object EobInsuranceNews {
     }
 
     private fun monthName(monthIndex: Int): String {
-        val calendar = Calendar.getInstance().apply { set(Calendar.MONTH, monthIndex) }
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.MONTH, monthIndex)
+        }
         return calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.US) ?: "Month"
     }
 

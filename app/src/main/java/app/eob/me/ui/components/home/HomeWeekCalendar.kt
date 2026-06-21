@@ -43,7 +43,8 @@ fun HomeWeekCalendar(
     modifier: Modifier = Modifier
 ) {
     var visibleMonth by remember { mutableStateOf(Calendar.getInstance()) }
-    val weekDays = remember { currentWeekDays() }
+    val todayKey = Calendar.getInstance().let { it.get(Calendar.YEAR) * 1000 + it.get(Calendar.DAY_OF_YEAR) }
+    val weekDays = remember(todayKey) { currentWeekDays() }
     val weekRangeLabel = remember(weekDays, language) { weekRangeLabel(weekDays, language) }
 
     Card(
