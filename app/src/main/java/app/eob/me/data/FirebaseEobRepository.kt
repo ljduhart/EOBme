@@ -383,7 +383,7 @@ class FirebaseEobRepository(private val context: Context) {
                 .addOnSuccessListener { downloadUrl ->
                     continuation.resume(
                         DocumentUploadResult(
-                            storagePath = ref.path,
+                            storagePath = HybridDocumentRef.normalizeStoragePath(ref.path),
                             downloadUrl = downloadUrl.toString(),
                             contentType = contentType,
                             fileName = resolvedFileName,

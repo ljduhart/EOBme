@@ -3,7 +3,7 @@ package app.eob.me.util
 import android.graphics.Bitmap
 
 /**
- * Crops a captured scan to the same guide proportions used by [app.eob.me.ui.components.CameraScanningOverlay].
+ * Crops a captured scan to the same guide proportions used by the camera capture edge overlay.
  */
 object DocumentScanCrop {
     fun applyGuideCrop(bitmap: Bitmap): Bitmap {

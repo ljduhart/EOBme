@@ -33,7 +33,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +54,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
@@ -89,7 +89,6 @@ import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
 import app.eob.me.ui.screens.YtdExpenseScreen
 import app.eob.me.scanner.GmsDocumentScannerLauncher
-import app.eob.me.util.OcrProcessor
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.HubUiState
@@ -211,7 +210,6 @@ private fun MainHubNavHost(
     onHubDarkModeChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val eobViewModel: EobViewModel = viewModel()
     val eobRepository: EobRepository = appViewModel.eobRepository
@@ -236,28 +234,15 @@ private fun MainHubNavHost(
             Toast.makeText(context, EobStrings.t(language, "settingsUploadWifiBlocked"), Toast.LENGTH_LONG).show()
             return
         }
-        val compression = eobViewModel.imageCompressionLevel()
-        scope.launch {
-            runCatching { OcrProcessor.prepareUriForUpload(context, uri, compression) }
-                .onSuccess { preparedUri ->
-                    eobViewModel.uploadEobFile(
-                        userId = uid,
-                        uri = preparedUri,
-                        sourceName = sourceName,
-                        language = language
-                    )
-                    navController.navigate(EobRoute.History.route) { launchSingleTop = true }
-                    onActivity()
-                }
-                .onFailure {
-                    eobViewModel.setLoadingInvoice(false)
-                    Toast.makeText(
-                        context,
-                        EobStrings.t(language, "imagePrepFailed"),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-        }
+        eobViewModel.processScannedDocument(
+            userId = uid,
+            uri = uri,
+            sourceName = sourceName,
+            language = language,
+            scanType = CameraScanDocumentType.Eob
+        )
+        navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+        onActivity()
     }
 
     var profileSaveMessage by remember { mutableStateOf("") }

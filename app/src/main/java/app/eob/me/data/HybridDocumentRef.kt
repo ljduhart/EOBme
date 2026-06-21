@@ -11,4 +11,7 @@ object HybridDocumentRef {
 
     fun extensionForContentType(contentType: String): String =
         if (contentType == "application/pdf") "pdf" else "jpg"
+
+    /** Firebase Storage [Reference.path] may include a leading slash; Cloud Functions use object names without one. */
+    fun normalizeStoragePath(path: String): String = path.trim().removePrefix("/")
 }
