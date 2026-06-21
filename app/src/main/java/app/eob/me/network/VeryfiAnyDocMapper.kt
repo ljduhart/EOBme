@@ -2,7 +2,6 @@ package app.eob.me.network
 
 import app.eob.me.data.VeryfiHealthInsuranceEob
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 
 object VeryfiAnyDocMapper {
     private val gson = Gson()
@@ -16,27 +15,29 @@ object VeryfiAnyDocMapper {
         dto: VeryfiAnyDocResponseDto,
         documentRefId: String
     ): VeryfiHealthInsuranceEob {
-        val documentId = dto.id?.toString().orEmpty().ifBlank { documentRefId }
+        val documentId = dto.id?.toString()?.takeIf { it.isNotBlank() } ?: documentRefId
         return VeryfiHealthInsuranceEob(
             documentId = documentId,
-            blueprintName = dto.blueprintName?.trim().orEmpty()
-                .ifBlank { VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB },
+            blueprintName = firstNonBlank(dto.blueprintName)
+                ?: VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB,
             insuranceCompanyName = firstNonBlank(
                 dto.insuranceCompanyName,
                 dto.insuranceCompany,
                 dto.payerName
             ),
-            memberName = dto.memberName?.trim().orEmpty(),
+            memberName = dto.memberName?.trim()?.takeIf { it.isNotBlank() },
             memberId = firstNonBlank(dto.memberId, dto.memberNumber),
-            patientName = dto.patientName?.trim().orEmpty(),
+            patientName = dto.patientName?.trim()?.takeIf { it.isNotBlank() },
             claimId = firstNonBlank(dto.claimId, dto.claimNumber),
             inNetworkOutOfPocketBalance = firstNonNull(dto.inNetworkOutOfPocketBalance, dto.inNetworkOutOfPocket),
             outOfNetworkOutOfPocketBalance = firstNonNull(
                 dto.outOfNetworkOutOfPocketBalance,
                 dto.outOfNetworkOutOfPocket
             ),
+            inNetworkDeductible = dto.inNetworkDeductible,
+            outOfNetworkDeductible = dto.outOfNetworkDeductible,
             dateOfService = firstNonBlank(dto.dateOfService, dto.serviceDate),
-            providerName = dto.providerName?.trim().orEmpty()
+            providerName = dto.providerName?.trim()?.takeIf { it.isNotBlank() }
         )
     }
 
@@ -58,13 +59,15 @@ object VeryfiAnyDocMapper {
             "date_of_service" to extraction.dateOfService,
             "in_network_out_of_pocket_balance" to extraction.inNetworkOutOfPocketBalance,
             "out_of_network_out_of_pocket_balance" to extraction.outOfNetworkOutOfPocketBalance,
+            "in_network_deductible" to extraction.inNetworkDeductible,
+            "out_of_network_deductible" to extraction.outOfNetworkDeductible,
             "billed_amount" to dto.billedAmount,
             "insurance_paid" to dto.insurancePaid,
             "copay" to dto.copay,
             "deductible" to dto.deductible,
             "coinsurance" to dto.coinsurance,
             "blueprint_name" to extraction.blueprintName,
-            "line_items" to lineItemText
+            "line_items" to lineItemText.takeIf { it.isNotBlank() }
         )
     }
 
@@ -90,11 +93,11 @@ object VeryfiAnyDocMapper {
         documentRefId: String
     ): VeryfiHealthInsuranceEob = toDomain(parseResponse(payload), documentRefId)
 
-    private fun firstNonBlank(vararg values: String?): String {
-        return values.firstOrNull { !it.isNullOrBlank() }?.trim().orEmpty()
+    private fun firstNonBlank(vararg values: String?): String? {
+        return values.firstOrNull { !it.isNullOrBlank() }?.trim()
     }
 
-    private fun firstNonNull(vararg values: Double?): Double {
-        return values.firstOrNull { it != null } ?: 0.0
+    private fun firstNonNull(vararg values: Double?): Double? {
+        return values.firstOrNull { it != null }
     }
 }

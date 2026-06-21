@@ -61,6 +61,7 @@ import app.eob.me.data.repository.EobRepository
 import app.eob.me.network.InsuranceNewsRotation
 import app.eob.me.network.RetrofitClient
 import app.eob.me.network.RssNewsMapper
+import app.eob.me.network.VeryfiHybridStreamErrorMapper
 import app.eob.me.util.CacheSizeCalculator
 import app.eob.me.util.DeviceCallingUtils
 import app.eob.me.util.NetworkUploadGate
@@ -69,6 +70,7 @@ import app.eob.me.util.EobUploadImageCompressor
 import app.eob.me.util.OcrProcessor
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -1361,16 +1363,13 @@ class EobViewModel : ViewModel() {
                     },
                     onFailure = { error ->
                         setLoadingInvoice(false)
-                        val message = when (error) {
-                            is kotlinx.coroutines.TimeoutCancellationException ->
-                                EobStrings.t(language, "documentScanVeryfiTimeout")
-                            else -> error.localizedMessage
-                                ?.takeIf { it.isNotBlank() }
-                                ?: EobStrings.t(language, "documentScanFailed")
-                        }
-                        _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Error(message)
-                        _documentScanState.value = DocumentScanPipelineState.Error(message)
-                        updateUploadNotice(message)
+                        val resolved = resolveDocumentScanError(error, language)
+                        _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Error(
+                            message = resolved.userMessage,
+                            detail = resolved.detail
+                        )
+                        _documentScanState.value = DocumentScanPipelineState.Error(resolved.userMessage)
+                        updateUploadNotice(resolved.detail ?: resolved.userMessage)
                     }
                 )
             }
@@ -1443,6 +1442,23 @@ class EobViewModel : ViewModel() {
         }
         repo.saveProfile(userId, profile, onComplete)
         repo.saveInsuranceCardMetadata(userId, profile) {}
+    }
+
+    internal data class DocumentScanErrorResolution(
+        val userMessage: String,
+        val detail: String?
+    )
+
+    internal fun resolveDocumentScanError(error: Throwable, language: AppLanguage): DocumentScanErrorResolution {
+        val detail = VeryfiHybridStreamErrorMapper.describe(error)
+        val userMessage = when (error) {
+            is TimeoutCancellationException -> EobStrings.t(language, "documentScanVeryfiTimeout")
+            else -> detail.ifBlank { EobStrings.t(language, "documentScanFailed") }
+        }
+        return DocumentScanErrorResolution(
+            userMessage = userMessage,
+            detail = detail.takeIf { it != userMessage }
+        )
     }
 
     override fun onCleared() {

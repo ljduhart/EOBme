@@ -31,7 +31,9 @@ exports.mirrorLegacyRecordToEob = onDocumentWritten("users/{userId}/eob_records/
 });
 
 exports.processUploadedEobWithVeryfi = onObjectFinalized({
-  secrets: [veryfiClientId, veryfiUsername, veryfiApiKey]
+  secrets: [veryfiClientId, veryfiUsername, veryfiApiKey],
+  timeoutSeconds: 120,
+  memory: "512MiB"
 }, async (event) => {
   const objectName = event.data.name || "";
   const match = objectName.match(/^users\/([^/]+)\/eob_uploads\/(.+)$/);
@@ -71,7 +73,9 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
 });
 
 exports.extractVeryfiHybridStream = onCall({
-  secrets: [veryfiClientId, veryfiUsername, veryfiApiKey]
+  secrets: [veryfiClientId, veryfiUsername, veryfiApiKey],
+  timeoutSeconds: 120,
+  memory: "512MiB"
 }, async (request) => {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "Sign in is required for hybrid Veryfi extraction.");

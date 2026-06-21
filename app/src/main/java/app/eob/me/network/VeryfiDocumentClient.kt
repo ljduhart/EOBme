@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -72,23 +73,30 @@ class VeryfiDocumentClient(
         }
 
         val encoded = Base64.encodeToString(fileBytes, Base64.NO_WRAP)
-        val response = suspendCancellableCoroutine<Map<String, Any?>> { continuation ->
-            val callable = functions.getHttpsCallable(EXTRACT_VERYFI_HYBRID_STREAM)
-            val payload = hashMapOf(
-                "fileBase64" to encoded,
-                "fileName" to fileName,
-                "contentType" to contentType,
-                "documentRefId" to documentRefId,
-                "blueprintName" to VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB
-            )
-            val task = callable.call(payload)
-            task.addOnSuccessListener { result ->
-                if (!continuation.isActive) return@addOnSuccessListener
-                val data = result.data as? Map<*, *> ?: emptyMap<Any?, Any?>()
-                continuation.resume(data.entries.associate { (key, value) -> key.toString() to value })
-            }
-            task.addOnFailureListener { error ->
-                if (continuation.isActive) continuation.resumeWithException(error)
+        val response = withTimeout(VeryfiAnyDocConstants.HYBRID_STREAM_TIMEOUT_SECONDS * 1_000) {
+            suspendCancellableCoroutine<Map<String, Any?>> { continuation ->
+                val callable = functions.getHttpsCallable(EXTRACT_VERYFI_HYBRID_STREAM)
+                    .withTimeout(VeryfiAnyDocConstants.HYBRID_STREAM_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                val payload = hashMapOf(
+                    "fileBase64" to encoded,
+                    "fileName" to fileName,
+                    "contentType" to contentType,
+                    "documentRefId" to documentRefId,
+                    "blueprintName" to VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB
+                )
+                val task = callable.call(payload)
+                task.addOnSuccessListener { result ->
+                    if (!continuation.isActive) return@addOnSuccessListener
+                    val data = result.data as? Map<*, *> ?: emptyMap<Any?, Any?>()
+                    continuation.resume(data.entries.associate { (key, value) -> key.toString() to value })
+                }
+                task.addOnFailureListener { error ->
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(
+                            IllegalStateException(VeryfiHybridStreamErrorMapper.describe(error), error)
+                        )
+                    }
+                }
             }
         }
 

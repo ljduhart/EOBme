@@ -859,6 +859,11 @@ class EobFlowArchitectureTest {
             "Upload pipeline must compress images before Firebase/Veryfi hybrid extraction",
             viewModelSource.contains("EobUploadImageCompressor.compressUriForUpload")
         )
+        assertTrue(viewModelSource.contains("resolveDocumentScanError"))
+        assertTrue(viewModelSource.contains("VeryfiAnyDocExtractionState.Error"))
+        assertTrue(readSource("network/VeryfiAnyDocNetworkClient.kt").contains("READ_TIMEOUT_SECONDS = 45L"))
+        assertTrue(readSource("network/VeryfiDocumentClient.kt").contains("withTimeout"))
+        assertTrue(readSource("data/VeryfiAnyDocRepository.kt").contains("VeryfiHybridStreamErrorMapper.describe"))
         assertTrue(readSource("scanner/DocumentScanProcessor.kt").contains("EobUploadImageCompressor.compressBitmapToUploadUri"))
     }
 

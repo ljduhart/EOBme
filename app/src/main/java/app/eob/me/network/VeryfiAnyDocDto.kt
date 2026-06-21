@@ -31,6 +31,8 @@ data class VeryfiAnyDocResponseDto(
     @SerializedName("copay") val copay: Double? = null,
     @SerializedName("deductible") val deductible: Double? = null,
     @SerializedName("coinsurance") val coinsurance: Double? = null,
+    @SerializedName("in_network_deductible") val inNetworkDeductible: Double? = null,
+    @SerializedName("out_of_network_deductible") val outOfNetworkDeductible: Double? = null,
     @SerializedName("line_items") val lineItems: List<VeryfiAnyDocLineItemDto>? = null
 )
 

@@ -5,4 +5,5 @@ object VeryfiAnyDocConstants {
     const val ANY_DOCUMENTS_PATH = "partner/any-documents/"
     const val BLUEPRINT_HEALTH_INSURANCE_EOB = "health_insurance_eob"
     const val EXTRACT_VERYFI_HYBRID_STREAM = "extractVeryfiHybridStream"
+    const val HYBRID_STREAM_TIMEOUT_SECONDS = 120L
 }

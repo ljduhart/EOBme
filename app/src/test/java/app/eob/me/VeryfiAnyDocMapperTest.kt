@@ -35,9 +35,22 @@ class VeryfiAnyDocMapperTest {
         assertEquals("UHC123456", extraction.memberId)
         assertEquals("Jane Doe", extraction.patientName)
         assertEquals("CLM-908877", extraction.claimId)
-        assertEquals(1250.0, extraction.inNetworkOutOfPocketBalance, 0.001)
-        assertEquals(3200.0, extraction.outOfNetworkOutOfPocketBalance, 0.001)
+        assertEquals(1250.0, extraction.inNetworkOutOfPocketBalance!!, 0.001)
+        assertEquals(3200.0, extraction.outOfNetworkOutOfPocketBalance!!, 0.001)
         assertEquals("Metro Health Clinic", extraction.providerName)
+    }
+
+    @Test
+    fun mapsSparsePayloadWithoutCrashingWhenFieldsAreMissing() {
+        val extraction = VeryfiAnyDocMapper.mapFromUntypedPayload(
+            payload = mapOf("blueprint_name" to VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB),
+            documentRefId = "eob_sparse_jpg"
+        )
+
+        assertEquals("eob_sparse_jpg", extraction.documentId)
+        assertEquals(null, extraction.claimId)
+        assertEquals(null, extraction.inNetworkDeductible)
+        assertEquals(null, extraction.memberName)
     }
 
     @Test

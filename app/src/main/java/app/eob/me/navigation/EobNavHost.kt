@@ -56,6 +56,7 @@ import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.DocumentScanPipelineState
+import app.eob.me.data.VeryfiAnyDocExtractionState
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
@@ -216,6 +217,7 @@ private fun MainHubNavHost(
 
     val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     val documentScanState by eobViewModel.documentScanState.collectAsStateWithLifecycle()
+    val veryfiAnyDocExtractionState by eobViewModel.veryfiAnyDocExtractionState.collectAsStateWithLifecycle()
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
     val personalizedNewsFeed by eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
@@ -1061,6 +1063,15 @@ private fun MainHubNavHost(
                     is DocumentScanPipelineState.Error -> {
                         Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
                         eobViewModel.dismissDocumentScanState()
+                    }
+                    else -> Unit
+                }
+            }
+            LaunchedEffect(veryfiAnyDocExtractionState) {
+                when (val state = veryfiAnyDocExtractionState) {
+                    is VeryfiAnyDocExtractionState.Error -> {
+                        val toastMessage = state.detail?.takeIf { it.isNotBlank() } ?: state.message
+                        Toast.makeText(context, toastMessage, Toast.LENGTH_LONG).show()
                     }
                     else -> Unit
                 }

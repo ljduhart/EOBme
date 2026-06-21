@@ -21,13 +21,3 @@ interface VeryfiAnyDocApiService {
         @Part("blueprint_name") blueprintName: RequestBody
     ): VeryfiAnyDocResponseDto
 }
-
-object VeryfiApiClient {
-    val anyDocApi: VeryfiAnyDocApiService by lazy {
-        retrofit2.Retrofit.Builder()
-            .baseUrl(VeryfiAnyDocConstants.BASE_URL)
-            .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
-            .build()
-            .create(VeryfiAnyDocApiService::class.java)
-    }
-}
