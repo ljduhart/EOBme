@@ -94,8 +94,10 @@ import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.viewmodel.CameraCapturePhase
 import app.eob.me.viewmodel.CameraCaptureViewModel
 import app.eob.me.viewmodel.CameraFlashMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -152,8 +154,13 @@ fun CameraCaptureScreen(
     LaunchedEffect(isCameraReady) {
         while (isActive && isCameraReady && uiState.phase == CameraCapturePhase.LIVE_PREVIEW) {
             viewModel.refreshMotionState()
-            previewView.bitmap?.let { frame ->
-                viewModel.onPreviewFrame(frame.copy(frame.config ?: Bitmap.Config.ARGB_8888, false))
+            // PreviewView.getBitmap() must be read on the main thread; the edge-detection
+            // analysis is heavy, so it runs off the main thread to keep the preview responsive.
+            val frame = previewView.bitmap
+            if (frame != null) {
+                withContext(Dispatchers.Default) {
+                    viewModel.onPreviewFrame(frame)
+                }
             }
             delay(180L)
         }
