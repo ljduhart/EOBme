@@ -124,7 +124,6 @@ object EobStrings {
         "eobText" to "Optional pasted EOB text",
         "libraryUpload" to "Library upload",
         "uploadFromLibrary" to "Upload from library",
-        "cameraScan" to "Camera scan",
         "cameraScanTypeEob" to "EOB",
         "cameraScanTypeReceipt" to "Receipt",
         "cameraBordersNotFound" to "Borders not found. Switch to Manual.",

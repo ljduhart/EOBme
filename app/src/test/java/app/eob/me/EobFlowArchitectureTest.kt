@@ -1138,6 +1138,153 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun appealGeneratorDualTargetToggleRemainsIntact() {
+        val appealSource = readSource("ui/screens/AppealScreen.kt")
+        val appealModelsSource = readSource("data/AppealModels.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        listOf(
+            "AppealTargetSelector",
+            "SingleChoiceSegmentedButtonRow",
+            "AppealTarget.entries",
+            "target.labelKey()",
+            "AnimatedVisibility",
+            "selectedTarget == AppealTarget.DOCTOR",
+            "DoctorDisputeStrategySelector"
+        ).forEach { snippet ->
+            assertTrue("Appeal dual-target UI missing: $snippet", appealSource.contains(snippet))
+        }
+        listOf(
+            "appealTargetInsurance",
+            "appealTargetDoctor",
+            "INSURANCE",
+            "DOCTOR"
+        ).forEach { snippet ->
+            assertTrue("Appeal target model missing: $snippet", appealModelsSource.contains(snippet))
+        }
+        listOf(
+            "fun onAppealTargetSwitched",
+            "fun onDisputeStrategySwitched",
+            "private fun generateAppealLetter",
+            "AppealLetterGenerator.generate"
+        ).forEach { snippet ->
+            assertTrue("Appeal ViewModel source-of-truth missing: $snippet", viewModelSource.contains(snippet))
+        }
+        assertTrue(navHostSource.contains("onAppealTargetSwitched = { target ->"))
+        assertTrue(navHostSource.contains("selectedTarget = uiState.selectedAppealTarget"))
+    }
+
+    @Test
+    fun pr104FinalConnectivityAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val appealSource = readSource("ui/screens/AppealScreen.kt")
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val hybridRefSource = readSource("data/HybridDocumentRef.kt")
+
+        listOf(
+            "processScannedDocument",
+            "documentScanState",
+            "startFirestoreSync",
+            "observeEobs",
+            "applyRemoteRecords",
+            "private fun generateAppealLetter",
+            "fun onAppealTargetSwitched",
+            "applySubscriptionState",
+            "PaywallDialog"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#104 audit: EobViewModel/nav hybrid hub barrier missing $snippet",
+                viewModelSource.contains(snippet) || navHostSource.contains(snippet)
+            )
+        }
+        listOf("SubscriptionTier.Gold", "SubscriptionTier.Silver").forEach { snippet ->
+            assertTrue(
+                "PR#104 audit: subscription tier barrier missing $snippet",
+                viewModelSource.contains(snippet) ||
+                    navHostSource.contains(snippet) ||
+                    paywallSource.contains(snippet)
+            )
+        }
+
+        listOf(
+            "processHybridDocument",
+            "uploadEobFileAwaitDownload",
+            "streamExtractDocument",
+            "writeReconciliationFindings",
+            "awaitVeryfiExtraction",
+            "normalizeStoragePath"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#104 audit: Veryfi/Firestore hybrid pipeline barrier missing $snippet",
+                hybridRepoSource.contains(snippet) ||
+                    veryfiSource.contains(snippet) ||
+                    hybridRefSource.contains(snippet) ||
+                    readSource("data/FirebaseEobRepository.kt").contains(snippet)
+            )
+        }
+
+        listOf(
+            "prepareAndUpload",
+            "processScannedDocument",
+            "CameraScanDocumentType.Eob",
+            "DocumentProcessingOverlay",
+            "customCameraPermissionLauncher"
+        ).forEach { snippet ->
+            assertTrue("PR#104 audit: upload navigation barrier missing $snippet", navHostSource.contains(snippet))
+        }
+        assertFalse(
+            "PR#104 audit: library upload must not use storage-only uploadEobFile in nav",
+            navHostSource.contains("eobViewModel.uploadEobFile(")
+        )
+
+        listOf(
+            "BackHandler",
+            "EobRoute.Home.route",
+            "exitHubToSignIn",
+            "resetHubState"
+        ).forEach { snippet ->
+            assertTrue("PR#104 audit: home back navigation barrier missing $snippet", navHostSource.contains(snippet))
+        }
+
+        listOf(
+            "Silver Tier",
+            "Gold Tier",
+            "SubscriptionCatalog.features(SubscriptionTier.Silver)",
+            "SubscriptionCatalog.features(SubscriptionTier.Gold)",
+            "onRestorePurchasesClicked"
+        ).forEach { snippet ->
+            assertTrue("PR#104 audit: paywall tier listings missing $snippet", paywallSource.contains(snippet))
+        }
+
+        listOf(
+            "AppealTargetSelector",
+            "AppealTarget.entries",
+            "target.labelKey()"
+        ).forEach { snippet ->
+            assertTrue("PR#104 audit: appeal dual toggle missing $snippet", appealSource.contains(snippet))
+        }
+        listOf("appealTargetInsurance", "appealTargetDoctor").forEach { snippet ->
+            assertTrue(
+                "PR#104 audit: appeal target labels missing $snippet",
+                readSource("data/AppealModels.kt").contains(snippet)
+            )
+        }
+
+        listOf(
+            "onBentoSelected",
+            "HubBentoDestination",
+            "cptBentoSnapshot",
+            "ytdBentoSnapshot",
+            "insuranceNewsBentoSnapshot",
+            "historySnapshot",
+            "activateAppealGeneratorBento"
+        ).forEach { snippet ->
+            assertTrue("PR#104 audit: bento information transfer missing $snippet", navHostSource.contains(snippet))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }
