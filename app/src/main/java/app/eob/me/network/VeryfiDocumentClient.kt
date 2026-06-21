@@ -70,22 +70,24 @@ class VeryfiDocumentClient(
         }
 
         val encoded = Base64.encodeToString(fileBytes, Base64.NO_WRAP)
-        val response = suspendCancellableCoroutine<Map<String, Any?>> { continuation ->
-            val callable = functions.getHttpsCallable(EXTRACT_VERYFI_HYBRID_STREAM)
-            val payload = hashMapOf(
-                "fileBase64" to encoded,
-                "fileName" to fileName,
-                "contentType" to contentType,
-                "documentRefId" to documentRefId
-            )
-            val task = callable.call(payload)
-            task.addOnSuccessListener { result ->
-                if (!continuation.isActive) return@addOnSuccessListener
-                val data = result.data as? Map<*, *> ?: emptyMap<Any?, Any?>()
-                continuation.resume(data.entries.associate { (key, value) -> key.toString() to value })
-            }
-            task.addOnFailureListener { error ->
-                if (continuation.isActive) continuation.resumeWithException(error)
+        val response = withTimeout(STREAM_TIMEOUT_MS) {
+            suspendCancellableCoroutine<Map<String, Any?>> { continuation ->
+                val callable = functions.getHttpsCallable(EXTRACT_VERYFI_HYBRID_STREAM)
+                val payload = hashMapOf(
+                    "fileBase64" to encoded,
+                    "fileName" to fileName,
+                    "contentType" to contentType,
+                    "documentRefId" to documentRefId
+                )
+                val task = callable.call(payload)
+                task.addOnSuccessListener { result ->
+                    if (!continuation.isActive) return@addOnSuccessListener
+                    val data = result.data as? Map<*, *> ?: emptyMap<Any?, Any?>()
+                    continuation.resume(data.entries.associate { (key, value) -> key.toString() to value })
+                }
+                task.addOnFailureListener { error ->
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                }
             }
         }
 
@@ -208,6 +210,7 @@ class VeryfiDocumentClient(
         const val EOB_RECORDS = "eob_records"
         const val EXTRACT_VERYFI_HYBRID_STREAM = "extractVeryfiHybridStream"
         const val DEFAULT_TIMEOUT_MS = 120_000L
+        const val STREAM_TIMEOUT_MS = 90_000L
     }
 }
 
