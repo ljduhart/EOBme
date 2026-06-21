@@ -11,11 +11,10 @@ import android.graphics.Paint
 import android.graphics.PointF
 import android.net.Uri
 import app.eob.me.data.ImageCompressionLevel
+import app.eob.me.util.EobUploadImageCompressor
 import app.eob.me.util.OcrProcessor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
 import kotlin.math.max
 import kotlin.math.min
 
@@ -43,8 +42,9 @@ object DocumentScanProcessor {
         working = reduceMoire(working)
         working = cleanDocumentArtifacts(working)
         working = applyFilter(working, filterMode)
-        val uri = exportCompressedJpeg(context, working, compression)
-        working.recycle()
+        val scaled = EobUploadImageCompressor.scaleBitmap(working, EobUploadImageCompressor.MAX_DIMENSION)
+        if (scaled !== working) working.recycle()
+        val uri = EobUploadImageCompressor.compressBitmapToUploadUri(context, scaled)
         uri
     }
 
@@ -52,11 +52,11 @@ object DocumentScanProcessor {
         val outputWidth = max(
             distance(corners.topLeft, corners.topRight),
             distance(corners.bottomLeft, corners.bottomRight)
-        ).toInt().coerceIn(320, 4096)
+        ).toInt().coerceIn(320, EobUploadImageCompressor.MAX_DIMENSION)
         val outputHeight = max(
             distance(corners.topLeft, corners.bottomLeft),
             distance(corners.topRight, corners.bottomRight)
-        ).toInt().coerceIn(320, 4096)
+        ).toInt().coerceIn(320, EobUploadImageCompressor.MAX_DIMENSION)
 
         val src = floatArrayOf(
             corners.topLeft.x, corners.topLeft.y,
@@ -190,18 +190,6 @@ object DocumentScanProcessor {
         gray.recycle()
         if (output !== bitmap) bitmap.recycle()
         return output
-    }
-
-    private fun exportCompressedJpeg(
-        context: Context,
-        bitmap: Bitmap,
-        compression: ImageCompressionLevel
-    ): Uri {
-        val file = File(context.cacheDir, "eob_camera_processed_${System.currentTimeMillis()}.jpg")
-        FileOutputStream(file).use { output ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, compression.jpegQuality, output)
-        }
-        return Uri.fromFile(file)
     }
 
     private fun distance(a: PointF, b: PointF): Float {

@@ -65,6 +65,7 @@ import app.eob.me.util.CacheSizeCalculator
 import app.eob.me.util.DeviceCallingUtils
 import app.eob.me.util.NetworkUploadGate
 import app.eob.me.util.HubCrashlyticsGate
+import app.eob.me.util.EobUploadImageCompressor
 import app.eob.me.util.OcrProcessor
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
@@ -1324,7 +1325,7 @@ class EobViewModel : ViewModel() {
             }
 
             val preparedUri = runCatching {
-                OcrProcessor.prepareUriForUpload(context, uri, imageCompressionLevel())
+                EobUploadImageCompressor.compressUriForUpload(context, uri)
             }.getOrElse { error ->
                 withContext(Dispatchers.Main) {
                     setLoadingInvoice(false)

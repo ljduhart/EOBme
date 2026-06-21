@@ -855,6 +855,11 @@ class EobFlowArchitectureTest {
                 viewModelSource.contains("processScannedDocument(") &&
                 viewModelSource.contains("scanType = CameraScanDocumentType.Eob")
         )
+        assertTrue(
+            "Upload pipeline must compress images before Firebase/Veryfi hybrid extraction",
+            viewModelSource.contains("EobUploadImageCompressor.compressUriForUpload")
+        )
+        assertTrue(readSource("scanner/DocumentScanProcessor.kt").contains("EobUploadImageCompressor.compressBitmapToUploadUri"))
     }
 
     @Test
