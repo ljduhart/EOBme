@@ -797,6 +797,7 @@ private fun MainHubNavHost(
                                 language = language
                             )
                             navController.navigate(EobRoute.History.route) {
+                                popUpTo(EobRoute.CameraCapture.route) { inclusive = true }
                                 launchSingleTop = true
                             }
                             onActivity()
