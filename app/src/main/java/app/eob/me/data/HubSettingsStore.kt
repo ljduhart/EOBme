@@ -46,10 +46,12 @@ class HubSettingsStore(context: Context) {
     fun saveAppPin(pin: String) {
         val existingSalt = prefs.getString(KEY_PIN_SALT, null)
         val salt = existingSalt ?: generateSalt()
-        prefs.edit()
-            .apply { if (existingSalt == null) putString(KEY_PIN_SALT, salt) }
-            .putString(KEY_PIN_HASH, hashPin(pin, salt))
-            .apply()
+        val editor = prefs.edit()
+        if (existingSalt == null) {
+            editor.putString(KEY_PIN_SALT, salt)
+        }
+        editor.putString(KEY_PIN_HASH, hashPin(pin, salt))
+        editor.apply()
     }
 
     fun verifyAppPin(pin: String): Boolean {
