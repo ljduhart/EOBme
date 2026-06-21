@@ -1155,7 +1155,8 @@ private fun HistoryRoute(
         historyPaymentFilter,
         taxVaultFilterState,
         taxVaultVisibilityMode,
-        sortedEobRecords
+        sortedEobRecords,
+        language
     ) {
         derivedStateOf {
             eobViewModel.historyTimelineSections(
