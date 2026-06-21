@@ -1304,9 +1304,93 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr108VeryfiAnyDocsConnectivityAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val anyDocConstantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val anyDocApiSource = readSource("network/VeryfiAnyDocApiService.kt")
+        val anyDocRepoSource = readSource("data/VeryfiAnyDocRepository.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+
+        assertEquals(
+            "https://api.veryfi.com/api/v8/partner/any-documents/",
+            "https://api.veryfi.com/api/v8/" + "partner/any-documents/"
+        )
+        listOf(
+            "https://api.veryfi.com/api/v8/",
+            "partner/any-documents/",
+            "health_insurance_eob",
+            "extractVeryfiHybridStream"
+        ).forEach { snippet ->
+            assertTrue("PR#108: Kotlin AnyDocs constants missing $snippet", anyDocConstantsSource.contains(snippet))
+        }
+        listOf(
+            "VERYFI_ANY_DOCS_URL",
+            "BLUEPRINT_HEALTH_INSURANCE_EOB",
+            "partner/any-documents/",
+            "health_insurance_eob"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#108: Cloud Functions AnyDocs wiring missing $snippet",
+                functionsIndex.contains(snippet) || functionsConstants.contains(snippet)
+            )
+        }
+        assertFalse(
+            "PR#108: legacy invoice documents endpoint must not remain in production code",
+            functionsIndex.contains("partner/documents") ||
+                anyDocConstantsSource.contains("partner/documents") ||
+                veryfiSource.contains("partner/documents")
+        )
+        listOf(
+            "veryfiAnyDocExtractionState",
+            "VeryfiAnyDocExtractionState",
+            "processScannedDocument",
+            "processHybridScannedDocument"
+        ).forEach { snippet ->
+            assertTrue("PR#108: EobViewModel AnyDocs state barrier missing $snippet", viewModelSource.contains(snippet))
+        }
+        listOf(
+            "VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH",
+            "blueprint_name",
+            "VeryfiAnyDocResponseDto"
+        ).forEach { snippet ->
+            assertTrue("PR#108: Retrofit AnyDocs contract missing $snippet", anyDocApiSource.contains(snippet))
+        }
+        listOf(
+            "extractHealthInsuranceEob",
+            "streamExtractDocument",
+            "VeryfiAnyDocMapper"
+        ).forEach { snippet ->
+            assertTrue("PR#108: AnyDocs repository barrier missing $snippet", anyDocRepoSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#108: hybrid pipeline must delegate to AnyDocs repository",
+            hybridRepoSource.contains("veryfiAnyDocRepository.extractHealthInsuranceEob")
+        )
+        assertTrue(
+            "PR#108: Veryfi client must pass blueprint to Cloud Function",
+            veryfiSource.contains("blueprintName") &&
+                veryfiSource.contains("VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }
+        return file.readText()
+    }
+
+    private fun readFunctionsSource(relativePath: String): String {
+        val candidates = listOf(
+            File("functions", relativePath),
+            File("../functions", relativePath),
+            File("../../functions", relativePath)
+        )
+        val file = candidates.firstOrNull { it.isFile }
+            ?: error("Missing functions source; tried: ${candidates.map { it.path }}")
         return file.readText()
     }
 

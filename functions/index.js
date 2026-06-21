@@ -10,6 +10,10 @@ const {
   normalizeEobDocument,
   veryfiToEobDocument
 } = require("./lib/eobNormalizer");
+const {
+  VERYFI_ANY_DOCS_URL,
+  BLUEPRINT_HEALTH_INSURANCE_EOB
+} = require("./lib/veryfiAnyDocConstants");
 
 admin.initializeApp();
 
@@ -72,24 +76,26 @@ exports.extractVeryfiHybridStream = onCall({
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "Sign in is required for hybrid Veryfi extraction.");
   }
-  const {fileBase64, fileName, contentType} = request.data || {};
+  const {fileBase64, fileName, contentType, blueprintName} = request.data || {};
   if (!fileBase64 || !fileName) {
     throw new HttpsError("invalid-argument", "fileBase64 and fileName are required.");
   }
   const fileBytes = Buffer.from(fileBase64, "base64");
   const veryfiResponse = await extractWithVeryfi(fileBytes, {
     fileName,
-    contentType: contentType || "application/octet-stream"
+    contentType: contentType || "application/octet-stream",
+    blueprintName: blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB
   });
   return {veryfi: veryfiResponse};
 });
 
 async function extractWithVeryfi(fileBytes, fileMetadata) {
+  const blueprintName = fileMetadata.blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB;
   const form = new FormData();
   form.append("file", new Blob([fileBytes], {type: fileMetadata.contentType}), fileMetadata.fileName);
-  form.append("blueprint_name", "health_insurance_eob");
+  form.append("blueprint_name", blueprintName);
 
-  const response = await fetch("https://api.veryfi.com/api/v8/partner/any-documents/", {
+  const response = await fetch(VERYFI_ANY_DOCS_URL, {
     method: "POST",
     headers: {
       "Client-Id": veryfiClientId.value(),

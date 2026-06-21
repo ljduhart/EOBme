@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.network.VeryfiDocumentClient
+import app.eob.me.network.VeryfiAnyDocConstants
 import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.util.OcrProcessor
 import kotlinx.coroutines.Dispatchers
@@ -105,7 +106,7 @@ class DocumentScanPipelineRepository(
         VeryfiAnyDocExtractionResult(
             extraction = VeryfiHealthInsuranceEob(
                 documentId = upload.documentRefId,
-                blueprintName = "health_insurance_eob",
+                blueprintName = VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB,
                 insuranceCompanyName = fallbackRecord.insuranceName,
                 memberName = "",
                 memberId = "",
