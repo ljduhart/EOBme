@@ -1,5 +1,6 @@
 package app.eob.me.data
 
+import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -241,6 +242,7 @@ object FirebaseEobMapper {
         val rawDate = keys.firstNotNullOfOrNull { key -> this[key] } ?: return "Date not recognized"
         return when (rawDate) {
             is Number -> SimpleDateFormat("MM/dd/yyyy", Locale.US).format(Date(rawDate.toLong()))
+            is Timestamp -> SimpleDateFormat("MM/dd/yyyy", Locale.US).format(rawDate.toDate())
             is Date -> SimpleDateFormat("MM/dd/yyyy", Locale.US).format(rawDate)
             else -> normalizeDateString(rawDate.toString())
         }
