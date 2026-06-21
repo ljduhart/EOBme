@@ -3,6 +3,7 @@ package app.eob.me.network
 import android.util.Base64
 import app.eob.me.data.EobRecord
 import app.eob.me.data.FirebaseEobMapper
+import app.eob.me.data.HybridDocumentRef
 import app.eob.me.data.VeryfiStreamExtraction
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -143,7 +144,11 @@ class VeryfiDocumentClient(
                             val data = document.data ?: return@forEach
                             val sourcePath = data.stringField("sourceFilePath", "source_file_path")
                             val processedBy = data.stringField("processedBy", "processed_by")
-                            if (sourcePath == storagePath && processedBy.equals("veryfi", ignoreCase = true)) {
+                            val normalizedTarget = HybridDocumentRef.normalizeStoragePath(storagePath)
+                            if (
+                                HybridDocumentRef.normalizeStoragePath(sourcePath) == normalizedTarget &&
+                                processedBy.equals("veryfi", ignoreCase = true)
+                            ) {
                                 trySend(FirebaseEobMapper.eobFromMap(data, document.id))
                             }
                         }

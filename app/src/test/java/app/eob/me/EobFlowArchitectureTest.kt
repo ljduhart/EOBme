@@ -328,18 +328,23 @@ class EobFlowArchitectureTest {
     @Test
     fun uploadAndCameraFlowsWireThroughViewModel() {
         listOf(
-            "uploadEobFile",
             "prepareAndUpload",
             "libraryUploadLauncher",
+            "processScannedDocument",
+            "CameraScanDocumentType.Eob",
             "EobRoute.CameraCapture.route",
             "customCameraPermissionLauncher",
-            "setLoadingInvoice",
             "acknowledgeInvoiceFileDropAnimation",
             "canUploadOnCurrentNetwork",
-            "imageCompressionLevel"
+            "imageCompressionLevel",
+            "documentScanState"
         ).forEach { snippet ->
             assertTrue("EobNavHost missing upload/camera wiring: $snippet", navHostSource.contains(snippet))
         }
+        assertFalse(
+            "Library upload must not bypass hybrid pipeline via storage-only uploadEobFile",
+            navHostSource.contains("eobViewModel.uploadEobFile(")
+        )
     }
 
     @Test
@@ -512,7 +517,8 @@ class EobFlowArchitectureTest {
             "uploadEobFileAwaitDownload",
             "streamExtractDocument",
             "writeReconciliationFindings",
-            "awaitVeryfiExtraction"
+            "awaitVeryfiExtraction",
+            "normalizeStoragePath"
         ).forEach { snippet ->
             assertTrue(
                 "Hybrid Firebase/Veryfi pipeline missing: $snippet",
@@ -818,6 +824,7 @@ class EobFlowArchitectureTest {
     @Test
     fun cameraCaptureRouteUsesHybridDocumentPipeline() {
         val cameraScreenSource = readSource("ui/screens/CameraCaptureScreen.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         assertTrue(cameraScreenSource.contains("CameraCaptureViewModel"))
         assertTrue(cameraScreenSource.contains("weight(0.85f)"))
         assertTrue(cameraScreenSource.contains("weight(0.15f)"))
@@ -829,6 +836,12 @@ class EobFlowArchitectureTest {
         assertFalse(
             "Camera capture must not bypass hybrid pipeline via prepareAndUpload",
             navHostSource.contains("prepareAndUpload(uri, EobStrings.t(language, \"cameraScan\"))")
+        )
+        assertTrue(
+            "uploadEobFile must delegate to hybrid scan pipeline",
+            viewModelSource.contains("fun uploadEobFile") &&
+                viewModelSource.contains("processScannedDocument(") &&
+                viewModelSource.contains("scanType = CameraScanDocumentType.Eob")
         )
     }
 

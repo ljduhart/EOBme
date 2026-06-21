@@ -1231,27 +1231,13 @@ class EobViewModel : ViewModel() {
     }
 
     fun uploadEobFile(userId: String, uri: Uri, sourceName: String, language: AppLanguage) {
-        val repo = repository ?: return
-        if (userId.isBlank()) {
-            setLoadingInvoice(false)
-            updateUploadNotice(EobStrings.t(language, "signInBeforeUpload"))
-            return
-        }
-        val context = appContext
-        if (context != null && !canUploadOnCurrentNetwork(context)) {
-            setLoadingInvoice(false)
-            updateUploadNotice(EobStrings.t(language, "settingsUploadWifiBlocked"))
-            return
-        }
-        setLoadingInvoice(true)
-        repo.uploadEobFile(userId, uri, sourceName) { message ->
-            val notice = EobStrings.localizeRepositoryMessage(language, message)
-                .ifBlank { EobStrings.t(language, "libraryUploadStarted") }
-            updateUploadNotice(notice)
-            if (message.contains("failed", ignoreCase = true)) {
-                setLoadingInvoice(false)
-            }
-        }
+        processScannedDocument(
+            userId = userId,
+            uri = uri,
+            sourceName = sourceName,
+            language = language,
+            scanType = CameraScanDocumentType.Eob
+        )
     }
 
     fun onDocumentScanStarted() {
@@ -1276,10 +1262,12 @@ class EobViewModel : ViewModel() {
         userId: String,
         uri: Uri,
         sourceName: String,
-        language: AppLanguage
+        language: AppLanguage,
+        scanType: CameraScanDocumentType? = null
     ) {
         val repo = repository ?: return
         val context = appContext ?: return
+        val resolvedScanType = scanType ?: _uiState.value.cameraScanDocumentType
         if (userId.isBlank()) {
             _documentScanState.value = DocumentScanPipelineState.Error(
                 EobStrings.t(language, "signInBeforeUpload")
@@ -1302,7 +1290,7 @@ class EobViewModel : ViewModel() {
                 repo.runDocumentOcrPreCheck(
                     context = context,
                     uri = uri,
-                    scanType = _uiState.value.cameraScanDocumentType
+                    scanType = resolvedScanType
                 )
             }.getOrElse { error ->
                 withContext(Dispatchers.Main) {
