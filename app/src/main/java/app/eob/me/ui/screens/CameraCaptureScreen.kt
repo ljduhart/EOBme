@@ -151,7 +151,7 @@ fun CameraCaptureScreen(
         onDispose { viewModel.stopMotionMonitoring() }
     }
 
-    LaunchedEffect(isCameraReady) {
+    LaunchedEffect(isCameraReady, uiState.phase) {
         while (isActive && isCameraReady && uiState.phase == CameraCapturePhase.LIVE_PREVIEW) {
             viewModel.refreshMotionState()
             // PreviewView.getBitmap() must be read on the main thread; the edge-detection
