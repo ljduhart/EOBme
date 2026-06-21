@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobCharge
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
@@ -537,8 +538,63 @@ private fun WalletReceiptCard(
                     amount = record.totalPatientResponsibility.asCurrency(),
                     emphasized = true
                 )
+
+                if (record.charges.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    ReceiptDashedDivider()
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = EobStrings.t(language, "historyProcedureCodes"),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    record.charges.forEach { charge ->
+                        ReceiptCptLine(language = language, charge = charge)
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun ReceiptCptLine(
+    language: AppLanguage,
+    charge: EobCharge
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = EobStrings.tf(language, "cptCodeLabel", charge.cptCode),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (charge.cptDescription.isNotBlank()) {
+                Text(
+                    text = charge.cptDescription,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = charge.billedAmount.asCurrency(),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

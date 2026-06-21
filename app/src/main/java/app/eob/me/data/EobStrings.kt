@@ -265,6 +265,7 @@ object EobStrings {
         "historyFilterPending" to "Pending",
         "historyFilterFlagged" to "Flagged",
         "historyReceiptLineCount" to "%d lines",
+        "historyProcedureCodes" to "Procedure Codes (CPT)",
         "historyFilterCount" to "%d %s",
         "historySpendingPreview" to "3-month spend",
         "bentoCptTracker" to "CPT Tracker",
