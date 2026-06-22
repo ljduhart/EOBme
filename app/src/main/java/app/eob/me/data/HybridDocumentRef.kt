@@ -26,4 +26,8 @@ object HybridDocumentRef {
 
     /** Firebase Storage [Reference.path] may include a leading slash; Cloud Functions use object names without one. */
     fun normalizeStoragePath(path: String): String = path.trim().removePrefix("/")
+
+    /** Precomputed object name for parallel Track A upload before Storage resolves [Reference.path]. */
+    fun storagePathForUpload(userId: String, fileName: String): String =
+        normalizeStoragePath("users/$userId/eob_uploads/$fileName")
 }

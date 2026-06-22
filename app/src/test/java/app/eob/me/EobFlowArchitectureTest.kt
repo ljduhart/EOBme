@@ -1402,6 +1402,35 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("data/EobModels.kt").contains("val detail: String? = null"))
     }
 
+    @Test
+    fun pr111ParallelSplitHybridPipelineAudit() {
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val constantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val hybridRefSource = readSource("data/HybridDocumentRef.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+
+        assertTrue(hybridRepoSource.contains("coroutineScope"))
+        assertTrue(hybridRepoSource.contains("async(Dispatchers.IO)"))
+        assertTrue(hybridRepoSource.contains("uploadDeferred"))
+        assertTrue(hybridRepoSource.contains("extractionDeferred"))
+        assertTrue(hybridRepoSource.contains("extractionDeferred.await()"))
+        assertTrue(hybridRepoSource.contains("storagePathForUpload"))
+        assertTrue(hybridRepoSource.contains("fileBase64") || hybridRepoSource.contains("fileBytes"))
+        assertTrue(veryfiSource.contains("fileBase64"))
+        assertTrue(veryfiSource.contains("VeryfiAnyDocConstants.DOCUMENT_TYPE_EOB"))
+        assertTrue(veryfiSource.contains("VeryfiAnyDocConstants.CATEGORIES_INSURANCE"))
+        assertTrue(constantsSource.contains("DOCUMENT_TYPE_EOB"))
+        assertTrue(constantsSource.contains("CATEGORIES_INSURANCE"))
+        assertTrue(hybridRefSource.contains("fun storagePathForUpload"))
+        assertTrue(functionsIndex.contains("document_type"))
+        assertTrue(functionsIndex.contains("categories"))
+        assertTrue(functionsConstants.contains("DOCUMENT_TYPE_EOB"))
+        assertTrue(functionsConstants.contains("CATEGORIES_INSURANCE"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("processHybridScannedDocument"))
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

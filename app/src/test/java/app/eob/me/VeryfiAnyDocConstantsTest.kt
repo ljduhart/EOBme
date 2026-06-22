@@ -28,4 +28,10 @@ class VeryfiAnyDocConstantsTest {
     fun hybridStreamCallableMatchesCloudFunctionExport() {
         assertEquals("extractVeryfiHybridStream", VeryfiAnyDocConstants.EXTRACT_VERYFI_HYBRID_STREAM)
     }
+
+    @Test
+    fun eobDocumentTypeAndInsuranceCategoriesMatchAnyDocsContract() {
+        assertEquals("eob", VeryfiAnyDocConstants.DOCUMENT_TYPE_EOB)
+        assertEquals(listOf("insurance"), VeryfiAnyDocConstants.CATEGORIES_INSURANCE)
+    }
 }
