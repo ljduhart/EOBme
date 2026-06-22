@@ -41,6 +41,15 @@ object VeryfiAnyDocNetworkClient {
         blueprintName: String = VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB
     ): RequestBody = blueprintName.toRequestBody("text/plain".toMediaType())
 
+    fun documentTypeRequestBody(
+        documentType: String = VeryfiAnyDocConstants.DOCUMENT_TYPE_EOB
+    ): RequestBody = documentType.toRequestBody("text/plain".toMediaType())
+
+    fun categoriesRequestBody(
+        categories: List<String> = VeryfiAnyDocConstants.CATEGORIES_INSURANCE
+    ): RequestBody = categories.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
+        .toRequestBody("application/json".toMediaType())
+
     fun filePart(file: File, contentType: String): MultipartBody.Part {
         val mediaType = contentType.toMediaType()
         return MultipartBody.Part.createFormData(

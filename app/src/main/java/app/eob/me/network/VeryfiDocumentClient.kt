@@ -82,7 +82,9 @@ class VeryfiDocumentClient(
                     "fileName" to fileName,
                     "contentType" to contentType,
                     "documentRefId" to documentRefId,
-                    "blueprintName" to VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB
+                    "blueprintName" to VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB,
+                    "documentType" to VeryfiAnyDocConstants.DOCUMENT_TYPE_EOB,
+                    "categories" to VeryfiAnyDocConstants.CATEGORIES_INSURANCE
                 )
                 val task = callable.call(payload)
                 task.addOnSuccessListener { result ->

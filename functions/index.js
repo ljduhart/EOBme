@@ -12,7 +12,9 @@ const {
 } = require("./lib/eobNormalizer");
 const {
   VERYFI_ANY_DOCS_URL,
-  BLUEPRINT_HEALTH_INSURANCE_EOB
+  BLUEPRINT_HEALTH_INSURANCE_EOB,
+  DOCUMENT_TYPE_EOB,
+  CATEGORIES_INSURANCE
 } = require("./lib/veryfiAnyDocConstants");
 
 admin.initializeApp();
@@ -46,7 +48,9 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
   const [fileBytes] = await file.download();
   const veryfiResponse = await extractWithVeryfi(fileBytes, {
     fileName,
-    contentType: event.data.contentType || "application/octet-stream"
+    contentType: event.data.contentType || "application/octet-stream",
+    documentType: DOCUMENT_TYPE_EOB,
+    categories: CATEGORIES_INSURANCE
   });
   const storageMetadata = event.data.metadata || {};
   const customMetadata = storageMetadata.metadata || storageMetadata.customMetadata || {};
@@ -80,7 +84,7 @@ exports.extractVeryfiHybridStream = onCall({
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "Sign in is required for hybrid Veryfi extraction.");
   }
-  const {fileBase64, fileName, contentType, blueprintName} = request.data || {};
+  const {fileBase64, fileName, contentType, blueprintName, documentType, categories} = request.data || {};
   if (!fileBase64 || !fileName) {
     throw new HttpsError("invalid-argument", "fileBase64 and fileName are required.");
   }
@@ -88,16 +92,24 @@ exports.extractVeryfiHybridStream = onCall({
   const veryfiResponse = await extractWithVeryfi(fileBytes, {
     fileName,
     contentType: contentType || "application/octet-stream",
-    blueprintName: blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB
+    blueprintName: blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB,
+    documentType: documentType || DOCUMENT_TYPE_EOB,
+    categories: Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES_INSURANCE
   });
   return {veryfi: veryfiResponse};
 });
 
 async function extractWithVeryfi(fileBytes, fileMetadata) {
   const blueprintName = fileMetadata.blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB;
+  const documentType = fileMetadata.documentType || DOCUMENT_TYPE_EOB;
+  const categories = Array.isArray(fileMetadata.categories) && fileMetadata.categories.length > 0 ?
+    fileMetadata.categories :
+    CATEGORIES_INSURANCE;
   const form = new FormData();
   form.append("file", new Blob([fileBytes], {type: fileMetadata.contentType}), fileMetadata.fileName);
   form.append("blueprint_name", blueprintName);
+  form.append("document_type", documentType);
+  form.append("categories", JSON.stringify(categories));
 
   const response = await fetch(VERYFI_ANY_DOCS_URL, {
     method: "POST",

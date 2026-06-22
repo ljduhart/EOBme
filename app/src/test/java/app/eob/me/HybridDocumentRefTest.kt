@@ -12,4 +12,10 @@ class HybridDocumentRefTest {
         assertEquals(objectName, HybridDocumentRef.normalizeStoragePath(objectName))
         assertEquals(objectName, HybridDocumentRef.normalizeStoragePath("  /$objectName  "))
     }
+
+    @Test
+    fun storagePathForUploadMatchesFirebaseObjectName() {
+        val path = HybridDocumentRef.storagePathForUpload("uid123", "eob_123.jpg")
+        assertEquals("users/uid123/eob_uploads/eob_123.jpg", path)
+    }
 }

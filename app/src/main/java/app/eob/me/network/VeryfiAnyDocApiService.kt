@@ -18,6 +18,8 @@ interface VeryfiAnyDocApiService {
         @Header("Client-Id") clientId: String,
         @Header("Authorization") authorization: String,
         @Part file: MultipartBody.Part,
-        @Part("blueprint_name") blueprintName: RequestBody
+        @Part("blueprint_name") blueprintName: RequestBody,
+        @Part("document_type") documentType: RequestBody,
+        @Part("categories") categories: RequestBody
     ): VeryfiAnyDocResponseDto
 }
