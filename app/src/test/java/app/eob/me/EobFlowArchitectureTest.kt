@@ -1412,6 +1412,18 @@ class EobFlowArchitectureTest {
         assertFalse(constantsSource.contains("partner/any-documents"))
         assertTrue(viewModelSource.contains("processHybridScannedDocument"))
         assertFalse(viewModelSource.contains("partner/any-documents"))
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
+        assertTrue(navHostSource.contains("processScannedDocument"))
+        assertTrue(remoteSource.contains("processHybridDocument"))
+        val extractionAwaitIndex = hybridRepoSource.indexOf("extractionDeferred.await()")
+        val uploadAwaitIndex = hybridRepoSource.indexOf("uploadDeferred.await()")
+        assertTrue(extractionAwaitIndex >= 0)
+        assertTrue(uploadAwaitIndex >= 0)
+        assertTrue(
+            "Veryfi extraction must resolve before awaiting Storage upload",
+            extractionAwaitIndex < uploadAwaitIndex
+        )
     }
 
     private fun readSource(relativePath: String): String {
