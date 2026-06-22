@@ -2,7 +2,8 @@ package app.eob.me.network
 
 object VeryfiAnyDocConstants {
     const val BASE_URL = "https://api.veryfi.com/api/v8/"
-    const val ANY_DOCUMENTS_PATH = "partner/any-documents/"
+    /** Standard Veryfi documents endpoint; blueprint_name routes to health_insurance_eob. */
+    const val ANY_DOCUMENTS_PATH = "partner/documents/"
     const val BLUEPRINT_HEALTH_INSURANCE_EOB = "health_insurance_eob"
     const val DOCUMENT_TYPE_EOB = "eob"
     const val CATEGORY_INSURANCE = "insurance"

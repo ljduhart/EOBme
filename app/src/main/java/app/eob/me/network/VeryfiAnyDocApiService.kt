@@ -8,7 +8,8 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 
 /**
- * Retrofit contract for Veryfi AnyDocs. Production calls are proxied through Firebase Cloud
+ * Retrofit contract for Veryfi documents API. blueprint_name in the multipart body routes
+ * extraction to health_insurance_eob. Production calls are proxied through Firebase Cloud
  * Functions ([VeryfiDocumentClient]) so API credentials never ship in the Android binary.
  */
 interface VeryfiAnyDocApiService {

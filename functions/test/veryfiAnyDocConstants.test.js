@@ -14,8 +14,8 @@ const {
 
 test("AnyDocs URL mirrors Android VeryfiAnyDocConstants", () => {
   assert.equal(VERYFI_ANY_DOCS_BASE_URL, "https://api.veryfi.com/api/v8/");
-  assert.equal(VERYFI_ANY_DOCS_PATH, "partner/any-documents/");
-  assert.equal(VERYFI_ANY_DOCS_URL, "https://api.veryfi.com/api/v8/partner/any-documents/");
+  assert.equal(VERYFI_ANY_DOCS_PATH, "partner/documents/");
+  assert.equal(VERYFI_ANY_DOCS_URL, "https://api.veryfi.com/api/v8/partner/documents/");
 });
 
 test("health_insurance_eob blueprint is configured for EOB AnyDocs extraction", () => {

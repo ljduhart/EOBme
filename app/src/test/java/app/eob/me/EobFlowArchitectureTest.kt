@@ -6,6 +6,7 @@ import app.eob.me.navigation.HubBottomTab
 import app.eob.me.navigation.hubBackRoutes
 import app.eob.me.navigation.hubFeatureRoutes
 import app.eob.me.navigation.hubRoutesWithoutBottomBar
+import app.eob.me.network.VeryfiAnyDocConstants
 import app.eob.me.ui.history.HistoryPagination
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -523,7 +524,7 @@ class EobFlowArchitectureTest {
             "normalizeStoragePath",
             "VeryfiAnyDocRepository",
             "health_insurance_eob",
-            "any-documents"
+            "partner/documents"
         ).forEach { snippet ->
             assertTrue(
                 "Hybrid Firebase/Veryfi pipeline missing: $snippet",
@@ -708,7 +709,7 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("hasLiveInsuranceNewsPools"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("startInsuranceNewsRotationClock"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("veryfiAnyDocExtractionState"))
-        assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("any-documents"))
+        assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("partner/documents"))
         assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("health_insurance_eob"))
         assertTrue(readSource("network/VeryfiAnyDocApiService.kt").contains("VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("documentScanState"))
@@ -1241,7 +1242,7 @@ class EobFlowArchitectureTest {
             "normalizeStoragePath",
             "VeryfiAnyDocRepository",
             "health_insurance_eob",
-            "any-documents"
+            "partner/documents"
         ).forEach { snippet ->
             assertTrue(
                 "PR#104 audit: Veryfi/Firestore hybrid pipeline barrier missing $snippet",
@@ -1326,12 +1327,12 @@ class EobFlowArchitectureTest {
         val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
 
         assertEquals(
-            "https://api.veryfi.com/api/v8/partner/any-documents/",
-            "https://api.veryfi.com/api/v8/" + "partner/any-documents/"
+            "https://api.veryfi.com/api/v8/partner/documents/",
+            "https://api.veryfi.com/api/v8/" + "partner/documents/"
         )
         listOf(
             "https://api.veryfi.com/api/v8/",
-            "partner/any-documents/",
+            "partner/documents/",
             "health_insurance_eob",
             "extractVeryfiHybridStream"
         ).forEach { snippet ->
@@ -1340,7 +1341,7 @@ class EobFlowArchitectureTest {
         listOf(
             "VERYFI_ANY_DOCS_URL",
             "BLUEPRINT_HEALTH_INSURANCE_EOB",
-            "partner/any-documents/",
+            "partner/documents/",
             "health_insurance_eob"
         ).forEach { snippet ->
             assertTrue(
@@ -1349,10 +1350,10 @@ class EobFlowArchitectureTest {
             )
         }
         assertFalse(
-            "PR#108: legacy invoice documents endpoint must not remain in production code",
-            functionsIndex.contains("partner/documents") ||
-                anyDocConstantsSource.contains("partner/documents") ||
-                veryfiSource.contains("partner/documents")
+            "PR#112: deprecated any-documents endpoint must not remain in production code",
+            functionsIndex.contains("partner/any-documents") ||
+                anyDocConstantsSource.contains("partner/any-documents") ||
+                veryfiSource.contains("partner/any-documents")
         )
         listOf(
             "veryfiAnyDocExtractionState",
@@ -1441,6 +1442,30 @@ class EobFlowArchitectureTest {
             "Veryfi extraction must resolve before awaiting Storage upload",
             extractionAwaitIndex < uploadAwaitIndex
         )
+    }
+
+    @Test
+    fun pr112VeryfiDocumentsEndpointAudit() {
+        val constantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val apiSource = readSource("network/VeryfiAnyDocApiService.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+        val functionsIndex = readFunctionsSource("index.js")
+
+        assertEquals("partner/documents/", VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH)
+        assertEquals(
+            "https://api.veryfi.com/api/v8/partner/documents/",
+            VeryfiAnyDocConstants.BASE_URL + VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH
+        )
+        assertTrue(apiSource.contains("@POST(VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH)"))
+        assertTrue(apiSource.contains("blueprint_name"))
+        assertTrue(veryfiClientSource.contains("VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB"))
+        assertTrue(functionsConstants.contains("\"partner/documents/\""))
+        assertTrue(functionsIndex.contains("VERYFI_ANY_DOCS_URL"))
+        assertTrue(functionsIndex.contains("blueprint_name"))
+        assertFalse(constantsSource.contains("partner/any-documents"))
+        assertFalse(functionsConstants.contains("partner/any-documents"))
+        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("processHybridScannedDocument"))
     }
 
     private fun readSource(relativePath: String): String {

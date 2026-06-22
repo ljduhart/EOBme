@@ -11,11 +11,11 @@ import org.junit.Test
  */
 class VeryfiAnyDocConstantsTest {
     @Test
-    fun anyDocsUrlComposesToPartnerAnyDocumentsEndpoint() {
+    fun documentsUrlComposesToPartnerDocumentsEndpoint() {
         val resolved = VeryfiAnyDocConstants.BASE_URL + VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH
-        assertEquals("https://api.veryfi.com/api/v8/partner/any-documents/", resolved)
+        assertEquals("https://api.veryfi.com/api/v8/partner/documents/", resolved)
         assertTrue(resolved.startsWith("https://api.veryfi.com/api/v8/"))
-        assertTrue(resolved.endsWith("partner/any-documents/"))
+        assertTrue(resolved.endsWith("partner/documents/"))
     }
 
     @Test
