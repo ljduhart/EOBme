@@ -1,8 +1,8 @@
 package app.eob.me.data
 
-import app.eob.me.network.VeryfiAnyDocConstants
 import app.eob.me.network.VeryfiAnyDocMapper
 import app.eob.me.network.VeryfiDocumentClient
+import app.eob.me.network.VeryfiHybridStreamErrorMapper
 import app.eob.me.network.veryfiPayloadToEobRecord
 import kotlinx.coroutines.CancellationException
 
@@ -34,7 +34,7 @@ class VeryfiAnyDocRepository(
             return Result.failure(IllegalArgumentException("File name is required for Veryfi AnyDocs extraction."))
         }
 
-        return runCatching {
+        return try {
             val rawPayload = veryfiClient.streamExtractDocument(
                 userId = userId,
                 documentRefId = documentRefId,
@@ -49,14 +49,19 @@ class VeryfiAnyDocRepository(
                 documentRefId = documentRefId,
                 sourceName = sourceName
             )
-            VeryfiAnyDocExtractionResult(
-                extraction = extraction,
-                record = record,
-                rawPayload = mergedPayload
+            Result.success(
+                VeryfiAnyDocExtractionResult(
+                    extraction = extraction,
+                    record = record,
+                    rawPayload = mergedPayload
+                )
             )
-        }.recoverCatching { error ->
-            if (error is CancellationException) throw error
+        } catch (error: CancellationException) {
             throw error
+        } catch (error: Throwable) {
+            Result.failure(
+                IllegalStateException(VeryfiHybridStreamErrorMapper.describe(error), error)
+            )
         }
     }
 }

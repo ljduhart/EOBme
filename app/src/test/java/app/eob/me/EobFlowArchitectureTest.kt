@@ -6,6 +6,7 @@ import app.eob.me.navigation.HubBottomTab
 import app.eob.me.navigation.hubBackRoutes
 import app.eob.me.navigation.hubFeatureRoutes
 import app.eob.me.navigation.hubRoutesWithoutBottomBar
+import app.eob.me.network.VeryfiAnyDocConstants
 import app.eob.me.ui.history.HistoryPagination
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -523,7 +524,7 @@ class EobFlowArchitectureTest {
             "normalizeStoragePath",
             "VeryfiAnyDocRepository",
             "health_insurance_eob",
-            "any-documents"
+            "partner/documents"
         ).forEach { snippet ->
             assertTrue(
                 "Hybrid Firebase/Veryfi pipeline missing: $snippet",
@@ -708,7 +709,7 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("hasLiveInsuranceNewsPools"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("startInsuranceNewsRotationClock"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("veryfiAnyDocExtractionState"))
-        assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("any-documents"))
+        assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("partner/documents"))
         assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("health_insurance_eob"))
         assertTrue(readSource("network/VeryfiAnyDocApiService.kt").contains("VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("documentScanState"))
@@ -1231,7 +1232,7 @@ class EobFlowArchitectureTest {
             "normalizeStoragePath",
             "VeryfiAnyDocRepository",
             "health_insurance_eob",
-            "any-documents"
+            "partner/documents"
         ).forEach { snippet ->
             assertTrue(
                 "PR#104 audit: Veryfi/Firestore hybrid pipeline barrier missing $snippet",
@@ -1316,33 +1317,33 @@ class EobFlowArchitectureTest {
         val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
 
         assertEquals(
-            "https://api.veryfi.com/api/v8/partner/any-documents/",
-            "https://api.veryfi.com/api/v8/" + "partner/any-documents/"
+            "https://api.veryfi.com/api/v8/partner/documents/",
+            "https://api.veryfi.com/api/v8/" + "partner/documents/"
         )
         listOf(
             "https://api.veryfi.com/api/v8/",
-            "partner/any-documents/",
+            "partner/documents/",
             "health_insurance_eob",
             "extractVeryfiHybridStream"
         ).forEach { snippet ->
-            assertTrue("PR#108: Kotlin AnyDocs constants missing $snippet", anyDocConstantsSource.contains(snippet))
+            assertTrue("PR#108: Kotlin documents constants missing $snippet", anyDocConstantsSource.contains(snippet))
         }
         listOf(
             "VERYFI_ANY_DOCS_URL",
             "BLUEPRINT_HEALTH_INSURANCE_EOB",
-            "partner/any-documents/",
+            "partner/documents/",
             "health_insurance_eob"
         ).forEach { snippet ->
             assertTrue(
-                "PR#108: Cloud Functions AnyDocs wiring missing $snippet",
+                "PR#108: Cloud Functions documents wiring missing $snippet",
                 functionsIndex.contains(snippet) || functionsConstants.contains(snippet)
             )
         }
         assertFalse(
-            "PR#108: legacy invoice documents endpoint must not remain in production code",
-            functionsIndex.contains("partner/documents") ||
-                anyDocConstantsSource.contains("partner/documents") ||
-                veryfiSource.contains("partner/documents")
+            "PR#113: deprecated any-documents endpoint must not remain in production code",
+            functionsIndex.contains("partner/any-documents") ||
+                anyDocConstantsSource.contains("partner/any-documents") ||
+                veryfiSource.contains("partner/any-documents")
         )
         listOf(
             "veryfiAnyDocExtractionState",
@@ -1375,6 +1376,42 @@ class EobFlowArchitectureTest {
             veryfiSource.contains("blueprintName") &&
                 veryfiSource.contains("VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB")
         )
+    }
+
+    @Test
+    fun pr113ParallelSplitDocumentsEndpointAudit() {
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val constantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val hybridRefSource = readSource("data/HybridDocumentRef.kt")
+        val firebaseRepoSource = readSource("data/FirebaseEobRepository.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+
+        assertEquals("partner/documents/", VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH)
+        assertTrue(hybridRepoSource.contains("coroutineScope"))
+        assertTrue(hybridRepoSource.contains("uploadDeferred"))
+        assertTrue(hybridRepoSource.contains("extractionDeferred"))
+        assertTrue(hybridRepoSource.contains("extractionDeferred.await()"))
+        assertFalse(hybridRepoSource.contains("upload.documentRefId"))
+        assertTrue(hybridRepoSource.contains("storagePathForUpload"))
+        assertTrue(hybridRepoSource.contains("fileBytes"))
+        assertTrue(veryfiSource.contains("fileBase64"))
+        assertTrue(veryfiSource.contains("VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB"))
+        assertTrue(veryfiSource.contains("VeryfiAnyDocConstants.DOCUMENT_TYPE_EOB"))
+        assertTrue(veryfiSource.contains("withTimeout"))
+        assertTrue(hybridRefSource.contains("userRootedStoragePath"))
+        assertTrue(hybridRefSource.contains("documentRootedStoragePath"))
+        assertTrue(firebaseRepoSource.contains("HybridDocumentRef.USER_ROOTED_EOB_FOLDER"))
+        assertTrue(firebaseRepoSource.contains(".child(\"users\").child(userId).child(HybridDocumentRef.USER_ROOTED_EOB_FOLDER)"))
+        assertTrue(functionsIndex.contains("userRootedMatch"))
+        assertTrue(functionsIndex.contains("documentRootedMatch"))
+        assertTrue(functionsIndex.contains("/eobs/"))
+        assertTrue(functionsConstants.contains("\"partner/documents/\""))
+        assertFalse(constantsSource.contains("partner/any-documents"))
+        assertTrue(viewModelSource.contains("processHybridScannedDocument"))
+        assertFalse(viewModelSource.contains("partner/any-documents"))
     }
 
     private fun readSource(relativePath: String): String {
