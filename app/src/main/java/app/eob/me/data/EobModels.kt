@@ -375,7 +375,10 @@ sealed class DocumentScanPipelineState {
     data object OcrPreCheck : DocumentScanPipelineState()
     data object UploadingAndProcessing : DocumentScanPipelineState()
     data class Success(val record: EobRecord) : DocumentScanPipelineState()
-    data class Error(val message: String) : DocumentScanPipelineState()
+    data class Error(
+        val message: String,
+        val detail: String? = null
+    ) : DocumentScanPipelineState()
 }
 
 data class DocumentUploadResult(

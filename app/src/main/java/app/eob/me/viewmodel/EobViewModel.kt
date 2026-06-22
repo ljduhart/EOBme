@@ -171,6 +171,7 @@ class EobViewModel : ViewModel() {
     private var firebaseNews: List<NewsRelease> = emptyList()
     private var deletedNewsKeys: Set<String> = emptySet()
     private var newsRotationJob: Job? = null
+    private var scanJob: Job? = null
     private val _syncProfile = MutableStateFlow(UserProfile())
     private var eobListener: ListenerRegistration? = null
 
@@ -622,6 +623,8 @@ class EobViewModel : ViewModel() {
     }
 
     fun resetHubState() {
+        scanJob?.cancel()
+        scanJob = null
         eobListener?.remove()
         eobListener = null
         profileListener?.remove()
@@ -680,11 +683,13 @@ class EobViewModel : ViewModel() {
             onRecords = { records -> applyRemoteRecords(records) },
             onError = { message ->
                 _uiState.update { state ->
+                    val pipelineActive = isDocumentScanPipelineActive()
                     state.copy(
                         uploadNotice = message,
-                        isLoadingInvoice = false,
+                        isLoadingInvoice = if (pipelineActive) state.isLoadingInvoice else false,
                         invoiceProcessingPhase = when {
-                            state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing ->
+                            !pipelineActive &&
+                                state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing ->
                                 InvoiceProcessingPhase.Idle
                             else -> state.invoiceProcessingPhase
                         }
@@ -710,12 +715,13 @@ class EobViewModel : ViewModel() {
                 } else {
                     compacted.firstOrNull { it.id == currentSelection.id }
                 }
+                val pipelineActive = isDocumentScanPipelineActive()
                 _uiState.update {
                     it.copy(
                         selectedRecord = nextSelection,
                         appealLetter = generateAppealLetter(profile, nextSelection),
-                        isLoadingInvoice = false,
-                        invoiceProcessingPhase = if (wasProcessing) {
+                        isLoadingInvoice = if (pipelineActive) it.isLoadingInvoice else false,
+                        invoiceProcessingPhase = if (wasProcessing && !pipelineActive) {
                             InvoiceProcessingPhase.FileDropReveal
                         } else {
                             it.invoiceProcessingPhase
@@ -1070,6 +1076,14 @@ class EobViewModel : ViewModel() {
             state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing
     }
 
+    private fun isDocumentScanPipelineActive(): Boolean {
+        return when (_documentScanState.value) {
+            DocumentScanPipelineState.OcrPreCheck,
+            DocumentScanPipelineState.UploadingAndProcessing -> true
+            else -> _veryfiAnyDocExtractionState.value is VeryfiAnyDocExtractionState.Loading
+        }
+    }
+
     fun insuranceCardDisplay(profile: UserProfile, language: AppLanguage): InsuranceCardDisplay {
         val safeProfile = profile.sanitizedPlanLimits()
         return InsuranceCardDisplay(
@@ -1292,7 +1306,8 @@ class EobViewModel : ViewModel() {
             )
             return
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
                 setLoadingInvoice(true)
                 _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
@@ -1368,7 +1383,10 @@ class EobViewModel : ViewModel() {
                             message = resolved.userMessage,
                             detail = resolved.detail
                         )
-                        _documentScanState.value = DocumentScanPipelineState.Error(resolved.userMessage)
+                        _documentScanState.value = DocumentScanPipelineState.Error(
+                            message = resolved.userMessage,
+                            detail = resolved.detail
+                        )
                         updateUploadNotice(resolved.detail ?: resolved.userMessage)
                     }
                 )
