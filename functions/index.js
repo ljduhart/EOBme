@@ -48,7 +48,9 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
   const [fileBytes] = await file.download();
   const veryfiResponse = await extractWithVeryfi(fileBytes, {
     fileName,
-    contentType: event.data.contentType || "application/octet-stream"
+    contentType: event.data.contentType || "application/octet-stream",
+    documentType: DOCUMENT_TYPE_EOB,
+    categories: CATEGORIES_INSURANCE
   });
   const storageMetadata = event.data.metadata || {};
   const customMetadata = storageMetadata.metadata || storageMetadata.customMetadata || {};

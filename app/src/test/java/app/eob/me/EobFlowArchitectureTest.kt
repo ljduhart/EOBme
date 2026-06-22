@@ -1429,6 +1429,18 @@ class EobFlowArchitectureTest {
         assertTrue(functionsConstants.contains("DOCUMENT_TYPE_EOB"))
         assertTrue(functionsConstants.contains("CATEGORIES_INSURANCE"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("processHybridScannedDocument"))
+        assertFalse(
+            "Parallel split must not block Veryfi on upload.documentRefId",
+            hybridRepoSource.contains("upload.documentRefId")
+        )
+        val extractionAwaitIndex = hybridRepoSource.indexOf("extractionDeferred.await()")
+        val uploadAwaitIndex = hybridRepoSource.indexOf("uploadDeferred.await()")
+        assertTrue(extractionAwaitIndex >= 0)
+        assertTrue(uploadAwaitIndex >= 0)
+        assertTrue(
+            "Veryfi extraction must resolve before awaiting Storage upload",
+            extractionAwaitIndex < uploadAwaitIndex
+        )
     }
 
     private fun readSource(relativePath: String): String {
