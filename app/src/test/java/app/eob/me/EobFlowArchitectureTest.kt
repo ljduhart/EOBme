@@ -1387,6 +1387,21 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun pr110HybridUploadStabilityAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+
+        assertTrue(viewModelSource.contains("private var scanJob: Job?"))
+        assertTrue(viewModelSource.contains("scanJob?.cancel()"))
+        assertTrue(viewModelSource.contains("isDocumentScanPipelineActive()"))
+        assertTrue(navHostSource.contains("fun prepareAndUpload("))
+        assertTrue(navHostSource.contains("popCameraRoute: Boolean = false"))
+        assertTrue(navHostSource.contains("canUploadOnCurrentNetwork()"))
+        assertFalse(navHostSource.contains("LaunchedEffect(veryfiAnyDocExtractionState)"))
+        assertTrue(readSource("data/EobModels.kt").contains("val detail: String? = null"))
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

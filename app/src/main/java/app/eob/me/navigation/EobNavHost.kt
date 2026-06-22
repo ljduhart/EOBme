@@ -56,7 +56,6 @@ import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.DocumentScanPipelineState
-import app.eob.me.data.VeryfiAnyDocExtractionState
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
@@ -217,7 +216,6 @@ private fun MainHubNavHost(
 
     val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
     val documentScanState by eobViewModel.documentScanState.collectAsStateWithLifecycle()
-    val veryfiAnyDocExtractionState by eobViewModel.veryfiAnyDocExtractionState.collectAsStateWithLifecycle()
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
     val personalizedNewsFeed by eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
@@ -226,25 +224,38 @@ private fun MainHubNavHost(
         onHubDarkModeChanged(uiState.hubSettings.darkModeEnabled)
     }
 
-    fun prepareAndUpload(uri: Uri, sourceName: String) {
+    fun prepareAndUpload(
+        uri: Uri,
+        sourceName: String,
+        scanType: CameraScanDocumentType = CameraScanDocumentType.Eob,
+        popCameraRoute: Boolean = false
+    ): Boolean {
         val uid = firebaseUser?.uid.orEmpty()
         if (uid.isBlank()) {
             Toast.makeText(context, EobStrings.t(language, "signInBeforeUpload"), Toast.LENGTH_SHORT).show()
-            return
+            return false
         }
         if (!eobViewModel.canUploadOnCurrentNetwork()) {
             Toast.makeText(context, EobStrings.t(language, "settingsUploadWifiBlocked"), Toast.LENGTH_LONG).show()
-            return
+            return false
         }
         eobViewModel.processScannedDocument(
             userId = uid,
             uri = uri,
             sourceName = sourceName,
             language = language,
-            scanType = CameraScanDocumentType.Eob
+            scanType = scanType
         )
-        navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+        if (popCameraRoute) {
+            navController.navigate(EobRoute.History.route) {
+                popUpTo(EobRoute.CameraCapture.route) { inclusive = true }
+                launchSingleTop = true
+            }
+        } else {
+            navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+        }
         onActivity()
+        return true
     }
 
     var profileSaveMessage by remember { mutableStateOf("") }
@@ -265,14 +276,11 @@ private fun MainHubNavHost(
     ) { result ->
         val scannedUri = GmsDocumentScannerLauncher.parseScanResult(result.resultCode, result.data)
         if (scannedUri != null) {
-            eobViewModel.processScannedDocument(
-                userId = firebaseUser?.uid.orEmpty(),
+            prepareAndUpload(
                 uri = scannedUri,
                 sourceName = EobStrings.t(language, "documentScannerSource"),
-                language = language
+                scanType = CameraScanDocumentType.Eob
             )
-            navController.navigate(EobRoute.History.route) { launchSingleTop = true }
-            onActivity()
         } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) {
             eobViewModel.onDocumentScanLaunchFailed(
                 language = language,
@@ -522,14 +530,20 @@ private fun MainHubNavHost(
                                 onActivity()
                             }
                             HubBottomTab.ScanEob -> {
-                                if (userId.isNotBlank()) {
-                                    customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                                } else {
+                                if (userId.isBlank()) {
                                     Toast.makeText(
                                         context,
                                         EobStrings.t(language, "signInBeforeUpload"),
                                         Toast.LENGTH_SHORT
                                     ).show()
+                                } else if (!eobViewModel.canUploadOnCurrentNetwork()) {
+                                    Toast.makeText(
+                                        context,
+                                        EobStrings.t(language, "settingsUploadWifiBlocked"),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                                 }
                             }
                             HubBottomTab.Profile -> {
@@ -792,17 +806,12 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onImageCaptured = { uri ->
-                            eobViewModel.processScannedDocument(
-                                userId = firebaseUser?.uid.orEmpty(),
+                            prepareAndUpload(
                                 uri = uri,
                                 sourceName = eobViewModel.cameraScanSourceLabel(language),
-                                language = language
+                                scanType = uiState.cameraScanDocumentType,
+                                popCameraRoute = true
                             )
-                            navController.navigate(EobRoute.History.route) {
-                                popUpTo(EobRoute.CameraCapture.route) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                            onActivity()
                         },
                         onClose = { navController.popBackStack() }
                     )
@@ -1053,25 +1062,12 @@ private fun MainHubNavHost(
             LaunchedEffect(documentScanState) {
                 when (val state = documentScanState) {
                     is DocumentScanPipelineState.Success -> {
-                        Toast.makeText(
-                            context,
-                            EobStrings.t(language, "documentScanSuccess"),
-                            Toast.LENGTH_SHORT
-                        ).show()
                         eobViewModel.dismissDocumentScanState()
                     }
                     is DocumentScanPipelineState.Error -> {
-                        Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-                        eobViewModel.dismissDocumentScanState()
-                    }
-                    else -> Unit
-                }
-            }
-            LaunchedEffect(veryfiAnyDocExtractionState) {
-                when (val state = veryfiAnyDocExtractionState) {
-                    is VeryfiAnyDocExtractionState.Error -> {
                         val toastMessage = state.detail?.takeIf { it.isNotBlank() } ?: state.message
                         Toast.makeText(context, toastMessage, Toast.LENGTH_LONG).show()
+                        eobViewModel.dismissDocumentScanState()
                     }
                     else -> Unit
                 }
