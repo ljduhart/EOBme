@@ -7,7 +7,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "check": "node --check index.js && node --check lib/eobNormalizer.js && node --check test/eobNormalizer.test.js",
+    "check": "node --check index.js && node --check lib/eobNormalizer.js && node --check lib/hybridReconciliation.js && node --check test/eobNormalizer.test.js",
     "test": "node --test"
   },
   "dependencies": {

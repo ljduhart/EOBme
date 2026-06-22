@@ -1488,6 +1488,52 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun pr114HybridPipelineStabilityAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val hybridReconciliationSource = readFunctionsSource("lib/hybridReconciliation.js")
+
+        listOf(
+            "documentScanJob",
+            "documentScanGeneration",
+            "isDocumentScanPipelineActive",
+            "scopedVeryfiDataFor",
+            "veryfiExtractedDataRecordId",
+            "resolveRecordSelection"
+        ).forEach { snippet ->
+            assertTrue("PR#114 stability: EobViewModel guard missing $snippet", viewModelSource.contains(snippet))
+        }
+        listOf(
+            "finalizeHybridReconciliation",
+            "hybridReconciliationStatus",
+            "storageDownloadUrl",
+            "client_stream_committed"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#114 stability: hybrid reconciliation barrier missing $snippet",
+                veryfiSource.contains(snippet) || hybridRepoSource.contains(snippet)
+            )
+        }
+        listOf(
+            "shouldSkipStorageVeryfiExtraction",
+            "hybridFirestoreDocId",
+            "skipped_duplicate_veryfi"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#114 stability: Cloud Function duplicate Veryfi skip missing $snippet",
+                functionsIndex.contains(snippet) || hybridReconciliationSource.contains(snippet)
+            )
+        }
+        assertTrue(
+            "PR#114 stability: repository must finalize after upload await",
+            hybridRepoSource.indexOf("uploadDeferred.await()") >= 0 &&
+                hybridRepoSource.indexOf("finalizeHybridReconciliation") > hybridRepoSource.indexOf("uploadDeferred.await()")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

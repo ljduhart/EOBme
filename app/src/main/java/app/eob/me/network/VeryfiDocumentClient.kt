@@ -133,6 +133,36 @@ class VeryfiDocumentClient(
         return record
     }
 
+    /**
+     * Synchronous barrier after Firebase Storage upload completes: persists the download URL and
+     * marks hybrid reconciliation as fully reconciled so the Storage trigger skips duplicate Veryfi.
+     */
+    suspend fun finalizeHybridReconciliation(
+        userId: String,
+        record: EobRecord,
+        downloadUrl: String,
+        storagePath: String
+    ) {
+        if (userId.isBlank() || record.firestoreId.isBlank()) {
+            throw IllegalArgumentException("User id and Firestore document id are required.")
+        }
+        if (downloadUrl.isBlank()) {
+            throw IllegalArgumentException("Storage download URL is required to finalize hybrid reconciliation.")
+        }
+        val normalizedPath = HybridDocumentRef.normalizeStoragePath(storagePath)
+        val finalizePayload = mapOf(
+            "storageDownloadUrl" to downloadUrl,
+            "sourceFilePath" to normalizedPath,
+            "hybridReconciliationStatus" to "reconciled",
+            "processedByStorageUpload" to true,
+            "storageUploadConfirmedAt" to FieldValue.serverTimestamp(),
+            "updatedAt" to FieldValue.serverTimestamp()
+        )
+        val userRef = firestore.collection(USERS).document(userId)
+        setMergeAwait(userRef.collection(EOBS).document(record.firestoreId), finalizePayload)
+        setMergeAwait(userRef.collection(EOB_RECORDS).document(record.firestoreId), finalizePayload)
+    }
+
     private suspend fun setMergeAwait(
         reference: DocumentReference,
         payload: Map<String, Any?>

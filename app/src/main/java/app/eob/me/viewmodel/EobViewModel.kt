@@ -96,6 +96,7 @@ data class HubUiState(
     val uploadNotice: String = "",
     val appealLetter: String = "",
     val veryfiExtractedData: VeryfiExtractedData? = null,
+    val veryfiExtractedDataRecordId: String = "",
     val appointments: List<DoctorAppointment> = emptyList(),
     val preferredDoctors: Map<CareTeamProviderType, PreferredDoctor> = CareTeamProviderType.displayOrder
         .associateWith { PreferredDoctor(type = it) },
@@ -163,6 +164,9 @@ class EobViewModel : ViewModel() {
         MutableStateFlow<VeryfiAnyDocExtractionState>(VeryfiAnyDocExtractionState.Idle)
     val veryfiAnyDocExtractionState: StateFlow<VeryfiAnyDocExtractionState> =
         _veryfiAnyDocExtractionState.asStateFlow()
+
+    private var documentScanJob: Job? = null
+    private var documentScanGeneration: Long = 0L
 
     private var uploadText: String = ""
     private var liveBeckersNewsPool: List<NewsRelease> = emptyList()
@@ -608,7 +612,7 @@ class EobViewModel : ViewModel() {
     private fun generateAppealLetter(
         profile: UserProfile,
         record: EobRecord?,
-        veryfiData: VeryfiExtractedData? = _uiState.value.veryfiExtractedData
+        veryfiData: VeryfiExtractedData? = scopedVeryfiDataFor(record)
     ): String {
         val state = _uiState.value
         return AppealLetterGenerator.generate(
@@ -618,6 +622,33 @@ class EobViewModel : ViewModel() {
             strategy = state.selectedDisputeStrategy,
             veryfiData = veryfiData
         )
+    }
+
+    private fun scopedVeryfiDataFor(record: EobRecord?): VeryfiExtractedData? {
+        val state = _uiState.value
+        val data = state.veryfiExtractedData ?: return null
+        val recordId = record?.firestoreId?.takeIf { it.isNotBlank() } ?: return null
+        return data.takeIf { state.veryfiExtractedDataRecordId == recordId }
+    }
+
+    private fun isDocumentScanPipelineActive(): Boolean {
+        return when (_documentScanState.value) {
+            DocumentScanPipelineState.LocalScanning,
+            DocumentScanPipelineState.OcrPreCheck,
+            DocumentScanPipelineState.UploadingAndProcessing -> true
+            else -> false
+        }
+    }
+
+    private fun resolveRecordSelection(
+        currentSelection: EobRecord?,
+        records: List<EobRecord>
+    ): EobRecord? {
+        if (currentSelection == null) return records.firstOrNull()
+        if (currentSelection.firestoreId.isNotBlank()) {
+            records.firstOrNull { it.firestoreId == currentSelection.firestoreId }?.let { return it }
+        }
+        return records.firstOrNull { it.id == currentSelection.id } ?: records.firstOrNull()
     }
 
     fun hubTimeKey(): Int {
@@ -650,6 +681,9 @@ class EobViewModel : ViewModel() {
         newsRotationJob = null
         _documentScanState.value = DocumentScanPipelineState.Idle
         _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Idle
+        documentScanJob?.cancel()
+        documentScanJob = null
+        documentScanGeneration = 0L
     }
 
     fun startFirestoreSync(userId: String, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
@@ -709,17 +743,15 @@ class EobViewModel : ViewModel() {
                 _eobRecords.value = compacted
                 val currentSelection = _uiState.value.selectedRecord
                 val wasProcessing = _uiState.value.isLoadingInvoice
-                val nextSelection = if (currentSelection == null || compacted.none { it.id == currentSelection.id }) {
-                    compacted.firstOrNull()
-                } else {
-                    compacted.firstOrNull { it.id == currentSelection.id }
-                }
+                val scanActive = isDocumentScanPipelineActive()
+                val nextSelection = resolveRecordSelection(currentSelection, compacted)
+                val scopedVeryfi = scopedVeryfiDataFor(nextSelection)
                 _uiState.update {
                     it.copy(
                         selectedRecord = nextSelection,
-                        appealLetter = generateAppealLetter(profile, nextSelection),
-                        isLoadingInvoice = false,
-                        invoiceProcessingPhase = if (wasProcessing) {
+                        appealLetter = generateAppealLetter(profile, nextSelection, scopedVeryfi),
+                        isLoadingInvoice = if (scanActive) it.isLoadingInvoice else false,
+                        invoiceProcessingPhase = if (wasProcessing && !scanActive) {
                             InvoiceProcessingPhase.FileDropReveal
                         } else {
                             it.invoiceProcessingPhase
@@ -736,11 +768,14 @@ class EobViewModel : ViewModel() {
     }
 
     fun selectRecord(record: EobRecord, profile: UserProfile) {
+        val scopedVeryfi = scopedVeryfiDataFor(record)
         _uiState.update {
             it.copy(
                 selectedRecord = record,
                 uploadNotice = "",
-                appealLetter = generateAppealLetter(profile, record),
+                veryfiExtractedData = scopedVeryfi,
+                veryfiExtractedDataRecordId = if (scopedVeryfi != null) record.firestoreId else "",
+                appealLetter = generateAppealLetter(profile, record, scopedVeryfi),
                 appealLetterEditingEnabled = false
             )
         }
@@ -750,10 +785,15 @@ class EobViewModel : ViewModel() {
         val remaining = _eobRecords.value.filter { it.id != record.id }
         _eobRecords.value = remaining
         val nextSelection = remaining.firstOrNull()
+        val scopedVeryfi = scopedVeryfiDataFor(nextSelection)
         _uiState.update {
             it.copy(
                 selectedRecord = nextSelection,
-                appealLetter = generateAppealLetter(profile, nextSelection),
+                veryfiExtractedData = scopedVeryfi,
+                veryfiExtractedDataRecordId = nextSelection?.firestoreId?.takeIf { id ->
+                    scopedVeryfi != null && id.isNotBlank()
+                }.orEmpty(),
+                appealLetter = generateAppealLetter(profile, nextSelection, scopedVeryfi),
                 appealLetterEditingEnabled = false
             )
         }
@@ -1259,6 +1299,8 @@ class EobViewModel : ViewModel() {
     }
 
     fun onDocumentScanCancelled() {
+        documentScanJob?.cancel()
+        documentScanGeneration++
         _documentScanState.value = DocumentScanPipelineState.Idle
         _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Idle
     }
@@ -1296,7 +1338,10 @@ class EobViewModel : ViewModel() {
             )
             return
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        documentScanJob?.cancel()
+        val generation = ++documentScanGeneration
+        documentScanJob = viewModelScope.launch(Dispatchers.IO) {
+            if (generation != documentScanGeneration) return@launch
             withContext(Dispatchers.Main) {
                 setLoadingInvoice(true)
                 _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
@@ -1311,6 +1356,7 @@ class EobViewModel : ViewModel() {
                 )
             }.getOrElse { error ->
                 withContext(Dispatchers.Main) {
+                    if (generation != documentScanGeneration) return@withContext
                     setLoadingInvoice(false)
                     _documentScanState.value = DocumentScanPipelineState.Error(
                         EobStrings.t(language, "documentScanOcrFailed")
@@ -1321,6 +1367,7 @@ class EobViewModel : ViewModel() {
             }
             if (!preCheck.passed) {
                 withContext(Dispatchers.Main) {
+                    if (generation != documentScanGeneration) return@withContext
                     setLoadingInvoice(false)
                     _documentScanState.value = DocumentScanPipelineState.Error(
                         EobStrings.t(language, "documentScanOcrPreCheckFailed")
@@ -1334,6 +1381,7 @@ class EobViewModel : ViewModel() {
                 OcrProcessor.prepareUriForUpload(context, uri, imageCompressionLevel())
             }.getOrElse { error ->
                 withContext(Dispatchers.Main) {
+                    if (generation != documentScanGeneration) return@withContext
                     setLoadingInvoice(false)
                     _documentScanState.value = DocumentScanPipelineState.Error(
                         EobStrings.t(language, "imagePrepFailed")
@@ -1357,6 +1405,7 @@ class EobViewModel : ViewModel() {
                 )
             }
             withContext(Dispatchers.Main) {
+                if (generation != documentScanGeneration) return@withContext
                 extraction.fold(
                     onSuccess = { anyDocResult ->
                         val processedResult = anyDocResult.toProcessedResult()
@@ -1367,6 +1416,7 @@ class EobViewModel : ViewModel() {
                             state.copy(
                                 selectedRecord = anyDocResult.record,
                                 veryfiExtractedData = processedResult.veryfiData,
+                                veryfiExtractedDataRecordId = anyDocResult.record.firestoreId,
                                 appealLetter = generateAppealLetter(
                                     profile = _syncProfile.value,
                                     record = anyDocResult.record,

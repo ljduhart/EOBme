@@ -16,6 +16,11 @@ const {
   DOCUMENT_TYPE_EOB,
   CATEGORIES_INSURANCE
 } = require("./lib/veryfiAnyDocConstants");
+const {
+  shouldSkipStorageVeryfiExtraction,
+  storageUploadReconciliationPatch,
+  hybridFirestoreDocId
+} = require("./lib/hybridReconciliation");
 
 admin.initializeApp();
 
@@ -47,6 +52,23 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
   const fileName = match[2];
   const bucket = admin.storage().bucket(event.data.bucket);
   const file = bucket.file(objectName);
+  const stableDocId = hybridFirestoreDocId(fileName);
+  const userRef = db.collection("users").doc(userId);
+  const eobRef = userRef.collection("eobs").doc(stableDocId);
+  const existingSnapshot = await eobRef.get();
+  if (shouldSkipStorageVeryfiExtraction(existingSnapshot.data())) {
+    const reconcilePatch = {
+      ...storageUploadReconciliationPatch(objectName),
+      storageUploadConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    await Promise.all([
+      eobRef.set(reconcilePatch, {merge: true}),
+      userRef.collection("eob_records").doc(stableDocId).set(reconcilePatch, {merge: true})
+    ]);
+    return;
+  }
+
   const [fileBytes] = await file.download();
   const veryfiResponse = await extractWithVeryfi(fileBytes, {
     fileName,
@@ -69,10 +91,11 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
     sourceFilePath: objectName,
     processedBy: "veryfi",
     processedAt: admin.firestore.FieldValue.serverTimestamp(),
+    hybridReconciliationStatus: "storage_trigger_committed",
+    processedByStorageTrigger: "veryfi_storage_authority",
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   };
 
-  const userRef = db.collection("users").doc(userId);
   await Promise.all([
     userRef.collection("eobs").doc(docId).set(payload, {merge: true}),
     userRef.collection("eob_records").doc(docId).set(payload, {merge: true})

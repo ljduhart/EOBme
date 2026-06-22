@@ -129,6 +129,13 @@ class DocumentScanPipelineRepository(
                 )
             }
 
+            veryfiClient.finalizeHybridReconciliation(
+                userId = userId,
+                record = streamedRecord,
+                downloadUrl = upload.downloadUrl,
+                storagePath = storagePath
+            )
+
             anyDocResult.copy(
                 record = streamedRecord,
                 downloadUrl = upload.downloadUrl
