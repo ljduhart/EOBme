@@ -1,6 +1,8 @@
 package app.eob.me
 
 import app.eob.me.data.HybridDocumentRef
+import app.eob.me.data.VeryfiAnyDocExtractionResult
+import app.eob.me.data.VeryfiHealthInsuranceEob
 import app.eob.me.network.veryfiPayloadToEobRecord
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -83,5 +85,43 @@ class VeryfiHybridExtractionTest {
         assertEquals("Downtown Imaging", record.providerName)
         assertEquals(320.0, record.totalBilledAmount, 0.001)
         assertTrue("CPT code from line items raw text should be detected", record.charges.any { it.cptCode == "99214" })
+    }
+
+    @Test
+    fun extractionResultMergesIntoEobProcessedResult() {
+        val documentRefId = HybridDocumentRef.documentRefId("eob_1718932011000.jpg")
+        val payload: Map<String, Any?> = mapOf(
+            "provider_name" to "Sunrise Family Clinic",
+            "payer_name" to "Aetna",
+            "date_of_service" to "2026-01-15",
+            "billed_amount" to 240.0,
+            "copay" to 20.0,
+            "cpt_codes" to "99213"
+        )
+        val record = veryfiPayloadToEobRecord(payload, documentRefId, "Camera EOB")
+        val extraction = VeryfiHealthInsuranceEob(
+            documentId = documentRefId,
+            blueprintName = "health_insurance_eob",
+            insuranceCompanyName = "Aetna",
+            memberName = "Jane Doe",
+            memberId = "MEM1",
+            patientName = "Jane Doe",
+            claimId = "CLM1",
+            inNetworkOutOfPocketBalance = 0.0,
+            outOfNetworkOutOfPocketBalance = 0.0,
+            dateOfService = "01/15/2026",
+            providerName = "Sunrise Family Clinic"
+        )
+        val anyDocResult = VeryfiAnyDocExtractionResult(
+            extraction = extraction,
+            record = record,
+            rawPayload = payload,
+            downloadUrl = "https://storage.example/eob.jpg"
+        )
+        val processed = anyDocResult.toProcessedResult()
+        assertEquals("https://storage.example/eob.jpg", processed.fileUrl)
+        assertEquals("01/15/2026", processed.veryfiData.dateOfService)
+        assertTrue(processed.veryfiData.cptCodes.contains("99213"))
+        assertEquals(20.0, processed.veryfiData.copay, 0.001)
     }
 }

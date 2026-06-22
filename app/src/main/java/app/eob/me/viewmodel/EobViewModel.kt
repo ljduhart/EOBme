@@ -718,9 +718,15 @@ class EobViewModel : ViewModel() {
             onRecords = { records -> applyRemoteRecords(records) },
             onError = { message ->
                 _uiState.update { state ->
+                    val scanActive = when (_documentScanState.value) {
+                        DocumentScanPipelineState.LocalScanning,
+                        DocumentScanPipelineState.OcrPreCheck,
+                        DocumentScanPipelineState.UploadingAndProcessing -> true
+                        else -> false
+                    }
                     state.copy(
                         uploadNotice = message,
-                        isLoadingInvoice = false,
+                        isLoadingInvoice = if (scanActive) state.isLoadingInvoice else false,
                         invoiceProcessingPhase = when {
                             state.invoiceProcessingPhase == InvoiceProcessingPhase.Processing ->
                                 InvoiceProcessingPhase.Idle
@@ -1429,6 +1435,7 @@ class EobViewModel : ViewModel() {
                         setLoadingInvoice(false)
                     },
                     onFailure = { error ->
+                        if (generation != documentScanGeneration) return@fold
                         setLoadingInvoice(false)
                         val message = when (error) {
                             is kotlinx.coroutines.TimeoutCancellationException ->

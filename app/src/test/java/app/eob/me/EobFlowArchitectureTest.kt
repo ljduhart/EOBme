@@ -1534,6 +1534,64 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun pr114FinalAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val anyDocConstantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+
+        assertFalse(
+            "PR#114 final: deprecated any-documents endpoint must not exist",
+            functionsIndex.contains("partner/any-documents") ||
+                anyDocConstantsSource.contains("partner/any-documents") ||
+                veryfiClientSource.contains("partner/any-documents")
+        )
+        listOf(
+            "class EobViewModel",
+            "processScannedDocument",
+            "documentScanJob",
+            "documentScanGeneration",
+            "toProcessedResult()",
+            "veryfiExtractedDataRecordId",
+            "private fun generateAppealLetter",
+            "processHybridScannedDocument"
+        ).forEach { snippet ->
+            assertTrue("PR#114 final: EobViewModel source-of-truth barrier missing $snippet", viewModelSource.contains(snippet))
+        }
+        listOf(
+            "coroutineScope",
+            "extractionDeferred.await()",
+            "writeReconciliationFindings",
+            "uploadDeferred.await()",
+            "finalizeHybridReconciliation"
+        ).forEach { snippet ->
+            assertTrue("PR#114 final: hybrid repository barrier missing $snippet", hybridRepoSource.contains(snippet))
+        }
+        listOf(
+            "extractVeryfiHybridStream",
+            "partner/documents",
+            "BLUEPRINT_HEALTH_INSURANCE_EOB",
+            "DOCUMENT_TYPE_EOB"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#114 final: AnyDocs documents endpoint barrier missing $snippet",
+                anyDocConstantsSource.contains(snippet) ||
+                    veryfiClientSource.contains(snippet) ||
+                    functionsIndex.contains(snippet)
+            )
+        }
+        assertTrue(navHostSource.contains("processScannedDocument"))
+        assertFalse(navHostSource.contains("eobViewModel.uploadEobFile("))
+        assertTrue(
+            "PR#114 final: stale scan results must be ignored on failure path",
+            viewModelSource.contains("generation != documentScanGeneration") &&
+                viewModelSource.indexOf("onFailure") < viewModelSource.lastIndexOf("generation != documentScanGeneration")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }
