@@ -1426,6 +1426,68 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun pr114StateFlowMergeAndAppealGeneratorAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val modelsSource = readSource("data/EobModels.kt")
+        val veryfiSource = readSource("data/VeryfiHealthInsuranceEob.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val appealGeneratorSource = readSource("data/AppealLetterGenerator.kt")
+        val appealScreenSource = readSource("ui/screens/AppealScreen.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+
+        listOf(
+            "data class VeryfiExtractedData",
+            "data class EobProcessedResult",
+            "toVeryfiExtractedData",
+            "toProcessedResult"
+        ).forEach { snippet ->
+            assertTrue("PR#114: merged pipeline model missing $snippet", veryfiSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#114: document scan success must emit EobProcessedResult",
+            modelsSource.contains("data class Success(val result: EobProcessedResult)")
+        )
+        listOf(
+            "veryfiExtractedData",
+            "toProcessedResult()",
+            "DocumentScanPipelineState.Success(processedResult)",
+            "generateAppealLetter"
+        ).forEach { snippet ->
+            assertTrue("PR#114: EobViewModel merge barrier missing $snippet", viewModelSource.contains(snippet))
+        }
+        listOf(
+            "uploadDeferred.await()",
+            "downloadUrl = upload.downloadUrl"
+        ).forEach { snippet ->
+            assertTrue("PR#114: parallel split must await Storage upload $snippet", hybridRepoSource.contains(snippet))
+        }
+        listOf(
+            "veryfiData: VeryfiExtractedData?",
+            "resolvedServiceDate",
+            "resolvedCopayAmount",
+            "resolvedCptCodes",
+            "resolvedPatientResponsibility"
+        ).forEach { snippet ->
+            assertTrue("PR#114: appeal generator Veryfi injection missing $snippet", appealGeneratorSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#114: AppealScreen must key AnimatedContent on Veryfi data",
+            appealScreenSource.contains("veryfiExtractedData") &&
+                appealScreenSource.contains("documentAnimationKey")
+        )
+        assertTrue(
+            "PR#114: nav must pipe veryfiExtractedData into AppealScreen",
+            navHostSource.contains("veryfiExtractedData = uiState.veryfiExtractedData")
+        )
+        assertFalse(
+            "PR#114: raw Veryfi API keys must not ship in Android bytecode",
+            viewModelSource.contains("VERYFI_API_KEY") ||
+                readSource("network/VeryfiDocumentClient.kt").contains("VERYFI_API_KEY") ||
+                readSource("network/VeryfiAnyDocConstants.kt").contains("VERYFI_API_KEY")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

@@ -120,9 +120,19 @@ class DocumentScanPipelineRepository(
                 )
             }
 
-            runCatching { uploadDeferred.await() }
+            val upload = try {
+                uploadDeferred.await()
+            } catch (error: Throwable) {
+                throw IllegalStateException(
+                    "Firebase Storage upload failed: ${VeryfiHybridStreamErrorMapper.describe(error)}",
+                    error
+                )
+            }
 
-            anyDocResult.copy(record = streamedRecord)
+            anyDocResult.copy(
+                record = streamedRecord,
+                downloadUrl = upload.downloadUrl
+            )
         }
     }
 

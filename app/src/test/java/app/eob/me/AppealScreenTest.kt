@@ -45,7 +45,7 @@ class AppealScreenTest {
         assertTrue(viewModelSource.contains("fun regenerateAppeal"))
         assertTrue(viewModelSource.contains("fun onAppealTargetSwitched"))
         assertTrue(viewModelSource.contains("fun onDisputeStrategySwitched"))
-        assertTrue(viewModelSource.contains("fun updateAppeal"))
+        assertTrue(navSource.contains("veryfiExtractedData"))
     }
 
     @Test

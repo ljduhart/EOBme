@@ -880,6 +880,7 @@ private fun MainHubNavHost(
                         selectedDisputeStrategy = uiState.selectedDisputeStrategy,
                         appealLetter = uiState.appealLetter,
                         appealLetterEditingEnabled = uiState.appealLetterEditingEnabled,
+                        veryfiExtractedData = uiState.veryfiExtractedData,
                         onAppealTargetSwitched = { target ->
                             eobViewModel.onAppealTargetSwitched(target)
                             onActivity()

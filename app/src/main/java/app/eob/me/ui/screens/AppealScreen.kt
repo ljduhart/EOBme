@@ -64,6 +64,7 @@ import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
+import app.eob.me.data.VeryfiExtractedData
 
 private val AppealCanvasBackground = Color(0xFF2D2D2D)
 private val AppealPaperText = Color(0xFF1A1A1A)
@@ -91,6 +92,7 @@ fun AppealScreen(
     selectedDisputeStrategy: DoctorDisputeStrategy,
     appealLetter: String,
     appealLetterEditingEnabled: Boolean,
+    veryfiExtractedData: VeryfiExtractedData? = null,
     onAppealTargetSwitched: (AppealTarget) -> Unit,
     onDisputeStrategySwitched: (DoctorDisputeStrategy) -> Unit,
     onRegenerate: () -> Unit,
@@ -103,7 +105,10 @@ fun AppealScreen(
     val documentAnimationKey = if (appealLetterEditingEnabled) {
         "editing"
     } else {
-        "${selectedTarget.name}_${selectedDisputeStrategy.name}_$appealLetter"
+        val veryfiKey = veryfiExtractedData?.let { data ->
+            "${data.dateOfService}_${data.copay}_${data.cptCodes.joinToString(",")}"
+        }.orEmpty()
+        "${selectedTarget.name}_${selectedDisputeStrategy.name}_${veryfiKey}_$appealLetter"
     }
 
     Box(

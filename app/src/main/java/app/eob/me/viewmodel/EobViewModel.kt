@@ -38,6 +38,7 @@ import app.eob.me.data.MajorInsuranceCarrier
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.VeryfiAnyDocExtractionState
+import app.eob.me.data.VeryfiExtractedData
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.ProviderAvatarPreview
@@ -94,6 +95,7 @@ data class HubUiState(
     val selectedRecord: EobRecord? = null,
     val uploadNotice: String = "",
     val appealLetter: String = "",
+    val veryfiExtractedData: VeryfiExtractedData? = null,
     val appointments: List<DoctorAppointment> = emptyList(),
     val preferredDoctors: Map<CareTeamProviderType, PreferredDoctor> = CareTeamProviderType.displayOrder
         .associateWith { PreferredDoctor(type = it) },
@@ -603,13 +605,18 @@ class EobViewModel : ViewModel() {
         }
     }
 
-    private fun generateAppealLetter(profile: UserProfile, record: EobRecord?): String {
+    private fun generateAppealLetter(
+        profile: UserProfile,
+        record: EobRecord?,
+        veryfiData: VeryfiExtractedData? = _uiState.value.veryfiExtractedData
+    ): String {
         val state = _uiState.value
         return AppealLetterGenerator.generate(
             profile = profile,
             eob = record,
             target = state.selectedAppealTarget,
-            strategy = state.selectedDisputeStrategy
+            strategy = state.selectedDisputeStrategy,
+            veryfiData = veryfiData
         )
     }
 
@@ -1352,9 +1359,22 @@ class EobViewModel : ViewModel() {
             withContext(Dispatchers.Main) {
                 extraction.fold(
                     onSuccess = { anyDocResult ->
+                        val processedResult = anyDocResult.toProcessedResult()
                         _veryfiAnyDocExtractionState.value =
                             VeryfiAnyDocExtractionState.Success(anyDocResult)
-                        _documentScanState.value = DocumentScanPipelineState.Success(anyDocResult.record)
+                        _documentScanState.value = DocumentScanPipelineState.Success(processedResult)
+                        _uiState.update { state ->
+                            state.copy(
+                                selectedRecord = anyDocResult.record,
+                                veryfiExtractedData = processedResult.veryfiData,
+                                appealLetter = generateAppealLetter(
+                                    profile = _syncProfile.value,
+                                    record = anyDocResult.record,
+                                    veryfiData = processedResult.veryfiData
+                                ),
+                                appealLetterEditingEnabled = false
+                            )
+                        }
                         updateUploadNotice(EobStrings.t(language, "documentScanSuccess"))
                         setLoadingInvoice(false)
                     },
