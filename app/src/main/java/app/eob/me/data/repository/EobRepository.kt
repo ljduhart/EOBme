@@ -16,6 +16,10 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Remote data contract for EOB hub features. Firestore is the system of record.
+ *
+ * EOB scan uploads use Firebase Storage Pathway 1: users/{userId}/eobs/{fileName}
+ * (see [app.eob.me.data.HybridDocumentRef.userRootedStoragePath]). Pathway 2
+ * eobs/{userId}/{fileName} is supported by storage rules and Cloud Functions triggers.
  */
 interface EobRepository {
     fun status(): FirebaseSyncStatus

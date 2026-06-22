@@ -341,7 +341,8 @@ class FirebaseEobRepository(private val context: Context) {
             ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
         val extension = if (contentType == "application/pdf") "pdf" else "jpg"
         val fileName = "eob_${System.currentTimeMillis()}.$extension"
-        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/$fileName")
+        val ref = FirebaseStorage.getInstance().reference
+            .child("users").child(userId).child(HybridDocumentRef.USER_ROOTED_EOB_FOLDER).child(fileName)
         val metadata = StorageMetadata.Builder()
             .setContentType(contentType)
             .setCustomMetadata("sourceName", sourceName)
@@ -366,7 +367,8 @@ class FirebaseEobRepository(private val context: Context) {
         val resolvedFileName = fileName?.takeIf { it.isNotBlank() }
             ?: HybridDocumentRef.fileNameForUpload(extension)
         val documentRefId = HybridDocumentRef.documentRefId(resolvedFileName)
-        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/$resolvedFileName")
+        val ref = FirebaseStorage.getInstance().reference
+            .child("users").child(userId).child(HybridDocumentRef.USER_ROOTED_EOB_FOLDER).child(resolvedFileName)
         val metadata = StorageMetadata.Builder()
             .setContentType(contentType)
             .setCustomMetadata("sourceName", sourceName)
@@ -407,7 +409,9 @@ class FirebaseEobRepository(private val context: Context) {
         }
         val output = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)
-        val ref = FirebaseStorage.getInstance().reference.child("users/$userId/eob_uploads/eob_${System.currentTimeMillis()}.jpg")
+        val ref = FirebaseStorage.getInstance().reference
+            .child("users").child(userId).child(HybridDocumentRef.USER_ROOTED_EOB_FOLDER)
+            .child("eob_${System.currentTimeMillis()}.jpg")
         val metadata = StorageMetadata.Builder()
             .setContentType("image/jpeg")
             .setCustomMetadata("sourceName", sourceName)

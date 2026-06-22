@@ -2,9 +2,8 @@ package app.eob.me.data
 
 import android.content.Context
 import android.net.Uri
-import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.network.VeryfiDocumentClient
-import app.eob.me.network.VeryfiAnyDocConstants
+import app.eob.me.network.VeryfiHybridStreamErrorMapper
 import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.util.OcrProcessor
 import kotlinx.coroutines.Dispatchers
@@ -49,77 +48,82 @@ class DocumentScanPipelineRepository(
         )
     }
 
+    /**
+     * Parallel hybrid split:
+     * - Task A: Firebase Storage upload (background, Pathway 1 users/{userId}/eobs/{fileName}).
+     * - Task B: Base64 documents extraction via authenticated Cloud Function (immediate).
+     *
+     * Veryfi starts as soon as local bytes are available — no Firebase download URL required.
+     */
     suspend fun processHybridDocument(
         context: Context,
         userId: String,
         uri: Uri,
         sourceName: String
-    ): VeryfiAnyDocExtractionResult = coroutineScope {
+    ): VeryfiAnyDocExtractionResult {
         val contentType = context.contentResolver.getType(uri)
             ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
         val extension = HybridDocumentRef.extensionForContentType(contentType)
         val fileName = HybridDocumentRef.fileNameForUpload(extension)
         val documentRefId = HybridDocumentRef.documentRefId(fileName)
+        val storagePath = HybridDocumentRef.storagePathForUpload(userId, fileName)
         val fileBytes = readUriBytes(context, uri)
 
-        val uploadDeferred = async {
-            uploadDocument(
-                userId = userId,
-                uri = uri,
-                sourceName = sourceName,
-                fileName = fileName
-            )
-        }
+        return coroutineScope {
+            val uploadDeferred = async(Dispatchers.IO) {
+                uploadDocument(
+                    userId = userId,
+                    uri = uri,
+                    sourceName = sourceName,
+                    fileName = fileName
+                )
+            }
+            val extractionDeferred = async(Dispatchers.IO) {
+                veryfiAnyDocRepository.extractHealthInsuranceEob(
+                    userId = userId,
+                    documentRefId = documentRefId,
+                    fileBytes = fileBytes,
+                    fileName = fileName,
+                    contentType = contentType,
+                    sourceName = sourceName
+                ).getOrElse { error ->
+                    throw IllegalStateException(
+                        VeryfiHybridStreamErrorMapper.describe(error),
+                        error
+                    )
+                }
+            }
 
-        val upload = uploadDeferred.await()
-        val anyDocResult = veryfiAnyDocRepository.extractHealthInsuranceEob(
-            userId = userId,
-            documentRefId = upload.documentRefId,
-            fileBytes = fileBytes,
-            fileName = fileName,
-            contentType = contentType,
-            sourceName = sourceName
-        ).getOrNull()
+            val anyDocResult = try {
+                extractionDeferred.await()
+            } catch (error: Throwable) {
+                uploadDeferred.cancel()
+                throw error
+            }
 
-        if (anyDocResult != null) {
             val streamedRecord = runCatching {
                 veryfiClient.writeReconciliationFindings(
                     userId = userId,
                     extraction = VeryfiStreamExtraction(
-                        documentRefId = upload.documentRefId,
-                        sourceFilePath = upload.storagePath,
+                        documentRefId = documentRefId,
+                        sourceFilePath = storagePath,
                         payload = anyDocResult.rawPayload
                     ),
                     sourceName = sourceName
                 )
-            }.getOrNull()
-            if (streamedRecord != null) {
-                return@coroutineScope anyDocResult.copy(record = streamedRecord)
+            }.getOrElse { error ->
+                uploadDeferred.cancel()
+                throw IllegalStateException(
+                    "Veryfi extraction succeeded but Firestore reconciliation failed: " +
+                        VeryfiHybridStreamErrorMapper.describe(error),
+                    error
+                )
             }
-            return@coroutineScope anyDocResult
-        }
 
-        val fallbackRecord = veryfiClient.awaitVeryfiExtraction(
-            userId = userId,
-            storagePath = upload.storagePath
-        )
-        VeryfiAnyDocExtractionResult(
-            extraction = VeryfiHealthInsuranceEob(
-                documentId = upload.documentRefId,
-                blueprintName = VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB,
-                insuranceCompanyName = fallbackRecord.insuranceName,
-                memberName = "",
-                memberId = "",
-                patientName = "",
-                claimId = "",
-                inNetworkOutOfPocketBalance = 0.0,
-                outOfNetworkOutOfPocketBalance = 0.0,
-                dateOfService = fallbackRecord.serviceDate,
-                providerName = fallbackRecord.providerName
-            ),
-            record = fallbackRecord,
-            rawPayload = emptyMap()
-        )
+            runCatching { uploadDeferred.await() }
+
+            anyDocResult.copy(record = streamedRecord)
+        }
     }
 
     suspend fun uploadAndExtractDocument(
