@@ -153,7 +153,10 @@ data class EobRecord(
     /** Stable LazyColumn key — never use numeric [id] alone (Firestore/Veryfi can collide). */
     fun historyListKey(): String {
         if (firestoreId.isNotBlank()) return "fs:$firestoreId"
-        return "local:$id:$serviceDateSortKey:${providerName.trim().lowercase(Locale.US)}"
+        val providerToken = providerName.trim().lowercase(Locale.US)
+        val insuranceToken = insuranceName.trim().lowercase(Locale.US)
+        val sourceToken = sourceName.trim().lowercase(Locale.US)
+        return "local:$id:$serviceDateSortKey:$providerToken:$insuranceToken:$sourceToken"
     }
 
     fun matchesHistoryRecord(other: EobRecord): Boolean = historyListKey() == other.historyListKey()
@@ -365,6 +368,17 @@ data class HistoryTimelineRow(
     val isFirstInMonth: Boolean,
     val isLastInMonth: Boolean
 )
+
+/** Month-grouped history section with stable LazyColumn keys (never key on header text alone). */
+data class HistoryTimelineSection(
+    val monthSortKey: Int,
+    val header: String,
+    val rows: List<HistoryTimelineRow>
+) {
+    fun lazySectionKey(): String = "section-$monthSortKey"
+
+    fun lazyItemKey(record: EobRecord): String = "${lazySectionKey()}-${record.historyListKey()}"
+}
 
 enum class InvoiceProcessingPhase {
     Idle,

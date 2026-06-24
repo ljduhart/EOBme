@@ -1758,6 +1758,77 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr117HistoryLazyColumnCrashAudit() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val modelsSource = readSource("data/EobModels.kt")
+        val analyzerSource = readSource("data/EobAnalyzer.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val mapperSource = readSource("data/FirebaseEobMapper.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+
+        listOf(
+            "HistoryTimelineSection",
+            "lazySectionKey()",
+            "lazyItemKey",
+            "monthSortKey"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#117: history lazy-key model missing $snippet",
+                historySource.contains(snippet) || modelsSource.contains(snippet) || analyzerSource.contains(snippet)
+            )
+        }
+        assertFalse(
+            "PR#117: sticky headers must not key on display text alone",
+            historySource.contains("stickyHeader(key = \"header-\$header\")")
+        )
+        assertFalse(
+            "PR#117: LazyColumn must not key on numeric record id",
+            historySource.contains("key = { it.record.id }")
+        )
+        listOf(
+            "distinctBy { it.historyListKey() }",
+            "existing.historyListKey() == record.historyListKey()"
+        ).forEach { snippet ->
+            assertTrue("PR#117: duplicate EOB compaction missing $snippet", analyzerSource.contains(snippet))
+        }
+        listOf(
+            "fun historyTimelineSections",
+            "List<HistoryTimelineSection>",
+            "applyRemoteRecords",
+            "compactDuplicateEobs"
+        ).forEach { snippet ->
+            assertTrue("PR#117: EobViewModel history source-of-truth missing $snippet", viewModelSource.contains(snippet))
+        }
+        listOf(
+            "EobRoute.History.route",
+            "historyTimelineSections",
+            "EobHistoryScreen"
+        ).forEach { snippet ->
+            assertTrue("PR#117: history navigation wiring missing $snippet", navHostSource.contains(snippet))
+        }
+        listOf(
+            "reconcileNormalizedEobRecord",
+            "normalizeEobDocument",
+            "veryfiToEobDocument"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#117: Veryfi/Firebase mapper sync missing $snippet",
+                mapperSource.contains(snippet) || functionsIndex.contains(snippet)
+            )
+        }
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#117: opening screen must remain untouched ($path)", source.contains("HistoryTimelineSection"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

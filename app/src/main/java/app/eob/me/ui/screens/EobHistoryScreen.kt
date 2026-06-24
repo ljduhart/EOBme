@@ -62,6 +62,7 @@ import app.eob.me.data.EobCharge
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
+import app.eob.me.data.HistoryTimelineSection
 import app.eob.me.data.HistoryTimelineRow
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.asCurrency
@@ -70,7 +71,7 @@ import app.eob.me.data.asCurrency
 @Composable
 fun EobHistoryScreen(
     language: AppLanguage,
-    timelineSections: List<Pair<String, List<HistoryTimelineRow>>>,
+    timelineSections: List<HistoryTimelineSection>,
     paymentFilter: EobHistoryPaymentFilter,
     onPaymentFilterSelected: (EobHistoryPaymentFilter) -> Unit,
     onDeleteEob: (EobRecord) -> Unit,
@@ -107,7 +108,7 @@ fun EobHistoryScreen(
     }
 
     val recordCount = remember(timelineSections) {
-        timelineSections.sumOf { it.second.size }
+        timelineSections.sumOf { section -> section.rows.size }
     }
 
     Scaffold(
@@ -251,7 +252,7 @@ private fun HistoryPaymentFilterChips(
 @Composable
 private fun HistoryTimelineList(
     language: AppLanguage,
-    timelineSections: List<Pair<String, List<HistoryTimelineRow>>>,
+    timelineSections: List<HistoryTimelineSection>,
     listState: LazyListState,
     expandedRecordKey: String,
     taxVaultFilterState: TaxVaultFilterState,
@@ -265,13 +266,13 @@ private fun HistoryTimelineList(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        timelineSections.forEach { (header, rows) ->
-            stickyHeader(key = "header-$header") {
-                HistoryMonthHeader(title = header)
+        timelineSections.forEach { section ->
+            stickyHeader(key = section.lazySectionKey()) {
+                HistoryMonthHeader(title = section.header)
             }
             items(
-                items = rows,
-                key = { it.record.historyListKey() }
+                items = section.rows,
+                key = { row -> section.lazyItemKey(row.record) }
             ) { row ->
                 HistoryTimelineItemRow(
                     language = language,

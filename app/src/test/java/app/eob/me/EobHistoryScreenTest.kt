@@ -4,6 +4,7 @@ import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -30,22 +31,43 @@ class EobHistoryScreenTest {
         val sections = EobAnalyzer.groupHistoryByMonth(listOf(january, february), app.eob.me.data.AppLanguage.English)
 
         assertEquals(2, sections.size)
-        assertTrue(sections[0].first.contains("2026"))
-        assertEquals(1, sections[0].second.size)
-        assertEquals(1, sections[1].second.size)
-        assertTrue(sections[0].second.first().isFirstInMonth)
+        assertTrue(sections[0].header.contains("2026"))
+        assertEquals(1, sections[0].rows.size)
+        assertEquals(1, sections[1].rows.size)
+        assertTrue(sections[0].rows.first().isFirstInMonth)
+        assertEquals(sections[0].lazySectionKey(), "section-${sections[0].monthSortKey}")
     }
 
     @Test
-    fun eobHistoryScreenUsesWalletTimelineAndReceiptPatterns() {
+    fun groupHistoryByMonthUsesUniqueLazySectionKeysForInvalidDates() {
+        val unknownA = sampleRecord(id = 1, rawText = "billed \$50").copy(
+            serviceDate = "Date not recognized",
+            serviceDateSortKey = Int.MAX_VALUE,
+            firestoreId = "unknown-a"
+        )
+        val unknownB = sampleRecord(id = 2, rawText = "billed \$40").copy(
+            serviceDate = "not-a-date",
+            serviceDateSortKey = 0,
+            firestoreId = "unknown-b"
+        )
+
+        val sections = EobAnalyzer.groupHistoryByMonth(listOf(unknownA, unknownB), app.eob.me.data.AppLanguage.English)
+        val sectionKeys = sections.map { it.lazySectionKey() }
+        val itemKeys = sections.flatMap { section ->
+            section.rows.map { row -> section.lazyItemKey(row.record) }
+        }
+
+        assertEquals(sectionKeys.size, sectionKeys.distinct().size)
+        assertEquals(itemKeys.size, itemKeys.distinct().size)
+    }
+
+    @Test
+    fun eobHistoryScreenUsesStableLazyColumnKeys() {
         val source = readSource("ui/screens/EobHistoryScreen.kt")
-        assertTrue(source.contains("FilterChip"))
-        assertTrue(source.contains("stickyHeader"))
-        assertTrue(source.contains("SwipeToDismissBox"))
-        assertTrue(source.contains("ExtendedFloatingActionButton"))
-        assertTrue(source.contains("PathEffect.dashPathEffect"))
-        assertTrue(source.contains("animateContentSize"))
-        assertTrue(source.contains("historyListKey()"))
+        assertTrue(source.contains("lazySectionKey()"))
+        assertTrue(source.contains("lazyItemKey(row.record)"))
+        assertFalse(source.contains("stickyHeader(key = \"header-\$header\")"))
+        assertFalse(source.contains("key = { it.record.id }"))
     }
 
     @Test

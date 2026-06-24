@@ -518,7 +518,8 @@ object EobAnalyzer {
     fun compactDuplicateEobs(records: List<EobRecord>): List<EobRecord> {
         val compacted = records.sortedBy { it.serviceDateSortKey }.fold(mutableListOf<EobRecord>()) { merged, record ->
             val duplicateIndex = merged.indexOfFirst { existing ->
-                (record.firestoreId.isNotBlank() && existing.firestoreId == record.firestoreId) ||
+                existing.historyListKey() == record.historyListKey() ||
+                    (record.firestoreId.isNotBlank() && existing.firestoreId == record.firestoreId) ||
                     isSameEob(existing, record)
             }
             if (duplicateIndex >= 0) {
@@ -673,22 +674,29 @@ object EobAnalyzer {
     fun groupHistoryByMonth(
         records: List<EobRecord>,
         language: AppLanguage
-    ): List<Pair<String, List<HistoryTimelineRow>>> {
-        val sorted = records.sortedByDescending { it.serviceDateSortKey }
+    ): List<HistoryTimelineSection> {
+        val sorted = records
+            .distinctBy { it.historyListKey() }
+            .sortedByDescending { it.serviceDateSortKey }
         return sorted
             .groupBy { monthSortKeyFromServiceDate(it.serviceDateSortKey) }
             .toList()
             .sortedByDescending { it.first }
             .map { (monthKey, monthRecords) ->
+                val uniqueMonthRecords = monthRecords.distinctBy { it.historyListKey() }
                 val header = formatHistoryMonthHeader(monthKey, language)
-                val rows = monthRecords.mapIndexed { index, record ->
+                val rows = uniqueMonthRecords.mapIndexed { index, record ->
                     HistoryTimelineRow(
                         record = record,
                         isFirstInMonth = index == 0,
-                        isLastInMonth = index == monthRecords.lastIndex
+                        isLastInMonth = index == uniqueMonthRecords.lastIndex
                     )
                 }
-                header to rows
+                HistoryTimelineSection(
+                    monthSortKey = monthKey,
+                    header = header,
+                    rows = rows
+                )
             }
     }
 
