@@ -155,6 +155,8 @@ data class EobRecord(
         if (firestoreId.isNotBlank()) return "fs:$firestoreId"
         return "local:$id:$serviceDateSortKey:${providerName.trim().lowercase(Locale.US)}"
     }
+
+    fun matchesHistoryRecord(other: EobRecord): Boolean = historyListKey() == other.historyListKey()
 }
 
 data class NewsRelease(

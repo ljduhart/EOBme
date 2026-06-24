@@ -645,6 +645,7 @@ class EobViewModel : ViewModel() {
         records: List<EobRecord>
     ): EobRecord? {
         if (currentSelection == null) return records.firstOrNull()
+        records.firstOrNull { it.matchesHistoryRecord(currentSelection) }?.let { return it }
         if (currentSelection.firestoreId.isNotBlank()) {
             records.firstOrNull { it.firestoreId == currentSelection.firestoreId }?.let { return it }
         }
@@ -788,7 +789,7 @@ class EobViewModel : ViewModel() {
     }
 
     fun deleteRecord(record: EobRecord, profile: UserProfile) {
-        val remaining = _eobRecords.value.filter { it.id != record.id }
+        val remaining = _eobRecords.value.filterNot { it.matchesHistoryRecord(record) }
         _eobRecords.value = remaining
         val nextSelection = remaining.firstOrNull()
         val scopedVeryfi = scopedVeryfiDataFor(nextSelection)

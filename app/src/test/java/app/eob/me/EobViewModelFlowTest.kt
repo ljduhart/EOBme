@@ -4,6 +4,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealTarget
 import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.HistoryBentoFilter
@@ -137,6 +138,34 @@ class EobViewModelFlowTest {
         viewModel.deleteRecord(second, profile)
         assertEquals(1, viewModel.eobRecords.value.size)
         assertEquals(first.id, viewModel.uiState.value.selectedRecord?.id)
+    }
+
+    @Test
+    fun deleteRecordUsesHistoryListKeyNotNumericIdAlone() {
+        val viewModel = EobViewModel()
+        val sharedId = 999
+        val firestoreRecord = EobRecord(
+            id = sharedId,
+            firestoreId = "fs-doc-1",
+            sourceName = "Veryfi",
+            providerName = "Alpha Clinic",
+            insuranceName = "Aetna",
+            serviceDate = "01/15/2026",
+            serviceDateSortKey = 20260115,
+            charges = emptyList(),
+            duplicateChargeWarnings = emptyList(),
+            rawText = "{}"
+        )
+        val collisionRecord = firestoreRecord.copy(
+            firestoreId = "fs-doc-2",
+            providerName = "Beta Clinic",
+            sourceName = "Veryfi-2"
+        )
+        viewModel.replaceRecords(listOf(firestoreRecord, collisionRecord), profile)
+        waitForHubRecords(viewModel)
+        viewModel.deleteRecord(firestoreRecord, profile)
+        assertEquals(1, viewModel.eobRecords.value.size)
+        assertEquals("fs-doc-2", viewModel.eobRecords.value.first().firestoreId)
     }
 
     @Test

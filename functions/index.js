@@ -147,7 +147,7 @@ async function extractWithVeryfi(fileBytes, fileMetadata) {
   });
 
   if (!response.ok) {
-    throw new Error(`Veryfi documents extraction failed with status ${response.status}: ${await response.text()}`);
+    throw new Error(`Veryfi any-documents extraction failed with status ${response.status}: ${await response.text()}`);
   }
   return response.json();
 }

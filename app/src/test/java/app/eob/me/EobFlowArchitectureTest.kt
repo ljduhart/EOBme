@@ -1630,7 +1630,17 @@ class EobFlowArchitectureTest {
         )
         assertTrue(
             "PR#115: EobViewModel remains history source of truth",
-            viewModelSource.contains("fun historyTimelineSections")
+            viewModelSource.contains("fun historyTimelineSections") &&
+                viewModelSource.contains("compactDuplicateEobs") &&
+                viewModelSource.contains("matchesHistoryRecord")
+        )
+        assertEquals(
+            "health_insurance_eob",
+            VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB
+        )
+        assertFalse(
+            "PR#115: legacy partner/documents endpoint must not remain in Kotlin constants",
+            constantsSource.contains("partner/documents/")
         )
     }
 
