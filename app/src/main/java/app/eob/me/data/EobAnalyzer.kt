@@ -342,8 +342,19 @@ object EobAnalyzer {
         "(?i)(out[-\\s]?of[-\\s]?network|non[-\\s]?participating|not\\s+in\\s+network|\\boon\\b)"
     )
 
+    private val outOfNetworkBalancePattern = Regex(
+        "(?i)\"out_of_network_out_of_pocket(?:_balance)?\"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)"
+    )
+
     fun recordSignalsOutOfNetwork(record: EobRecord): Boolean {
-        return outOfNetworkPattern.containsMatchIn(record.rawText)
+        if (outOfNetworkPattern.containsMatchIn(record.rawText)) return true
+        return outOfNetworkBalanceFromPayload(record.rawText) > 0.0
+    }
+
+    private fun outOfNetworkBalanceFromPayload(rawText: String): Double {
+        if (rawText.isBlank()) return 0.0
+        val match = outOfNetworkBalancePattern.find(rawText) ?: return 0.0
+        return match.groupValues.getOrNull(1)?.toDoubleOrNull() ?: 0.0
     }
 
     fun providerNameMatchesCareTeam(recordProvider: String, careTeamName: String): Boolean {
@@ -446,8 +457,11 @@ object EobAnalyzer {
 
     fun providerDirectory(records: List<EobRecord>): List<ProviderSummary> {
         return records
-            .filter { it.providerName.isNotBlank() && !it.providerName.contains("not recognized", ignoreCase = true) }
-            .groupBy { it.providerName }
+            .filter { record ->
+                record.providerName.isNotBlank() &&
+                    !record.providerName.contains("not recognized", ignoreCase = true)
+            }
+            .groupBy { record -> record.providerName.trim() }
             .map { (provider, providerRecords) ->
                 val latest = providerRecords.maxByOrNull { it.serviceDateSortKey }
                 ProviderSummary(

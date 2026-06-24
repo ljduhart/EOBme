@@ -441,4 +441,54 @@ class ExampleUnitTest {
         assertEquals(original.id, compacted.first().id)
         assertEquals(310.0, compacted.first().totalBilledAmount, 0.001)
     }
+
+    @Test
+    fun firebaseMapperReconcilesNestedChargeTotalsLikeCloudFunctions() {
+        val record = FirebaseEobMapper.eobFromMap(
+            mapOf(
+                "providerName" to "Lakeside Clinic",
+                "insuranceName" to "UnitedHealthcare",
+                "serviceDate" to "03/05/2026",
+                "charges" to listOf(
+                    mapOf(
+                        "cptCode" to "99214",
+                        "billedAmount" to 200.0,
+                        "insurancePaidAmount" to 80.0,
+                        "contractualAdjustmentAmount" to 60.0,
+                        "copayAmount" to 20.0,
+                        "deductibleAmount" to 30.0,
+                        "coinsuranceAmount" to 10.0
+                    )
+                )
+            ),
+            documentId = "nested-doc"
+        )
+
+        assertEquals(200.0, record.totalBilledAmount, 0.001)
+        assertEquals(80.0, record.totalInsurancePaidAmount, 0.001)
+        assertEquals(60.0, record.totalContractualAdjustmentAmount, 0.001)
+        assertEquals(60.0, record.totalPatientResponsibility, 0.001)
+    }
+
+    @Test
+    fun firebaseMapperReadsVendorNameAndPatientResponsibilityFromVeryfiPayload() {
+        val record = FirebaseEobMapper.eobFromMap(
+            mapOf(
+                "vendor" to mapOf("name" to "Downtown Medical Group"),
+                "insurance_company_name" to "Aetna",
+                "date_of_service" to "2026-02-03",
+                "billed_amount" to 300.0,
+                "insurance_paid" to 125.0,
+                "patient_responsibility" to 75.0,
+                "line_items" to listOf(mapOf("description" to "99215 office visit")),
+                "rawText" to """{"vendor":{"name":"Downtown Medical Group"},"out_of_network_out_of_pocket_balance":0}"""
+            ),
+            documentId = "veryfi-doc-1"
+        )
+
+        assertEquals("Downtown Medical Group", record.providerName)
+        assertEquals("Aetna", record.insuranceName)
+        assertEquals(listOf("99215"), record.charges.map { it.cptCode })
+        assertEquals(75.0, record.totalPatientResponsibility, 0.001)
+    }
 }

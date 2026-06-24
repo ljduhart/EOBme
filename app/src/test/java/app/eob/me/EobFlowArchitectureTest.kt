@@ -1644,6 +1644,65 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun pr116ProviderHistoryCloudFunctionSyncAudit() {
+        val mapperSource = readSource("data/FirebaseEobMapper.kt")
+        val analyzerSource = readSource("data/EobAnalyzer.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val veryfiSource = readSource("network/VeryfiDocumentClient.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val normalizerSource = readFunctionsSource("lib/eobNormalizer.js")
+
+        listOf(
+            "reconcileNormalizedEobRecord",
+            "totalCharges",
+            "patient_responsibility",
+            "vendor_name",
+            "line_items",
+            "insurance_company_name",
+            "resolveProviderName"
+        ).forEach { snippet ->
+            assertTrue("PR#116: FirebaseEobMapper CF sync missing $snippet", mapperSource.contains(snippet))
+        }
+        listOf(
+            "normalizeEobDocument",
+            "veryfiToEobDocument",
+            "mirrorEobToLegacyRecord",
+            "processUploadedEobWithVeryfi",
+            "extractVeryfiHybridStream",
+            "patient_responsibility",
+            "vendor_name"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#116: Cloud Functions hub missing $snippet",
+                functionsIndex.contains(snippet) || normalizerSource.contains(snippet)
+            )
+        }
+        listOf(
+            "fun providerDirectory",
+            "fun historyTimelineSections",
+            "applyRemoteRecords",
+            "compactDuplicateEobs",
+            "openProviderRecordHistory",
+            "historyRecordsForDisplay"
+        ).forEach { snippet ->
+            assertTrue("PR#116: EobViewModel history/provider source-of-truth missing $snippet", viewModelSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#116: provider directory must detect Veryfi out-of-network balance",
+            analyzerSource.contains("out_of_network_out_of_pocket")
+        )
+        assertTrue(
+            "PR#116: Veryfi stream must parse CPT codes from line_items",
+            veryfiSource.contains("line_items") && veryfiSource.contains("validCptCodes")
+        )
+        assertTrue(
+            "PR#116: nav must route provider directory through EobViewModel",
+            navHostSource.contains("eobViewModel.providerDirectory") &&
+                navHostSource.contains("openProviderRecordHistory")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

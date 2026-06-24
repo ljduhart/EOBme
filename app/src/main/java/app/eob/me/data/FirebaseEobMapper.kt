@@ -104,12 +104,12 @@ object FirebaseEobMapper {
             isFsaEligible = storedFsaEligible ?: detectedEligibility.isFsaEligible
         )
 
-        return EobRecord(
+        val record = EobRecord(
             id = data.longValue("id").toInt().takeUnless { it == 0 } ?: stableId(documentId, data, serviceDate),
             firestoreId = documentId,
             sourceName = data.stringValue("sourceName", "source_name", "source").ifBlank { "Firebase" },
-            providerName = data.stringValue("providerName", "provider_name", "provider").ifBlank { EobAnalyzer.findProviderName(rawText) },
-            insuranceName = data.stringValue("insuranceName", "insurance_name", "insurance", "payerName", "payer_name").ifBlank { EobAnalyzer.findInsuranceName(rawText) },
+            providerName = resolveProviderName(data, rawText),
+            insuranceName = resolveInsuranceName(data, rawText),
             serviceDate = serviceDate,
             serviceDateSortKey = data.longValue("serviceDateSortKey", "service_date_sort_key").toInt().takeUnless { it == 0 }
                 ?: EobAnalyzer.serviceDateSortKey(serviceDate),
@@ -125,6 +125,81 @@ object FirebaseEobMapper {
             isHsaEligible = taxVaultEligibility.isHsaEligible,
             isFsaEligible = taxVaultEligibility.isFsaEligible
         )
+        return reconcileNormalizedEobRecord(record, data)
+    }
+
+    /**
+     * Mirrors Cloud Functions [normalizeEobDocument]: charge-line totals win when present,
+     * and [patient_responsibility] backfills patient-share when copay/deductible/coinsurance are absent.
+     */
+    internal fun reconcileNormalizedEobRecord(record: EobRecord, data: Map<String, Any?>): EobRecord {
+        val chargeTotals = totalCharges(record.charges)
+        val reconciled = if (record.charges.isNotEmpty()) {
+            record.copy(
+                totalBilledAmount = chargeTotals.billedAmount,
+                totalInsurancePaidAmount = chargeTotals.insurancePaidAmount,
+                totalContractualAdjustmentAmount = chargeTotals.contractualAdjustmentAmount,
+                totalCopayAmount = chargeTotals.copayAmount,
+                totalDeductibleAmount = chargeTotals.deductibleAmount,
+                totalCoinsuranceAmount = chargeTotals.coinsuranceAmount
+            )
+        } else {
+            record
+        }
+        return applyPatientResponsibilityFallback(reconciled, data)
+    }
+
+    private data class ChargeTotals(
+        val billedAmount: Double,
+        val insurancePaidAmount: Double,
+        val contractualAdjustmentAmount: Double,
+        val copayAmount: Double,
+        val deductibleAmount: Double,
+        val coinsuranceAmount: Double
+    )
+
+    private fun totalCharges(charges: List<EobCharge>): ChargeTotals {
+        return charges.fold(
+            ChargeTotals(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        ) { totals, charge ->
+            ChargeTotals(
+                billedAmount = totals.billedAmount + charge.billedAmount,
+                insurancePaidAmount = totals.insurancePaidAmount + charge.insurancePaidAmount,
+                contractualAdjustmentAmount = totals.contractualAdjustmentAmount + charge.contractualAdjustmentAmount,
+                copayAmount = totals.copayAmount + charge.copayAmount,
+                deductibleAmount = totals.deductibleAmount + charge.deductibleAmount,
+                coinsuranceAmount = totals.coinsuranceAmount + charge.coinsuranceAmount
+            )
+        }
+    }
+
+    private fun applyPatientResponsibilityFallback(record: EobRecord, data: Map<String, Any?>): EobRecord {
+        val extracted = record.totalCopayAmount + record.totalDeductibleAmount + record.totalCoinsuranceAmount
+        val stored = data.doubleValue("patient_responsibility", "patientResponsibility")
+        if (extracted <= 0.0 && stored > 0.0) {
+            return record.copy(totalCopayAmount = stored)
+        }
+        return record
+    }
+
+    private fun resolveProviderName(data: Map<String, Any?>, rawText: String): String {
+        val labeled = data.stringValue("providerName", "provider_name", "provider", "vendor_name")
+        if (labeled.isNotBlank()) return labeled
+        val vendorName = (data["vendor"] as? Map<*, *>)?.get("name")?.toString()?.trim().orEmpty()
+        if (vendorName.isNotBlank()) return vendorName
+        return EobAnalyzer.findProviderName(rawText)
+    }
+
+    private fun resolveInsuranceName(data: Map<String, Any?>, rawText: String): String {
+        return data.stringValue(
+            "insuranceName",
+            "insurance_name",
+            "insurance",
+            "insurance_company_name",
+            "insurance_company",
+            "payerName",
+            "payer_name"
+        ).ifBlank { EobAnalyzer.findInsuranceName(rawText) }
     }
 
     fun newsFromMap(data: Map<String, Any?>): NewsRelease {
@@ -173,7 +248,9 @@ object FirebaseEobMapper {
     }
 
     private fun synthesizeCharges(data: Map<String, Any?>, rawText: String, serviceDate: String): List<EobCharge> {
-        val cptCodes = data.cptCodes().ifEmpty { EobAnalyzer.validCptCodes(rawText) }
+        val cptCodes = data.cptCodes()
+            .ifEmpty { EobAnalyzer.validCptCodes(data.lineItemsText()) }
+            .ifEmpty { EobAnalyzer.validCptCodes(rawText) }
         if (cptCodes.isEmpty()) return emptyList()
         val firstCode = cptCodes.first()
         return cptCodes.map { code ->
@@ -199,9 +276,28 @@ object FirebaseEobMapper {
             is String -> rawCodes.split(",", " ", ";", "|")
             is List<*> -> rawCodes.mapNotNull { it?.toString() }
             else -> emptyList()
-        }.map { it.trim().uppercase() }
+        }.map { it.trim().uppercase(Locale.US) }
             .filter { Regex("^[1-9][0-9]{4}$|^[A-J][0-9]{4}$").matches(it) }
             .distinct()
+    }
+
+    private fun Map<String, Any?>.lineItemsText(): String {
+        val rawLineItems = this["line_items"] ?: this["lineItems"] ?: return ""
+        return when (rawLineItems) {
+            is String -> rawLineItems
+            is List<*> -> rawLineItems.joinToString(" ") { item ->
+                when (item) {
+                    is Map<*, *> -> listOfNotNull(
+                        item["description"]?.toString(),
+                        item["cpt_code"]?.toString(),
+                        item["cptCode"]?.toString(),
+                        item["code"]?.toString()
+                    ).joinToString(" ")
+                    else -> item?.toString().orEmpty()
+                }
+            }
+            else -> rawLineItems.toString()
+        }
     }
 
     private fun Map<String, Any?>.stringValue(vararg keys: String): String {

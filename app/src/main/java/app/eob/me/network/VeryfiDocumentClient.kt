@@ -313,11 +313,30 @@ internal fun veryfiPayloadToEobRecord(
 private fun veryfiExtractCptCodes(payload: Map<String, Any?>): String {
     val explicit = listOf("cptCodes", "cpt_codes", "cptCode", "cpt_code")
         .firstNotNullOfOrNull { key -> payload[key] }
-    return when (explicit) {
+    val explicitText = when (explicit) {
         is String -> explicit
         is List<*> -> explicit.mapNotNull { it?.toString() }.joinToString(",")
         else -> ""
     }
+    val lineItems = payload["line_items"] ?: payload["lineItems"]
+    val lineItemText = when (lineItems) {
+        is String -> lineItems
+        is List<*> -> lineItems.joinToString(" ") { item ->
+            when (item) {
+                is Map<*, *> -> listOfNotNull(
+                    item["description"]?.toString(),
+                    item["cpt_code"]?.toString(),
+                    item["cptCode"]?.toString()
+                ).joinToString(" ")
+                else -> item?.toString().orEmpty()
+            }
+        }
+        else -> ""
+    }
+    val fromLineItems = EobAnalyzer.validCptCodes(lineItemText).joinToString(",")
+    return listOf(explicitText, fromLineItems)
+        .filter { it.isNotBlank() }
+        .joinToString(",")
 }
 
 private fun veryfiPayloadToJsonString(value: Any?): String {

@@ -79,6 +79,23 @@ class EobAnalyzerFlowTest {
         assertTrue(codes.contains("80053"))
     }
 
+    @Test
+    fun recordSignalsOutOfNetworkFromVeryfiBalanceField() {
+        val record = sampleRecord(id = 1).copy(
+            rawText = """{"provider_name":"North Clinic","out_of_network_out_of_pocket_balance":2100}"""
+        )
+        assertTrue(EobAnalyzer.recordSignalsOutOfNetwork(record))
+    }
+
+    @Test
+    fun providerDirectoryTrimsProviderNamesForGrouping() {
+        val a = sampleRecord(id = 1, provider = "Alpha Medical ").copy(firestoreId = "a")
+        val b = sampleRecord(id = 2, provider = "Alpha Medical").copy(firestoreId = "b")
+        val directory = EobAnalyzer.providerDirectory(listOf(a, b))
+        assertEquals(1, directory.size)
+        assertEquals(2, directory.first().eobCount)
+    }
+
     private fun sampleRecord(
         id: Int,
         provider: String = "Flow Clinic",
