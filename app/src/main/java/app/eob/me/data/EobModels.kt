@@ -152,7 +152,8 @@ data class EobRecord(
 
     /** Stable LazyColumn key — never use numeric [id] alone (Firestore/Veryfi can collide). */
     fun historyListKey(): String {
-        if (firestoreId.isNotBlank()) return "fs:$firestoreId"
+        val trimmedFirestoreId = firestoreId.trim()
+        if (trimmedFirestoreId.isNotEmpty()) return "fs:$trimmedFirestoreId"
         val providerToken = providerName.trim().lowercase(Locale.US)
         val insuranceToken = insuranceName.trim().lowercase(Locale.US)
         val sourceToken = sourceName.trim().lowercase(Locale.US)

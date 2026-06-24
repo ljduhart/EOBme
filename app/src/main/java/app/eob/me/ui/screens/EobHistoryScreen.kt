@@ -43,6 +43,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -308,6 +309,30 @@ private fun HistoryMonthHeader(title: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HistoryTimelineItemRow(
+    language: AppLanguage,
+    row: HistoryTimelineRow,
+    isExpanded: Boolean,
+    taxVaultFilterState: TaxVaultFilterState,
+    showVaultFilterBanner: Boolean,
+    onExpandToggle: () -> Unit,
+    onDeleteEob: () -> Unit
+) {
+    key(row.record.historyListKey()) {
+        HistoryTimelineItemRowContent(
+            language = language,
+            row = row,
+            isExpanded = isExpanded,
+            taxVaultFilterState = taxVaultFilterState,
+            showVaultFilterBanner = showVaultFilterBanner,
+            onExpandToggle = onExpandToggle,
+            onDeleteEob = onDeleteEob
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistoryTimelineItemRowContent(
     language: AppLanguage,
     row: HistoryTimelineRow,
     isExpanded: Boolean,

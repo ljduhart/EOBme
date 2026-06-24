@@ -91,6 +91,48 @@ class EobHistoryScreenTest {
     }
 
     @Test
+    fun viewModelHistoryTimelinePathProducesUniqueLazyKeys() {
+        val records = listOf(
+            EobRecord(
+                id = 1,
+                firestoreId = "veryfi-doc-a",
+                sourceName = "Veryfi",
+                providerName = "Clinic A",
+                insuranceName = "Aetna",
+                serviceDate = "Date not recognized",
+                serviceDateSortKey = Int.MAX_VALUE,
+                charges = emptyList(),
+                duplicateChargeWarnings = emptyList(),
+                rawText = "{}"
+            ),
+            EobRecord(
+                id = 2,
+                firestoreId = "veryfi-doc-b",
+                sourceName = "Veryfi",
+                providerName = "Clinic B",
+                insuranceName = "Cigna",
+                serviceDate = "not-a-date",
+                serviceDateSortKey = 0,
+                charges = emptyList(),
+                duplicateChargeWarnings = emptyList(),
+                rawText = "{}"
+            )
+        )
+        val sections = EobAnalyzer.groupHistoryByMonth(
+            EobAnalyzer.compactDuplicateEobs(records),
+            app.eob.me.data.AppLanguage.English
+        )
+        val sectionKeys = sections.map { it.lazySectionKey() }
+        val itemKeys = sections.flatMap { section ->
+            section.rows.map { row -> section.lazyItemKey(row.record) }
+        }
+
+        assertTrue(sectionKeys.isNotEmpty())
+        assertEquals(sectionKeys.size, sectionKeys.distinct().size)
+        assertEquals(itemKeys.size, itemKeys.distinct().size)
+    }
+
+    @Test
     fun compactDuplicateEobsDeduplicatesByFirestoreIdAndHistoryListKey() {
         val sharedId = 1847362819
         val firestoreId = "1847362819"

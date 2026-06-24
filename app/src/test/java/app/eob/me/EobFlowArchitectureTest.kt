@@ -1829,6 +1829,73 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr117FinalHarmonyAudit() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val modelsSource = readSource("data/EobModels.kt")
+        val analyzerSource = readSource("data/EobAnalyzer.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val constantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+
+        assertEquals("health_insurance_eob", VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB)
+        assertTrue(constantsSource.contains("BLUEPRINT_HEALTH_INSURANCE_EOB = \"health_insurance_eob\""))
+        assertTrue(functionsConstants.contains("\"health_insurance_eob\""))
+        listOf(
+            "BLUEPRINT_HEALTH_INSURANCE_EOB",
+            "partner/any-documents/",
+            "extractVeryfiHybridStream"
+        ).forEach { snippet ->
+            assertTrue("PR#117 harmony: Veryfi constants missing $snippet", constantsSource.contains(snippet))
+        }
+        listOf(
+            "processHybridDocument",
+            "finalizeHybridReconciliation",
+            "extractHealthInsuranceEob"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#117 harmony: hybrid pipeline missing $snippet",
+                hybridRepoSource.contains(snippet) ||
+                    veryfiClientSource.contains(snippet) ||
+                    constantsSource.contains("BLUEPRINT_HEALTH_INSURANCE_EOB")
+            )
+        }
+        listOf(
+            "HistoryTimelineSection",
+            "lazySectionKey()",
+            "lazyItemKey(row.record)",
+            "key(row.record.historyListKey())"
+        ).forEach { snippet ->
+            assertTrue("PR#117 harmony: history crash guard missing $snippet", historySource.contains(snippet))
+        }
+        assertTrue(
+            "PR#117 harmony: historyListKey must trim Firestore ids",
+            modelsSource.contains("firestoreId.trim()")
+        )
+        listOf(
+            "fun historyTimelineSections",
+            "List<HistoryTimelineSection>",
+            "applyRemoteRecords",
+            "compactDuplicateEobs"
+        ).forEach { snippet ->
+            assertTrue("PR#117 harmony: EobViewModel source-of-truth missing $snippet", viewModelSource.contains(snippet))
+        }
+        listOf(
+            "EobRoute.History.route",
+            "historyTimelineSections",
+            "EobHistoryScreen"
+        ).forEach { snippet ->
+            assertTrue("PR#117 harmony: navigation wiring missing $snippet", navHostSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#117 harmony: timeline must dedupe by historyListKey",
+            analyzerSource.contains("distinctBy { it.historyListKey() }")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }
