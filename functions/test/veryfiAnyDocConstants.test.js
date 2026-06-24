@@ -12,10 +12,10 @@ const {
   CATEGORIES_INSURANCE
 } = require("../lib/veryfiAnyDocConstants");
 
-test("documents URL mirrors Android VeryfiAnyDocConstants", () => {
+test("any-documents URL mirrors Android VeryfiAnyDocConstants", () => {
   assert.equal(VERYFI_ANY_DOCS_BASE_URL, "https://api.veryfi.com/api/v8/");
-  assert.equal(VERYFI_ANY_DOCS_PATH, "partner/documents/");
-  assert.equal(VERYFI_ANY_DOCS_URL, "https://api.veryfi.com/api/v8/partner/documents/");
+  assert.equal(VERYFI_ANY_DOCS_PATH, "partner/any-documents/");
+  assert.equal(VERYFI_ANY_DOCS_URL, "https://api.veryfi.com/api/v8/partner/any-documents/");
 });
 
 test("health_insurance_eob blueprint is configured for EOB documents extraction", () => {

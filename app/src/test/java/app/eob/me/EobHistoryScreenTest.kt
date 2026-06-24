@@ -45,7 +45,7 @@ class EobHistoryScreenTest {
         assertTrue(source.contains("ExtendedFloatingActionButton"))
         assertTrue(source.contains("PathEffect.dashPathEffect"))
         assertTrue(source.contains("animateContentSize"))
-        assertTrue(source.contains("key = { it.record.id }"))
+        assertTrue(source.contains("historyListKey()"))
     }
 
     @Test
@@ -66,6 +66,54 @@ class EobHistoryScreenTest {
         assertTrue(source.contains("fun historyTimelineSections"))
         assertTrue(source.contains("fun setHistoryPaymentFilter"))
         assertTrue(source.contains("historyPaymentFilter"))
+    }
+
+    @Test
+    fun compactDuplicateEobsDeduplicatesByFirestoreIdAndHistoryListKey() {
+        val sharedId = 1847362819
+        val firestoreId = "1847362819"
+        val sparse = EobRecord(
+            id = sharedId,
+            firestoreId = firestoreId,
+            sourceName = "Veryfi",
+            providerName = "Clinic A",
+            insuranceName = "Aetna",
+            serviceDate = "01/15/2026",
+            serviceDateSortKey = 20260115,
+            charges = emptyList(),
+            duplicateChargeWarnings = emptyList(),
+            rawText = "{}"
+        )
+        val detailed = sparse.copy(
+            charges = listOf(
+                app.eob.me.data.EobCharge(
+                    cptCode = "99213",
+                    cptDescription = "Office visit",
+                    category = app.eob.me.data.CptCategory.OfficeVisit,
+                    billedAmount = 120.0,
+                    insurancePaidAmount = 80.0,
+                    contractualAdjustmentAmount = 20.0,
+                    copayAmount = 20.0,
+                    deductibleAmount = 0.0,
+                    coinsuranceAmount = 0.0,
+                    serviceDate = "01/15/2026"
+                )
+            ),
+            totalBilledAmount = 120.0,
+            rawText = "{\"provider_name\":\"Clinic A\"}"
+        )
+        val collision = sparse.copy(
+            firestoreId = "",
+            providerName = "Clinic B",
+            sourceName = "local-2"
+        )
+
+        val compacted = EobAnalyzer.compactDuplicateEobs(listOf(sparse, detailed, collision))
+
+        assertEquals(2, compacted.size)
+        assertEquals(1, compacted.count { it.firestoreId == firestoreId })
+        assertTrue(compacted.first { it.firestoreId == firestoreId }.charges.isNotEmpty())
+        assertEquals(compacted.size, compacted.map { it.historyListKey() }.distinct().size)
     }
 
     private fun sampleRecord(id: Int, rawText: String): EobRecord {

@@ -149,6 +149,12 @@ data class EobRecord(
 
     val totalPatientResponsibility: Double
         get() = totalCopayAmount + totalDeductibleAmount + totalCoinsuranceAmount
+
+    /** Stable LazyColumn key — never use numeric [id] alone (Firestore/Veryfi can collide). */
+    fun historyListKey(): String {
+        if (firestoreId.isNotBlank()) return "fs:$firestoreId"
+        return "local:$id:$serviceDateSortKey:${providerName.trim().lowercase(Locale.US)}"
+    }
 }
 
 data class NewsRelease(

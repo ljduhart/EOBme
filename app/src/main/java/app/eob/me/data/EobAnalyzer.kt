@@ -479,15 +479,32 @@ object EobAnalyzer {
     }
 
     fun compactDuplicateEobs(records: List<EobRecord>): List<EobRecord> {
-        return records.sortedBy { it.serviceDateSortKey }.fold(mutableListOf()) { compacted, record ->
-            val duplicateIndex = compacted.indexOfFirst { existing -> isSameEob(existing, record) }
-            if (duplicateIndex >= 0) {
-                compacted[duplicateIndex] = record.copy(id = compacted[duplicateIndex].id)
-            } else {
-                compacted.add(record)
+        val compacted = records.sortedBy { it.serviceDateSortKey }.fold(mutableListOf<EobRecord>()) { merged, record ->
+            val duplicateIndex = merged.indexOfFirst { existing ->
+                (record.firestoreId.isNotBlank() && existing.firestoreId == record.firestoreId) ||
+                    isSameEob(existing, record)
             }
-            compacted
+            if (duplicateIndex >= 0) {
+                merged[duplicateIndex] = preferRicherEobRecord(merged[duplicateIndex], record)
+            } else {
+                merged.add(record)
+            }
+            merged
         }
+        return compacted.distinctBy { it.historyListKey() }
+    }
+
+    private fun preferRicherEobRecord(existing: EobRecord, incoming: EobRecord): EobRecord {
+        val richer = when {
+            incoming.charges.size > existing.charges.size -> incoming
+            incoming.totalBilledAmount > existing.totalBilledAmount -> incoming
+            incoming.rawText.length > existing.rawText.length -> incoming
+            else -> existing
+        }
+        return richer.copy(
+            id = existing.id,
+            firestoreId = existing.firestoreId.ifBlank { incoming.firestoreId }
+        )
     }
 
     private fun parseChargeLine(line: String, fallbackDate: String): EobCharge? {

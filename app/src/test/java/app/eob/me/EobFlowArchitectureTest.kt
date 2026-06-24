@@ -524,7 +524,7 @@ class EobFlowArchitectureTest {
             "normalizeStoragePath",
             "VeryfiAnyDocRepository",
             "health_insurance_eob",
-            "partner/documents"
+            "partner/any-documents"
         ).forEach { snippet ->
             assertTrue(
                 "Hybrid Firebase/Veryfi pipeline missing: $snippet",
@@ -709,7 +709,7 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("hasLiveInsuranceNewsPools"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("startInsuranceNewsRotationClock"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("veryfiAnyDocExtractionState"))
-        assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("partner/documents"))
+        assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("partner/any-documents"))
         assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("health_insurance_eob"))
         assertTrue(readSource("network/VeryfiAnyDocApiService.kt").contains("VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("documentScanState"))
@@ -1232,7 +1232,7 @@ class EobFlowArchitectureTest {
             "normalizeStoragePath",
             "VeryfiAnyDocRepository",
             "health_insurance_eob",
-            "partner/documents"
+            "partner/any-documents"
         ).forEach { snippet ->
             assertTrue(
                 "PR#104 audit: Veryfi/Firestore hybrid pipeline barrier missing $snippet",
@@ -1317,12 +1317,12 @@ class EobFlowArchitectureTest {
         val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
 
         assertEquals(
-            "https://api.veryfi.com/api/v8/partner/documents/",
-            "https://api.veryfi.com/api/v8/" + "partner/documents/"
+            "https://api.veryfi.com/api/v8/partner/any-documents/",
+            "https://api.veryfi.com/api/v8/" + "partner/any-documents/"
         )
         listOf(
             "https://api.veryfi.com/api/v8/",
-            "partner/documents/",
+            "partner/any-documents/",
             "health_insurance_eob",
             "extractVeryfiHybridStream"
         ).forEach { snippet ->
@@ -1331,7 +1331,7 @@ class EobFlowArchitectureTest {
         listOf(
             "VERYFI_ANY_DOCS_URL",
             "BLUEPRINT_HEALTH_INSURANCE_EOB",
-            "partner/documents/",
+            "partner/any-documents/",
             "health_insurance_eob"
         ).forEach { snippet ->
             assertTrue(
@@ -1340,10 +1340,10 @@ class EobFlowArchitectureTest {
             )
         }
         assertFalse(
-            "PR#113: deprecated any-documents endpoint must not remain in production code",
-            functionsIndex.contains("partner/any-documents") ||
-                anyDocConstantsSource.contains("partner/any-documents") ||
-                veryfiSource.contains("partner/any-documents")
+            "PR#115: legacy partner/documents endpoint must not remain in production code",
+            functionsIndex.contains("partner/documents/") ||
+                anyDocConstantsSource.contains("partner/documents/") ||
+                veryfiSource.contains("partner/documents/")
         )
         listOf(
             "veryfiAnyDocExtractionState",
@@ -1389,7 +1389,7 @@ class EobFlowArchitectureTest {
         val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
 
-        assertEquals("partner/documents/", VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH)
+        assertEquals("partner/any-documents/", VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH)
         assertTrue(hybridRepoSource.contains("coroutineScope"))
         assertTrue(hybridRepoSource.contains("uploadDeferred"))
         assertTrue(hybridRepoSource.contains("extractionDeferred"))
@@ -1408,10 +1408,10 @@ class EobFlowArchitectureTest {
         assertTrue(functionsIndex.contains("userRootedMatch"))
         assertTrue(functionsIndex.contains("documentRootedMatch"))
         assertTrue(functionsIndex.contains("/eobs/"))
-        assertTrue(functionsConstants.contains("\"partner/documents/\""))
-        assertFalse(constantsSource.contains("partner/any-documents"))
+        assertTrue(functionsConstants.contains("\"partner/any-documents/\""))
+        assertFalse(constantsSource.contains("partner/documents/"))
         assertTrue(viewModelSource.contains("processHybridScannedDocument"))
-        assertFalse(viewModelSource.contains("partner/any-documents"))
+        assertFalse(viewModelSource.contains("partner/documents/"))
         val navHostSource = readSource("navigation/EobNavHost.kt")
         val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
         assertTrue(navHostSource.contains("processScannedDocument"))
@@ -1543,11 +1543,15 @@ class EobFlowArchitectureTest {
         val functionsIndex = readFunctionsSource("index.js")
         val navHostSource = readSource("navigation/EobNavHost.kt")
 
+        assertTrue(
+            "PR#115: Veryfi AnyDocs endpoint must use partner/any-documents/",
+            readFunctionsSource("lib/veryfiAnyDocConstants.js").contains("partner/any-documents/") &&
+                anyDocConstantsSource.contains("partner/any-documents/") &&
+                functionsIndex.contains("VERYFI_ANY_DOCS_URL")
+        )
         assertFalse(
-            "PR#114 final: deprecated any-documents endpoint must not exist",
-            functionsIndex.contains("partner/any-documents") ||
-                anyDocConstantsSource.contains("partner/any-documents") ||
-                veryfiClientSource.contains("partner/any-documents")
+            "PR#115: legacy partner/documents endpoint must not remain",
+            anyDocConstantsSource.contains("partner/documents/")
         )
         listOf(
             "class EobViewModel",
@@ -1572,7 +1576,7 @@ class EobFlowArchitectureTest {
         }
         listOf(
             "extractVeryfiHybridStream",
-            "partner/documents",
+            "partner/any-documents",
             "BLUEPRINT_HEALTH_INSURANCE_EOB",
             "DOCUMENT_TYPE_EOB"
         ).forEach { snippet ->
@@ -1589,6 +1593,44 @@ class EobFlowArchitectureTest {
             "PR#114 final: stale scan results must be ignored on failure path",
             viewModelSource.contains("generation != documentScanGeneration") &&
                 viewModelSource.indexOf("onFailure") < viewModelSource.lastIndexOf("generation != documentScanGeneration")
+        )
+    }
+
+    @Test
+    fun pr115HistoryCrashAndAnyDocumentsAudit() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val modelsSource = readSource("data/EobModels.kt")
+        val analyzerSource = readSource("data/EobAnalyzer.kt")
+        val constantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+        val functionsIndex = readFunctionsSource("index.js")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+
+        assertEquals("partner/any-documents/", VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH)
+        assertTrue(functionsConstants.contains("partner/any-documents/"))
+        assertTrue(functionsIndex.contains("blueprint_name"))
+        assertTrue(
+            functionsConstants.contains("health_insurance_eob") ||
+                functionsIndex.contains("BLUEPRINT_HEALTH_INSURANCE_EOB")
+        )
+        listOf(
+            "fun historyListKey()",
+            "historyListKey()",
+            "expandedRecordKey"
+        ).forEach { snippet ->
+            assertTrue("PR#115: history crash guard missing $snippet", historySource.contains(snippet) || modelsSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#115: duplicate Firestore EOBs must be compacted before history render",
+            analyzerSource.contains("distinctBy { it.historyListKey() }")
+        )
+        assertFalse(
+            "PR#115: LazyColumn must not key on collision-prone numeric id alone",
+            historySource.contains("key = { it.record.id }")
+        )
+        assertTrue(
+            "PR#115: EobViewModel remains history source of truth",
+            viewModelSource.contains("fun historyTimelineSections")
         )
     }
 

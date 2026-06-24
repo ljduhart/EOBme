@@ -2,7 +2,7 @@
 
 /** Mirrors Android [VeryfiAnyDocConstants] — single source for EOB documents endpoint wiring. */
 const VERYFI_ANY_DOCS_BASE_URL = "https://api.veryfi.com/api/v8/";
-const VERYFI_ANY_DOCS_PATH = "partner/documents/";
+const VERYFI_ANY_DOCS_PATH = "partner/any-documents/";
 const VERYFI_ANY_DOCS_URL = `${VERYFI_ANY_DOCS_BASE_URL}${VERYFI_ANY_DOCS_PATH}`;
 const BLUEPRINT_HEALTH_INSURANCE_EOB = "health_insurance_eob";
 const DOCUMENT_TYPE_EOB = "eob";
