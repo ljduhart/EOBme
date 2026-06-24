@@ -135,14 +135,24 @@ object FirebaseEobMapper {
     internal fun reconcileNormalizedEobRecord(record: EobRecord, data: Map<String, Any?>): EobRecord {
         val chargeTotals = totalCharges(record.charges)
         val reconciled = if (record.charges.isNotEmpty()) {
-            record.copy(
-                totalBilledAmount = chargeTotals.billedAmount,
-                totalInsurancePaidAmount = chargeTotals.insurancePaidAmount,
-                totalContractualAdjustmentAmount = chargeTotals.contractualAdjustmentAmount,
-                totalCopayAmount = chargeTotals.copayAmount,
-                totalDeductibleAmount = chargeTotals.deductibleAmount,
-                totalCoinsuranceAmount = chargeTotals.coinsuranceAmount
-            )
+            val hasChargeLineAmounts = chargeTotals.billedAmount > 0.0 ||
+                chargeTotals.insurancePaidAmount > 0.0 ||
+                chargeTotals.contractualAdjustmentAmount > 0.0 ||
+                chargeTotals.copayAmount > 0.0 ||
+                chargeTotals.deductibleAmount > 0.0 ||
+                chargeTotals.coinsuranceAmount > 0.0
+            if (hasChargeLineAmounts) {
+                record.copy(
+                    totalBilledAmount = chargeTotals.billedAmount,
+                    totalInsurancePaidAmount = chargeTotals.insurancePaidAmount,
+                    totalContractualAdjustmentAmount = chargeTotals.contractualAdjustmentAmount,
+                    totalCopayAmount = chargeTotals.copayAmount,
+                    totalDeductibleAmount = chargeTotals.deductibleAmount,
+                    totalCoinsuranceAmount = chargeTotals.coinsuranceAmount
+                )
+            } else {
+                record
+            }
         } else {
             record
         }

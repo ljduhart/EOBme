@@ -1703,6 +1703,61 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun pr116ReviewConnectivityStabilityAudit() {
+        val mapperSource = readSource("data/FirebaseEobMapper.kt")
+        val analyzerSource = readSource("data/EobAnalyzer.kt")
+        val providerSource = readSource("ui/screens/ProviderDirectoryScreen.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val routesSource = readSource("navigation/EobRoutes.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+
+        listOf(
+            "providerNamesEqual",
+            "reconcileNormalizedEobRecord",
+            "hasChargeLineAmounts",
+            "providerNamesEqual(it.providerName, providerName)"
+        ).forEach { snippet ->
+            assertTrue("PR#116 review: provider/history stability missing $snippet", {
+                mapperSource.contains(snippet) ||
+                    analyzerSource.contains(snippet) ||
+                    providerSource.contains(snippet)
+            }())
+        }
+        listOf(
+            "EobRoute.ProviderDirectory.route",
+            "EobRoute.History.route",
+            "openProviderRecordHistory",
+            "historyProviderSearch",
+            "historyTimelineSections",
+            "historyListKey()"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#116 review: navigation wiring missing $snippet",
+                navHostSource.contains(snippet) || historySource.contains(snippet) || routesSource.contains(snippet)
+            )
+        }
+        assertTrue(
+            "PR#116 review: EobViewModel remains hub source of truth",
+            viewModelSource.contains("fun providerDirectory()") &&
+                viewModelSource.contains("fun historyTimelineSections") &&
+                viewModelSource.contains("applyRemoteRecords")
+        )
+        assertFalse(
+            "PR#116 review: history LazyColumn must not key on numeric id alone",
+            historySource.contains("key = { it.record.id }")
+        )
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#116 review: opening screen touched ($path)", source.contains("providerNamesEqual"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

@@ -5,6 +5,9 @@ import app.eob.me.data.CptCategory
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobRecord
+import app.eob.me.data.ProviderSummary
+import app.eob.me.ui.screens.NetworkStatus
+import app.eob.me.ui.screens.toPremiumProviderSummary
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -81,10 +84,18 @@ class EobAnalyzerFlowTest {
 
     @Test
     fun recordSignalsOutOfNetworkFromVeryfiBalanceField() {
-        val record = sampleRecord(id = 1).copy(
+        val planBalanceOnly = sampleRecord(id = 1).copy(
             rawText = """{"provider_name":"North Clinic","out_of_network_out_of_pocket_balance":2100}"""
         )
-        assertTrue(EobAnalyzer.recordSignalsOutOfNetwork(record))
+        assertFalse(
+            "Plan-level OON OOP remaining must not flag the provider as out-of-network",
+            EobAnalyzer.recordSignalsOutOfNetwork(planBalanceOnly)
+        )
+
+        val explicitOonClaim = sampleRecord(id = 2).copy(
+            rawText = """{"provider_name":"North Clinic","out_of_network_out_of_pocket_balance":2100,"note":"out-of-network specialist"}"""
+        )
+        assertTrue(EobAnalyzer.recordSignalsOutOfNetwork(explicitOonClaim))
     }
 
     @Test
@@ -94,6 +105,23 @@ class EobAnalyzerFlowTest {
         val directory = EobAnalyzer.providerDirectory(listOf(a, b))
         assertEquals(1, directory.size)
         assertEquals(2, directory.first().eobCount)
+    }
+
+    @Test
+    fun premiumProviderSummaryMatchesTrimmedProviderRecords() {
+        val summary = ProviderSummary(
+            providerName = "Alpha Medical",
+            eobCount = 1,
+            totalBilled = 100.0,
+            totalInsurancePaid = 50.0,
+            totalPatientResponsibility = 25.0,
+            lastServiceDate = "01/15/2026"
+        )
+        val record = sampleRecord(id = 1, provider = "Alpha Medical ").copy(
+            rawText = "In-network office visit"
+        )
+        val premium = summary.toPremiumProviderSummary(listOf(record))
+        assertEquals(NetworkStatus.IN_NETWORK, premium.networkStatus)
     }
 
     private fun sampleRecord(

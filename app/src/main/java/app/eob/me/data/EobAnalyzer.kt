@@ -346,25 +346,48 @@ object EobAnalyzer {
         "(?i)\"out_of_network_out_of_pocket(?:_balance)?\"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)"
     )
 
+    private val claimOutOfNetworkSpendPattern = Regex(
+        "(?i)\"out_of_network_(?:amount|spend|patient_responsibility)\"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)"
+    )
+
+    private val inNetworkPaidPattern = Regex(
+        "(?i)(\"in_network_(?:amount_paid|paid)\"\\s*:\\s*[1-9][0-9]*(?:\\.[0-9]+)?|in[-\\s]?network[^\\n]{0,40}paid)"
+    )
+
     fun recordSignalsOutOfNetwork(record: EobRecord): Boolean {
         if (outOfNetworkPattern.containsMatchIn(record.rawText)) return true
-        return outOfNetworkBalanceFromPayload(record.rawText) > 0.0
+        return outOfNetworkClaimBalanceFromPayload(record.rawText) > 0.0
     }
 
-    private fun outOfNetworkBalanceFromPayload(rawText: String): Double {
+  /**
+     * Reads claim-level out-of-network spend from Veryfi JSON payloads.
+     * Plan-level remaining OON out-of-pocket balances are ignored to avoid false positives.
+     */
+    private fun outOfNetworkClaimBalanceFromPayload(rawText: String): Double {
         if (rawText.isBlank()) return 0.0
-        val match = outOfNetworkBalancePattern.find(rawText) ?: return 0.0
-        return match.groupValues.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+        val claimSpend = claimOutOfNetworkSpendPattern.find(rawText)?.groupValues?.getOrNull(1)?.toDoubleOrNull()
+        if (claimSpend != null && claimSpend > 0.0) return claimSpend
+        val remainingBalance = outOfNetworkBalancePattern.find(rawText)?.groupValues?.getOrNull(1)?.toDoubleOrNull()
+            ?: return 0.0
+        if (remainingBalance <= 0.0) return 0.0
+        val hasInNetworkPaid = inNetworkPaidPattern.containsMatchIn(rawText)
+        val hasExplicitOonLanguage = outOfNetworkPattern.containsMatchIn(rawText)
+        return if (hasExplicitOonLanguage && !hasInNetworkPaid) remainingBalance else 0.0
     }
 
     fun providerNameMatchesCareTeam(recordProvider: String, careTeamName: String): Boolean {
         if (careTeamName.isBlank() || recordProvider.isBlank()) return false
         if (recordProvider.contains("not recognized", ignoreCase = true)) return false
-        val normalizedRecord = recordProvider.trim().lowercase()
-        val normalizedCare = careTeamName.trim().lowercase()
+        val normalizedRecord = recordProvider.trim().lowercase(Locale.US)
+        val normalizedCare = careTeamName.trim().lowercase(Locale.US)
         return normalizedRecord == normalizedCare ||
             normalizedRecord.contains(normalizedCare) ||
             normalizedCare.contains(normalizedRecord)
+    }
+
+    /** Trim-aware equality for Provider Directory grouping and record lookup. */
+    fun providerNamesEqual(first: String, second: String): Boolean {
+        return first.trim().equals(second.trim(), ignoreCase = true)
     }
 
     fun historyBentoSnapshot(records: List<EobRecord>): HistoryBentoSnapshot {
@@ -412,7 +435,7 @@ object EobAnalyzer {
 
     fun providerAvatarPreviews(records: List<EobRecord>, language: AppLanguage, limit: Int = 3): List<ProviderAvatarPreview> {
         return providerDirectory(records).take(limit).map { summary ->
-            val sampleRecord = records.firstOrNull { it.providerName == summary.providerName }
+            val sampleRecord = records.firstOrNull { providerNamesEqual(it.providerName, summary.providerName) }
             ProviderAvatarPreview(
                 initials = providerInitials(summary.providerName),
                 displayName = summary.providerName.uppercase(),
@@ -458,7 +481,7 @@ object EobAnalyzer {
     fun providerDirectory(records: List<EobRecord>): List<ProviderSummary> {
         return records
             .filter { record ->
-                record.providerName.isNotBlank() &&
+                record.providerName.trim().isNotBlank() &&
                     !record.providerName.contains("not recognized", ignoreCase = true)
             }
             .groupBy { record -> record.providerName.trim() }

@@ -491,4 +491,28 @@ class ExampleUnitTest {
         assertEquals(listOf("99215"), record.charges.map { it.cptCode })
         assertEquals(75.0, record.totalPatientResponsibility, 0.001)
     }
+
+    @Test
+    fun firebaseMapperKeepsDocumentTotalsWhenChargeLinesAreEmpty() {
+        val record = FirebaseEobMapper.eobFromMap(
+            mapOf(
+                "provider_name" to "Lakeside Clinic",
+                "insurance_name" to "UnitedHealthcare",
+                "serviceDate" to "03/05/2026",
+                "billed_amount" to 200.0,
+                "insurance_paid" to 80.0,
+                "charges" to listOf(
+                    mapOf(
+                        "cptCode" to "99214",
+                        "billedAmount" to 0.0,
+                        "insurancePaidAmount" to 0.0
+                    )
+                )
+            ),
+            documentId = "partial-doc"
+        )
+
+        assertEquals(200.0, record.totalBilledAmount, 0.001)
+        assertEquals(80.0, record.totalInsurancePaidAmount, 0.001)
+    }
 }

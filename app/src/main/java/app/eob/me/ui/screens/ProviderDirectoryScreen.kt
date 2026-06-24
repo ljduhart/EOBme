@@ -65,7 +65,7 @@ fun ProviderDirectoryScreen(
 }
 
 internal fun ProviderSummary.toPremiumProviderSummary(records: List<EobRecord>): PremiumProviderSummary {
-    val providerRecords = records.filter { it.providerName == providerName }
+    val providerRecords = records.filter { EobAnalyzer.providerNamesEqual(it.providerName, providerName) }
     val latestRecord = providerRecords.maxByOrNull { it.serviceDateSortKey }
     val networkStatus = when {
         latestRecord == null -> NetworkStatus.PENDING
