@@ -1,5 +1,7 @@
 "use strict";
 
+const {enrichPayload, extractOcrText} = require("./veryfiOcrFieldExtractor");
+
 const VALID_CPT_PATTERN = /^[1-9][0-9]{4}$|^[A-J][0-9]{4}$/;
 
 const CPT_DESCRIPTIONS = {
@@ -58,7 +60,7 @@ function normalizeEobDocument(data = {}, documentId = "") {
     "payer_name"
   ]) || findInsuranceName(rawText);
 
-  const totals = totalCharges(charges);
+  const totals = reconcileDocumentTotals(data, charges);
 
   return {
     id: numberValue(data, ["id"]) || stableId(documentId, providerName, insuranceName, serviceDate, charges),
@@ -92,27 +94,30 @@ function normalizeEobDocument(data = {}, documentId = "") {
 }
 
 function veryfiToEobDocument(veryfi = {}, metadata = {}) {
-  const rawText = JSON.stringify(veryfi);
-  const providerName = stringValue(veryfi, [
+  const enriched = enrichPayload(veryfi);
+  const ocrText = extractOcrText(enriched);
+  const rawText = ocrText || JSON.stringify(enriched);
+  const providerName = stringValue(enriched, [
     "provider_name",
     "vendor_name"
-  ]) || stringValue(veryfi.vendor || {}, ["name"]) || findProviderName(rawText);
-  const insuranceName = stringValue(veryfi, [
+  ]) || stringValue(enriched.vendor || {}, ["name"]) || findProviderName(rawText);
+  const insuranceName = stringValue(enriched, [
     "insurance_company_name",
     "insurance_company",
     "insurance_name",
     "payer_name",
     "insurance"
   ]) || findInsuranceName(rawText);
-  const dateOfService = normalizeDate(firstValue(veryfi, [
+  const dateOfService = normalizeDate(firstValue(enriched, [
     "date_of_service",
     "service_date",
     "date"
   ]));
   const cptCodes = parseCptCodes([
-    veryfi.cptCodes,
-    veryfi.cpt_codes,
-    JSON.stringify(veryfi.line_items || ""),
+    enriched.cptCodes,
+    enriched.cpt_codes,
+    enriched.cpt,
+    JSON.stringify(enriched.line_items || ""),
     rawText
   ].flat().filter(Boolean).join(" "));
 
@@ -121,44 +126,46 @@ function veryfiToEobDocument(veryfi = {}, metadata = {}) {
     providerName,
     insuranceName,
     date_of_service: dateOfService,
-    billed_amount: numberValue(veryfi, ["billed_amount", "total_amount_billed", "total", "subtotal"]),
-    insurance_paid: numberValue(veryfi, ["insurance_paid", "amount_paid", "payment"]),
-    contractual_adj: numberValue(veryfi, ["contractual_adj", "contractual_adjustment", "discount"]),
-    copay: numberValue(veryfi, ["copay", "co_pay"]),
-    deductible: numberValue(veryfi, ["deductible"]),
-    coinsurance: numberValue(veryfi, ["coinsurance"]),
-    in_network_out_of_pocket_balance: numberValue(veryfi, [
+    billed_amount: numberValue(enriched, ["billed_amount", "total_amount_billed", "total", "subtotal"]),
+    insurance_paid: numberValue(enriched, ["insurance_paid", "amount_paid", "payment"]),
+    contractual_adj: numberValue(enriched, ["contractual_adj", "contractual_adjustment", "discount"]),
+    copay: numberValue(enriched, ["copay", "co_pay"]),
+    deductible: numberValue(enriched, ["deductible"]),
+    coinsurance: numberValue(enriched, ["coinsurance"]),
+    patient_responsibility: numberValue(enriched, ["patient_responsibility", "patientResponsibility"]),
+    in_network_out_of_pocket_balance: numberValue(enriched, [
       "in_network_out_of_pocket_balance",
       "in_network_out_of_pocket"
     ]),
-    out_of_network_out_of_pocket_balance: numberValue(veryfi, [
+    out_of_network_out_of_pocket_balance: numberValue(enriched, [
       "out_of_network_out_of_pocket_balance",
       "out_of_network_out_of_pocket"
     ]),
-    member_name: stringValue(veryfi, ["member_name"]),
-    member_id: stringValue(veryfi, ["member_id", "member_number"]),
-    patient_name: stringValue(veryfi, ["patient_name"]),
-    claim_id: stringValue(veryfi, ["claim_id", "claim_number"]),
-    blueprint_name: stringValue(veryfi, ["blueprint_name"]) || "health_insurance_eob",
+    member_name: stringValue(enriched, ["member_name"]),
+    member_id: stringValue(enriched, ["member_id", "member_number"]),
+    patient_name: stringValue(enriched, ["patient_name"]),
+    claim_id: stringValue(enriched, ["claim_id", "claim_number"]),
+    blueprint_name: stringValue(enriched, ["blueprint_name"]) || "health_insurance_eob",
     ...(cptCodes.length > 0 ? {cptCodes} : {}),
     rawText,
+    ocr_text: ocrText,
     sourceFilePath: metadata.sourceFilePath || "",
-    veryfiDocumentId: veryfi.id || veryfi.document_id || ""
-  }, metadata.documentId || String(veryfi.id || veryfi.document_id || Date.now()));
+    veryfiDocumentId: enriched.id || enriched.document_id || ""
+  }, metadata.documentId || String(enriched.id || enriched.document_id || Date.now()));
   return {
     ...normalized,
     sourceFilePath: metadata.sourceFilePath || "",
-    veryfiDocumentId: veryfi.id || veryfi.document_id || "",
-    blueprint_name: stringValue(veryfi, ["blueprint_name"]) || "health_insurance_eob",
-    member_name: stringValue(veryfi, ["member_name"]),
-    member_id: stringValue(veryfi, ["member_id", "member_number"]),
-    patient_name: stringValue(veryfi, ["patient_name"]),
-    claim_id: stringValue(veryfi, ["claim_id", "claim_number"]),
-    in_network_out_of_pocket_balance: numberValue(veryfi, [
+    veryfiDocumentId: enriched.id || enriched.document_id || "",
+    blueprint_name: stringValue(enriched, ["blueprint_name"]) || "health_insurance_eob",
+    member_name: stringValue(enriched, ["member_name"]),
+    member_id: stringValue(enriched, ["member_id", "member_number"]),
+    patient_name: stringValue(enriched, ["patient_name"]),
+    claim_id: stringValue(enriched, ["claim_id", "claim_number"]),
+    in_network_out_of_pocket_balance: numberValue(enriched, [
       "in_network_out_of_pocket_balance",
       "in_network_out_of_pocket"
     ]),
-    out_of_network_out_of_pocket_balance: numberValue(veryfi, [
+    out_of_network_out_of_pocket_balance: numberValue(enriched, [
       "out_of_network_out_of_pocket_balance",
       "out_of_network_out_of_pocket"
     ])
@@ -187,7 +194,7 @@ function normalizeCharge(charge = {}, fallbackDate = "Date not recognized") {
 }
 
 function synthesizeCharges(data, rawText, serviceDate) {
-  const codes = parseCptCodes(firstValue(data, ["cptCodes", "cpt_codes", "cptCode", "cpt_code"]) || rawText);
+  const codes = parseCptCodes(firstValue(data, ["cptCodes", "cpt_codes", "cptCode", "cpt_code", "cpt"]) || rawText);
   if (codes.length === 0) return [];
   const firstCode = codes[0];
   return codes.map((code) => ({
@@ -236,6 +243,37 @@ function totalCharges(charges) {
     deductibleAmount: 0,
     coinsuranceAmount: 0
   });
+}
+
+function reconcileDocumentTotals(data, charges) {
+  const chargeTotals = totalCharges(charges);
+  const hasChargeLineAmounts = charges.length > 0 && (
+    chargeTotals.billedAmount > 0 ||
+    chargeTotals.insurancePaidAmount > 0 ||
+    chargeTotals.contractualAdjustmentAmount > 0 ||
+    chargeTotals.copayAmount > 0 ||
+    chargeTotals.deductibleAmount > 0 ||
+    chargeTotals.coinsuranceAmount > 0
+  );
+  let totals = hasChargeLineAmounts ? chargeTotals : {
+    billedAmount: numberValue(data, ["totalBilledAmount", "billedAmount", "billed_amount", "total_amount_billed"]),
+    insurancePaidAmount: numberValue(data, ["totalInsurancePaidAmount", "insurancePaid", "insurance_paid"]),
+    contractualAdjustmentAmount: numberValue(data, [
+      "totalContractualAdjustmentAmount",
+      "contractualAdjustment",
+      "contractual_adj",
+      "contractual_adjustment"
+    ]),
+    copayAmount: numberValue(data, ["totalCopayAmount", "copayAmount", "copay"]),
+    deductibleAmount: numberValue(data, ["totalDeductibleAmount", "deductibleAmount", "deductible"]),
+    coinsuranceAmount: numberValue(data, ["totalCoinsuranceAmount", "coinsuranceAmount", "coinsurance"])
+  };
+  const extracted = totals.copayAmount + totals.deductibleAmount + totals.coinsuranceAmount;
+  const stored = numberValue(data, ["patient_responsibility", "patientResponsibility"]);
+  if (extracted <= 0 && stored > 0) {
+    totals = {...totals, copayAmount: stored};
+  }
+  return totals;
 }
 
 function findProviderName(rawText) {

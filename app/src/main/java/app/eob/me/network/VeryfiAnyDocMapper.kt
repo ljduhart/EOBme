@@ -2,7 +2,6 @@ package app.eob.me.network
 
 import app.eob.me.data.VeryfiHealthInsuranceEob
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 
 object VeryfiAnyDocMapper {
     private val gson = Gson()

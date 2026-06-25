@@ -324,7 +324,7 @@ object FirebaseEobMapper {
     }
 
     private fun Map<String, Any?>.cptCodes(): List<String> {
-        val rawCodes = this["cptCodes"] ?: this["cpt_codes"] ?: this["cptCode"] ?: this["cpt_code"]
+        val rawCodes = this["cptCodes"] ?: this["cpt_codes"] ?: this["cptCode"] ?: this["cpt_code"] ?: this["cpt"]
         return when (rawCodes) {
             is String -> rawCodes.split(",", " ", ";", "|")
             is List<*> -> rawCodes.mapNotNull { it?.toString() }

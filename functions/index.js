@@ -93,6 +93,7 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
     processedAt: admin.firestore.FieldValue.serverTimestamp(),
     hybridReconciliationStatus: "storage_trigger_committed",
     processedByStorageTrigger: "veryfi_storage_authority",
+    veryfiClientStream: veryfiResponse,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   };
 
