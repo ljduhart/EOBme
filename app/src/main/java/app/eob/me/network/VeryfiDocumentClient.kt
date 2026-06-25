@@ -57,7 +57,8 @@ class VeryfiDocumentClient(
         documentRefId: String,
         fileBytes: ByteArray,
         fileName: String,
-        contentType: String
+        contentType: String,
+        fileUrl: String? = null
     ): Map<String, Any?> {
         if (userId.isBlank()) {
             throw IllegalArgumentException("User id is required for Veryfi stream extraction.")
@@ -65,25 +66,34 @@ class VeryfiDocumentClient(
         if (documentRefId.isBlank()) {
             throw IllegalArgumentException("Document reference id is required.")
         }
-        if (fileBytes.isEmpty()) {
-            throw IllegalArgumentException("Document bytes are required for Veryfi stream extraction.")
+        val resolvedFileUrl = fileUrl?.trim().orEmpty()
+        if (resolvedFileUrl.isBlank() && fileBytes.isEmpty()) {
+            throw IllegalArgumentException("Document bytes or fileUrl are required for Veryfi stream extraction.")
         }
         if (fileName.isBlank()) {
             throw IllegalArgumentException("File name is required for Veryfi stream extraction.")
         }
 
-        val encoded = Base64.encodeToString(fileBytes, Base64.NO_WRAP)
+        val encoded = if (fileBytes.isNotEmpty()) {
+            Base64.encodeToString(fileBytes, Base64.NO_WRAP)
+        } else {
+            ""
+        }
         val response = withTimeout(VeryfiAnyDocConstants.HYBRID_STREAM_TIMEOUT_SECONDS * 1_000) {
             suspendCancellableCoroutine<Map<String, Any?>> { continuation ->
                 val callable = functions.getHttpsCallable(EXTRACT_VERYFI_HYBRID_STREAM)
                     .withTimeout(VeryfiAnyDocConstants.HYBRID_STREAM_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                val payload = hashMapOf(
-                    "fileBase64" to encoded,
+                val payload = hashMapOf<String, Any>(
                     "fileName" to fileName,
                     "contentType" to contentType,
                     "documentRefId" to documentRefId,
                     "blueprintName" to VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB
                 )
+                if (resolvedFileUrl.isNotBlank()) {
+                    payload["fileUrl"] = resolvedFileUrl
+                } else {
+                    payload["fileBase64"] = encoded
+                }
                 val task = callable.call(payload)
                 task.addOnSuccessListener { result ->
                     if (!continuation.isActive) return@addOnSuccessListener

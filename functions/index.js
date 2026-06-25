@@ -21,6 +21,7 @@ const {
 const {
   postAnyDocument,
   postAnyDocumentFromBytes,
+  postAnyDocumentFromUrl,
   VeryfiApiError,
   VeryfiConfigurationError,
   VeryfiRequestValidationError
@@ -30,8 +31,16 @@ admin.initializeApp();
 
 const db = admin.firestore();
 const veryfiClientId = defineSecret("VERYFI_CLIENT_ID");
+const veryfiClientSecret = defineSecret("VERYFI_CLIENT_SECRET");
 const veryfiUsername = defineSecret("VERYFI_USERNAME");
 const veryfiApiKey = defineSecret("VERYFI_API_KEY");
+
+const VERYFI_FUNCTION_SECRETS = [
+  veryfiClientId,
+  veryfiClientSecret,
+  veryfiUsername,
+  veryfiApiKey
+];
 
 exports.mirrorEobToLegacyRecord = onDocumentWritten("users/{userId}/eobs/{eobId}", async (event) => {
   return mirrorEobWrite(event, "eobs", "eob_records");
@@ -42,7 +51,7 @@ exports.mirrorLegacyRecordToEob = onDocumentWritten("users/{userId}/eob_records/
 });
 
 exports.processUploadedEobWithVeryfi = onObjectFinalized({
-  secrets: [veryfiClientId, veryfiUsername, veryfiApiKey],
+  secrets: VERYFI_FUNCTION_SECRETS,
   timeoutSeconds: 120,
   memory: "512MiB"
 }, async (event) => {
@@ -108,7 +117,7 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
 });
 
 exports.extractVeryfiHybridStream = onCall({
-  secrets: [veryfiClientId, veryfiUsername, veryfiApiKey],
+  secrets: VERYFI_FUNCTION_SECRETS,
   timeoutSeconds: 120,
   memory: "512MiB"
 }, async (request) => {
@@ -119,13 +128,20 @@ exports.extractVeryfiHybridStream = onCall({
 
     const {
       fileBase64,
+      fileUrl,
       fileName,
+      contentType,
       blueprintName,
       documentRefId
     } = request.data || {};
 
-    if (!fileBase64 || !fileName) {
-      throw new HttpsError("invalid-argument", "fileBase64 and fileName are required.");
+    const resolvedFileUrl = String(fileUrl || "").trim();
+    const hasFileUrl = resolvedFileUrl.length > 0;
+    if (!hasFileUrl && (!fileBase64 || !fileName)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "fileUrl or (fileBase64 and fileName) are required."
+      );
     }
 
     const resolvedBlueprint = String(blueprintName || "").trim() || BLUEPRINT_HEALTH_INSURANCE_EOB;
@@ -136,13 +152,22 @@ exports.extractVeryfiHybridStream = onCall({
       );
     }
 
-    const veryfiResponse = await postAnyDocument({
-      fileDataBase64: fileBase64,
-      fileName,
-      blueprintName: BLUEPRINT_HEALTH_INSURANCE_EOB,
-      externalId: documentRefId,
-      credentials: readVeryfiCredentials()
-    });
+    const credentials = readVeryfiCredentials();
+    const veryfiResponse = hasFileUrl
+      ? await postAnyDocumentFromUrl({
+        fileUrl: resolvedFileUrl,
+        blueprintName: BLUEPRINT_HEALTH_INSURANCE_EOB,
+        externalId: documentRefId,
+        credentials
+      })
+      : await postAnyDocument({
+        fileDataBase64: fileBase64,
+        fileName,
+        contentType,
+        blueprintName: BLUEPRINT_HEALTH_INSURANCE_EOB,
+        externalId: documentRefId,
+        credentials
+      });
 
     return {veryfi: veryfiResponse};
   } catch (error) {
@@ -154,12 +179,14 @@ function readVeryfiCredentials() {
   try {
     return {
       clientId: veryfiClientId.value(),
+      clientSecret: veryfiClientSecret.value(),
       username: veryfiUsername.value(),
       apiKey: veryfiApiKey.value()
     };
   } catch (error) {
     throw new VeryfiConfigurationError(
-      "Veryfi API credentials are not configured for this Firebase project."
+      "Veryfi API credentials are not configured for this Firebase project. " +
+        "Set VERYFI_CLIENT_ID, VERYFI_CLIENT_SECRET, VERYFI_USERNAME, and VERYFI_API_KEY."
     );
   }
 }
@@ -191,7 +218,7 @@ function mapVeryfiHybridStreamError(error) {
   }
 
   const message = error?.message ? String(error.message) : "Unexpected Veryfi hybrid stream failure.";
-  return new HttpsError("internal", message);
+  return new HttpsError("failed-precondition", message);
 }
 
 async function mirrorEobWrite(event, sourceCollection, targetCollection) {

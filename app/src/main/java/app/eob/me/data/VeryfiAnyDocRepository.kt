@@ -19,7 +19,8 @@ class VeryfiAnyDocRepository(
         fileBytes: ByteArray,
         fileName: String,
         contentType: String,
-        sourceName: String
+        sourceName: String,
+        fileUrl: String? = null
     ): Result<VeryfiAnyDocExtractionResult> {
         if (userId.isBlank()) {
             return Result.failure(IllegalArgumentException("User id is required for Veryfi AnyDocs extraction."))
@@ -27,8 +28,11 @@ class VeryfiAnyDocRepository(
         if (documentRefId.isBlank()) {
             return Result.failure(IllegalArgumentException("Document reference id is required."))
         }
-        if (fileBytes.isEmpty()) {
-            return Result.failure(IllegalArgumentException("Document bytes are required for Veryfi AnyDocs extraction."))
+        val resolvedFileUrl = fileUrl?.trim().orEmpty()
+        if (resolvedFileUrl.isBlank() && fileBytes.isEmpty()) {
+            return Result.failure(
+                IllegalArgumentException("Document bytes or fileUrl are required for Veryfi AnyDocs extraction.")
+            )
         }
         if (fileName.isBlank()) {
             return Result.failure(IllegalArgumentException("File name is required for Veryfi AnyDocs extraction."))
@@ -40,7 +44,8 @@ class VeryfiAnyDocRepository(
                 documentRefId = documentRefId,
                 fileBytes = fileBytes,
                 fileName = fileName,
-                contentType = contentType
+                contentType = contentType,
+                fileUrl = resolvedFileUrl.takeIf { it.isNotBlank() }
             )
             val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(rawPayload, documentRefId)
             val extraction = VeryfiAnyDocMapper.mapFromUntypedPayload(mergedPayload, documentRefId)

@@ -1390,14 +1390,13 @@ class EobFlowArchitectureTest {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
 
         assertEquals("partner/any-documents/", VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH)
-        assertTrue(hybridRepoSource.contains("coroutineScope"))
-        assertTrue(hybridRepoSource.contains("uploadDeferred"))
-        assertTrue(hybridRepoSource.contains("extractionDeferred"))
-        assertTrue(hybridRepoSource.contains("extractionDeferred.await()"))
+        assertTrue(hybridRepoSource.contains("uploadDocument("))
+        assertTrue(hybridRepoSource.contains("fileUrl = upload.downloadUrl"))
         assertFalse(hybridRepoSource.contains("upload.documentRefId"))
         assertTrue(hybridRepoSource.contains("storagePathForUpload"))
         assertTrue(hybridRepoSource.contains("fileBytes"))
         assertTrue(veryfiSource.contains("fileBase64"))
+        assertTrue(veryfiSource.contains("\"fileUrl\""))
         assertTrue(veryfiSource.contains("VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB"))
         assertTrue(constantsSource.contains("DOCUMENT_TYPE_EOB"))
         assertTrue(veryfiSource.contains("withTimeout"))
@@ -1416,13 +1415,13 @@ class EobFlowArchitectureTest {
         val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
         assertTrue(navHostSource.contains("processScannedDocument"))
         assertTrue(remoteSource.contains("processHybridDocument"))
-        val extractionAwaitIndex = hybridRepoSource.indexOf("extractionDeferred.await()")
-        val uploadAwaitIndex = hybridRepoSource.indexOf("uploadDeferred.await()")
-        assertTrue(extractionAwaitIndex >= 0)
-        assertTrue(uploadAwaitIndex >= 0)
+        val uploadIndex = hybridRepoSource.indexOf("val upload = uploadDocument(")
+        val extractIndex = hybridRepoSource.indexOf("extractHealthInsuranceEob(")
+        assertTrue(uploadIndex >= 0)
+        assertTrue(extractIndex >= 0)
         assertTrue(
-            "Veryfi extraction must resolve before awaiting Storage upload",
-            extractionAwaitIndex < uploadAwaitIndex
+            "Storage upload must complete before Veryfi file_url extraction",
+            uploadIndex < extractIndex
         )
     }
 
@@ -1457,10 +1456,10 @@ class EobFlowArchitectureTest {
             assertTrue("PR#114: EobViewModel merge barrier missing $snippet", viewModelSource.contains(snippet))
         }
         listOf(
-            "uploadDeferred.await()",
-            "downloadUrl = upload.downloadUrl"
+            "upload.downloadUrl",
+            "fileUrl = upload.downloadUrl"
         ).forEach { snippet ->
-            assertTrue("PR#114: parallel split must await Storage upload $snippet", hybridRepoSource.contains(snippet))
+            assertTrue("PR#114: hybrid pipeline must pass Storage download URL to Veryfi $snippet", hybridRepoSource.contains(snippet))
         }
         listOf(
             "veryfiData: VeryfiExtractedData?",
@@ -1528,9 +1527,9 @@ class EobFlowArchitectureTest {
             )
         }
         assertTrue(
-            "PR#114 stability: repository must finalize after upload await",
-            hybridRepoSource.indexOf("uploadDeferred.await()") >= 0 &&
-                hybridRepoSource.indexOf("finalizeHybridReconciliation") > hybridRepoSource.indexOf("uploadDeferred.await()")
+            "PR#114 stability: repository must finalize after upload",
+            hybridRepoSource.indexOf("val upload = uploadDocument(") >= 0 &&
+                hybridRepoSource.indexOf("finalizeHybridReconciliation") > hybridRepoSource.indexOf("val upload = uploadDocument(")
         )
     }
 
@@ -1569,10 +1568,9 @@ class EobFlowArchitectureTest {
             assertTrue("PR#114 final: EobViewModel source-of-truth barrier missing $snippet", viewModelSource.contains(snippet))
         }
         listOf(
-            "coroutineScope",
-            "extractionDeferred.await()",
+            "uploadDocument(",
+            "fileUrl = upload.downloadUrl",
             "writeReconciliationFindings",
-            "uploadDeferred.await()",
             "finalizeHybridReconciliation"
         ).forEach { snippet ->
             assertTrue("PR#114 final: hybrid repository barrier missing $snippet", hybridRepoSource.contains(snippet))
@@ -2206,15 +2204,20 @@ class EobFlowArchitectureTest {
             "extractVeryfiHybridStream",
             "mapVeryfiHybridStreamError",
             "postAnyDocument",
+            "postAnyDocumentFromUrl",
+            "VERYFI_CLIENT_SECRET",
             "BLUEPRINT_HEALTH_INSURANCE_EOB"
         ).forEach { snippet ->
             assertTrue("PR#119: hybrid stream CF wiring missing $snippet", functionsIndex.contains(snippet))
         }
         listOf(
             "file_data",
+            "file_url",
             "blueprint_name",
             "health_insurance_eob",
-            "VERYFI_ANY_DOCS_URL"
+            "VERYFI_ANY_DOCS_URL",
+            "VERYFI_CLIENT_SECRET",
+            "buildVeryfiSignedHeaders"
         ).forEach { snippet ->
             assertTrue(
                 "PR#119: Veryfi any-documents client missing $snippet",
@@ -2225,7 +2228,8 @@ class EobFlowArchitectureTest {
             "EXTRACT_VERYFI_HYBRID_STREAM",
             "BLUEPRINT_HEALTH_INSURANCE_EOB",
             "documentRefId",
-            "blueprintName"
+            "blueprintName",
+            "fileUrl"
         ).forEach { snippet ->
             assertTrue("PR#119: Android hybrid callable payload missing $snippet", veryfiClientSource.contains(snippet))
         }
@@ -2236,6 +2240,7 @@ class EobFlowArchitectureTest {
         listOf(
             "processHybridDocument",
             "extractHealthInsuranceEob",
+            "fileUrl = upload.downloadUrl",
             "writeReconciliationFindings"
         ).forEach { snippet ->
             assertTrue("PR#119: hybrid repository pipeline missing $snippet", hybridRepoSource.contains(snippet))
@@ -2258,8 +2263,8 @@ class EobFlowArchitectureTest {
             viewModelSource.contains("postAnyDocument")
         )
         assertTrue(
-            "PR#119: actionable INTERNAL error mapping required",
-            errorMapperSource.contains("VERYFI_CLIENT_ID")
+            "PR#119: actionable error mapping required",
+            errorMapperSource.contains("VERYFI_CLIENT_SECRET")
         )
         listOf(
             "ui/screens/SplashScreen.kt",
