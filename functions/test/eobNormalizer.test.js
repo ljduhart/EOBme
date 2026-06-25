@@ -119,6 +119,21 @@ test("maps legacy Veryfi invoice payload into normalized EOB fields", () => {
   assert.equal(normalized.sourceFilePath, "users/u1/eob_uploads/storage-file-1.jpg");
 });
 
+test("normalizeEobDocument rehydrates zeroed fields from veryfiClientStream", () => {
+  const normalized = normalizeEobDocument({
+    billed_amount: 0,
+    insurance_paid: 0,
+    veryfiClientStream: {
+      ocr_text: "Billed Amount: $425.50 Insurance Paid: $300.00 Copay: $25.00 CPT - 99213"
+    }
+  }, "firestore-doc");
+
+  assert.equal(normalized.totalBilledAmount, 425.5);
+  assert.equal(normalized.totalInsurancePaidAmount, 300);
+  assert.equal(normalized.totalCopayAmount, 25);
+  assert.equal(normalized.cptCodes, "99213");
+});
+
 test("comparison ignores sync-only fields to prevent mirror loops", () => {
   const base = normalizeEobDocument({
     provider_name: "Downtown Medical Group",

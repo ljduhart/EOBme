@@ -2272,6 +2272,71 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr118FinalFieldTransmissionAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val firebaseMapperSource = readSource("data/FirebaseEobMapper.kt")
+        val veryfiHealthSource = readSource("data/VeryfiHealthInsuranceEob.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val ocrExtractorSource = readSource("network/VeryfiOcrFieldExtractor.kt")
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val functionsNormalizer = readFunctionsSource("lib/eobNormalizer.js")
+        val functionsIndex = readFunctionsSource("index.js")
+
+        listOf(
+            "VeryfiOcrFieldExtractor",
+            "enrichFromVeryfiClientStream",
+            "veryfiClientStream",
+            "reconcileNormalizedEobRecord"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118 field transmission: Android OCR/read path missing $snippet",
+                ocrExtractorSource.contains(snippet) ||
+                    firebaseMapperSource.contains(snippet) ||
+                    veryfiClientSource.contains(snippet)
+            )
+        }
+        listOf(
+            "enrichFromVeryfiClientStream",
+            "reconcileDocumentTotals",
+            "veryfiClientStream"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118 field transmission: Cloud Functions mirror path missing $snippet",
+                functionsNormalizer.contains(snippet) || functionsIndex.contains(snippet)
+            )
+        }
+        listOf(
+            "applyRemoteRecords",
+            "refreshVeryfiExtractedDataForRecord",
+            "toVeryfiExtractedData",
+            "processHybridScannedDocument"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118 field transmission: EobViewModel showcase path missing $snippet",
+                viewModelSource.contains(snippet) || veryfiHealthSource.contains(snippet)
+            )
+        }
+        listOf(
+            "totalBilledAmount",
+            "totalPatientResponsibility"
+        ).forEach { snippet ->
+            assertTrue("PR#118 field transmission: History UI must render $snippet", historySource.contains(snippet))
+        }
+        assertTrue(
+            "PR#118 field transmission: hybrid stream must use health_insurance_eob blueprint",
+            veryfiClientSource.contains("BLUEPRINT_HEALTH_INSURANCE_EOB")
+        )
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#118 field transmission: opening screen touched ($path)", source.contains("refreshVeryfiExtractedDataForRecord"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

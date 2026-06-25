@@ -28,13 +28,57 @@ const CPT_DESCRIPTIONS = {
   "J3420": "Vitamin B-12 injection."
 };
 
+function enrichFromVeryfiClientStream(data = {}) {
+  const stream = data.veryfiClientStream;
+  if (!stream || typeof stream !== "object") {
+    return data;
+  }
+  const enrichedPayload = enrichPayload(stream);
+  const merged = {...data};
+  const mergeIfMissing = (keys, value) => {
+    if (value == null) return;
+    const hasValue = keys.some((key) => {
+      const existing = merged[key];
+      if (existing == null) return false;
+      if (typeof existing === "number") return existing > 0;
+      if (typeof existing === "string") return existing.trim().length > 0;
+      return true;
+    });
+    if (!hasValue) {
+      keys.forEach((key) => {
+        merged[key] = value;
+      });
+    }
+  };
+  mergeIfMissing(["billed_amount", "totalBilledAmount", "total_amount_billed"], enrichedPayload.billed_amount);
+  mergeIfMissing(["insurance_paid", "totalInsurancePaidAmount"], enrichedPayload.insurance_paid);
+  mergeIfMissing(["contractual_adj", "totalContractualAdjustmentAmount"], enrichedPayload.contractual_adj);
+  mergeIfMissing(["copay", "totalCopayAmount"], enrichedPayload.copay);
+  mergeIfMissing(["deductible", "totalDeductibleAmount"], enrichedPayload.deductible);
+  mergeIfMissing(["coinsurance", "totalCoinsuranceAmount"], enrichedPayload.coinsurance);
+  mergeIfMissing(["patient_responsibility", "patientResponsibility"], enrichedPayload.patient_responsibility);
+  mergeIfMissing(["provider_name", "providerName"], enrichedPayload.provider_name);
+  mergeIfMissing(["insurance_name", "insuranceName"], enrichedPayload.insurance_name);
+  mergeIfMissing(["date_of_service", "serviceDate", "dateOfService"], enrichedPayload.date_of_service);
+  mergeIfMissing(
+    ["cptCodes", "cpt_codes", "cpt_code"],
+    enrichedPayload.cpt_codes || enrichedPayload.cpt
+  );
+  const ocrText = extractOcrText(enrichedPayload);
+  if (ocrText) {
+    mergeIfMissing(["ocr_text", "rawText", "raw_text"], ocrText);
+  }
+  return merged;
+}
+
 function normalizeEobDocument(data = {}, documentId = "") {
-  const serviceDate = normalizeDate(firstValue(data, [
+  const enrichedData = enrichFromVeryfiClientStream(data);
+  const serviceDate = normalizeDate(firstValue(enrichedData, [
     "serviceDate",
     "dateOfService",
     "date_of_service"
   ]));
-  const rawText = stringValue(data, [
+  const rawText = stringValue(enrichedData, [
     "rawText",
     "raw_text",
     "raw_analysis_text",
@@ -42,17 +86,17 @@ function normalizeEobDocument(data = {}, documentId = "") {
     "ocrText",
     "ocr_text"
   ]);
-  const explicitCharges = Array.isArray(data.charges) ? data.charges : [];
+  const explicitCharges = Array.isArray(enrichedData.charges) ? enrichedData.charges : [];
   const charges = explicitCharges.length > 0 ?
     explicitCharges.map((charge) => normalizeCharge(charge, serviceDate)) :
-    synthesizeCharges(data, rawText, serviceDate);
+    synthesizeCharges(enrichedData, rawText, serviceDate);
 
-  const providerName = stringValue(data, [
+  const providerName = stringValue(enrichedData, [
     "providerName",
     "provider_name",
     "provider"
   ]) || findProviderName(rawText);
-  const insuranceName = stringValue(data, [
+  const insuranceName = stringValue(enrichedData, [
     "insuranceName",
     "insurance_name",
     "insurance",
@@ -60,18 +104,18 @@ function normalizeEobDocument(data = {}, documentId = "") {
     "payer_name"
   ]) || findInsuranceName(rawText);
 
-  const totals = reconcileDocumentTotals(data, charges);
+  const totals = reconcileDocumentTotals(enrichedData, charges);
 
   return {
-    id: numberValue(data, ["id"]) || stableId(documentId, providerName, insuranceName, serviceDate, charges),
-    sourceName: stringValue(data, ["sourceName", "source_name", "source"]) || "Firebase",
+    id: numberValue(enrichedData, ["id"]) || stableId(documentId, providerName, insuranceName, serviceDate, charges),
+    sourceName: stringValue(enrichedData, ["sourceName", "source_name", "source"]) || "Firebase",
     providerName,
     insuranceName,
     serviceDate,
-    serviceDateSortKey: numberValue(data, ["serviceDateSortKey", "service_date_sort_key"]) || serviceDateSortKey(serviceDate),
+    serviceDateSortKey: numberValue(enrichedData, ["serviceDateSortKey", "service_date_sort_key"]) || serviceDateSortKey(serviceDate),
     rawText,
     charges,
-    duplicateChargeWarnings: arrayValue(data, ["duplicateChargeWarnings", "duplicate_charge_warnings"]),
+    duplicateChargeWarnings: arrayValue(enrichedData, ["duplicateChargeWarnings", "duplicate_charge_warnings"]),
     totalBilledAmount: totals.billedAmount,
     totalInsurancePaidAmount: totals.insurancePaidAmount,
     totalContractualAdjustmentAmount: totals.contractualAdjustmentAmount,
@@ -375,6 +419,7 @@ function normalizePlainObject(value) {
 
 module.exports = {
   comparableEobData,
+  enrichFromVeryfiClientStream,
   normalizeEobDocument,
   veryfiToEobDocument,
   parseCptCodes,

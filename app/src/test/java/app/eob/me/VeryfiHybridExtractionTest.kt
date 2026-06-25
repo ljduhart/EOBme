@@ -1,8 +1,13 @@
 package app.eob.me
 
+import app.eob.me.data.CptCategory
+import app.eob.me.data.EobCharge
+import app.eob.me.data.EobRecord
+import app.eob.me.data.FirebaseEobMapper
 import app.eob.me.data.HybridDocumentRef
 import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.data.VeryfiHealthInsuranceEob
+import app.eob.me.data.toVeryfiExtractedData
 import app.eob.me.network.VeryfiAnyDocMapper
 import app.eob.me.network.veryfiPayloadToEobRecord
 import org.junit.Assert.assertEquals
@@ -209,5 +214,63 @@ class VeryfiHybridExtractionTest {
         assertEquals(500.0, record.totalBilledAmount, 0.001)
         assertEquals(400.0, record.totalInsurancePaidAmount, 0.001)
         assertEquals(50.0, record.totalContractualAdjustmentAmount, 0.001)
+    }
+
+    @Test
+    fun eobRecordProjectsVeryfiDisplayFieldsForUi() {
+        val record = EobRecord(
+            id = 1,
+            firestoreId = "fs-1",
+            sourceName = "Camera EOB",
+            providerName = "North Clinic",
+            insuranceName = "Cigna",
+            serviceDate = "03/01/2026",
+            serviceDateSortKey = 20260301,
+            charges = listOf(
+                EobCharge(
+                    cptCode = "99213",
+                    cptDescription = "Office visit",
+                    category = CptCategory.OfficeVisit,
+                    billedAmount = 275.0,
+                    insurancePaidAmount = 180.0,
+                    contractualAdjustmentAmount = 0.0,
+                    copayAmount = 20.0,
+                    deductibleAmount = 0.0,
+                    coinsuranceAmount = 0.0,
+                    serviceDate = "03/01/2026"
+                )
+            ),
+            duplicateChargeWarnings = emptyList(),
+            rawText = "",
+            totalBilledAmount = 275.0,
+            totalInsurancePaidAmount = 180.0,
+            totalCopayAmount = 20.0
+        )
+
+        val display = record.toVeryfiExtractedData()
+
+        assertEquals(275.0, record.totalBilledAmount, 0.001)
+        assertEquals(20.0, display.patientResponsibility, 0.001)
+        assertEquals("99213", display.cptCodes.first())
+        assertEquals("North Clinic", display.providerName)
+    }
+
+    @Test
+    fun firestoreListenerRehydratesDisplayTotalsThroughEobFromMap() {
+        val documentId = HybridDocumentRef.stableDocumentId("eob_listener.jpg")
+        val firestoreDoc: Map<String, Any?> = mapOf(
+            "id" to documentId,
+            "billed_amount" to 0.0,
+            "veryfiClientStream" to mapOf(
+                "ocr_text" to "Billed Amount: ${'$'}199.00 Patient Responsibility: ${'$'}35.00 CPT - 99212"
+            )
+        )
+
+        val record = FirebaseEobMapper.eobFromMap(firestoreDoc, documentId)
+        val display = record.toVeryfiExtractedData()
+
+        assertEquals(199.0, record.totalBilledAmount, 0.001)
+        assertEquals(35.0, display.patientResponsibility, 0.001)
+        assertEquals("99212", display.cptCodes.first())
     }
 }

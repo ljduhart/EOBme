@@ -65,6 +65,26 @@ data class VeryfiAnyDocExtractionResult(
     )
 }
 
+fun EobRecord.toVeryfiExtractedData(fallback: VeryfiExtractedData? = null): VeryfiExtractedData {
+    val cptCodes = charges
+        .map { it.cptCode.trim() }
+        .filter { it.isNotBlank() }
+        .distinct()
+        .ifEmpty { fallback?.cptCodes.orEmpty() }
+    val resolvedCopay = totalCopayAmount.takeIf { it > 0.0 }
+        ?: charges.map { it.copayAmount }.filter { it > 0.0 }.maxOrNull()
+        ?: fallback?.copay
+        ?: 0.0
+    return VeryfiExtractedData(
+        dateOfService = serviceDate.ifBlank { fallback?.dateOfService.orEmpty() },
+        cptCodes = cptCodes,
+        patientResponsibility = totalPatientResponsibility,
+        copay = resolvedCopay,
+        providerName = providerName.ifBlank { fallback?.providerName.orEmpty() },
+        insuranceCompanyName = insuranceName.ifBlank { fallback?.insuranceCompanyName.orEmpty() }
+    )
+}
+
 sealed class VeryfiAnyDocExtractionState {
     data object Idle : VeryfiAnyDocExtractionState()
     data object Loading : VeryfiAnyDocExtractionState()

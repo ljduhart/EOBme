@@ -89,9 +89,10 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
     sourceName: uploadSourceName,
     sourceFilePath: objectName
   });
-  const docId = String(normalized.id);
+  const docId = stableDocId;
   const payload = {
     ...normalized,
+    id: docId,
     sourceFilePath: objectName,
     processedBy: "veryfi",
     processedAt: admin.firestore.FieldValue.serverTimestamp(),
