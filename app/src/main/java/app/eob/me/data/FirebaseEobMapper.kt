@@ -83,8 +83,9 @@ object FirebaseEobMapper {
     }
 
     fun eobFromMap(data: Map<String, Any?>, documentId: String = ""): EobRecord {
-        val serviceDate = data.dateValue("serviceDate", "dateOfService", "date_of_service")
-        val rawText = data.stringValue(
+        val enrichedData = enrichFromVeryfiClientStream(data)
+        val serviceDate = enrichedData.dateValue("serviceDate", "dateOfService", "date_of_service")
+        val rawText = enrichedData.stringValue(
             "rawText",
             "raw_text",
             "raw_analysis_text",
@@ -92,12 +93,12 @@ object FirebaseEobMapper {
             "ocrText",
             "ocr_text"
         )
-        val charges = data.listValue("charges")
+        val charges = enrichedData.listValue("charges")
             .mapNotNull { it as? Map<*, *> }
             .map { chargeFromMap(it.entries.associate { entry -> entry.key.toString() to entry.value }) }
-            .ifEmpty { synthesizeCharges(data, rawText, serviceDate) }
-        val storedHsaEligible = data.booleanValue("isHsaEligible", "is_hsa_eligible")
-        val storedFsaEligible = data.booleanValue("isFsaEligible", "is_fsa_eligible")
+            .ifEmpty { synthesizeCharges(enrichedData, rawText, serviceDate) }
+        val storedHsaEligible = enrichedData.booleanValue("isHsaEligible", "is_hsa_eligible")
+        val storedFsaEligible = enrichedData.booleanValue("isFsaEligible", "is_fsa_eligible")
         val detectedEligibility = EobAnalyzer.detectTaxVaultEligibility(rawText, charges)
         val taxVaultEligibility = EobAnalyzer.TaxVaultEligibility(
             isHsaEligible = storedHsaEligible ?: detectedEligibility.isHsaEligible,
@@ -105,27 +106,68 @@ object FirebaseEobMapper {
         )
 
         val record = EobRecord(
-            id = data.longValue("id").toInt().takeUnless { it == 0 } ?: stableId(documentId, data, serviceDate),
+            id = enrichedData.longValue("id").toInt().takeUnless { it == 0 } ?: stableId(documentId, enrichedData, serviceDate),
             firestoreId = documentId,
-            sourceName = data.stringValue("sourceName", "source_name", "source").ifBlank { "Firebase" },
-            providerName = resolveProviderName(data, rawText),
-            insuranceName = resolveInsuranceName(data, rawText),
+            sourceName = enrichedData.stringValue("sourceName", "source_name", "source").ifBlank { "Firebase" },
+            providerName = resolveProviderName(enrichedData, rawText),
+            insuranceName = resolveInsuranceName(enrichedData, rawText),
             serviceDate = serviceDate,
-            serviceDateSortKey = data.longValue("serviceDateSortKey", "service_date_sort_key").toInt().takeUnless { it == 0 }
+            serviceDateSortKey = enrichedData.longValue("serviceDateSortKey", "service_date_sort_key").toInt().takeUnless { it == 0 }
                 ?: EobAnalyzer.serviceDateSortKey(serviceDate),
             charges = charges,
-            duplicateChargeWarnings = data.stringListValue("duplicateChargeWarnings", "duplicate_charge_warnings"),
+            duplicateChargeWarnings = enrichedData.stringListValue("duplicateChargeWarnings", "duplicate_charge_warnings"),
             rawText = rawText,
-            totalBilledAmount = data.doubleValue("totalBilledAmount", "billed_amount", "total_amount_billed"),
-            totalInsurancePaidAmount = data.doubleValue("totalInsurancePaidAmount", "insurance_paid"),
-            totalContractualAdjustmentAmount = data.doubleValue("totalContractualAdjustmentAmount", "contractual_adj"),
-            totalCopayAmount = data.doubleValue("totalCopayAmount", "copay"),
-            totalDeductibleAmount = data.doubleValue("totalDeductibleAmount", "deductible"),
-            totalCoinsuranceAmount = data.doubleValue("totalCoinsuranceAmount", "coinsurance"),
+            totalBilledAmount = enrichedData.doubleValue("totalBilledAmount", "billed_amount", "total_amount_billed"),
+            totalInsurancePaidAmount = enrichedData.doubleValue("totalInsurancePaidAmount", "insurance_paid"),
+            totalContractualAdjustmentAmount = enrichedData.doubleValue("totalContractualAdjustmentAmount", "contractual_adj"),
+            totalCopayAmount = enrichedData.doubleValue("totalCopayAmount", "copay"),
+            totalDeductibleAmount = enrichedData.doubleValue("totalDeductibleAmount", "deductible"),
+            totalCoinsuranceAmount = enrichedData.doubleValue("totalCoinsuranceAmount", "coinsurance"),
             isHsaEligible = taxVaultEligibility.isHsaEligible,
             isFsaEligible = taxVaultEligibility.isFsaEligible
         )
-        return reconcileNormalizedEobRecord(record, data)
+        return reconcileNormalizedEobRecord(record, enrichedData)
+    }
+
+    /**
+     * Re-hydrates zeroed Firestore EOB rows from the embedded [veryfiClientStream] payload using
+     * the same OCR/custom-field rules as the on-device hybrid extraction path.
+     */
+    internal fun enrichFromVeryfiClientStream(data: Map<String, Any?>): Map<String, Any?> {
+        @Suppress("UNCHECKED_CAST")
+        val stream = data["veryfiClientStream"] as? Map<String, Any?> ?: return data
+        val enrichedPayload = app.eob.me.network.VeryfiOcrFieldExtractor.enrichPayload(stream)
+        val merged = data.toMutableMap()
+        fun mergeIfMissing(vararg keys: String, value: Any?) {
+            if (value == null) return
+            val hasValue = keys.any { key ->
+                when (val existing = merged[key]) {
+                    null -> false
+                    is Number -> existing.toDouble() > 0.0
+                    is String -> existing.trim().isNotBlank()
+                    else -> true
+                }
+            }
+            if (!hasValue) {
+                keys.forEach { key -> merged[key] = value }
+            }
+        }
+        mergeIfMissing("billed_amount", "totalBilledAmount", "total_amount_billed", value = enrichedPayload["billed_amount"])
+        mergeIfMissing("insurance_paid", "totalInsurancePaidAmount", value = enrichedPayload["insurance_paid"])
+        mergeIfMissing("contractual_adj", "totalContractualAdjustmentAmount", value = enrichedPayload["contractual_adj"])
+        mergeIfMissing("copay", "totalCopayAmount", value = enrichedPayload["copay"])
+        mergeIfMissing("deductible", "totalDeductibleAmount", value = enrichedPayload["deductible"])
+        mergeIfMissing("coinsurance", "totalCoinsuranceAmount", value = enrichedPayload["coinsurance"])
+        mergeIfMissing("patient_responsibility", "patientResponsibility", value = enrichedPayload["patient_responsibility"])
+        mergeIfMissing("provider_name", "providerName", value = enrichedPayload["provider_name"])
+        mergeIfMissing("insurance_name", "insuranceName", value = enrichedPayload["insurance_name"])
+        mergeIfMissing("date_of_service", "serviceDate", "dateOfService", value = enrichedPayload["date_of_service"])
+        mergeIfMissing("cptCodes", "cpt_codes", "cpt_code", value = enrichedPayload["cpt_codes"] ?: enrichedPayload["cpt"])
+        val ocrText = app.eob.me.network.VeryfiOcrFieldExtractor.extractOcrText(enrichedPayload)
+        if (ocrText.isNotBlank()) {
+            mergeIfMissing("ocr_text", "rawText", "raw_text", value = ocrText)
+        }
+        return merged
     }
 
     /**

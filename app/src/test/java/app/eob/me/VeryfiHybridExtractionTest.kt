@@ -124,4 +124,71 @@ class VeryfiHybridExtractionTest {
         assertTrue(processed.veryfiData.cptCodes.contains("99213"))
         assertEquals(20.0, processed.veryfiData.copay, 0.001)
     }
+
+    @Test
+    fun veryfiPayloadExtractsFieldsFromOcrTextWhenBlueprintFieldsMissing() {
+        val documentRefId = HybridDocumentRef.documentRefId("eob_ocr.jpg")
+        val payload: Map<String, Any?> = mapOf(
+            "ocr_text" to """
+                Sunrise Family Clinic
+                Aetna
+                Date of Service: 01/15/2026
+                Billed Amount: ${'$'}240.00
+                Insurance Paid: ${'$'}180.00
+                Copay: ${'$'}20.00
+                Deductible: ${'$'}40.00
+                Patient Responsibility: ${'$'}60.00
+                CPT - 99213
+            """.trimIndent()
+        )
+
+        val record = veryfiPayloadToEobRecord(payload, documentRefId, "Camera EOB")
+
+        assertEquals(240.0, record.totalBilledAmount, 0.001)
+        assertEquals(180.0, record.totalInsurancePaidAmount, 0.001)
+        assertEquals(20.0, record.totalCopayAmount, 0.001)
+        assertEquals(40.0, record.totalDeductibleAmount, 0.001)
+        assertEquals(60.0, record.totalPatientResponsibility, 0.001)
+        assertTrue(record.charges.any { it.cptCode == "99213" })
+    }
+
+    @Test
+    fun veryfiPayloadPrefersCustomFieldsOverOcrRegex() {
+        val documentRefId = HybridDocumentRef.documentRefId("eob_custom.jpg")
+        val payload: Map<String, Any?> = mapOf(
+            "ocr_text" to "Billed Amount: ${'$'}100.00 CPT - 99211",
+            "custom_fields" to mapOf(
+                "billed_amount" to mapOf("value" to "350.00"),
+                "cpt" to mapOf("value" to "99214"),
+                "patient_responsibility" to mapOf("value" to "75.00")
+            )
+        )
+
+        val record = veryfiPayloadToEobRecord(payload, documentRefId, "Camera EOB")
+
+        assertEquals(350.0, record.totalBilledAmount, 0.001)
+        assertEquals(75.0, record.totalPatientResponsibility, 0.001)
+        assertTrue(record.charges.any { it.cptCode == "99214" })
+    }
+
+    @Test
+    fun firestoreRecordRehydratesFromVeryfiClientStreamOcrPayload() {
+        val documentId = HybridDocumentRef.stableDocumentId("eob_rehydrate.jpg")
+        val firestoreDoc: Map<String, Any?> = mapOf(
+            "id" to documentId,
+            "billed_amount" to 0.0,
+            "insurance_paid" to 0.0,
+            "copay" to 0.0,
+            "veryfiClientStream" to mapOf(
+                "ocr_text" to "Billed Amount: ${'$'}425.50 Insurance Paid: ${'$'}300.00 Copay: ${'$'}25.00 CPT - 99213"
+            )
+        )
+
+        val record = app.eob.me.data.FirebaseEobMapper.eobFromMap(firestoreDoc, documentId)
+
+        assertEquals(425.5, record.totalBilledAmount, 0.001)
+        assertEquals(300.0, record.totalInsurancePaidAmount, 0.001)
+        assertEquals(25.0, record.totalCopayAmount, 0.001)
+        assertTrue(record.charges.any { it.cptCode == "99213" })
+    }
 }

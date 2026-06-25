@@ -266,7 +266,8 @@ internal fun veryfiPayloadToEobRecord(
     sourceName: String
 ): EobRecord {
     val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(payload, documentRefId)
-    val rawText = veryfiPayloadToJsonString(mergedPayload)
+    val ocrText = mergedPayload.veryfiStringField("ocr_text", "ocrText", "text")
+    val rawText = ocrText.ifBlank { veryfiPayloadToJsonString(mergedPayload) }
     val providerName = mergedPayload.veryfiStringField("provider_name", "vendor_name")
         .ifBlank { (mergedPayload["vendor"] as? Map<*, *>)?.get("name")?.toString()?.trim().orEmpty() }
         .ifBlank { EobAnalyzer.findProviderName(rawText) }
@@ -290,6 +291,10 @@ internal fun veryfiPayloadToEobRecord(
         "copay" to mergedPayload.veryfiNumberField("copay", "co_pay"),
         "deductible" to mergedPayload.veryfiNumberField("deductible"),
         "coinsurance" to mergedPayload.veryfiNumberField("coinsurance"),
+        "patient_responsibility" to mergedPayload.veryfiNumberField(
+            "patient_responsibility",
+            "patientResponsibility"
+        ),
         "member_name" to mergedPayload.veryfiStringField("member_name"),
         "member_id" to mergedPayload.veryfiStringField("member_id", "member_number"),
         "patient_name" to mergedPayload.veryfiStringField("patient_name"),

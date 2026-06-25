@@ -10,6 +10,8 @@ data class VeryfiAnyDocResponseDto(
     @SerializedName("id") val id: Long? = null,
     @SerializedName("blueprint_name") val blueprintName: String? = null,
     @SerializedName("text") val text: String? = null,
+    @SerializedName("ocr_text") val ocrText: String? = null,
+    @SerializedName("custom_fields") val customFields: Map<String, Any?>? = null,
     @SerializedName("insurance_company_name") val insuranceCompanyName: String? = null,
     @SerializedName("insurance_company") val insuranceCompany: String? = null,
     @SerializedName("payer_name") val payerName: String? = null,
@@ -31,6 +33,12 @@ data class VeryfiAnyDocResponseDto(
     @SerializedName("copay") val copay: Double? = null,
     @SerializedName("deductible") val deductible: Double? = null,
     @SerializedName("coinsurance") val coinsurance: Double? = null,
+    @SerializedName("contractual_adjustment") val contractualAdjustment: Double? = null,
+    @SerializedName("contractual_adj") val contractualAdj: Double? = null,
+    @SerializedName("patient_responsibility") val patientResponsibility: Double? = null,
+    @SerializedName("cpt") val cpt: String? = null,
+    @SerializedName("cpt_code") val cptCode: String? = null,
+    @SerializedName("cpt_codes") val cptCodes: String? = null,
     @SerializedName("line_items") val lineItems: List<VeryfiAnyDocLineItemDto>? = null
 )
 

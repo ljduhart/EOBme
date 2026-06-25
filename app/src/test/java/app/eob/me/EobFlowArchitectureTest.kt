@@ -1896,6 +1896,85 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun pr118VeryfiOcrFieldExtractionAudit() {
+        val extractorSource = readSource("network/VeryfiOcrFieldExtractor.kt")
+        val mapperSource = readSource("network/VeryfiAnyDocMapper.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val firebaseMapperSource = readSource("data/FirebaseEobMapper.kt")
+        val dtoSource = readSource("network/VeryfiAnyDocDto.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+
+        listOf(
+            "object VeryfiOcrFieldExtractor",
+            "extractOcrText",
+            "extractCustomFields",
+            "extractFromOcrText",
+            "enrichPayload",
+            "Billed Amount:",
+            "CPT\\s*-",
+            "Patient Responsibility:"
+        ).forEach { snippet ->
+            assertTrue("PR#118: OCR field extractor missing $snippet", extractorSource.contains(snippet))
+        }
+        listOf(
+            "VeryfiOcrFieldExtractor.enrichPayload",
+            "ocr_text",
+            "custom_fields",
+            "patient_responsibility"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118: AnyDoc mapper OCR wiring missing $snippet",
+                mapperSource.contains(snippet) || dtoSource.contains(snippet)
+            )
+        }
+        listOf(
+            "veryfiPayloadToEobRecord",
+            "patient_responsibility",
+            "ocr_text"
+        ).forEach { snippet ->
+            assertTrue("PR#118: hybrid Veryfi client OCR wiring missing $snippet", veryfiClientSource.contains(snippet))
+        }
+        listOf(
+            "enrichFromVeryfiClientStream",
+            "veryfiClientStream",
+            "VeryfiOcrFieldExtractor"
+        ).forEach { snippet ->
+            assertTrue("PR#118: Firestore OCR re-hydration missing $snippet", firebaseMapperSource.contains(snippet))
+        }
+        listOf(
+            "fun processScannedDocument",
+            "applyRemoteRecords"
+        ).forEach { snippet ->
+            assertTrue("PR#118: EobViewModel source-of-truth pipeline missing $snippet", viewModelSource.contains(snippet))
+        }
+        listOf(
+            "extractHealthInsuranceEob",
+            "processHybridDocument",
+            "VeryfiAnyDocMapper.mergePayloadWithEobFields"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118: hybrid extraction pipeline missing $snippet",
+                hybridRepoSource.contains(snippet) || veryfiClientSource.contains(snippet)
+            )
+        }
+        assertFalse(
+            "PR#118: index.js must remain unchanged by this PR",
+            functionsIndex.contains("VeryfiOcrFieldExtractor")
+        )
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#118: opening screen must remain untouched ($path)", source.contains("VeryfiOcrFieldExtractor"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

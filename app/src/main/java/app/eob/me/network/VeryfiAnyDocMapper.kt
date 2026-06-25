@@ -60,9 +60,14 @@ object VeryfiAnyDocMapper {
             "out_of_network_out_of_pocket_balance" to extraction.outOfNetworkOutOfPocketBalance,
             "billed_amount" to dto.billedAmount,
             "insurance_paid" to dto.insurancePaid,
+            "contractual_adj" to firstNonNull(dto.contractualAdj, dto.contractualAdjustment),
             "copay" to dto.copay,
             "deductible" to dto.deductible,
             "coinsurance" to dto.coinsurance,
+            "patient_responsibility" to dto.patientResponsibility,
+            "cpt" to firstNonBlank(dto.cpt, dto.cptCode, dto.cptCodes),
+            "cpt_codes" to firstNonBlank(dto.cptCodes, dto.cptCode, dto.cpt),
+            "ocr_text" to firstNonBlank(dto.ocrText, dto.text),
             "blueprint_name" to extraction.blueprintName,
             "line_items" to lineItemText
         )
@@ -72,10 +77,11 @@ object VeryfiAnyDocMapper {
         payload: Map<String, Any?>,
         documentRefId: String
     ): Map<String, Any?> {
-        val dto = parseResponse(payload)
+        val ocrEnriched = VeryfiOcrFieldExtractor.enrichPayload(payload)
+        val dto = parseResponse(ocrEnriched)
         val extraction = toDomain(dto, documentRefId)
         val eobFields = toEobNormalizationFields(extraction, dto)
-        return payload + eobFields.filterValues { value ->
+        return ocrEnriched + eobFields.filterValues { value ->
             when (value) {
                 null -> false
                 is String -> value.isNotBlank()
