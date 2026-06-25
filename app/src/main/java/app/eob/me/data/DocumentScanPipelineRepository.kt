@@ -6,8 +6,6 @@ import app.eob.me.network.VeryfiDocumentClient
 import app.eob.me.network.VeryfiHybridStreamErrorMapper
 import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.util.OcrProcessor
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class DocumentScanPipelineRepository(
     private val firebase: FirebaseEobRepository,
@@ -47,11 +45,10 @@ class DocumentScanPipelineRepository(
     }
 
     /**
-     * Parallel hybrid split:
-     * - Task A: Firebase Storage upload (background, Pathway 1 users/{userId}/eobs/{fileName}).
-     * - Task B: Base64 documents extraction via authenticated Cloud Function (immediate).
-     *
-     * Veryfi starts as soon as local bytes are available — no Firebase download URL required.
+     * Hybrid pipeline:
+     * 1. Upload to Firebase Storage (users/{userId}/eobs/{fileName}).
+     * 2. Call Veryfi via Cloud Function using the Storage download URL (`file_url`).
+     * 3. Commit Track B findings to Firestore and finalize hybrid reconciliation.
      */
     suspend fun processHybridDocument(
         context: Context,
@@ -65,7 +62,6 @@ class DocumentScanPipelineRepository(
         val fileName = HybridDocumentRef.fileNameForUpload(extension)
         val documentRefId = HybridDocumentRef.documentRefId(fileName)
         val storagePath = HybridDocumentRef.storagePathForUpload(userId, fileName)
-        val fileBytes = readUriBytes(context, uri)
 
         val upload = uploadDocument(
             userId = userId,
@@ -77,7 +73,7 @@ class DocumentScanPipelineRepository(
         val anyDocResult = veryfiAnyDocRepository.extractHealthInsuranceEob(
             userId = userId,
             documentRefId = documentRefId,
-            fileBytes = fileBytes,
+            fileBytes = ByteArray(0),
             fileName = fileName,
             contentType = contentType,
             sourceName = sourceName,
@@ -134,11 +130,5 @@ class DocumentScanPipelineRepository(
                 sourceName = sourceName
             )
         }
-    }
-
-    private suspend fun readUriBytes(context: Context, uri: Uri): ByteArray = withContext(Dispatchers.IO) {
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            input.readBytes()
-        } ?: throw IllegalArgumentException("Unable to read scanned document bytes.")
     }
 }

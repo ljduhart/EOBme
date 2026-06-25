@@ -1394,7 +1394,7 @@ class EobFlowArchitectureTest {
         assertTrue(hybridRepoSource.contains("fileUrl = upload.downloadUrl"))
         assertFalse(hybridRepoSource.contains("upload.documentRefId"))
         assertTrue(hybridRepoSource.contains("storagePathForUpload"))
-        assertTrue(hybridRepoSource.contains("fileBytes"))
+        assertTrue(hybridRepoSource.contains("fileUrl = upload.downloadUrl"))
         assertTrue(veryfiSource.contains("fileBase64"))
         assertTrue(veryfiSource.contains("\"fileUrl\""))
         assertTrue(veryfiSource.contains("VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB"))
@@ -2275,6 +2275,66 @@ class EobFlowArchitectureTest {
             val source = readSource(path)
             assertFalse("PR#119: opening screen touched ($path)", source.contains("veryfiAnyDocClient"))
         }
+    }
+
+    @Test
+    fun pr121FinalPipelineAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val functionsClient = readFunctionsSource("lib/veryfiAnyDocClient.js")
+        val signatureSource = readFunctionsSource("lib/veryfiRequestSignature.js")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+
+        listOf(
+            "VERYFI_CLIENT_ID",
+            "VERYFI_CLIENT_SECRET",
+            "VERYFI_USERNAME",
+            "VERYFI_API_KEY",
+            "defineSecret"
+        ).forEach { snippet ->
+            assertTrue("PR#121: Firebase secrets wiring missing $snippet", functionsIndex.contains(snippet))
+        }
+        listOf(
+            "file_url",
+            "fileUrl",
+            "blueprint_name",
+            "health_insurance_eob",
+            "X-Veryfi-Request-Signature",
+            "X-Veryfi-Request-Timestamp",
+            "buildVeryfiSignedHeaders"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#121: Veryfi AnyDocs contract missing $snippet",
+                functionsClient.contains(snippet) || signatureSource.contains(snippet) ||
+                    veryfiClientSource.contains(snippet) || functionsIndex.contains(snippet) ||
+                    functionsConstants.contains(snippet)
+            )
+        }
+        assertTrue(
+            "PR#121: hybrid pipeline must upload before file_url extraction",
+            hybridRepoSource.indexOf("uploadDocument(") >= 0 &&
+                hybridRepoSource.indexOf("fileUrl = upload.downloadUrl") > hybridRepoSource.indexOf("uploadDocument(")
+        )
+        listOf(
+            "refreshVeryfiExtractedDataForRecord",
+            "applyRemoteRecords",
+            "toVeryfiExtractedData"
+        ).forEach { snippet ->
+            assertTrue("PR#121: EobViewModel Firestore-to-UI refresh missing $snippet", viewModelSource.contains(snippet))
+        }
+        assertFalse(
+            "PR#121: Veryfi credentials must not ship in Android sources",
+            viewModelSource.contains("VERYFI_CLIENT_SECRET") ||
+                veryfiClientSource.contains("apikey ") ||
+                hybridRepoSource.contains("CLIENT-ID")
+        )
+        assertTrue(
+            "PR#121: storage trigger must write to stable hybrid doc id",
+            functionsIndex.contains("hybridFirestoreDocId") &&
+                functionsIndex.contains("userRef.collection(\"eobs\").doc(docId)")
+        )
     }
 
     private fun readSource(relativePath: String): String {

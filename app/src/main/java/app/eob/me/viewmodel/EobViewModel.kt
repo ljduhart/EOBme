@@ -39,6 +39,7 @@ import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.VeryfiAnyDocExtractionState
 import app.eob.me.data.VeryfiExtractedData
+import app.eob.me.data.toVeryfiExtractedData
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.ProviderAvatarPreview
@@ -631,6 +632,16 @@ class EobViewModel : ViewModel() {
         return data.takeIf { state.veryfiExtractedDataRecordId == recordId }
     }
 
+    private fun refreshVeryfiExtractedDataForRecord(record: EobRecord?): VeryfiExtractedData? {
+        if (record == null) return null
+        val projected = record.toVeryfiExtractedData()
+        val hasDisplayTotals = projected.patientResponsibility > 0.0 ||
+            projected.copay > 0.0 ||
+            projected.cptCodes.isNotEmpty() ||
+            projected.dateOfService.isNotBlank()
+        return projected.takeIf { hasDisplayTotals }
+    }
+
     private fun isDocumentScanPipelineActive(): Boolean {
         return when (_documentScanState.value) {
             DocumentScanPipelineState.LocalScanning,
@@ -752,10 +763,15 @@ class EobViewModel : ViewModel() {
                 val wasProcessing = _uiState.value.isLoadingInvoice
                 val scanActive = isDocumentScanPipelineActive()
                 val nextSelection = resolveRecordSelection(currentSelection, compacted)
-                val scopedVeryfi = scopedVeryfiDataFor(nextSelection)
+                val refreshedVeryfi = refreshVeryfiExtractedDataForRecord(nextSelection)
+                val scopedVeryfi = refreshedVeryfi ?: scopedVeryfiDataFor(nextSelection)
                 _uiState.update {
                     it.copy(
                         selectedRecord = nextSelection,
+                        veryfiExtractedData = scopedVeryfi,
+                        veryfiExtractedDataRecordId = nextSelection?.firestoreId?.takeIf { id ->
+                            scopedVeryfi != null && id.isNotBlank()
+                        }.orEmpty(),
                         appealLetter = generateAppealLetter(profile, nextSelection, scopedVeryfi),
                         isLoadingInvoice = if (scanActive) it.isLoadingInvoice else false,
                         invoiceProcessingPhase = if (wasProcessing && !scanActive) {

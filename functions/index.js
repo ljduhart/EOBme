@@ -82,12 +82,15 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
     return;
   }
 
+  const docId = stableDocId;
+  const contentType = event.data.contentType || "image/jpeg";
   const [fileBytes] = await file.download();
   const veryfiResponse = await postAnyDocumentFromBytes({
     fileBytes,
     fileName,
     blueprintName: BLUEPRINT_HEALTH_INSURANCE_EOB,
     externalId: stableDocId,
+    contentType,
     credentials: readVeryfiCredentials()
   });
   const storageMetadata = event.data.metadata || {};
@@ -98,7 +101,6 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
     sourceName: uploadSourceName,
     sourceFilePath: objectName
   });
-  const docId = String(normalized.id);
   const payload = {
     ...normalized,
     sourceFilePath: objectName,

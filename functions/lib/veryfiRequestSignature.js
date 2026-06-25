@@ -22,21 +22,22 @@ function generateVeryfiRequestSignature(clientSecret, payloadParams, timestamp) 
 }
 
 function buildVeryfiSignedHeaders(payloadParams, credentials) {
+  if (!credentials?.clientSecret) {
+    throw new Error("VERYFI_CLIENT_SECRET is required to sign Veryfi POST requests.");
+  }
   const timestamp = Date.now();
   const headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
     "Client-Id": credentials.clientId,
-    "Authorization": `apikey ${credentials.username}:${credentials.apiKey}`
-  };
-  if (credentials.clientSecret) {
-    headers["X-Veryfi-Request-Timestamp"] = String(timestamp);
-    headers["X-Veryfi-Request-Signature"] = generateVeryfiRequestSignature(
+    "Authorization": `apikey ${credentials.username}:${credentials.apiKey}`,
+    "X-Veryfi-Request-Timestamp": String(timestamp),
+    "X-Veryfi-Request-Signature": generateVeryfiRequestSignature(
       credentials.clientSecret,
       payloadParams,
       timestamp
-    );
-  }
+    )
+  };
   return headers;
 }
 
