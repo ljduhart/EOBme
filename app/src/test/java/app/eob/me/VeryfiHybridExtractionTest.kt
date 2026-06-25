@@ -3,6 +3,7 @@ package app.eob.me
 import app.eob.me.data.HybridDocumentRef
 import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.data.VeryfiHealthInsuranceEob
+import app.eob.me.network.VeryfiAnyDocMapper
 import app.eob.me.network.veryfiPayloadToEobRecord
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -190,5 +191,23 @@ class VeryfiHybridExtractionTest {
         assertEquals(300.0, record.totalInsurancePaidAmount, 0.001)
         assertEquals(25.0, record.totalCopayAmount, 0.001)
         assertTrue(record.charges.any { it.cptCode == "99213" })
+    }
+
+    @Test
+    fun ocrExtractedAmountsAreNotOverwrittenByZeroBlueprintFields() {
+        val documentRefId = HybridDocumentRef.documentRefId("eob_zero_guard.jpg")
+        val payload: Map<String, Any?> = mapOf(
+            "ocr_text" to "Billed Amount: ${'$'}500.00 Insurance Paid: ${'$'}400.00 Contractual Adjustment: ${'$'}50.00"
+        )
+
+        val merged = VeryfiAnyDocMapper.mergePayloadWithEobFields(payload, documentRefId)
+        val record = veryfiPayloadToEobRecord(merged, documentRefId, "Camera EOB")
+
+        assertEquals(500.0, (merged["billed_amount"] as Number).toDouble(), 0.001)
+        assertEquals(400.0, (merged["insurance_paid"] as Number).toDouble(), 0.001)
+        assertEquals(50.0, (merged["contractual_adj"] as Number).toDouble(), 0.001)
+        assertEquals(500.0, record.totalBilledAmount, 0.001)
+        assertEquals(400.0, record.totalInsurancePaidAmount, 0.001)
+        assertEquals(50.0, record.totalContractualAdjustmentAmount, 0.001)
     }
 }

@@ -1,5 +1,6 @@
 package app.eob.me.data
 
+import app.eob.me.network.VeryfiOcrFieldExtractor
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -136,7 +137,7 @@ object FirebaseEobMapper {
     internal fun enrichFromVeryfiClientStream(data: Map<String, Any?>): Map<String, Any?> {
         @Suppress("UNCHECKED_CAST")
         val stream = data["veryfiClientStream"] as? Map<String, Any?> ?: return data
-        val enrichedPayload = app.eob.me.network.VeryfiOcrFieldExtractor.enrichPayload(stream)
+        val enrichedPayload = VeryfiOcrFieldExtractor.enrichPayload(stream)
         val merged = data.toMutableMap()
         fun mergeIfMissing(vararg keys: String, value: Any?) {
             if (value == null) return
@@ -163,7 +164,7 @@ object FirebaseEobMapper {
         mergeIfMissing("insurance_name", "insuranceName", value = enrichedPayload["insurance_name"])
         mergeIfMissing("date_of_service", "serviceDate", "dateOfService", value = enrichedPayload["date_of_service"])
         mergeIfMissing("cptCodes", "cpt_codes", "cpt_code", value = enrichedPayload["cpt_codes"] ?: enrichedPayload["cpt"])
-        val ocrText = app.eob.me.network.VeryfiOcrFieldExtractor.extractOcrText(enrichedPayload)
+        val ocrText = VeryfiOcrFieldExtractor.extractOcrText(enrichedPayload)
         if (ocrText.isNotBlank()) {
             mergeIfMissing("ocr_text", "rawText", "raw_text", value = ocrText)
         }

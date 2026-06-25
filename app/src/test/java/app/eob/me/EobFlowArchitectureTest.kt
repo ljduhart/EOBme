@@ -1975,6 +1975,119 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr118ReviewConnectivityStabilityAudit() {
+        val extractorSource = readSource("network/VeryfiOcrFieldExtractor.kt")
+        val mapperSource = readSource("network/VeryfiAnyDocMapper.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val firebaseMapperSource = readSource("data/FirebaseEobMapper.kt")
+        val dtoSource = readSource("network/VeryfiAnyDocDto.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val constantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val functionsNormalizer = readFunctionsSource("lib/eobNormalizer.js")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+        val functionsHybrid = readFunctionsSource("lib/hybridReconciliation.js")
+
+        assertEquals("health_insurance_eob", VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB)
+        listOf(
+            "partner/any-documents/",
+            "extractVeryfiHybridStream",
+            "BLUEPRINT_HEALTH_INSURANCE_EOB"
+        ).forEach { snippet ->
+            assertTrue("PR#118 review: Android Veryfi constants missing $snippet", constantsSource.contains(snippet))
+        }
+        listOf(
+            "partner/any-documents/",
+            "health_insurance_eob",
+            "extractVeryfiHybridStream"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118 review: Cloud Functions Veryfi wiring missing $snippet",
+                functionsIndex.contains(snippet) || functionsConstants.contains(snippet)
+            )
+        }
+        listOf(
+            "veryfiToEobDocument",
+            "billed_amount",
+            "insurance_paid",
+            "contractual_adj",
+            "patient_responsibility"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118 review: normalizer parity missing $snippet",
+                functionsNormalizer.contains(snippet) || veryfiClientSource.contains(snippet) || firebaseMapperSource.contains(snippet)
+            )
+        }
+        listOf(
+            "shouldSkipStorageVeryfiExtraction",
+            "client_stream_committed",
+            "veryfi_hybrid"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118 review: hybrid reconciliation sync missing $snippet",
+                functionsHybrid.contains(snippet) || veryfiClientSource.contains(snippet)
+            )
+        }
+        listOf(
+            "VeryfiOcrFieldExtractor.enrichPayload",
+            "value.toDouble() != 0.0"
+        ).forEach { snippet ->
+            assertTrue("PR#118 review: OCR merge stability guard missing $snippet", mapperSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#118 review: custom_fields OCR wiring missing",
+            extractorSource.contains("custom_fields") || dtoSource.contains("custom_fields")
+        )
+        listOf(
+            "import app.eob.me.network.VeryfiOcrFieldExtractor",
+            "enrichFromVeryfiClientStream",
+            "veryfiClientStream"
+        ).forEach { snippet ->
+            assertTrue("PR#118 review: Firestore OCR re-hydration wiring missing $snippet", firebaseMapperSource.contains(snippet))
+        }
+        listOf(
+            "processHybridDocument",
+            "writeReconciliationFindings",
+            "veryfiPayloadToEobRecord",
+            "patient_responsibility"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#118 review: hybrid upload connectivity missing $snippet",
+                hybridRepoSource.contains(snippet) || veryfiClientSource.contains(snippet)
+            )
+        }
+        listOf(
+            "fun processScannedDocument",
+            "observeEobs",
+            "applyRemoteRecords"
+        ).forEach { snippet ->
+            assertTrue("PR#118 review: EobViewModel source-of-truth pipeline missing $snippet", viewModelSource.contains(snippet))
+        }
+        assertFalse(
+            "PR#118 review: EobViewModel must not embed OCR extractor logic",
+            viewModelSource.contains("VeryfiOcrFieldExtractor")
+        )
+        assertFalse(
+            "PR#118 review: index.js must remain free of Android-only OCR extractor",
+            functionsIndex.contains("VeryfiOcrFieldExtractor")
+        )
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#118 review: opening screen touched ($path)", source.contains("VeryfiOcrFieldExtractor"))
+        }
+        assertTrue(
+            "PR#118 review: OCR regex rules must include Veryfi billed_amount pattern",
+            extractorSource.contains("""Billed Amount:\s*\$?""")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

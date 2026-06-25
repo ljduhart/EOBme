@@ -47,7 +47,7 @@ object VeryfiAnyDocMapper {
         val lineItemText = dto.lineItems.orEmpty().joinToString(" ") { item ->
             listOfNotNull(item.description, item.cptCode).joinToString(" ")
         }
-        return mapOf(
+        return mapOf<String, Any?>(
             "insurance_name" to extraction.insuranceCompanyName,
             "payer_name" to extraction.insuranceCompanyName,
             "provider_name" to extraction.providerName,
@@ -60,7 +60,7 @@ object VeryfiAnyDocMapper {
             "out_of_network_out_of_pocket_balance" to extraction.outOfNetworkOutOfPocketBalance,
             "billed_amount" to dto.billedAmount,
             "insurance_paid" to dto.insurancePaid,
-            "contractual_adj" to firstNonNull(dto.contractualAdj, dto.contractualAdjustment),
+            "contractual_adj" to listOfNotNull(dto.contractualAdj, dto.contractualAdjustment).firstOrNull(),
             "copay" to dto.copay,
             "deductible" to dto.deductible,
             "coinsurance" to dto.coinsurance,
@@ -85,7 +85,7 @@ object VeryfiAnyDocMapper {
             when (value) {
                 null -> false
                 is String -> value.isNotBlank()
-                is Number -> true
+                is Number -> value.toDouble() != 0.0
                 else -> true
             }
         }
