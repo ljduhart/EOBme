@@ -16,11 +16,11 @@ class VeryfiAnyDocRepository(
     suspend fun extractHealthInsuranceEob(
         userId: String,
         documentRefId: String,
-        fileBytes: ByteArray,
         fileName: String,
         contentType: String,
         sourceName: String,
-        fileUrl: String? = null
+        fileUrl: String? = null,
+        fileBytes: ByteArray = ByteArray(0)
     ): Result<VeryfiAnyDocExtractionResult> {
         if (userId.isBlank()) {
             return Result.failure(IllegalArgumentException("User id is required for Veryfi AnyDocs extraction."))

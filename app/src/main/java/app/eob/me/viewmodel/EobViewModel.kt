@@ -763,21 +763,27 @@ class EobViewModel : ViewModel() {
                 val wasProcessing = _uiState.value.isLoadingInvoice
                 val scanActive = isDocumentScanPipelineActive()
                 val nextSelection = resolveRecordSelection(currentSelection, compacted)
-                val refreshedVeryfi = refreshVeryfiExtractedDataForRecord(nextSelection)
-                val scopedVeryfi = refreshedVeryfi ?: scopedVeryfiDataFor(nextSelection)
-                _uiState.update {
-                    it.copy(
+                _uiState.update { state ->
+                    val refreshedVeryfi = refreshVeryfiExtractedDataForRecord(nextSelection)
+                    val cachedVeryfi = scopedVeryfiDataFor(nextSelection)
+                    val preservedVeryfi = state.veryfiExtractedData.takeIf { data ->
+                        data != null &&
+                            nextSelection?.firestoreId?.isNotBlank() == true &&
+                            state.veryfiExtractedDataRecordId == nextSelection.firestoreId
+                    }
+                    val resolvedVeryfi = refreshedVeryfi ?: cachedVeryfi ?: preservedVeryfi
+                    state.copy(
                         selectedRecord = nextSelection,
-                        veryfiExtractedData = scopedVeryfi,
+                        veryfiExtractedData = resolvedVeryfi,
                         veryfiExtractedDataRecordId = nextSelection?.firestoreId?.takeIf { id ->
-                            scopedVeryfi != null && id.isNotBlank()
-                        }.orEmpty(),
-                        appealLetter = generateAppealLetter(profile, nextSelection, scopedVeryfi),
-                        isLoadingInvoice = if (scanActive) it.isLoadingInvoice else false,
+                            resolvedVeryfi != null && id.isNotBlank()
+                        } ?: state.veryfiExtractedDataRecordId,
+                        appealLetter = generateAppealLetter(profile, nextSelection, resolvedVeryfi),
+                        isLoadingInvoice = if (scanActive) state.isLoadingInvoice else false,
                         invoiceProcessingPhase = if (wasProcessing && !scanActive) {
                             InvoiceProcessingPhase.FileDropReveal
                         } else {
-                            it.invoiceProcessingPhase
+                            state.invoiceProcessingPhase
                         }
                     )
                 }

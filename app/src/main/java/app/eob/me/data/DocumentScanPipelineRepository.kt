@@ -73,7 +73,6 @@ class DocumentScanPipelineRepository(
         val anyDocResult = veryfiAnyDocRepository.extractHealthInsuranceEob(
             userId = userId,
             documentRefId = documentRefId,
-            fileBytes = ByteArray(0),
             fileName = fileName,
             contentType = contentType,
             sourceName = sourceName,
