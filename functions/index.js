@@ -11,16 +11,20 @@ const {
   veryfiToEobDocument
 } = require("./lib/eobNormalizer");
 const {
-  VERYFI_ANY_DOCS_URL,
-  BLUEPRINT_HEALTH_INSURANCE_EOB,
-  DOCUMENT_TYPE_EOB,
-  CATEGORIES_INSURANCE
+  BLUEPRINT_HEALTH_INSURANCE_EOB
 } = require("./lib/veryfiAnyDocConstants");
 const {
   shouldSkipStorageVeryfiExtraction,
   storageUploadReconciliationPatch,
   hybridFirestoreDocId
 } = require("./lib/hybridReconciliation");
+const {
+  postAnyDocument,
+  postAnyDocumentFromBytes,
+  VeryfiApiError,
+  VeryfiConfigurationError,
+  VeryfiRequestValidationError
+} = require("./lib/veryfiAnyDocClient");
 
 admin.initializeApp();
 
@@ -70,12 +74,12 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
   }
 
   const [fileBytes] = await file.download();
-  const veryfiResponse = await extractWithVeryfi(fileBytes, {
+  const veryfiResponse = await postAnyDocumentFromBytes({
+    fileBytes,
     fileName,
-    contentType: event.data.contentType || "application/octet-stream",
     blueprintName: BLUEPRINT_HEALTH_INSURANCE_EOB,
-    documentType: DOCUMENT_TYPE_EOB,
-    categories: CATEGORIES_INSURANCE
+    externalId: stableDocId,
+    credentials: readVeryfiCredentials()
   });
   const storageMetadata = event.data.metadata || {};
   const customMetadata = storageMetadata.metadata || storageMetadata.customMetadata || {};
@@ -108,49 +112,86 @@ exports.extractVeryfiHybridStream = onCall({
   timeoutSeconds: 120,
   memory: "512MiB"
 }, async (request) => {
-  if (!request.auth?.uid) {
-    throw new HttpsError("unauthenticated", "Sign in is required for hybrid Veryfi extraction.");
+  try {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Sign in is required for hybrid Veryfi extraction.");
+    }
+
+    const {
+      fileBase64,
+      fileName,
+      blueprintName,
+      documentRefId
+    } = request.data || {};
+
+    if (!fileBase64 || !fileName) {
+      throw new HttpsError("invalid-argument", "fileBase64 and fileName are required.");
+    }
+
+    const resolvedBlueprint = String(blueprintName || "").trim() || BLUEPRINT_HEALTH_INSURANCE_EOB;
+    if (resolvedBlueprint !== BLUEPRINT_HEALTH_INSURANCE_EOB) {
+      throw new HttpsError(
+        "invalid-argument",
+        `Unsupported blueprint_name '${resolvedBlueprint}'. Expected '${BLUEPRINT_HEALTH_INSURANCE_EOB}'.`
+      );
+    }
+
+    const veryfiResponse = await postAnyDocument({
+      fileDataBase64: fileBase64,
+      fileName,
+      blueprintName: BLUEPRINT_HEALTH_INSURANCE_EOB,
+      externalId: documentRefId,
+      credentials: readVeryfiCredentials()
+    });
+
+    return {veryfi: veryfiResponse};
+  } catch (error) {
+    throw mapVeryfiHybridStreamError(error);
   }
-  const {fileBase64, fileName, contentType, blueprintName, documentType, categories} = request.data || {};
-  if (!fileBase64 || !fileName) {
-    throw new HttpsError("invalid-argument", "fileBase64 and fileName are required.");
-  }
-  const fileBytes = Buffer.from(fileBase64, "base64");
-  const veryfiResponse = await extractWithVeryfi(fileBytes, {
-    fileName,
-    contentType: contentType || "application/octet-stream",
-    blueprintName: blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB,
-    documentType: documentType || DOCUMENT_TYPE_EOB,
-    categories: Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES_INSURANCE
-  });
-  return {veryfi: veryfiResponse};
 });
 
-async function extractWithVeryfi(fileBytes, fileMetadata) {
-  const blueprintName = fileMetadata.blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB;
-  const documentType = fileMetadata.documentType || DOCUMENT_TYPE_EOB;
-  const categories = Array.isArray(fileMetadata.categories) && fileMetadata.categories.length > 0 ?
-    fileMetadata.categories :
-    CATEGORIES_INSURANCE;
-  const form = new FormData();
-  form.append("file", new Blob([fileBytes], {type: fileMetadata.contentType}), fileMetadata.fileName);
-  form.append("blueprint_name", blueprintName);
-  form.append("document_type", documentType);
-  form.append("categories", JSON.stringify(categories));
-
-  const response = await fetch(VERYFI_ANY_DOCS_URL, {
-    method: "POST",
-    headers: {
-      "Client-Id": veryfiClientId.value(),
-      "Authorization": `apikey ${veryfiUsername.value()}:${veryfiApiKey.value()}`
-    },
-    body: form
-  });
-
-  if (!response.ok) {
-    throw new Error(`Veryfi any-documents extraction failed with status ${response.status}: ${await response.text()}`);
+function readVeryfiCredentials() {
+  try {
+    return {
+      clientId: veryfiClientId.value(),
+      username: veryfiUsername.value(),
+      apiKey: veryfiApiKey.value()
+    };
+  } catch (error) {
+    throw new VeryfiConfigurationError(
+      "Veryfi API credentials are not configured for this Firebase project."
+    );
   }
-  return response.json();
+}
+
+function mapVeryfiHybridStreamError(error) {
+  if (error instanceof HttpsError) {
+    return error;
+  }
+  if (error instanceof VeryfiRequestValidationError) {
+    return new HttpsError("invalid-argument", error.message);
+  }
+  if (error instanceof VeryfiConfigurationError) {
+    return new HttpsError("failed-precondition", error.message);
+  }
+  if (error instanceof VeryfiApiError) {
+    if (error.status === 401 || error.status === 403) {
+      return new HttpsError("permission-denied", error.message);
+    }
+    if (error.status === 413) {
+      return new HttpsError("invalid-argument", "Document exceeds Veryfi upload size limits.");
+    }
+    if (error.status === 429) {
+      return new HttpsError("resource-exhausted", "Veryfi rate limit reached. Please retry shortly.");
+    }
+    if (error.status >= 500) {
+      return new HttpsError("unavailable", error.message);
+    }
+    return new HttpsError("invalid-argument", error.message);
+  }
+
+  const message = error?.message ? String(error.message) : "Unexpected Veryfi hybrid stream failure.";
+  return new HttpsError("internal", message);
 }
 
 async function mirrorEobWrite(event, sourceCollection, targetCollection) {

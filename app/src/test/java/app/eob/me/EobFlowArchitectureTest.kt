@@ -1399,7 +1399,7 @@ class EobFlowArchitectureTest {
         assertTrue(hybridRepoSource.contains("fileBytes"))
         assertTrue(veryfiSource.contains("fileBase64"))
         assertTrue(veryfiSource.contains("VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB"))
-        assertTrue(veryfiSource.contains("VeryfiAnyDocConstants.DOCUMENT_TYPE_EOB"))
+        assertTrue(constantsSource.contains("DOCUMENT_TYPE_EOB"))
         assertTrue(veryfiSource.contains("withTimeout"))
         assertTrue(hybridRefSource.contains("userRootedStoragePath"))
         assertTrue(hybridRefSource.contains("documentRootedStoragePath"))
@@ -1547,7 +1547,10 @@ class EobFlowArchitectureTest {
             "PR#115: Veryfi AnyDocs endpoint must use partner/any-documents/",
             readFunctionsSource("lib/veryfiAnyDocConstants.js").contains("partner/any-documents/") &&
                 anyDocConstantsSource.contains("partner/any-documents/") &&
-                functionsIndex.contains("VERYFI_ANY_DOCS_URL")
+                (
+                    functionsIndex.contains("VERYFI_ANY_DOCS_URL") ||
+                        readFunctionsSource("lib/veryfiAnyDocClient.js").contains("VERYFI_ANY_DOCS_URL")
+                    )
         )
         assertFalse(
             "PR#115: legacy partner/documents endpoint must not remain",
@@ -2179,6 +2182,93 @@ class EobFlowArchitectureTest {
         ).forEach { path ->
             val source = readSource(path)
             assertFalse("PR#118 harmony: opening screen touched ($path)", source.contains("VeryfiOcrFieldExtractor"))
+        }
+    }
+
+    @Test
+    fun pr119HybridStreamVeryfiPipelineAudit() {
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val errorMapperSource = readSource("network/VeryfiHybridStreamErrorMapper.kt")
+        val constantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val functionsIndex = readFunctionsSource("index.js")
+        val functionsClient = readFunctionsSource("lib/veryfiAnyDocClient.js")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+
+        assertEquals("health_insurance_eob", VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB)
+        assertEquals(
+            "https://api.veryfi.com/api/v8/partner/any-documents/",
+            "${VeryfiAnyDocConstants.BASE_URL}${VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH}"
+        )
+        listOf(
+            "extractVeryfiHybridStream",
+            "mapVeryfiHybridStreamError",
+            "postAnyDocument",
+            "BLUEPRINT_HEALTH_INSURANCE_EOB"
+        ).forEach { snippet ->
+            assertTrue("PR#119: hybrid stream CF wiring missing $snippet", functionsIndex.contains(snippet))
+        }
+        listOf(
+            "file_data",
+            "blueprint_name",
+            "health_insurance_eob",
+            "VERYFI_ANY_DOCS_URL"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#119: Veryfi any-documents client missing $snippet",
+                functionsClient.contains(snippet) || functionsConstants.contains(snippet)
+            )
+        }
+        listOf(
+            "EXTRACT_VERYFI_HYBRID_STREAM",
+            "BLUEPRINT_HEALTH_INSURANCE_EOB",
+            "documentRefId",
+            "blueprintName"
+        ).forEach { snippet ->
+            assertTrue("PR#119: Android hybrid callable payload missing $snippet", veryfiClientSource.contains(snippet))
+        }
+        assertFalse(
+            "PR#119: callable must not send deprecated document_type/categories to CF",
+            veryfiClientSource.contains("\"documentType\"")
+        )
+        listOf(
+            "processHybridDocument",
+            "extractHealthInsuranceEob",
+            "writeReconciliationFindings"
+        ).forEach { snippet ->
+            assertTrue("PR#119: hybrid repository pipeline missing $snippet", hybridRepoSource.contains(snippet))
+        }
+        listOf(
+            "processScannedDocument",
+            "libraryUploadLauncher",
+            "CameraCaptureScreen"
+        ).forEach { snippet ->
+            assertTrue("PR#119: camera/library navigation missing $snippet", navHostSource.contains(snippet))
+        }
+        listOf(
+            "fun processScannedDocument",
+            "processHybridScannedDocument"
+        ).forEach { snippet ->
+            assertTrue("PR#119: EobViewModel source-of-truth missing $snippet", viewModelSource.contains(snippet))
+        }
+        assertFalse(
+            "PR#119: EobViewModel must not embed Veryfi HTTP client logic",
+            viewModelSource.contains("postAnyDocument")
+        )
+        assertTrue(
+            "PR#119: actionable INTERNAL error mapping required",
+            errorMapperSource.contains("VERYFI_CLIENT_ID")
+        )
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#119: opening screen touched ($path)", source.contains("veryfiAnyDocClient"))
         }
     }
 

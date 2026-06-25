@@ -12,4 +12,12 @@ class VeryfiHybridStreamErrorMapperTest {
         )
         assertTrue(message.contains("Callable transport timeout"))
     }
+
+    @Test
+    fun describePrefixesVeryfiHybridStreamFailures() {
+        val message = VeryfiHybridStreamErrorMapper.describe(
+            IllegalStateException("Veryfi any-documents extraction failed with status 403: forbidden")
+        )
+        assertTrue(message.contains("Veryfi any-documents extraction failed"))
+    }
 }
