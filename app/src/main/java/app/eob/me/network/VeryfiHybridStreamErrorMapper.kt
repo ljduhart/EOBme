@@ -8,11 +8,23 @@ object VeryfiHybridStreamErrorMapper {
             val code = error.code.name
             val details = error.details?.toString()?.takeIf { it.isNotBlank() }
             val message = error.message?.takeIf { it.isNotBlank() }
+            val genericInternal = code.equals("INTERNAL", ignoreCase = true) && (
+                message.isNullOrBlank() ||
+                    message.equals("INTERNAL", ignoreCase = true) ||
+                    message.equals("internal", ignoreCase = true) ||
+                    message.equals("internal error", ignoreCase = true)
+                )
             return buildString {
                 append("Veryfi hybrid stream failed ($code)")
-                if (!message.isNullOrBlank()) {
-                    append(": ")
-                    append(message)
+                when {
+                    genericInternal -> append(
+                        ": The Veryfi proxy could not complete extraction. " +
+                            "Verify Firebase Functions secrets (VERYFI_CLIENT_ID, VERYFI_USERNAME, VERYFI_API_KEY) and deployment."
+                    )
+                    !message.isNullOrBlank() -> {
+                        append(": ")
+                        append(message)
+                    }
                 }
                 if (!details.isNullOrBlank()) {
                     append(" — ")
