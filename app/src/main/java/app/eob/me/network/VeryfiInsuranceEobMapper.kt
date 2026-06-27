@@ -139,9 +139,7 @@ private fun mapServiceLineAtIndex(
 
         val description = VeryfiIndexedFieldReader
             .stringValue(row, VeryfiIndexedFieldReader.DESCRIPTION_BASE_KEYS, index)
-        val serviceDateIso = VeryfiDateNormalizer.toIsoDate(
-            VeryfiIndexedFieldReader.stringValue(row, VeryfiIndexedFieldReader.DATE_BASE_KEYS, index)
-        )
+        val serviceDateIso = VeryfiIndexedFieldReader.resolveServiceDateIso(row, index)
 
         val billedAmount = VeryfiCurrencyParser.firstPositive(
             VeryfiIndexedFieldReader.moneyValue(row, VeryfiIndexedFieldReader.TOTAL_BILLED_BASE_KEYS, index),

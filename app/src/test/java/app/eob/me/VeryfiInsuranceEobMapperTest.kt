@@ -67,11 +67,94 @@ class VeryfiInsuranceEobMapperTest {
 
         assertEquals("2026-03-21", lines[0].serviceDateIso)
         assertEquals("2026-04-11", lines[1].serviceDateIso)
+        assertEquals("2026-04-11", lines[6].serviceDateIso)
         assertEquals(1438.0, lines[0].billedAmount, 0.01)
         assertEquals(140.0, lines[1].billedAmount, 0.01)
         assertEquals(95.0, lines[2].billedAmount, 0.01)
         assertEquals(30.49, lines[1].insurancePaidAmount, 0.01)
         assertEquals(473.35, lines[0].patientResponsibilityAmount, 0.01)
+    }
+
+    @Test
+    fun mapsSingleDateOfServiceWithThreeCptCodes() {
+        val payload = mapOf(
+            "payer_name" to "Aetna",
+            "claims" to listOf(
+                mapOf(
+                    "provider_name" to "Family Health Center",
+                    "processed_date" to "02/10/26",
+                    "service_lines" to listOf(
+                        mapOf(
+                            "cpt_code_1" to "99213",
+                            "cpt_code_2" to "99214",
+                            "cpt_code_3" to "36415",
+                            "service_date_1" to "02/05/26",
+                            "amount_billed_1" to 150.0,
+                            "amount_billed_2" to 220.0,
+                            "amount_billed_3" to 25.0,
+                            "health_plan_responsibility_1" to 120.0,
+                            "health_plan_responsibility_2" to 180.0,
+                            "health_plan_responsibility_3" to 20.0
+                        )
+                    )
+                )
+            )
+        )
+
+        val result = requireNotNull(payload.toNormalizedInsuranceEob().getOrNull())
+        val lines = result.document.allServiceLines
+        assertEquals(3, lines.size)
+        assertEquals(listOf("99213", "99214", "36415"), lines.map { it.procedureCode })
+        assertEquals(setOf("2026-02-05"), lines.map { it.serviceDateIso }.toSet())
+        assertTrue(result.warnings.isEmpty())
+
+        val record = InsuranceEobRecordBridge.toEobRecord(
+            document = result.document,
+            documentRefId = "eob_single_date_jpg",
+            sourceName = "Camera"
+        )
+        assertEquals(3, record.charges.size)
+        assertEquals("02/05/2026", record.serviceDate)
+        assertEquals(setOf("02/05/2026"), record.charges.map { it.serviceDate }.toSet())
+    }
+
+    @Test
+    fun mapsTwoServiceDatesWithSevenCptCodesThroughHybridPipeline() {
+        val payload = twoDateSevenCptPayload()
+        val documentRefId = "eob_two_dates_jpg"
+        val record = app.eob.me.network.veryfiPayloadToEobRecord(
+            payload = payload,
+            documentRefId = documentRefId,
+            sourceName = "Camera EOB"
+        )
+
+        assertEquals(7, record.charges.size)
+        assertEquals(
+            listOf("D5225", "D0120", "D1110", "99213", "99214", "36415", "81003"),
+            record.charges.map { it.cptCode }
+        )
+        assertEquals(setOf("03/21/2026", "04/11/2026"), record.charges.map { it.serviceDate }.toSet())
+        assertEquals("03/21/2026", record.serviceDate)
+        assertEquals(3, record.charges.count { it.serviceDate == "03/21/2026" })
+        assertEquals(4, record.charges.count { it.serviceDate == "04/11/2026" })
+        assertTrue(record.totalBilledAmount > 0.0)
+    }
+
+    @Test
+    fun firestoreRoundTripRehydratesNestedClaimsFromVeryfiClientStream() {
+        val payload = twoDateSevenCptPayload()
+        val firestoreRow = mapOf(
+            "sourceName" to "Camera",
+            "veryfiClientStream" to payload,
+            "providerName" to "",
+            "billed_amount" to 0.0
+        )
+
+        val record = app.eob.me.data.FirebaseEobMapper.eobFromMap(firestoreRow, documentId = "doc_42")
+
+        assertEquals(7, record.charges.size)
+        assertEquals(setOf("03/21/2026", "04/11/2026"), record.charges.map { it.serviceDate }.toSet())
+        assertTrue(record.totalBilledAmount > 0.0)
     }
 
     @Test
@@ -97,7 +180,7 @@ class VeryfiInsuranceEobMapperTest {
         val result = requireNotNull(payload.toNormalizedInsuranceEob().getOrNull())
         val codes = result.document.allServiceLines.map { it.procedureCode }
         assertEquals(listOf("99213", "99214"), codes)
-        assertTrue(result.warnings.any { it.contains("index 2") })
+        assertTrue(result.warnings.isEmpty())
     }
 
     @Test
@@ -209,6 +292,46 @@ class VeryfiInsuranceEobMapperTest {
                             "health_plan_responsibility_1" to 423.35,
                             "health_plan_responsibility_2" to 30.49,
                             "health_plan_responsibility_3" to 57.58
+                        )
+                    )
+                )
+            )
+        )
+    }
+
+    private fun twoDateSevenCptPayload(): Map<String, Any?> {
+        return mapOf(
+            "payer_name" to "BlueCross BlueShield of Texas",
+            "claims" to listOf(
+                mapOf(
+                    "provider_name" to "ALAMO FAMILY & COSMETIC D",
+                    "processed_date" to "03/24/26",
+                    "claim_totals" to mapOf(
+                        "total_billed_1" to "$ 1,578.00",
+                        "total_patient_responsibility_1" to 473.35,
+                        "total_health_plan_responsibility_1" to "$ 511,42"
+                    ),
+                    "service_lines" to listOf(
+                        mapOf(
+                            "cpt_code_1" to "D5225",
+                            "cpt_code_2" to "D0120",
+                            "cpt_code_3" to "D1110",
+                            "cpt_code_4" to "99213",
+                            "cpt_code_5" to "99214",
+                            "cpt_code_6" to "36415",
+                            "cpt_code_7" to "81003",
+                            "service_date_1" to "03/21/26",
+                            "service_date_4" to "04/11/26",
+                            "total_amount_billed_1" to "$ 1,438.00",
+                            "total_amount_billed_2" to "$ 140.00",
+                            "amount_billed_3" to 95.0,
+                            "amount_billed_4" to 120.0,
+                            "amount_billed_5" to 180.0,
+                            "amount_billed_6" to 25.0,
+                            "amount_billed_7" to 40.0,
+                            "health_plan_responsibility_2" to 30.49,
+                            "health_plan_responsibility_3" to 57.58,
+                            "patient_responsibility_1" to 473.35
                         )
                     )
                 )

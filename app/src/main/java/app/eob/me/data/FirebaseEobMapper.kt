@@ -87,8 +87,8 @@ object FirebaseEobMapper {
 
     fun eobFromMap(data: Map<String, Any?>, documentId: String = ""): EobRecord {
         val enrichedData = enrichFromVeryfiClientStream(data)
-        if (VeryfiInsuranceEobPayloadParser.isNestedClaimsPayload(enrichedData)) {
-            enrichedData.toNormalizedInsuranceEob().getOrNull()?.let { normalized ->
+        resolveNestedInsuranceEobPayload(enrichedData)?.let { nestedPayload ->
+            nestedPayload.toNormalizedInsuranceEob().getOrNull()?.let { normalized ->
                 return InsuranceEobRecordBridge.toEobRecord(
                     document = normalized.document,
                     documentRefId = documentId.ifBlank { enrichedData.stringValue("id") },
@@ -181,6 +181,18 @@ object FirebaseEobMapper {
             mergeIfMissing("ocr_text", "rawText", "raw_text", value = ocrText)
         }
         return merged
+    }
+
+    /**
+     * Locates nested `claims[]` on the Firestore row or inside embedded [veryfiClientStream].
+     */
+    internal fun resolveNestedInsuranceEobPayload(data: Map<String, Any?>): Map<String, Any?>? {
+        if (VeryfiInsuranceEobPayloadParser.isNestedClaimsPayload(data)) {
+            return data
+        }
+        @Suppress("UNCHECKED_CAST")
+        val stream = data["veryfiClientStream"] as? Map<String, Any?>
+        return stream?.takeIf { VeryfiInsuranceEobPayloadParser.isNestedClaimsPayload(it) }
     }
 
     /**

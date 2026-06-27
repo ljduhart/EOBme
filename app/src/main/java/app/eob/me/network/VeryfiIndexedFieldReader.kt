@@ -7,7 +7,6 @@ import app.eob.me.network.dto.VeryfiIndexedServiceLineDto
  * Uses precompiled regex — no reflection.
  */
 object VeryfiIndexedFieldReader {
-    private val INDEX_SUFFIX = Regex("""_(\d+)$""")
     const val MAX_SERVICE_LINE_INDEX = 8
 
     internal val CODE_BASE_KEYS = listOf("cpt_code", "cptCode", "code")
@@ -24,24 +23,25 @@ object VeryfiIndexedFieldReader {
     internal val PATIENT_RESP_BASE_KEYS = listOf("patient_responsibility", "patientResponsibility")
 
     /**
-     * Discovers 1-based indices present in [fieldMap] by scanning keys and explicit `cpt_code_N` slots.
+     * Discovers 1-based indices that have a non-blank procedure code (`cpt_code_N`).
+     * Financial-only keys such as `copay_amount_2` without a matching code are ignored.
      */
     fun discoverIndices(fieldMap: VeryfiIndexedServiceLineDto): List<Int> {
-        val indices = linkedSetOf<Int>()
-        fieldMap.keys.forEach { key ->
-            val match = INDEX_SUFFIX.find(key) ?: return@forEach
-            match.groupValues.getOrNull(1)?.toIntOrNull()?.let { index ->
-                if (index in 1..MAX_SERVICE_LINE_INDEX) {
-                    indices.add(index)
-                }
-            }
+        return (1..MAX_SERVICE_LINE_INDEX).filter { index ->
+            stringValue(fieldMap, CODE_BASE_KEYS, index).isNotBlank()
         }
-        for (index in 1..MAX_SERVICE_LINE_INDEX) {
-            if (stringValue(fieldMap, CODE_BASE_KEYS, index).isNotBlank()) {
-                indices.add(index)
-            }
+    }
+
+    /**
+     * Resolves the service date for [index], falling back to the nearest prior indexed date in the
+     * same Veryfi row when `service_date_N` is absent (common for columns 4–8 on multi-CPT EOBs).
+     */
+    fun resolveServiceDateIso(fieldMap: VeryfiIndexedServiceLineDto, index: Int): String {
+        for (candidate in index downTo 1) {
+            val iso = VeryfiDateNormalizer.toIsoDate(stringValue(fieldMap, DATE_BASE_KEYS, candidate))
+            if (iso.isNotBlank()) return iso
         }
-        return indices.sorted()
+        return ""
     }
 
     fun stringValue(fieldMap: VeryfiIndexedServiceLineDto, baseKeys: List<String>, index: Int): String {
