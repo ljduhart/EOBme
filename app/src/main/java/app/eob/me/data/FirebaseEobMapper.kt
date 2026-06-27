@@ -85,6 +85,20 @@ object FirebaseEobMapper {
 
     fun eobFromMap(data: Map<String, Any?>, documentId: String = ""): EobRecord {
         val enrichedData = enrichFromVeryfiClientStream(data)
+        if (DentalEobJsonTranslator.isNestedDentalPayload(enrichedData)) {
+            val sourceName = enrichedData.stringValue("sourceName", "source_name").ifBlank { "Firebase" }
+            val translation = DentalEobJsonTranslator.translate(
+                payload = enrichedData,
+                documentRefId = documentId.ifBlank { enrichedData.stringValue("id") },
+                sourceName = sourceName
+            )
+            if (translation != null) {
+                return reconcileNormalizedEobRecord(
+                    translation.mergedRecord.copy(firestoreId = documentId),
+                    enrichedData
+                )
+            }
+        }
         val serviceDate = enrichedData.dateValue("serviceDate", "dateOfService", "date_of_service")
         val rawText = enrichedData.stringValue(
             "rawText",
@@ -167,6 +181,37 @@ object FirebaseEobMapper {
         val ocrText = VeryfiOcrFieldExtractor.extractOcrText(enrichedPayload)
         if (ocrText.isNotBlank()) {
             mergeIfMissing("ocr_text", "rawText", "raw_text", value = ocrText)
+        }
+        return enrichNestedDentalClaims(data, merged)
+    }
+
+    private fun enrichNestedDentalClaims(data: Map<String, Any?>, merged: MutableMap<String, Any?>): Map<String, Any?> {
+        @Suppress("UNCHECKED_CAST")
+        val stream = merged["veryfiClientStream"] as? Map<String, Any?> ?: return merged
+        if (!DentalEobJsonTranslator.isNestedDentalPayload(stream)) return merged
+        val documentId = merged.stringValue("id", "firestoreId").ifBlank {
+            data.stringValue("id", "firestoreId")
+        }
+        val sourceName = merged.stringValue("sourceName", "source_name").ifBlank { "Veryfi" }
+        val translation = DentalEobJsonTranslator.translate(stream, documentId, sourceName) ?: return merged
+        translation.flattenedPayload.forEach { (key, value) ->
+            if (value != null) merged[key] = value
+        }
+        if (merged["charges"] == null || (merged["charges"] as? List<*>)?.isEmpty() == true) {
+            merged["charges"] = translation.mergedRecord.charges.map { charge ->
+                mapOf(
+                    "cptCode" to charge.cptCode,
+                    "cpt_code" to charge.cptCode,
+                    "cptDescription" to charge.cptDescription,
+                    "billedAmount" to charge.billedAmount,
+                    "insurancePaidAmount" to charge.insurancePaidAmount,
+                    "contractualAdjustmentAmount" to charge.contractualAdjustmentAmount,
+                    "copayAmount" to charge.copayAmount,
+                    "deductibleAmount" to charge.deductibleAmount,
+                    "coinsuranceAmount" to charge.coinsuranceAmount,
+                    "serviceDate" to charge.serviceDate
+                )
+            }
         }
         return merged
     }

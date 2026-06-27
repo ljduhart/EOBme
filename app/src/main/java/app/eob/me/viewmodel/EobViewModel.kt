@@ -37,6 +37,7 @@ import app.eob.me.data.InsuranceNewsCarrierHubItem
 import app.eob.me.data.MajorInsuranceCarrier
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.DocumentScanPipelineState
+import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.data.VeryfiAnyDocExtractionState
 import app.eob.me.data.VeryfiExtractedData
 import app.eob.me.data.toVeryfiExtractedData
@@ -640,6 +641,22 @@ class EobViewModel : ViewModel() {
             projected.cptCodes.isNotEmpty() ||
             projected.dateOfService.isNotBlank()
         return projected.takeIf { hasDisplayTotals }
+    }
+
+    private fun mergeScannedRecordsIntoHistory(anyDocResult: VeryfiAnyDocExtractionResult) {
+        val scannedRecords = buildList {
+            add(anyDocResult.record)
+            anyDocResult.claimRecords.forEach { claimRecord ->
+                if (claimRecord.firestoreId != anyDocResult.record.firestoreId) {
+                    add(claimRecord)
+                }
+            }
+        }
+        if (scannedRecords.isEmpty()) return
+        val merged = EobAnalyzer.compactDuplicateEobs(_eobRecords.value + scannedRecords)
+            .sortedByDescending { it.serviceDateSortKey }
+            .take(HistoryPagination.MAX_EOBS)
+        _eobRecords.value = merged
     }
 
     private fun isDocumentScanPipelineActive(): Boolean {
@@ -1438,6 +1455,7 @@ class EobViewModel : ViewModel() {
                 extraction.fold(
                     onSuccess = { anyDocResult ->
                         val processedResult = anyDocResult.toProcessedResult()
+                        mergeScannedRecordsIntoHistory(anyDocResult)
                         _veryfiAnyDocExtractionState.value =
                             VeryfiAnyDocExtractionState.Success(anyDocResult)
                         _documentScanState.value = DocumentScanPipelineState.Success(processedResult)

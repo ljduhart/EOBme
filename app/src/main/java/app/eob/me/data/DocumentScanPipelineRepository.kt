@@ -109,6 +109,13 @@ class DocumentScanPipelineRepository(
             storagePath = storagePath
         )
 
+        veryfiClient.writeSupplementalClaimRecords(
+            userId = userId,
+            claimRecords = anyDocResult.claimRecords,
+            primaryFirestoreId = streamedRecord.firestoreId,
+            sourceName = sourceName
+        )
+
         return anyDocResult.copy(
             record = streamedRecord,
             downloadUrl = upload.downloadUrl

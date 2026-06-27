@@ -1,6 +1,7 @@
 package app.eob.me.network
 
 import android.util.Base64
+import app.eob.me.data.DentalEobJsonTranslator
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
 import app.eob.me.network.VeryfiAnyDocConstants
@@ -171,6 +172,31 @@ class VeryfiDocumentClient(
         setMergeAwait(userRef.collection(EOB_RECORDS).document(record.firestoreId), finalizePayload)
     }
 
+    suspend fun writeSupplementalClaimRecords(
+        userId: String,
+        claimRecords: List<EobRecord>,
+        primaryFirestoreId: String,
+        sourceName: String
+    ) {
+        if (userId.isBlank() || primaryFirestoreId.isBlank()) return
+        val userRef = firestore.collection(USERS).document(userId)
+        claimRecords
+            .filter { it.firestoreId.isNotBlank() && it.firestoreId != primaryFirestoreId }
+            .forEach { claimRecord ->
+                val payload = FirebaseEobMapper.eobToMap(claimRecord) + mapOf(
+                    "processedBy" to "veryfi",
+                    "processedAt" to FieldValue.serverTimestamp(),
+                    "processedByClientStream" to "veryfi_hybrid_claim",
+                    "hybridValidationTrack" to "client_stream_claim",
+                    "hybridReconciliationStatus" to "client_stream_claim_committed",
+                    "updatedAt" to FieldValue.serverTimestamp(),
+                    "sourceName" to sourceName.ifBlank { claimRecord.sourceName }
+                )
+                setMergeAwait(userRef.collection(EOBS).document(claimRecord.firestoreId), payload)
+                setMergeAwait(userRef.collection(EOB_RECORDS).document(claimRecord.firestoreId), payload)
+            }
+    }
+
     private suspend fun setMergeAwait(
         reference: DocumentReference,
         payload: Map<String, Any?>
@@ -273,6 +299,11 @@ internal fun veryfiPayloadToEobRecord(
     documentRefId: String,
     sourceName: String
 ): EobRecord {
+    val dentalTranslation = DentalEobJsonTranslator.translate(payload, documentRefId, sourceName)
+    if (dentalTranslation != null) {
+        return dentalTranslation.mergedRecord
+    }
+
     val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(payload, documentRefId)
     val ocrText = mergedPayload.veryfiStringField("ocr_text", "ocrText", "text")
     val rawText = ocrText.ifBlank { veryfiPayloadToJsonString(mergedPayload) }

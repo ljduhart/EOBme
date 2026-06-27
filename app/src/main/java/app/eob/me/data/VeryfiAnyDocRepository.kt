@@ -1,5 +1,6 @@
 package app.eob.me.data
 
+import app.eob.me.data.DentalEobJsonTranslator
 import app.eob.me.network.VeryfiAnyDocMapper
 import app.eob.me.network.VeryfiDocumentClient
 import app.eob.me.network.VeryfiHybridStreamErrorMapper
@@ -48,17 +49,24 @@ class VeryfiAnyDocRepository(
                 fileUrl = resolvedFileUrl.takeIf { it.isNotBlank() }
             )
             val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(rawPayload, documentRefId)
-            val extraction = VeryfiAnyDocMapper.mapFromUntypedPayload(mergedPayload, documentRefId)
-            val record = veryfiPayloadToEobRecord(
-                payload = mergedPayload,
-                documentRefId = documentRefId,
-                sourceName = sourceName
-            )
+            val dentalTranslation = DentalEobJsonTranslator.translate(mergedPayload, documentRefId, sourceName)
+                ?: DentalEobJsonTranslator.translate(rawPayload, documentRefId, sourceName)
+            val effectivePayload = dentalTranslation?.flattenedPayload?.let { flattened ->
+                mergedPayload + flattened + mapOf("claims" to (rawPayload["claims"] ?: mergedPayload["claims"]))
+            } ?: mergedPayload
+            val extraction = VeryfiAnyDocMapper.mapFromUntypedPayload(effectivePayload, documentRefId)
+            val record = dentalTranslation?.mergedRecord
+                ?: veryfiPayloadToEobRecord(
+                    payload = effectivePayload,
+                    documentRefId = documentRefId,
+                    sourceName = sourceName
+                )
             Result.success(
                 VeryfiAnyDocExtractionResult(
                     extraction = extraction,
                     record = record,
-                    rawPayload = mergedPayload
+                    rawPayload = effectivePayload,
+                    claimRecords = dentalTranslation?.claimRecords.orEmpty()
                 )
             )
         } catch (error: CancellationException) {

@@ -2337,6 +2337,49 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun dentalEobJsonTranslatorPipelineAudit() {
+        val translatorSource = readSource("data/DentalEobJsonTranslator.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val mapperSource = readSource("data/FirebaseEobMapper.kt")
+        val functionsDental = readFunctionsSource("lib/dentalEobJsonTranslator.js")
+        val functionsNormalizer = readFunctionsSource("lib/eobNormalizer.js")
+
+        listOf(
+            "isNestedDentalPayload",
+            "unpivotServiceLine",
+            "parseMoney",
+            "claims",
+            "service_lines",
+            "TranslationResult"
+        ).forEach { snippet ->
+            assertTrue("Dental EOB translator missing $snippet", translatorSource.contains(snippet))
+        }
+        listOf(
+            "DentalEobJsonTranslator.translate",
+            "mergeScannedRecordsIntoHistory",
+            "claimRecords"
+        ).forEach { snippet ->
+            assertTrue("Dental pipeline wiring missing $snippet", viewModelSource.contains(snippet) ||
+                readSource("data/VeryfiHealthInsuranceEob.kt").contains(snippet) ||
+                readSource("data/VeryfiAnyDocRepository.kt").contains(snippet))
+        }
+        assertTrue(
+            "veryfiPayloadToEobRecord must delegate to dental translator",
+            veryfiClientSource.contains("DentalEobJsonTranslator.translate")
+        )
+        assertTrue(
+            "Firebase mapper must enrich nested dental claims",
+            mapperSource.contains("enrichNestedDentalClaims")
+        )
+        assertTrue(
+            "Cloud Functions dental translator required",
+            functionsDental.contains("translateNestedDentalPayload") &&
+                functionsNormalizer.contains("dentalEobJsonTranslator")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

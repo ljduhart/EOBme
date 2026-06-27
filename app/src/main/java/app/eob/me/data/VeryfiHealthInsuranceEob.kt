@@ -39,7 +39,8 @@ data class VeryfiAnyDocExtractionResult(
     val extraction: VeryfiHealthInsuranceEob,
     val record: EobRecord,
     val rawPayload: Map<String, Any?> = emptyMap(),
-    val downloadUrl: String = ""
+    val downloadUrl: String = "",
+    val claimRecords: List<EobRecord> = emptyList()
 ) {
     fun toVeryfiExtractedData(): VeryfiExtractedData {
         val cptCodes = record.charges

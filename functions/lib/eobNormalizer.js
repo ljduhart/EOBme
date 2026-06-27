@@ -1,6 +1,10 @@
 "use strict";
 
 const {enrichPayload, extractOcrText} = require("./veryfiOcrFieldExtractor");
+const {
+  isNestedDentalPayload,
+  translateNestedDentalPayload
+} = require("./dentalEobJsonTranslator");
 
 const VALID_CPT_PATTERN = /^[1-9][0-9]{4}$|^[A-J][0-9]{4}$/;
 
@@ -95,6 +99,19 @@ function normalizeEobDocument(data = {}, documentId = "") {
 
 function veryfiToEobDocument(veryfi = {}, metadata = {}) {
   const enriched = enrichPayload(veryfi);
+  if (isNestedDentalPayload(enriched)) {
+    const dental = translateNestedDentalPayload(enriched, metadata);
+    if (dental?.flattened) {
+      return normalizeEobDocument({
+        ...dental.flattened,
+        rawText: JSON.stringify(enriched),
+        ocr_text: extractOcrText(enriched),
+        sourceFilePath: metadata.sourceFilePath || "",
+        veryfiDocumentId: enriched.id || enriched.document_id || "",
+        blueprint_name: stringValue(enriched, ["blueprint_name"]) || "health_insurance_eob"
+      }, metadata.documentId || String(enriched.id || enriched.document_id || Date.now()));
+    }
+  }
   const ocrText = extractOcrText(enriched);
   const rawText = ocrText || JSON.stringify(enriched);
   const providerName = stringValue(enriched, [
