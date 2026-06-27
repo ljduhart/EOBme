@@ -3,6 +3,7 @@ package app.eob.me.data
 import app.eob.me.network.VeryfiAnyDocMapper
 import app.eob.me.network.VeryfiDocumentClient
 import app.eob.me.network.VeryfiHybridStreamErrorMapper
+import app.eob.me.network.VeryfiInsuranceEobPayloadParser
 import app.eob.me.network.veryfiPayloadToEobRecord
 import kotlinx.coroutines.CancellationException
 
@@ -43,9 +44,15 @@ class VeryfiAnyDocRepository(
                 contentType = contentType
             )
             val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(rawPayload, documentRefId)
-            val extraction = VeryfiAnyDocMapper.mapFromUntypedPayload(mergedPayload, documentRefId)
+            val nestedPayload = when {
+                VeryfiInsuranceEobPayloadParser.isNestedClaimsPayload(rawPayload) -> rawPayload
+                VeryfiInsuranceEobPayloadParser.isNestedClaimsPayload(mergedPayload) -> mergedPayload
+                else -> null
+            }
+            val effectivePayload = nestedPayload ?: mergedPayload
+            val extraction = VeryfiAnyDocMapper.mapFromUntypedPayload(effectivePayload, documentRefId)
             val record = veryfiPayloadToEobRecord(
-                payload = mergedPayload,
+                payload = effectivePayload,
                 documentRefId = documentRefId,
                 sourceName = sourceName
             )
@@ -53,7 +60,7 @@ class VeryfiAnyDocRepository(
                 VeryfiAnyDocExtractionResult(
                     extraction = extraction,
                     record = record,
-                    rawPayload = mergedPayload
+                    rawPayload = effectivePayload
                 )
             )
         } catch (error: CancellationException) {

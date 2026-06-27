@@ -1,6 +1,8 @@
 package app.eob.me.data
 
 import app.eob.me.network.VeryfiOcrFieldExtractor
+import app.eob.me.network.VeryfiInsuranceEobPayloadParser
+import app.eob.me.network.toNormalizedInsuranceEob
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -85,6 +87,16 @@ object FirebaseEobMapper {
 
     fun eobFromMap(data: Map<String, Any?>, documentId: String = ""): EobRecord {
         val enrichedData = enrichFromVeryfiClientStream(data)
+        if (VeryfiInsuranceEobPayloadParser.isNestedClaimsPayload(enrichedData)) {
+            enrichedData.toNormalizedInsuranceEob().getOrNull()?.let { normalized ->
+                return InsuranceEobRecordBridge.toEobRecord(
+                    document = normalized.document,
+                    documentRefId = documentId.ifBlank { enrichedData.stringValue("id") },
+                    sourceName = enrichedData.stringValue("sourceName", "source_name").ifBlank { "Firebase" },
+                    rawText = enrichedData.stringValue("rawText", "raw_text", "ocr_text", "ocrText")
+                )
+            }
+        }
         val serviceDate = enrichedData.dateValue("serviceDate", "dateOfService", "date_of_service")
         val rawText = enrichedData.stringValue(
             "rawText",

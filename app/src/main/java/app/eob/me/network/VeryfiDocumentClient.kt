@@ -3,6 +3,7 @@ package app.eob.me.network
 import android.util.Base64
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
+import app.eob.me.data.InsuranceEobRecordBridge
 import app.eob.me.network.VeryfiAnyDocConstants
 import app.eob.me.network.VeryfiAnyDocMapper
 import app.eob.me.data.FirebaseEobMapper
@@ -265,6 +266,19 @@ internal fun veryfiPayloadToEobRecord(
     documentRefId: String,
     sourceName: String
 ): EobRecord {
+    if (VeryfiInsuranceEobPayloadParser.isNestedClaimsPayload(payload)) {
+        payload.toNormalizedInsuranceEob().getOrNull()?.let { normalized ->
+            val ocrText = payload.veryfiStringField("ocr_text", "ocrText", "text")
+            val rawText = ocrText.ifBlank { veryfiPayloadToJsonString(payload) }
+            return InsuranceEobRecordBridge.toEobRecord(
+                document = normalized.document,
+                documentRefId = documentRefId,
+                sourceName = sourceName,
+                rawText = rawText
+            )
+        }
+    }
+
     val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(payload, documentRefId)
     val ocrText = mergedPayload.veryfiStringField("ocr_text", "ocrText", "text")
     val rawText = ocrText.ifBlank { veryfiPayloadToJsonString(mergedPayload) }
