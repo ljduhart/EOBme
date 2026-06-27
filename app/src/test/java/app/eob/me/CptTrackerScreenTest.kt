@@ -42,6 +42,9 @@ class CptTrackerScreenTest {
     fun cptTrackerScreenContainsFlashcardGridPatterns() {
         val source = readSource("ui/screens/CptTrackerScreen.kt")
         assertTrue(source.contains("fun CptTrackerScreen"))
+        assertTrue(source.contains("fun CptCategoryTabs"))
+        assertTrue(source.contains("MaterialTheme.colorScheme.primary"))
+        assertTrue(source.contains("animateColorAsState"))
         assertTrue(source.contains("fun FlashcardItem"))
         assertTrue(source.contains("LazyVerticalGrid"))
         assertTrue(source.contains("GridCells.Fixed(2)"))

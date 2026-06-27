@@ -1,5 +1,6 @@
 package app.eob.me.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -9,19 +10,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Biotech
 import androidx.compose.material.icons.rounded.Info
@@ -32,10 +33,9 @@ import androidx.compose.material.icons.rounded.Vaccines
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,9 +56,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CptCategory
 import app.eob.me.data.CptCodeEntry
 import app.eob.me.data.EobStrings
-import app.eob.me.ui.theme.EobBrandBlue
 
-private val BrandBlue = EobBrandBlue
 private val OfficeVisitFront = Color(0xFF004D40)
 private val LabFront = Color(0xFFFF8F00)
 private val HospitalFront = Color(0xFF1A237E)
@@ -74,8 +72,6 @@ fun CptTrackerScreen(
     onCategorySelected: (CptCategory) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val chipScrollState = rememberScrollState()
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -95,25 +91,11 @@ fun CptTrackerScreen(
             )
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(chipScrollState),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            CptCategory.entries.forEach { category ->
-                val isSelected = category == selectedCategory
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onCategorySelected(category) },
-                    label = { Text(EobStrings.cptCategoryLabel(language, category)) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = BrandBlue,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                )
-            }
-        }
+        CptCategoryTabs(
+            language = language,
+            selectedCategory = selectedCategory,
+            onCategorySelected = onCategorySelected
+        )
 
         if (entries.isEmpty()) {
             Box(
@@ -142,6 +124,49 @@ fun CptTrackerScreen(
                         category = selectedCategory
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun CptCategoryTabs(
+    language: AppLanguage,
+    selectedCategory: CptCategory,
+    onCategorySelected: (CptCategory) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(CptCategory.entries) { category ->
+            val isSelected = selectedCategory == category
+
+            val backgroundColor by animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                animationSpec = tween(300),
+                label = "TabBackgroundAnimation"
+            )
+            val contentColor by animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                animationSpec = tween(300),
+                label = "TabContentAnimation"
+            )
+
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = backgroundColor,
+                shadowElevation = if (isSelected) 4.dp else 1.dp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .clickable { onCategorySelected(category) }
+            ) {
+                Text(
+                    text = EobStrings.cptCategoryLabel(language, category),
+                    color = contentColor,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                )
             }
         }
     }
