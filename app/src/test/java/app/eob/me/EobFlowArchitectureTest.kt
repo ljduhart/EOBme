@@ -2182,6 +2182,103 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun veryfiServiceLineMapperPipelineAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val mapperSource = readSource("network/VeryfiInsuranceEobMapper.kt")
+        val bridgeSource = readSource("data/InsuranceEobRecordBridge.kt")
+        val serviceLineSource = readSource("data/ServiceLine.kt")
+        val indexedReaderSource = readSource("network/VeryfiIndexedFieldReader.kt")
+        val firebaseMapperSource = readSource("data/FirebaseEobMapper.kt")
+        val veryfiRepoSource = readSource("data/VeryfiAnyDocRepository.kt")
+        val veryfiHealthSource = readSource("data/VeryfiHealthInsuranceEob.kt")
+        val hybridRepoSource = readSource("data/DocumentScanPipelineRepository.kt")
+
+        listOf(
+            "data class ServiceLine",
+            "data class InsuranceClaim",
+            "data class NormalizedInsuranceEob",
+            "allServiceLines"
+        ).forEach { snippet ->
+            assertTrue("PR#124: domain service line model missing $snippet", serviceLineSource.contains(snippet))
+        }
+        listOf(
+            "VeryfiInsuranceEobPayloadParser",
+            "isNestedClaimsPayload",
+            "toNormalizedInsuranceEob",
+            "mapIndexedServiceLineRow",
+            "VeryfiIndexedFieldReader.discoverIndices"
+        ).forEach { snippet ->
+            assertTrue("PR#124: nested claims mapper missing $snippet", mapperSource.contains(snippet))
+        }
+        listOf(
+            "discoverIndices",
+            "resolveServiceDateIso",
+            "cpt_code_"
+        ).forEach { snippet ->
+            assertTrue("PR#124: indexed field reader missing $snippet", indexedReaderSource.contains(snippet))
+        }
+        listOf(
+            "InsuranceEobRecordBridge",
+            "toEobRecord",
+            "toEobCharge"
+        ).forEach { snippet ->
+            assertTrue("PR#124: EobRecord bridge missing $snippet", bridgeSource.contains(snippet))
+        }
+        listOf(
+            "isNestedClaimsPayload",
+            "toNormalizedInsuranceEob",
+            "InsuranceEobRecordBridge.toEobRecord",
+            "veryfiPayloadToEobRecord"
+        ).forEach { snippet ->
+            assertTrue("PR#124: hybrid client nested path missing $snippet", veryfiClientSource.contains(snippet))
+        }
+        listOf(
+            "resolveNestedInsuranceEobPayload",
+            "toNormalizedInsuranceEob",
+            "InsuranceEobRecordBridge.toEobRecord"
+        ).forEach { snippet ->
+            assertTrue("PR#124: Firestore nested rehydrate missing $snippet", firebaseMapperSource.contains(snippet))
+        }
+        listOf(
+            "veryfiPayloadToEobRecord",
+            "extractHealthInsuranceEob"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#124: scan pipeline must route through nested mapper",
+                veryfiRepoSource.contains(snippet) || hybridRepoSource.contains(snippet)
+            )
+        }
+        listOf(
+            "toVeryfiExtractedData()",
+            "refreshVeryfiExtractedDataForRecord",
+            "applyRemoteRecords",
+            "processScannedDocument"
+        ).forEach { snippet ->
+            assertTrue("PR#124: EobViewModel source-of-truth wiring missing $snippet", viewModelSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#124: appeal projection must derive from reconciled EobRecord charges",
+            veryfiHealthSource.contains("fun EobRecord.toVeryfiExtractedData()")
+        )
+        assertTrue(
+            "PR#124: manifest must document nested claims mapper without new storage permissions",
+            manifestSource.contains("VeryfiInsuranceEobMapper") &&
+                manifestSource.contains("ServiceLine") &&
+                !manifestSource.contains("android.permission.READ_EXTERNAL_STORAGE")
+        )
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#124: opening screen touched ($path)", source.contains("VeryfiInsuranceEobMapper"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

@@ -39,6 +39,7 @@ import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.VeryfiAnyDocExtractionState
 import app.eob.me.data.VeryfiExtractedData
+import app.eob.me.data.toVeryfiExtractedData
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.ProviderAvatarPreview
@@ -631,6 +632,16 @@ class EobViewModel : ViewModel() {
         return data.takeIf { state.veryfiExtractedDataRecordId == recordId }
     }
 
+    private fun refreshVeryfiExtractedDataForRecord(record: EobRecord?): VeryfiExtractedData? {
+        if (record == null) return null
+        val projected = record.toVeryfiExtractedData()
+        val hasDisplayTotals = projected.patientResponsibility > 0.0 ||
+            projected.copay > 0.0 ||
+            projected.cptCodes.isNotEmpty() ||
+            projected.dateOfService.isNotBlank()
+        return projected.takeIf { hasDisplayTotals }
+    }
+
     private fun isDocumentScanPipelineActive(): Boolean {
         return when (_documentScanState.value) {
             DocumentScanPipelineState.LocalScanning,
@@ -752,16 +763,27 @@ class EobViewModel : ViewModel() {
                 val wasProcessing = _uiState.value.isLoadingInvoice
                 val scanActive = isDocumentScanPipelineActive()
                 val nextSelection = resolveRecordSelection(currentSelection, compacted)
-                val scopedVeryfi = scopedVeryfiDataFor(nextSelection)
-                _uiState.update {
-                    it.copy(
+                _uiState.update { state ->
+                    val refreshedVeryfi = refreshVeryfiExtractedDataForRecord(nextSelection)
+                    val cachedVeryfi = scopedVeryfiDataFor(nextSelection)
+                    val preservedVeryfi = state.veryfiExtractedData.takeIf { data ->
+                        data != null &&
+                            nextSelection?.firestoreId?.isNotBlank() == true &&
+                            state.veryfiExtractedDataRecordId == nextSelection.firestoreId
+                    }
+                    val resolvedVeryfi = refreshedVeryfi ?: cachedVeryfi ?: preservedVeryfi
+                    state.copy(
                         selectedRecord = nextSelection,
-                        appealLetter = generateAppealLetter(profile, nextSelection, scopedVeryfi),
-                        isLoadingInvoice = if (scanActive) it.isLoadingInvoice else false,
+                        veryfiExtractedData = resolvedVeryfi,
+                        veryfiExtractedDataRecordId = nextSelection?.firestoreId?.takeIf { id ->
+                            resolvedVeryfi != null && id.isNotBlank()
+                        } ?: state.veryfiExtractedDataRecordId,
+                        appealLetter = generateAppealLetter(profile, nextSelection, resolvedVeryfi),
+                        isLoadingInvoice = if (scanActive) state.isLoadingInvoice else false,
                         invoiceProcessingPhase = if (wasProcessing && !scanActive) {
                             InvoiceProcessingPhase.FileDropReveal
                         } else {
-                            it.invoiceProcessingPhase
+                            state.invoiceProcessingPhase
                         }
                     )
                 }
@@ -775,14 +797,14 @@ class EobViewModel : ViewModel() {
     }
 
     fun selectRecord(record: EobRecord, profile: UserProfile) {
-        val scopedVeryfi = scopedVeryfiDataFor(record)
+        val resolvedVeryfi = scopedVeryfiDataFor(record) ?: refreshVeryfiExtractedDataForRecord(record)
         _uiState.update {
             it.copy(
                 selectedRecord = record,
                 uploadNotice = "",
-                veryfiExtractedData = scopedVeryfi,
-                veryfiExtractedDataRecordId = if (scopedVeryfi != null) record.firestoreId else "",
-                appealLetter = generateAppealLetter(profile, record, scopedVeryfi),
+                veryfiExtractedData = resolvedVeryfi,
+                veryfiExtractedDataRecordId = if (resolvedVeryfi != null) record.firestoreId else "",
+                appealLetter = generateAppealLetter(profile, record, resolvedVeryfi),
                 appealLetterEditingEnabled = false
             )
         }
@@ -792,15 +814,16 @@ class EobViewModel : ViewModel() {
         val remaining = _eobRecords.value.filterNot { it.matchesHistoryRecord(record) }
         _eobRecords.value = remaining
         val nextSelection = remaining.firstOrNull()
-        val scopedVeryfi = scopedVeryfiDataFor(nextSelection)
+        val resolvedVeryfi = scopedVeryfiDataFor(nextSelection)
+            ?: refreshVeryfiExtractedDataForRecord(nextSelection)
         _uiState.update {
             it.copy(
                 selectedRecord = nextSelection,
-                veryfiExtractedData = scopedVeryfi,
+                veryfiExtractedData = resolvedVeryfi,
                 veryfiExtractedDataRecordId = nextSelection?.firestoreId?.takeIf { id ->
-                    scopedVeryfi != null && id.isNotBlank()
+                    resolvedVeryfi != null && id.isNotBlank()
                 }.orEmpty(),
-                appealLetter = generateAppealLetter(profile, nextSelection, scopedVeryfi),
+                appealLetter = generateAppealLetter(profile, nextSelection, resolvedVeryfi),
                 appealLetterEditingEnabled = false
             )
         }

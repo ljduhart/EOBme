@@ -184,6 +184,58 @@ class VeryfiInsuranceEobMapperTest {
     }
 
     @Test
+    fun mapsMultipleClaimsWithDistinctProviders() {
+        val payload = mapOf(
+            "payer_name" to "UnitedHealthcare",
+            "claims" to listOf(
+                mapOf(
+                    "provider_name" to "Downtown Dental",
+                    "processed_date" to "01/15/26",
+                    "service_lines" to listOf(
+                        mapOf(
+                            "cpt_code_1" to "D0120",
+                            "service_date_1" to "01/10/26",
+                            "amount_billed_1" to 85.0,
+                            "health_plan_responsibility_1" to 60.0
+                        )
+                    )
+                ),
+                mapOf(
+                    "provider_name" to "City Medical Group",
+                    "processed_date" to "01/20/26",
+                    "service_lines" to listOf(
+                        mapOf(
+                            "cpt_code_1" to "99213",
+                            "cpt_code_2" to "36415",
+                            "service_date_1" to "01/18/26",
+                            "amount_billed_1" to 150.0,
+                            "amount_billed_2" to 25.0,
+                            "health_plan_responsibility_1" to 120.0,
+                            "health_plan_responsibility_2" to 20.0
+                        )
+                    )
+                )
+            )
+        )
+
+        val normalized = requireNotNull(payload.toNormalizedInsuranceEob().getOrNull())
+        assertEquals(2, normalized.document.claims.size)
+        assertEquals("Downtown Dental", normalized.document.claims[0].providerName)
+        assertEquals("City Medical Group", normalized.document.claims[1].providerName)
+        assertEquals(3, normalized.document.allServiceLines.size)
+
+        val record = app.eob.me.network.veryfiPayloadToEobRecord(
+            payload = payload,
+            documentRefId = "eob_multi_claim",
+            sourceName = "Camera"
+        )
+        assertEquals(3, record.charges.size)
+        assertEquals("Downtown Dental / City Medical Group", record.providerName)
+        assertEquals(setOf("D0120", "99213", "36415"), record.charges.map { it.cptCode }.toSet())
+        assertEquals(setOf("01/10/2026", "01/18/2026"), record.charges.map { it.serviceDate }.toSet())
+    }
+
+    @Test
     fun bridgeProducesEobRecordWithCharges() {
         val payload = healthTexasInsuranceEobPayload()
         val normalized = requireNotNull(payload.toNormalizedInsuranceEob().getOrNull())
