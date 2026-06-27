@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -414,6 +413,7 @@ fun AppealActionBar(
     modifier: Modifier = Modifier
 ) {
     val letterReady = appealLetter.isNotBlank()
+    val dockScrollState = rememberScrollState()
 
     Surface(
         modifier = modifier
@@ -425,8 +425,11 @@ fun AppealActionBar(
         tonalElevation = 3.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(dockScrollState)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AppealDockAction(
@@ -478,7 +481,7 @@ private fun AppealDockAction(
     }
 }
 
-private fun resolveAppealInsight(
+internal fun resolveAppealInsight(
     language: AppLanguage,
     record: EobRecord,
     target: AppealTarget,

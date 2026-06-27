@@ -30,6 +30,7 @@ class AppealScreenTest {
         assertTrue(source.contains("FontFamily.Serif"))
         assertTrue(source.contains("RoundedCornerShape(50)"))
         assertTrue(source.contains("Alignment.BottomCenter"))
+        assertTrue(source.contains("horizontalScroll(dockScrollState)"))
         assertTrue(source.contains("BasicTextField"))
         assertTrue(source.contains("decorationBox"))
     }
