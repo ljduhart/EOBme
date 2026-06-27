@@ -85,9 +85,9 @@ object FirebaseEobMapper {
 
     fun eobFromMap(data: Map<String, Any?>, documentId: String = ""): EobRecord {
         val enrichedData = enrichFromVeryfiClientStream(data)
-        if (DentalEobJsonTranslator.isNestedDentalPayload(enrichedData)) {
+        if (InsuranceEobJsonTranslator.isNestedInsuranceEobPayload(enrichedData)) {
             val sourceName = enrichedData.stringValue("sourceName", "source_name").ifBlank { "Firebase" }
-            val translation = DentalEobJsonTranslator.translate(
+            val translation = InsuranceEobJsonTranslator.translate(
                 payload = enrichedData,
                 documentRefId = documentId.ifBlank { enrichedData.stringValue("id") },
                 sourceName = sourceName
@@ -182,18 +182,18 @@ object FirebaseEobMapper {
         if (ocrText.isNotBlank()) {
             mergeIfMissing("ocr_text", "rawText", "raw_text", value = ocrText)
         }
-        return enrichNestedDentalClaims(data, merged)
+        return enrichNestedInsuranceClaims(data, merged)
     }
 
-    private fun enrichNestedDentalClaims(data: Map<String, Any?>, merged: MutableMap<String, Any?>): Map<String, Any?> {
+    private fun enrichNestedInsuranceClaims(data: Map<String, Any?>, merged: MutableMap<String, Any?>): Map<String, Any?> {
         @Suppress("UNCHECKED_CAST")
         val stream = merged["veryfiClientStream"] as? Map<String, Any?> ?: return merged
-        if (!DentalEobJsonTranslator.isNestedDentalPayload(stream)) return merged
+        if (!InsuranceEobJsonTranslator.isNestedInsuranceEobPayload(stream)) return merged
         val documentId = merged.stringValue("id", "firestoreId").ifBlank {
             data.stringValue("id", "firestoreId")
         }
         val sourceName = merged.stringValue("sourceName", "source_name").ifBlank { "Veryfi" }
-        val translation = DentalEobJsonTranslator.translate(stream, documentId, sourceName) ?: return merged
+        val translation = InsuranceEobJsonTranslator.translate(stream, documentId, sourceName) ?: return merged
         translation.flattenedPayload.forEach { (key, value) ->
             if (value != null) merged[key] = value
         }

@@ -2338,45 +2338,45 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun dentalEobJsonTranslatorPipelineAudit() {
-        val translatorSource = readSource("data/DentalEobJsonTranslator.kt")
+    fun insuranceEobJsonTranslatorPipelineAudit() {
+        val translatorSource = readSource("data/InsuranceEobJsonTranslator.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
         val mapperSource = readSource("data/FirebaseEobMapper.kt")
-        val functionsDental = readFunctionsSource("lib/dentalEobJsonTranslator.js")
+        val functionsInsuranceEob = readFunctionsSource("lib/insuranceEobJsonTranslator.js")
         val functionsNormalizer = readFunctionsSource("lib/eobNormalizer.js")
 
         listOf(
-            "isNestedDentalPayload",
+            "isNestedInsuranceEobPayload",
             "unpivotServiceLine",
             "parseMoney",
             "claims",
             "service_lines",
             "TranslationResult"
         ).forEach { snippet ->
-            assertTrue("Dental EOB translator missing $snippet", translatorSource.contains(snippet))
+            assertTrue("Insurance EOB translator missing $snippet", translatorSource.contains(snippet))
         }
         listOf(
-            "DentalEobJsonTranslator.translate",
+            "InsuranceEobJsonTranslator.translate",
             "mergeScannedRecordsIntoHistory",
             "claimRecords"
         ).forEach { snippet ->
-            assertTrue("Dental pipeline wiring missing $snippet", viewModelSource.contains(snippet) ||
+            assertTrue("Insurance EOB pipeline wiring missing $snippet", viewModelSource.contains(snippet) ||
                 readSource("data/VeryfiHealthInsuranceEob.kt").contains(snippet) ||
                 readSource("data/VeryfiAnyDocRepository.kt").contains(snippet))
         }
         assertTrue(
-            "veryfiPayloadToEobRecord must delegate to dental translator",
-            veryfiClientSource.contains("DentalEobJsonTranslator.translate")
+            "veryfiPayloadToEobRecord must delegate to insurance EOB translator",
+            veryfiClientSource.contains("InsuranceEobJsonTranslator.translate")
         )
         assertTrue(
-            "Firebase mapper must enrich nested dental claims",
-            mapperSource.contains("enrichNestedDentalClaims")
+            "Firebase mapper must enrich nested insurance claims",
+            mapperSource.contains("enrichNestedInsuranceClaims")
         )
         assertTrue(
-            "Cloud Functions dental translator required",
-            functionsDental.contains("translateNestedDentalPayload") &&
-                functionsNormalizer.contains("dentalEobJsonTranslator")
+            "Cloud Functions insurance EOB translator required",
+            functionsInsuranceEob.contains("translateNestedInsuranceEobPayload") &&
+                functionsNormalizer.contains("insuranceEobJsonTranslator")
         )
     }
 

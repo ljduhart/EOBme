@@ -1,6 +1,6 @@
 package app.eob.me.data
 
-import app.eob.me.data.DentalEobJsonTranslator
+import app.eob.me.data.InsuranceEobJsonTranslator
 import app.eob.me.network.VeryfiAnyDocMapper
 import app.eob.me.network.VeryfiDocumentClient
 import app.eob.me.network.VeryfiHybridStreamErrorMapper
@@ -49,13 +49,13 @@ class VeryfiAnyDocRepository(
                 fileUrl = resolvedFileUrl.takeIf { it.isNotBlank() }
             )
             val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(rawPayload, documentRefId)
-            val dentalTranslation = DentalEobJsonTranslator.translate(mergedPayload, documentRefId, sourceName)
-                ?: DentalEobJsonTranslator.translate(rawPayload, documentRefId, sourceName)
-            val effectivePayload = dentalTranslation?.flattenedPayload?.let { flattened ->
+            val insuranceEobTranslation = InsuranceEobJsonTranslator.translate(mergedPayload, documentRefId, sourceName)
+                ?: InsuranceEobJsonTranslator.translate(rawPayload, documentRefId, sourceName)
+            val effectivePayload = insuranceEobTranslation?.flattenedPayload?.let { flattened ->
                 mergedPayload + flattened + mapOf("claims" to (rawPayload["claims"] ?: mergedPayload["claims"]))
             } ?: mergedPayload
             val extraction = VeryfiAnyDocMapper.mapFromUntypedPayload(effectivePayload, documentRefId)
-            val record = dentalTranslation?.mergedRecord
+            val record = insuranceEobTranslation?.mergedRecord
                 ?: veryfiPayloadToEobRecord(
                     payload = effectivePayload,
                     documentRefId = documentRefId,
@@ -66,7 +66,7 @@ class VeryfiAnyDocRepository(
                     extraction = extraction,
                     record = record,
                     rawPayload = effectivePayload,
-                    claimRecords = dentalTranslation?.claimRecords.orEmpty()
+                    claimRecords = insuranceEobTranslation?.claimRecords.orEmpty()
                 )
             )
         } catch (error: CancellationException) {

@@ -4,10 +4,10 @@ import app.eob.me.network.VeryfiAnyDocMapper
 import java.util.Locale
 
 /**
- * Translates nested dental / multi-claim EOB JSON (group → claims → service_lines with numbered
+ * Translates nested health insurance EOB JSON (group → claims → service_lines with numbered
  * suffix columns) into flat [EobRecord] + [EobCharge] maps consumed by [FirebaseEobMapper].
  */
-object DentalEobJsonTranslator {
+object InsuranceEobJsonTranslator {
     private val INDEX_SUFFIX = Regex("""_(\d+)$""")
     private val PROCEDURE_CODE = Regex("""^[A-J][0-9]{4}$""", RegexOption.IGNORE_CASE)
 
@@ -17,7 +17,7 @@ object DentalEobJsonTranslator {
         val flattenedPayload: Map<String, Any?>
     )
 
-    fun isNestedDentalPayload(payload: Map<String, Any?>): Boolean {
+    fun isNestedInsuranceEobPayload(payload: Map<String, Any?>): Boolean {
         val claims = payload["claims"] ?: payload["Claims"]
         return claims is List<*> && claims.isNotEmpty()
     }
@@ -27,7 +27,7 @@ object DentalEobJsonTranslator {
         documentRefId: String,
         sourceName: String
     ): TranslationResult? {
-        if (!isNestedDentalPayload(payload)) return null
+        if (!isNestedInsuranceEobPayload(payload)) return null
         val claims = payload.claimMaps("claims", "Claims")
         if (claims.isEmpty()) return null
 
@@ -82,17 +82,17 @@ object DentalEobJsonTranslator {
     }
 
     /**
-     * Merges nested dental JSON into a flat payload so existing Veryfi OCR merge + Firestore
+     * Merges nested insurance EOB JSON into a flat payload so existing Veryfi OCR merge + Firestore
      * normalization can consume financial fields when the structure is not detected early.
      */
-    fun enrichPayloadWithDentalStructure(
+    fun enrichPayloadWithNestedClaims(
         payload: Map<String, Any?>,
         documentRefId: String,
         sourceName: String
     ): Map<String, Any?>? {
         val translation = translate(payload, documentRefId, sourceName) ?: return null
         return payload + translation.flattenedPayload + mapOf(
-            "dentalEobTranslated" to true,
+            "insuranceEobTranslated" to true,
             "charges" to translation.mergedRecord.charges.map(::chargeToMap)
         )
     }

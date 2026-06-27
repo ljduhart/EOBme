@@ -1,16 +1,16 @@
 package app.eob.me
 
-import app.eob.me.data.DentalEobJsonTranslator
+import app.eob.me.data.InsuranceEobJsonTranslator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class DentalEobJsonTranslatorTest {
+class InsuranceEobJsonTranslatorTest {
     @Test
-    fun translateHealthTexasDentalEobUnpivotsAllServiceLinesAndDates() {
-        val payload = sampleHealthTexasDentalPayload()
+    fun translateNestedInsuranceEobUnpivotsAllServiceLinesAndDates() {
+        val payload = sampleHealthTexasInsuranceEobPayload()
         val translation = requireNotNull(
-            DentalEobJsonTranslator.translate(
+            InsuranceEobJsonTranslator.translate(
                 payload = payload,
                 documentRefId = "eob_123_jpg",
                 sourceName = "Camera"
@@ -34,24 +34,24 @@ class DentalEobJsonTranslatorTest {
 
     @Test
     fun parseMoneyHandlesUsAndEuropeanFormats() {
-        assertEquals(1578.0, DentalEobJsonTranslator.parseMoney("$ 1,578.00"), 0.01)
-        assertEquals(511.42, DentalEobJsonTranslator.parseMoney("$ 511,42"), 0.01)
-        assertEquals(896.7, DentalEobJsonTranslator.parseMoney(896.7), 0.01)
+        assertEquals(1578.0, InsuranceEobJsonTranslator.parseMoney("$ 1,578.00"), 0.01)
+        assertEquals(511.42, InsuranceEobJsonTranslator.parseMoney("$ 511,42"), 0.01)
+        assertEquals(896.7, InsuranceEobJsonTranslator.parseMoney(896.7), 0.01)
     }
 
     @Test
     fun normalizeServiceDateExpandsTwoDigitYear() {
-        assertEquals("03/24/2026", DentalEobJsonTranslator.normalizeServiceDate("03/24/26"))
-        assertEquals("04/11/2026", DentalEobJsonTranslator.normalizeServiceDate(" 04/11/26 "))
+        assertEquals("03/24/2026", InsuranceEobJsonTranslator.normalizeServiceDate("03/24/26"))
+        assertEquals("04/11/2026", InsuranceEobJsonTranslator.normalizeServiceDate(" 04/11/26 "))
     }
 
     @Test
-    fun isProcedureCodeAcceptsDentalCdtCodes() {
-        assertTrue(DentalEobJsonTranslator.isProcedureCode("D5225"))
-        assertTrue(DentalEobJsonTranslator.isProcedureCode("D1110"))
+    fun isProcedureCodeAcceptsCptAndHcpcsCodes() {
+        assertTrue(InsuranceEobJsonTranslator.isProcedureCode("D5225"))
+        assertTrue(InsuranceEobJsonTranslator.isProcedureCode("D1110"))
     }
 
-    private fun sampleHealthTexasDentalPayload(): Map<String, Any?> {
+    private fun sampleHealthTexasInsuranceEobPayload(): Map<String, Any?> {
         return mapOf(
             "group_name" to "HEALTHTEXAS MEDICAL GROUP",
             "payer_name" to "BlueCross BlueShield of Texas",

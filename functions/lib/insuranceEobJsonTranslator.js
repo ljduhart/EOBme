@@ -2,7 +2,7 @@
 
 const INDEX_SUFFIX = /_(\d+)$/;
 
-function isNestedDentalPayload(payload = {}) {
+function isNestedInsuranceEobPayload(payload = {}) {
   return Array.isArray(payload.claims) && payload.claims.length > 0;
 }
 
@@ -207,8 +207,8 @@ function claimToFlatMap(claim, context) {
   };
 }
 
-function translateNestedDentalPayload(payload = {}, metadata = {}) {
-  if (!isNestedDentalPayload(payload)) return null;
+function translateNestedInsuranceEobPayload(payload = {}, metadata = {}) {
+  if (!isNestedInsuranceEobPayload(payload)) return null;
   const context = {
     payerName: stringField(payload, ["payer_name", "payerName", "insurance_name", "insuranceName"]),
     groupName: stringField(payload, ["group_name", "groupName"]),
@@ -247,7 +247,7 @@ function translateNestedDentalPayload(payload = {}, metadata = {}) {
     cptCodes: mergedCharges.map((charge) => charge.cptCode).filter(Boolean).join(","),
     claim_count: claimMaps.length,
     claims: payload.claims,
-    dentalEobTranslated: true
+    insuranceEobTranslated: true
   };
   return {
     flattened: merged,
@@ -256,9 +256,9 @@ function translateNestedDentalPayload(payload = {}, metadata = {}) {
 }
 
 module.exports = {
-  isNestedDentalPayload,
+  isNestedInsuranceEobPayload,
   parseMoney,
   normalizeServiceDate,
-  translateNestedDentalPayload,
+  translateNestedInsuranceEobPayload,
   unpivotServiceLine
 };

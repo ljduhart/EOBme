@@ -1,7 +1,7 @@
 package app.eob.me.network
 
 import android.util.Base64
-import app.eob.me.data.DentalEobJsonTranslator
+import app.eob.me.data.InsuranceEobJsonTranslator
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
 import app.eob.me.network.VeryfiAnyDocConstants
@@ -299,9 +299,9 @@ internal fun veryfiPayloadToEobRecord(
     documentRefId: String,
     sourceName: String
 ): EobRecord {
-    val dentalTranslation = DentalEobJsonTranslator.translate(payload, documentRefId, sourceName)
-    if (dentalTranslation != null) {
-        return dentalTranslation.mergedRecord
+    val insuranceEobTranslation = InsuranceEobJsonTranslator.translate(payload, documentRefId, sourceName)
+    if (insuranceEobTranslation != null) {
+        return insuranceEobTranslation.mergedRecord
     }
 
     val mergedPayload = VeryfiAnyDocMapper.mergePayloadWithEobFields(payload, documentRefId)

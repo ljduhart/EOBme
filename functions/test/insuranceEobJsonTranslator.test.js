@@ -3,11 +3,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  isNestedDentalPayload,
+  isNestedInsuranceEobPayload,
   parseMoney,
   normalizeServiceDate,
-  translateNestedDentalPayload
-} = require("../lib/dentalEobJsonTranslator");
+  translateNestedInsuranceEobPayload
+} = require("../lib/insuranceEobJsonTranslator");
 const {veryfiToEobDocument} = require("../lib/eobNormalizer");
 
 const samplePayload = {
@@ -40,9 +40,9 @@ const samplePayload = {
   }]
 };
 
-test("isNestedDentalPayload detects claims array", () => {
-  assert.equal(isNestedDentalPayload(samplePayload), true);
-  assert.equal(isNestedDentalPayload({provider_name: "Test"}), false);
+test("isNestedInsuranceEobPayload detects claims array", () => {
+  assert.equal(isNestedInsuranceEobPayload(samplePayload), true);
+  assert.equal(isNestedInsuranceEobPayload({provider_name: "Test"}), false);
 });
 
 test("parseMoney handles US and European currency strings", () => {
@@ -54,8 +54,8 @@ test("normalizeServiceDate expands two digit year", () => {
   assert.equal(normalizeServiceDate("03/24/26"), "03/24/2026");
 });
 
-test("translateNestedDentalPayload unpivots numbered service line columns", () => {
-  const translated = translateNestedDentalPayload(samplePayload, {sourceName: "Veryfi"});
+test("translateNestedInsuranceEobPayload unpivots numbered service line columns", () => {
+  const translated = translateNestedInsuranceEobPayload(samplePayload, {sourceName: "Veryfi"});
   assert.ok(translated);
   assert.equal(translated.flattened.charges.length, 2);
   assert.equal(translated.flattened.charges[0].cptCode, "D5225");
@@ -64,7 +64,7 @@ test("translateNestedDentalPayload unpivots numbered service line columns", () =
   assert.ok(translated.flattened.billed_amount > 0);
 });
 
-test("veryfiToEobDocument maps nested dental claims into normalized EOB", () => {
+test("veryfiToEobDocument maps nested insurance EOB claims into normalized EOB", () => {
   const normalized = veryfiToEobDocument(samplePayload, {
     documentId: "eob_123",
     sourceName: "Veryfi"
