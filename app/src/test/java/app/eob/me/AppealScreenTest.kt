@@ -6,7 +6,7 @@ import org.junit.Test
 
 class AppealScreenTest {
     @Test
-    fun appealScreenContainsPrintReadyDocumentPatterns() {
+    fun appealScreenContainsDynamicLegalSandboxPatterns() {
         val source = readSource("ui/screens/AppealScreen.kt")
         assertTrue(source.contains("fun AppealScreen"))
         assertTrue(source.contains("AnimatedContent"))
@@ -19,14 +19,19 @@ class AppealScreenTest {
         assertTrue(source.contains("DoctorDisputeStrategySelector"))
         assertTrue(source.contains("FilterChip"))
         assertTrue(source.contains("fun AppealActionBar"))
-        assertTrue(source.contains("AppealRegenerateHeroButton"))
+        assertTrue(source.contains("AppealInsightHud"))
+        assertTrue(source.contains("resolveAppealInsight"))
+        assertTrue(source.contains("Icons.Rounded.AutoAwesome"))
+        assertTrue(source.contains("MaterialTheme.colorScheme.background"))
+        assertTrue(source.contains("AppealPaperColor"))
         assertTrue(source.contains("Color.White"))
         assertTrue(source.contains("RoundedCornerShape(4.dp)"))
         assertTrue(source.contains("aspectRatio(8.5f / 11f)"))
         assertTrue(source.contains("FontFamily.Serif"))
-        assertTrue(source.contains("AppealCanvasBackground"))
-        assertTrue(source.contains("CircleShape"))
-        assertTrue(source.contains("Brush.linearGradient"))
+        assertTrue(source.contains("RoundedCornerShape(50)"))
+        assertTrue(source.contains("Alignment.BottomCenter"))
+        assertTrue(source.contains("BasicTextField"))
+        assertTrue(source.contains("decorationBox"))
     }
 
     @Test
@@ -55,6 +60,7 @@ class AppealScreenTest {
         assertTrue(source.contains("appealSaveLetter"))
         assertTrue(source.contains("appealCopy"))
         assertTrue(source.contains("appealSend"))
+        assertTrue(source.contains("appealRegenerate"))
         assertTrue(source.contains("Intent.ACTION_SEND"))
         assertTrue(source.contains("shareAppealLetter"))
         assertTrue(source.contains("copyAppealLetterToClipboard"))
@@ -68,6 +74,15 @@ class AppealScreenTest {
         assertTrue(source.contains("selectedDisputeStrategy.name"))
         assertTrue(source.contains("appealLetter = appealLetter"))
         assertFalse(source.contains("displayedLetter"))
+    }
+
+    @Test
+    fun appealInsightUsesRecordFinancialSignals() {
+        val source = readSource("ui/screens/AppealScreen.kt")
+        assertTrue(source.contains("totalPatientResponsibility"))
+        assertTrue(source.contains("totalBilledAmount"))
+        assertTrue(source.contains("totalInsurancePaidAmount"))
+        assertTrue(source.contains("appealInsightSentence"))
     }
 
     private fun readSource(relativePath: String): String {

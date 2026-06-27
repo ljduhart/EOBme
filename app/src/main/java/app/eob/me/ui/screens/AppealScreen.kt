@@ -13,26 +13,26 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,11 +45,11 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -66,14 +66,8 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
 import app.eob.me.data.VeryfiExtractedData
 
-private val AppealCanvasBackground = Color(0xFF2D2D2D)
+private val AppealPaperColor = Color.White
 private val AppealPaperText = Color(0xFF1A1A1A)
-private val AppealPillButtonBackground = Color(0xFFE5E5EA)
-private val AppealHeroCyan = Color(0xFF00E5FF)
-private val AppealHeroTeal = Color(0xFF00695C)
-private val AppealHeroGlow = Color(0xFF00BCD4)
-private val AppealDoctorAccent = Color(0xFF5C6BC0)
-private val AppealDoctorChipSelected = Color(0xFFFFB74D)
 
 private val AppealDocumentTypography = TextStyle(
     fontFamily = FontFamily.Serif,
@@ -114,19 +108,19 @@ fun AppealScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(AppealCanvasBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
-                .padding(bottom = 100.dp)
+                .padding(horizontal = 16.dp, vertical = 20.dp)
+                .padding(bottom = 108.dp)
         ) {
             Text(
                 text = EobStrings.t(language, "appealGeneratorTitle"),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             if (selectedRecord == null) {
@@ -139,7 +133,7 @@ fun AppealScreen(
                     Text(
                         text = EobStrings.t(language, "appealSelectClaimHint"),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.72f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 24.dp)
                     )
@@ -148,19 +142,19 @@ fun AppealScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 8.dp),
+                        .padding(top = 12.dp, bottom = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
                         text = EobStrings.tf(language, "appealingProvider", selectedRecord.providerName),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White.copy(alpha = 0.92f)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = EobStrings.tf(language, "appealServiceDate", selectedRecord.serviceDate),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.68f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -181,6 +175,14 @@ fun AppealScreen(
                         onStrategySelected = onDisputeStrategySwitched
                     )
                 }
+
+                AppealInsightHud(
+                    language = language,
+                    record = selectedRecord,
+                    selectedTarget = selectedTarget,
+                    selectedDisputeStrategy = selectedDisputeStrategy,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
+                )
 
                 AnimatedContent(
                     targetState = documentAnimationKey,
@@ -228,7 +230,7 @@ fun AppealScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
+                    .padding(horizontal = 16.dp, vertical = 20.dp)
             )
         }
     }
@@ -276,7 +278,7 @@ private fun DoctorDisputeStrategySelector(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(chipScrollState)
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         DoctorDisputeStrategy.entries.forEach { strategy ->
@@ -290,11 +292,53 @@ private fun DoctorDisputeStrategySelector(
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AppealDoctorChipSelected.copy(alpha = 0.35f),
-                    selectedLabelColor = AppealDoctorAccent,
-                    containerColor = Color.White.copy(alpha = 0.12f),
-                    labelColor = Color.White.copy(alpha = 0.88f)
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppealInsightHud(
+    language: AppLanguage,
+    record: EobRecord,
+    selectedTarget: AppealTarget,
+    selectedDisputeStrategy: DoctorDisputeStrategy,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = resolveAppealInsight(
+                    language = language,
+                    record = record,
+                    target = selectedTarget,
+                    strategy = selectedDisputeStrategy
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -313,10 +357,16 @@ private fun AppealPaperDocument(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(8.5f / 11f),
+            .aspectRatio(8.5f / 11f)
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(4.dp),
+                ambientColor = Color.Black.copy(alpha = 0.12f),
+                spotColor = Color.Black.copy(alpha = 0.18f)
+            ),
         shape = RoundedCornerShape(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp)
+        colors = CardDefaults.cardColors(containerColor = AppealPaperColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -329,7 +379,12 @@ private fun AppealPaperDocument(
                     value = appealLetter,
                     onValueChange = onEditLetter,
                     textStyle = AppealDocumentTypography,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { innerTextField ->
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            innerTextField()
+                        }
+                    }
                 )
             } else {
                 Text(
@@ -360,129 +415,101 @@ fun AppealActionBar(
 ) {
     val letterReady = appealLetter.isNotBlank()
 
-    Box(
+    Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.CenterStart
+            .widthIn(max = 520.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        shadowElevation = 10.dp,
+        tonalElevation = 3.dp
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 36.dp),
-            shape = CircleShape,
-            color = Color.White.copy(alpha = 0.95f),
-            shadowElevation = 6.dp
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.padding(start = 48.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AppealActionPillButton(
-                    label = EobStrings.t(language, "appealEditLetter"),
-                    enabled = !appealLetterEditingEnabled && letterReady,
-                    onClick = onEnableEditing
-                )
-                AppealActionPillButton(
-                    label = EobStrings.t(language, "appealSaveLetter"),
-                    enabled = appealLetterEditingEnabled,
-                    onClick = onSaveLetter
-                )
-                AppealActionPillButton(
-                    label = EobStrings.t(language, "appealCopy"),
-                    enabled = letterReady,
-                    onClick = onCopy
-                )
-                AppealActionPillButton(
-                    label = EobStrings.t(language, "appealSend"),
-                    enabled = letterReady,
-                    onClick = onSend
-                )
-            }
-        }
-
-        AppealRegenerateHeroButton(
-            label = EobStrings.t(language, "appealRegenerate"),
-            onClick = onRegenerate,
-            modifier = Modifier.align(Alignment.CenterStart)
-        )
-    }
-}
-
-@Composable
-private fun AppealRegenerateHeroButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .size(72.dp)
-            .shadow(
-                elevation = 14.dp,
-                shape = CircleShape,
-                ambientColor = AppealHeroGlow.copy(alpha = 0.55f),
-                spotColor = AppealHeroGlow.copy(alpha = 0.85f)
+            AppealDockAction(
+                label = EobStrings.t(language, "appealRegenerate"),
+                enabled = true,
+                onClick = onRegenerate
             )
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(AppealHeroCyan, AppealHeroTeal)
-                ),
-                shape = CircleShape
+            AppealDockAction(
+                label = EobStrings.t(language, "appealEditLetter"),
+                enabled = !appealLetterEditingEnabled && letterReady,
+                onClick = onEnableEditing
             )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Add,
-                contentDescription = label,
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
+            AppealDockAction(
+                label = EobStrings.t(language, "appealSaveLetter"),
+                enabled = appealLetterEditingEnabled,
+                onClick = onSaveLetter
             )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                fontSize = 9.sp,
-                maxLines = 1
+            AppealDockAction(
+                label = EobStrings.t(language, "appealCopy"),
+                enabled = letterReady,
+                onClick = onCopy
+            )
+            AppealDockAction(
+                label = EobStrings.t(language, "appealSend"),
+                enabled = letterReady,
+                onClick = onSend
             )
         }
     }
 }
 
 @Composable
-private fun AppealActionPillButton(
+private fun AppealDockAction(
     label: String,
     enabled: Boolean,
     onClick: () -> Unit
 ) {
-    val contentColor = if (enabled) {
-        AppealPaperText
-    } else {
-        AppealPaperText.copy(alpha = 0.38f)
-    }
-
-    Surface(
-        shape = CircleShape,
-        color = AppealPillButtonBackground,
-        shadowElevation = 0.dp,
-        modifier = Modifier
-            .heightIn(min = 36.dp)
-            .clickable(enabled = enabled, onClick = onClick)
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.heightIn(min = 40.dp)
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = contentColor,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
         )
     }
+}
+
+private fun resolveAppealInsight(
+    language: AppLanguage,
+    record: EobRecord,
+    target: AppealTarget,
+    strategy: DoctorDisputeStrategy
+): String {
+    val billed = record.totalBilledAmount
+    val patientResponsibility = record.totalPatientResponsibility
+    val insurancePaid = record.totalInsurancePaidAmount
+    val contractualAdjustment = record.totalContractualAdjustmentAmount
+
+    val insightBody = when (target) {
+        AppealTarget.DOCTOR -> when (strategy) {
+            DoctorDisputeStrategy.ITEMIZED_AUDIT ->
+                EobStrings.t(language, "appealInsightDoctorAudit")
+            DoctorDisputeStrategy.UNAPPLIED_COPAY ->
+                EobStrings.t(language, "appealInsightDoctorCopay")
+            DoctorDisputeStrategy.FINANCIAL_HARDSHIP ->
+                EobStrings.t(language, "appealInsightDoctorHardship")
+        }
+        AppealTarget.INSURANCE -> when {
+            billed > 0.0 && insurancePaid <= 0.0 ->
+                EobStrings.t(language, "appealInsightInsuranceDenied")
+            billed > 0.0 && patientResponsibility / billed >= 0.35 ->
+                EobStrings.t(language, "appealInsightHighPatientResp")
+            billed > 0.0 && contractualAdjustment / billed >= 0.4 ->
+                EobStrings.t(language, "appealInsightContractualAdj")
+            else -> EobStrings.t(language, "appealInsightDefaultInsurance")
+        }
+    }
+
+    return EobStrings.tf(language, "appealInsightSentence", insightBody)
 }
 
 private fun copyAppealLetterToClipboard(
