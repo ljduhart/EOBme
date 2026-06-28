@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +23,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Biotech
 import androidx.compose.material.icons.rounded.Info
@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -57,12 +58,28 @@ import app.eob.me.data.CptCategory
 import app.eob.me.data.CptCodeEntry
 import app.eob.me.data.EobStrings
 
-private val OfficeVisitFront = Color(0xFF004D40)
-private val LabFront = Color(0xFFFF8F00)
-private val HospitalFront = Color(0xFF1A237E)
-private val DmeFront = Color(0xFF4A148C)
-private val InjectionFront = Color(0xFF006064)
-private val OtherFront = Color(0xFF37474F)
+/** Office visits (99213, 99214, 99385, …) */
+private val CptOfficeVisitBlue = Color(0xFF03A9F4)
+
+/** Laboratory panels and urinalysis (81004, 80035, …) */
+private val CptLabGreen = Color(0xFF43A047)
+
+/** Hospital / inpatient / imaging (99221, 99222, 99223, …) */
+private val CptHospitalRed = Color(0xFFE53935)
+
+/** Durable medical equipment */
+private val CptDmeBlack = Color(0xFF212121)
+
+/** Injection HCPCS (J3420, J0081, J0013, …) */
+private val CptInjectionYellow = Color(0xFFFFC107)
+
+/** Dental, therapy, and uncategorized codes */
+private val CptOtherPurple = Color(0xFF8E24AA)
+
+private val CptFlashcardPaper = Color.White
+private val CptFlashcardBackText = Color(0xFF1A1A1A)
+private val CptCategoryTabShape = RoundedCornerShape(12.dp)
+private val CptFlashcardShape = RoundedCornerShape(16.dp)
 
 @Composable
 fun CptTrackerScreen(
@@ -75,6 +92,7 @@ fun CptTrackerScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -140,24 +158,21 @@ fun CptCategoryTabs(
     ) {
         items(CptCategory.entries) { category ->
             val isSelected = selectedCategory == category
+            val categoryColor = categoryThemeColor(category)
 
             val backgroundColor by animateColorAsState(
-                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                targetValue = if (isSelected) categoryColor else categoryColor.copy(alpha = 0.82f),
                 animationSpec = tween(300),
                 label = "TabBackgroundAnimation"
             )
-            val contentColor by animateColorAsState(
-                targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                animationSpec = tween(300),
-                label = "TabContentAnimation"
-            )
+            val contentColor = categoryContentColor(category)
 
             Surface(
-                shape = RoundedCornerShape(50),
+                shape = CptCategoryTabShape,
                 color = backgroundColor,
-                shadowElevation = if (isSelected) 4.dp else 1.dp,
+                shadowElevation = if (isSelected) 6.dp else 2.dp,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(50))
+                    .clip(CptCategoryTabShape)
                     .clickable { onCategorySelected(category) }
             ) {
                 Text(
@@ -165,7 +180,7 @@ fun CptCategoryTabs(
                     color = contentColor,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
                 )
             }
         }
@@ -232,7 +247,7 @@ fun FlashcardItem(
                 cameraDistance = 12f * density.density
             }
             .clickable { flipped = !flipped },
-        shape = RoundedCornerShape(16.dp),
+        shape = CptFlashcardShape,
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -245,6 +260,7 @@ fun FlashcardItem(
                 FlashcardBack(
                     language = language,
                     entry = entry,
+                    category = category,
                     modifier = Modifier.graphicsLayer { rotationY = 180f }
                 )
             }
@@ -257,10 +273,13 @@ private fun FlashcardFront(
     entry: CptCodeEntry,
     category: CptCategory
 ) {
+    val frontColor = categoryThemeColor(category)
+    val contentColor = categoryContentColor(category)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(categoryFrontColor(category))
+            .background(frontColor)
             .padding(12.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -273,12 +292,12 @@ private fun FlashcardFront(
                 text = entry.code,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = contentColor
             )
             Icon(
                 imageVector = categoryIcon(category),
                 contentDescription = entry.category,
-                tint = Color.White.copy(alpha = 0.92f),
+                tint = contentColor.copy(alpha = 0.92f),
                 modifier = Modifier.size(40.dp)
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -286,7 +305,7 @@ private fun FlashcardFront(
                 text = entry.shortName,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.95f),
+                color = contentColor.copy(alpha = 0.95f),
                 textAlign = TextAlign.Center,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -300,12 +319,16 @@ private fun FlashcardFront(
 private fun FlashcardBack(
     language: AppLanguage,
     entry: CptCodeEntry,
+    category: CptCategory,
     modifier: Modifier = Modifier
 ) {
+    val borderColor = categoryThemeColor(category)
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(CptFlashcardPaper)
+            .border(width = 4.dp, color = borderColor, shape = CptFlashcardShape)
             .padding(12.dp)
     ) {
         Column(
@@ -317,12 +340,12 @@ private fun FlashcardBack(
                     text = EobStrings.t(language, "cptFlashcardOfficialDefinition"),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = CptFlashcardBackText
                 )
                 Text(
                     text = entry.definition,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = CptFlashcardBackText.copy(alpha = 0.72f),
                     maxLines = 6,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -331,7 +354,7 @@ private fun FlashcardBack(
                 text = EobStrings.tf(language, "cptFlashcardBilledLabel", entry.totalBilled),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = CptFlashcardBackText,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.End
             )
@@ -339,14 +362,21 @@ private fun FlashcardBack(
     }
 }
 
-private fun categoryFrontColor(category: CptCategory): Color {
+internal fun categoryThemeColor(category: CptCategory): Color {
     return when (category) {
-        CptCategory.OfficeVisit -> OfficeVisitFront
-        CptCategory.Lab -> LabFront
-        CptCategory.Hospital -> HospitalFront
-        CptCategory.Dme -> DmeFront
-        CptCategory.Injection -> InjectionFront
-        CptCategory.Other -> OtherFront
+        CptCategory.OfficeVisit -> CptOfficeVisitBlue
+        CptCategory.Lab -> CptLabGreen
+        CptCategory.Hospital -> CptHospitalRed
+        CptCategory.Dme -> CptDmeBlack
+        CptCategory.Injection -> CptInjectionYellow
+        CptCategory.Other -> CptOtherPurple
+    }
+}
+
+internal fun categoryContentColor(category: CptCategory): Color {
+    return when (category) {
+        CptCategory.Injection -> CptFlashcardBackText
+        else -> Color.White
     }
 }
 

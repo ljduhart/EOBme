@@ -72,9 +72,14 @@ object EobKnowledgeBase {
         CptInfo("99381", "Preventive medicine visit for a new infant patient.", CptCategory.OfficeVisit),
         CptInfo("99385", "Preventive medicine visit for a new adult patient.", CptCategory.OfficeVisit),
         CptInfo("99395", "Preventive medicine visit for an established adult patient.", CptCategory.OfficeVisit),
+        CptInfo("99221", "Initial hospital inpatient care, low complexity.", CptCategory.Hospital),
+        CptInfo("99222", "Initial hospital inpatient care, moderate complexity.", CptCategory.Hospital),
+        CptInfo("99223", "Initial hospital inpatient care, high complexity.", CptCategory.Hospital),
+        CptInfo("80035", "Thyroid panel.", CptCategory.Lab),
         CptInfo("80053", "Comprehensive metabolic panel.", CptCategory.Lab),
         CptInfo("80061", "Lipid panel.", CptCategory.Lab),
         CptInfo("81001", "Urinalysis with microscopy.", CptCategory.Lab),
+        CptInfo("81004", "Urinalysis without microscopy.", CptCategory.Lab),
         CptInfo("83036", "Hemoglobin A1c test.", CptCategory.Lab),
         CptInfo("84443", "Thyroid stimulating hormone test.", CptCategory.Lab),
         CptInfo("85025", "Complete blood count with automated differential.", CptCategory.Lab),
@@ -99,7 +104,9 @@ object EobKnowledgeBase {
         CptInfo("J1885", "Ketorolac tromethamine injection.", CptCategory.Injection),
         CptInfo("J3301", "Triamcinolone acetonide injection.", CptCategory.Injection),
         CptInfo("J3420", "Vitamin B-12 injection.", CptCategory.Injection),
-        CptInfo("J0696", "Ceftriaxone sodium injection.", CptCategory.Injection)
+        CptInfo("J0696", "Ceftriaxone sodium injection.", CptCategory.Injection),
+        CptInfo("J0013", "Epinephrine injection.", CptCategory.Injection),
+        CptInfo("J0081", "Phenylephrine hydrochloride injection.", CptCategory.Injection)
     )
 
     val commonIcd10Codes = mapOf(
