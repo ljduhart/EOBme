@@ -44,6 +44,32 @@ class EobViewModelCareTeamTest {
     }
 
     @Test
+    fun sanitizeCareTeamProviderNamePrefixesDrAndCapitalizes() {
+        val viewModel = EobViewModel()
+        assertEquals("Dr. John Smith", viewModel.sanitizeCareTeamProviderName("john smith"))
+        assertEquals("Dr. Jane Doe", viewModel.sanitizeCareTeamProviderName("dr. jane doe"))
+        assertEquals("Dr. Lee", viewModel.sanitizeCareTeamProviderName("DR LEE"))
+        assertEquals("", viewModel.sanitizeCareTeamProviderName("   "))
+    }
+
+    @Test
+    fun updatePreferredDoctorNormalizesNameAndPhoneForAllProviderTypes() {
+        val viewModel = EobViewModel()
+        CareTeamProviderType.displayOrder.forEach { type ->
+            viewModel.updatePreferredDoctor(
+                PreferredDoctor(
+                    type = type,
+                    name = "jane doe",
+                    phone = "5551234567"
+                )
+            )
+            val stored = viewModel.uiState.value.preferredDoctors[type]
+            assertEquals("Dr. Jane Doe", stored?.name)
+            assertEquals("(555) 123-4567", stored?.phone)
+        }
+    }
+
+    @Test
     fun addAppointmentStoresProviderType() {
         val viewModel = EobViewModel()
         viewModel.addAppointment(

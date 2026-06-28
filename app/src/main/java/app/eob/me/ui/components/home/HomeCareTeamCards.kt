@@ -489,7 +489,11 @@ private fun CareTeamCardBack(
     onDialPhone: (() -> Unit)?
 ) {
     val notSet = EobStrings.t(language, "valueNotSet")
-    val phoneDisplay = doctor.phone.ifBlank { notSet }
+    val phoneDisplay = when {
+        doctor.phone.isBlank() -> notSet
+        else -> DeviceCallingUtils.formatPhoneForDisplay(doctor.phone)
+            .ifBlank { doctor.phone }
+    }
     val phoneIsDialable = onDialPhone != null && doctor.phone.isNotBlank()
     Box(
         modifier = Modifier
@@ -581,7 +585,9 @@ private fun PreferredDoctorDialog(
     var name by remember(doctor) { mutableStateOf(doctor.name) }
     var specialty by remember(doctor) { mutableStateOf(doctor.specialty) }
     var address by remember(doctor) { mutableStateOf(doctor.address) }
-    var phone by remember(doctor) { mutableStateOf(doctor.phone) }
+    var phoneDigits by remember(doctor) {
+        mutableStateOf(DeviceCallingUtils.extractPhoneDigits(doctor.phone))
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -611,8 +617,8 @@ private fun PreferredDoctorDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = DeviceCallingUtils.applyPhoneInputChange(it) },
+                    value = DeviceCallingUtils.formatPhoneForDisplay(phoneDigits),
+                    onValueChange = { phoneDigits = DeviceCallingUtils.extractPhoneDigits(it) },
                     label = { Text(EobStrings.t(language, "careTeamPhone")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -628,7 +634,7 @@ private fun PreferredDoctorDialog(
                             name = name.trim(),
                             specialty = specialty.trim(),
                             address = address.trim(),
-                            phone = phone.trim()
+                            phone = phoneDigits
                         )
                     )
                 }

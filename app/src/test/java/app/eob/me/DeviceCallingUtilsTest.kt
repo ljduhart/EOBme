@@ -14,6 +14,12 @@ class DeviceCallingUtilsTest {
     }
 
     @Test
+    fun extractPhoneDigitsKeepsOnlyTenUsDigits() {
+        assertEquals("5551234567", DeviceCallingUtils.extractPhoneDigits("(555) 123-4567"))
+        assertEquals("5551234567", DeviceCallingUtils.extractPhoneDigits("abc5551234567xyz89"))
+    }
+
+    @Test
     fun applyPhoneInputChangeFormatsUsPhoneNumber() {
         assertEquals("(555) 555-5555", DeviceCallingUtils.applyPhoneInputChange("5555555555"))
     }

@@ -867,8 +867,24 @@ class EobViewModel : ViewModel() {
         return DeviceCallingUtils.applyPhoneInputChange(phone)
     }
 
+    fun sanitizeCareTeamProviderName(name: String): String {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return ""
+        val withoutPrefix = trimmed.replace(Regex("(?i)^dr\\.?\\s+"), "")
+        val titleCased = withoutPrefix
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { part ->
+                part.lowercase().replaceFirstChar { char -> char.titlecase() }
+            }
+        return if (titleCased.isEmpty()) "" else "Dr. $titleCased"
+    }
+
     fun updatePreferredDoctor(doctor: PreferredDoctor) {
-        val sanitizedDoctor = doctor.copy(phone = sanitizeCareTeamPhone(doctor.phone))
+        val sanitizedDoctor = doctor.copy(
+            name = sanitizeCareTeamProviderName(doctor.name),
+            phone = sanitizeCareTeamPhone(doctor.phone)
+        )
         _uiState.update { state ->
             state.copy(preferredDoctors = state.preferredDoctors + (sanitizedDoctor.type to sanitizedDoctor))
         }
