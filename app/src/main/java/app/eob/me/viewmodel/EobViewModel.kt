@@ -870,7 +870,9 @@ class EobViewModel : ViewModel() {
     fun sanitizeCareTeamProviderName(name: String): String {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return ""
-        val withoutPrefix = trimmed.replace(Regex("(?i)^dr\\.?\\s+"), "")
+        if (trimmed.matches(Regex("(?i)^dr\\.?$"))) return ""
+        val withoutPrefix = trimmed.replace(Regex("(?i)^dr(?:\\.|\\s+)"), "").trim()
+        if (withoutPrefix.isEmpty()) return ""
         val titleCased = withoutPrefix
             .split(Regex("\\s+"))
             .filter { it.isNotBlank() }

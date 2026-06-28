@@ -51,6 +51,44 @@ class EobViewModelCareTeamTest {
         assertEquals("Dr. Jane Doe", viewModel.sanitizeCareTeamProviderName("dr. jane doe"))
         assertEquals("Dr. Lee", viewModel.sanitizeCareTeamProviderName("DR LEE"))
         assertEquals("", viewModel.sanitizeCareTeamProviderName("   "))
+        assertEquals("", viewModel.sanitizeCareTeamProviderName("Dr."))
+        assertEquals("", viewModel.sanitizeCareTeamProviderName("dr"))
+        assertEquals("", viewModel.sanitizeCareTeamProviderName("DR."))
+        assertEquals("", viewModel.sanitizeCareTeamProviderName("Dr. "))
+    }
+
+    @Test
+    fun updatePreferredDoctorDoesNotPrefixDrWhenNameIsBlank() {
+        val viewModel = EobViewModel()
+        viewModel.updatePreferredDoctor(
+            PreferredDoctor(
+                type = CareTeamProviderType.Pcp,
+                name = "",
+                phone = "5551234567"
+            )
+        )
+        val stored = viewModel.uiState.value.preferredDoctors[CareTeamProviderType.Pcp]
+        assertEquals("", stored?.name)
+        assertEquals("(555) 123-4567", stored?.phone)
+        assertFalse(stored?.isAssigned == true)
+        val card = viewModel.careTeamCardStates(AppLanguage.English)
+            .first { it.type == CareTeamProviderType.Pcp }
+        assertEquals("Tap to add", card.primaryLine)
+    }
+
+    @Test
+    fun updatePreferredDoctorClearsDrPrefixWhenOnlyTitleEntered() {
+        val viewModel = EobViewModel()
+        viewModel.updatePreferredDoctor(
+            PreferredDoctor(
+                type = CareTeamProviderType.Dentist,
+                name = "Dr.",
+                phone = "5551234567"
+            )
+        )
+        val stored = viewModel.uiState.value.preferredDoctors[CareTeamProviderType.Dentist]
+        assertEquals("", stored?.name)
+        assertFalse(stored?.isAssigned == true)
     }
 
     @Test
