@@ -32,4 +32,11 @@ class CptCategoryColorTest {
         assertEquals(CptCategory.Injection, EobKnowledgeBase.cptInfoFor("J0081").category)
         assertEquals(CptCategory.Injection, EobKnowledgeBase.cptInfoFor("J0013").category)
     }
+
+    @Test
+    fun unknownInjectionAndDentalCodesInferCategoryFromPrefix() {
+        assertEquals(CptCategory.Injection, EobKnowledgeBase.cptInfoFor("J9999").category)
+        assertEquals(CptCategory.Dme, EobKnowledgeBase.cptInfoFor("A9999").category)
+        assertEquals(CptCategory.Other, EobKnowledgeBase.cptInfoFor("D5225").category)
+    }
 }

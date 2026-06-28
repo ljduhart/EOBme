@@ -78,8 +78,12 @@ object BentoSnapshotExtractor {
                 val info = EobKnowledgeBase.cptInfoFor(code)
                 val shortName = cptShortLabel(language, code, info)
                 val chargeDescription = charges.firstOrNull()?.cptDescription.orEmpty()
-                val definition = info.description.ifBlank { chargeDescription }
-                    .ifBlank { EobStrings.t(language, "unspecifiedProcedure") }
+                val definition = resolveCptFlashcardDefinition(
+                    language = language,
+                    code = code,
+                    info = info,
+                    chargeDescription = chargeDescription
+                )
                 val totalBilled = charges.sumOf { it.billedAmount }
                 CptCodeEntry(
                     code = code,
@@ -208,6 +212,27 @@ object BentoSnapshotExtractor {
             .substringBefore(',')
             .take(28)
             .ifBlank { EobStrings.t(language, "unspecifiedProcedure") }
+    }
+
+    private fun resolveCptFlashcardDefinition(
+        language: AppLanguage,
+        code: String,
+        info: CptInfo,
+        chargeDescription: String
+    ): String {
+        val hasKnowledgeBaseEntry = EobKnowledgeBase.cptDescriptions.any {
+            it.code.equals(code, ignoreCase = true)
+        }
+        if (hasKnowledgeBaseEntry && info.description.isNotBlank()) {
+            return info.description
+        }
+        if (chargeDescription.isNotBlank()) {
+            return chargeDescription
+        }
+        if (info.description.isNotBlank()) {
+            return info.description
+        }
+        return EobStrings.t(language, "unspecifiedProcedure")
     }
 
     private fun monthlyTotals(

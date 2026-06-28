@@ -39,6 +39,75 @@ class CptTrackerScreenTest {
     }
 
     @Test
+    fun flashcardEntriesPreferChargeDescriptionForUnknownCodes() {
+        val analyzed = EobAnalyzer.analyze(
+            rawText = """
+                Provider: Dental Studio
+                Aetna
+                01/15/2026
+                D5225 billed $1438.00 insurance paid $423.35
+            """.trimIndent(),
+            sourceName = "test",
+            nextId = 3
+        )
+        val record = analyzed.copy(
+            charges = listOf(
+                analyzed.charges.first().copy(
+                    cptCode = "D5225",
+                    cptDescription = "Maxillary Partial Denture - Flexible Base",
+                    category = CptCategory.Other
+                )
+            )
+        )
+
+        val entries = BentoSnapshotExtractor.buildCptFlashcardEntries(
+            language = app.eob.me.data.AppLanguage.English,
+            records = listOf(record),
+            category = CptCategory.Other
+        )
+
+        assertEquals(1, entries.size)
+        assertEquals("D5225", entries.first().code)
+        assertEquals("Maxillary Partial Denture - Flexible Base", entries.first().definition)
+        assertTrue(entries.first().shortName.isNotBlank())
+    }
+
+    @Test
+    fun flashcardEntriesUseKnowledgeBaseDefinitionForKnownCodes() {
+        val record = EobAnalyzer.analyze(
+            rawText = "Provider: Clinic\nAetna\n01/15/2026\n99213 billed $120.00",
+            sourceName = "test",
+            nextId = 4
+        )
+
+        val entries = BentoSnapshotExtractor.buildCptFlashcardEntries(
+            language = app.eob.me.data.AppLanguage.English,
+            records = listOf(record),
+            category = CptCategory.OfficeVisit
+        )
+
+        assertEquals("Established patient office visit, low complexity.", entries.first().definition)
+    }
+
+    @Test
+    fun unknownInjectionCodesRouteToInjectionCategoryTab() {
+        val record = EobAnalyzer.analyze(
+            rawText = "Provider: Clinic\nAetna\n01/15/2026\nJ9999 billed $40.00",
+            sourceName = "test",
+            nextId = 5
+        )
+
+        val entries = BentoSnapshotExtractor.buildCptFlashcardEntries(
+            language = app.eob.me.data.AppLanguage.English,
+            records = listOf(record),
+            category = CptCategory.Injection
+        )
+
+        assertEquals(1, entries.size)
+        assertEquals("J9999", entries.first().code)
+    }
+
+    @Test
     fun cptTrackerScreenContainsFlashcardGridPatterns() {
         val source = readSource("ui/screens/CptTrackerScreen.kt")
         assertTrue(source.contains("fun CptTrackerScreen"))

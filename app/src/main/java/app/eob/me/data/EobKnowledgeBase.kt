@@ -1,6 +1,7 @@
 package app.eob.me.data
 
 import java.util.Calendar
+import java.util.Locale
 
 object EobKnowledgeBase {
     val insuranceNames = listOf(
@@ -193,7 +194,28 @@ object EobKnowledgeBase {
     }
 
     fun cptInfoFor(code: String): CptInfo {
-        return cptDescriptions.firstOrNull { it.code.equals(code, ignoreCase = true) }
-            ?: CptInfo(code.uppercase(), "CPT/HCPCS code recognized; review the EOB for payer-specific details.", CptCategory.Other)
+        val normalized = code.trim().uppercase(Locale.US)
+        if (normalized.isBlank()) {
+            return CptInfo(
+                code = "",
+                description = "",
+                category = CptCategory.Other
+            )
+        }
+        return cptDescriptions.firstOrNull { it.code.equals(normalized, ignoreCase = true) }
+            ?: CptInfo(
+                code = normalized,
+                description = "CPT/HCPCS code recognized; review the EOB for payer-specific details.",
+                category = inferCategoryFromCodePrefix(normalized)
+            )
+    }
+
+    internal fun inferCategoryFromCodePrefix(code: String): CptCategory {
+        return when {
+            code.startsWith("J") -> CptCategory.Injection
+            code.startsWith("A") -> CptCategory.Dme
+            code.startsWith("D") -> CptCategory.Other
+            else -> CptCategory.Other
+        }
     }
 }
