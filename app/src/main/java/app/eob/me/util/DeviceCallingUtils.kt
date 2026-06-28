@@ -20,8 +20,12 @@ object DeviceCallingUtils {
         }
     }
 
+    fun extractPhoneDigits(input: String): String {
+        return input.filter { it.isDigit() }.take(10)
+    }
+
     fun formatPhoneForDisplay(input: String): String {
-        val digits = input.filter { it.isDigit() }.take(10)
+        val digits = extractPhoneDigits(input)
         if (digits.isEmpty()) return ""
         return when (digits.length) {
             in 1..3 -> "(${digits}"
@@ -31,8 +35,7 @@ object DeviceCallingUtils {
     }
 
     fun applyPhoneInputChange(rawInput: String): String {
-        val digits = rawInput.filter { it.isDigit() }.take(10)
-        return formatPhoneForDisplay(digits)
+        return formatPhoneForDisplay(extractPhoneDigits(rawInput))
     }
 
     fun dialUriFor(phone: String): String? {
