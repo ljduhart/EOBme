@@ -4,6 +4,7 @@ import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.CptCategory
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.InvoiceProcessingPhase
+import app.eob.me.data.AppLanguage
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.HubUiState
 import org.junit.Assert.assertEquals
@@ -67,6 +68,34 @@ class EobViewModelCareTeamTest {
             assertEquals("Dr. Jane Doe", stored?.name)
             assertEquals("(555) 123-4567", stored?.phone)
         }
+    }
+
+    @Test
+    fun careTeamCardStatesShowSanitizedNameAndPhoneAfterSave() {
+        val viewModel = EobViewModel()
+        viewModel.updatePreferredDoctor(
+            PreferredDoctor(
+                type = CareTeamProviderType.Pcp,
+                name = "john smith",
+                phone = "5551234567"
+            )
+        )
+        viewModel.updatePreferredDoctor(
+            PreferredDoctor(
+                type = CareTeamProviderType.Specialist,
+                name = "jane doe",
+                specialty = "Cardiology",
+                phone = "5559876543"
+            )
+        )
+        val cards = viewModel.careTeamCardStates(AppLanguage.English)
+        val pcp = cards.first { it.type == CareTeamProviderType.Pcp }
+        val specialist = cards.first { it.type == CareTeamProviderType.Specialist }
+        assertEquals("Dr. John Smith", pcp.primaryLine)
+        assertEquals("(555) 123-4567", pcp.secondaryLine)
+        assertEquals("tel:5551234567", pcp.phoneDialUri)
+        assertEquals("Dr. Jane Doe", specialist.primaryLine)
+        assertEquals("tel:5559876543", specialist.phoneDialUri)
     }
 
     @Test
