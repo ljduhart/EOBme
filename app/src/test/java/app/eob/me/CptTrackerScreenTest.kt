@@ -69,7 +69,7 @@ class CptTrackerScreenTest {
         assertEquals(1, entries.size)
         assertEquals("D5225", entries.first().code)
         assertEquals("Maxillary Partial Denture - Flexible Base", entries.first().definition)
-        assertTrue(entries.first().shortName.isNotBlank())
+        assertEquals("Maxillary Partial Denture -", entries.first().shortName)
     }
 
     @Test
