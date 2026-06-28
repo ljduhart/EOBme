@@ -1,8 +1,11 @@
 package app.eob.me.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +26,9 @@ import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.LocalHospital
 import androidx.compose.material.icons.rounded.Percent
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.YtdExpenseData
+import app.eob.me.data.YtdMetricKind
+import app.eob.me.data.YtdMetricSection
 import app.eob.me.data.asCurrency
 import kotlin.math.roundToInt
 
@@ -124,7 +132,7 @@ fun YtdExpenseScreen(
             )
         }
 
-        YtdMetricCardGrid(language = language, data = data)
+        YtdExpandableMetricSections(language = language, data = data)
 
         Spacer(modifier = Modifier.height(76.dp))
     }
@@ -270,60 +278,208 @@ fun ProgressGaugeCard(
 }
 
 @Composable
-private fun YtdMetricCardGrid(language: AppLanguage, data: YtdExpenseData) {
+private fun YtdExpandableMetricSections(language: AppLanguage, data: YtdExpenseData) {
+    var expandedKind by remember { mutableStateOf<YtdMetricKind?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricDetailCard(
-                modifier = Modifier.weight(1f),
-                label = EobStrings.t(language, "ytdCopaysPaidYtd"),
-                amount = data.copays,
-                icon = Icons.Rounded.CreditCard,
-                iconBackground = Color(0xFFE3F2FD),
-                iconTint = Color(0xFF1565C0)
-            )
-            MetricDetailCard(
-                modifier = Modifier.weight(1f),
-                label = EobStrings.t(language, "ytdCoinsurancePaidYtd"),
-                amount = data.coinsurance,
-                icon = Icons.Rounded.Percent,
-                iconBackground = Color(0xFFF3E5F5),
-                iconTint = Color(0xFF7B1FA2)
+        data.metricSections.forEach { section ->
+            val presentation = ytdMetricPresentation(language, section.kind)
+            ExpandableYtdMetricCard(
+                language = language,
+                section = section,
+                label = presentation.label,
+                icon = presentation.icon,
+                iconBackground = presentation.iconBackground,
+                iconTint = presentation.iconTint,
+                expanded = expandedKind == section.kind,
+                onToggle = {
+                    expandedKind = if (expandedKind == section.kind) null else section.kind
+                }
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricDetailCard(
-                modifier = Modifier.weight(1f),
-                label = EobStrings.t(language, "totalBilled"),
-                amount = data.totalBilled,
-                icon = Icons.Rounded.LocalHospital,
-                iconBackground = Color(0xFFFFEBEE),
-                iconTint = Color(0xFFC62828)
-            )
-            MetricDetailCard(
-                modifier = Modifier.weight(1f),
-                label = EobStrings.t(language, "ytdInsurancePaidYtd"),
-                amount = data.insurancePaid,
-                icon = Icons.Rounded.Shield,
-                iconBackground = Color(0xFFE8F5E9),
-                iconTint = Color(0xFF2E7D32)
-            )
-        }
-        Row(modifier = Modifier.fillMaxWidth()) {
-            MetricDetailCard(
-                modifier = Modifier.weight(1f),
-                label = EobStrings.t(language, "ytdAdjustmentsYtd"),
-                amount = data.adjustments,
-                icon = Icons.Rounded.AccountBalance,
-                iconBackground = Color(0xFFFFF8E1),
-                iconTint = Color(0xFFF57F17)
-            )
-            Spacer(modifier = Modifier.weight(1f))
+    }
+}
+
+private data class YtdMetricPresentation(
+    val label: String,
+    val icon: ImageVector,
+    val iconBackground: Color,
+    val iconTint: Color
+)
+
+private fun ytdMetricPresentation(language: AppLanguage, kind: YtdMetricKind): YtdMetricPresentation {
+    return when (kind) {
+        YtdMetricKind.Copay -> YtdMetricPresentation(
+            label = EobStrings.t(language, "ytdCopaysPaidYtd"),
+            icon = Icons.Rounded.CreditCard,
+            iconBackground = Color(0xFFE3F2FD),
+            iconTint = Color(0xFF1565C0)
+        )
+        YtdMetricKind.Coinsurance -> YtdMetricPresentation(
+            label = EobStrings.t(language, "ytdCoinsurancePaidYtd"),
+            icon = Icons.Rounded.Percent,
+            iconBackground = Color(0xFFF3E5F5),
+            iconTint = Color(0xFF7B1FA2)
+        )
+        YtdMetricKind.TotalBilled -> YtdMetricPresentation(
+            label = EobStrings.t(language, "totalBilled"),
+            icon = Icons.Rounded.LocalHospital,
+            iconBackground = Color(0xFFFFEBEE),
+            iconTint = Color(0xFFC62828)
+        )
+        YtdMetricKind.InsurancePaid -> YtdMetricPresentation(
+            label = EobStrings.t(language, "ytdInsurancePaidYtd"),
+            icon = Icons.Rounded.Shield,
+            iconBackground = Color(0xFFE8F5E9),
+            iconTint = Color(0xFF2E7D32)
+        )
+        YtdMetricKind.Adjustments -> YtdMetricPresentation(
+            label = EobStrings.t(language, "ytdAdjustmentsYtd"),
+            icon = Icons.Rounded.AccountBalance,
+            iconBackground = Color(0xFFFFF8E1),
+            iconTint = Color(0xFFF57F17)
+        )
+        YtdMetricKind.Deductible -> YtdMetricPresentation(
+            label = EobStrings.t(language, "ytdDeductiblesPaidYtd"),
+            icon = Icons.Rounded.Savings,
+            iconBackground = Color(0xFFE0F2F1),
+            iconTint = Color(0xFF00695C)
+        )
+    }
+}
+
+@Composable
+private fun ExpandableYtdMetricCard(
+    language: AppLanguage,
+    section: YtdMetricSection,
+    label: String,
+    icon: ImageVector,
+    iconBackground: Color,
+    iconTint: Color,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(iconBackground, RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = iconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = section.total.asCurrency(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = label,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (section.lineItems.isEmpty()) {
+                        Text(
+                            text = EobStrings.t(language, "ytdMetricNoLineItems"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        section.lineItems.forEach { lineItem ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = lineItem.serviceDate,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = lineItem.amount.asCurrency(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = EobStrings.t(language, "ytdMetricTotal"),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = section.total.asCurrency(),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
