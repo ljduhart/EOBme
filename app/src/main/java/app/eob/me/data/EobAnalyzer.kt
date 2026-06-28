@@ -153,6 +153,13 @@ object EobAnalyzer {
             .toList()
     }
 
+    fun isValidCptCode(code: String): Boolean {
+        val normalized = code.trim().uppercase(Locale.US)
+        if (normalized.isEmpty()) return false
+        val match = cptRegex.matchEntire(normalized) ?: return false
+        return match.groupValues[1] == normalized
+    }
+
     fun cptUsage(records: List<EobRecord>, year: Int): List<CptUsage> {
         return records
             .flatMap { record ->
