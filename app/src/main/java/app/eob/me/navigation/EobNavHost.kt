@@ -65,7 +65,6 @@ import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.ui.components.DocumentProcessingOverlay
-import app.eob.me.ui.components.EobDeleteBar
 import app.eob.me.ui.components.HubBottomBar
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.navigation.HubBottomTab
@@ -817,23 +816,16 @@ private fun MainHubNavHost(
                             language = language
                         )
                     }
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        CptTrackerScreen(
-                            language = language,
-                            entries = cptFlashcardEntries,
-                            selectedCategory = uiState.selectedCptCategory,
-                            onCategorySelected = {
-                                eobViewModel.setSelectedCptCategory(it)
-                                onActivity()
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        EobDeleteBar(
-                            language = language,
-                            selectedRecord = uiState.selectedRecord,
-                            onDeleteEob = { deleteEob(it) }
-                        )
-                    }
+                    CptTrackerScreen(
+                        language = language,
+                        entries = cptFlashcardEntries,
+                        selectedCategory = uiState.selectedCptCategory,
+                        onCategorySelected = {
+                            eobViewModel.setSelectedCptCategory(it)
+                            onActivity()
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 composable(EobRoute.News.route) {
                     val newsFeedRevision = uiState.newsFeedRevision

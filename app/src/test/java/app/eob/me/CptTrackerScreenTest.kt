@@ -159,6 +159,51 @@ class CptTrackerScreenTest {
         assertEquals("80053", entries.first().code)
     }
 
+    @Test
+    fun flashcardEntriesExcludeChargesWithoutValidCptCode() {
+        val analyzed = EobAnalyzer.analyze(
+            rawText = "Provider: Clinic\nAetna\n01/15/2026\n99213 billed $120.00",
+            sourceName = "test",
+            nextId = 6
+        )
+        val template = analyzed.charges.first()
+        val record = analyzed.copy(
+            charges = listOf(
+                template.copy(cptCode = "99213", category = CptCategory.OfficeVisit, billedAmount = 120.0),
+                template.copy(cptCode = "", category = CptCategory.OfficeVisit, billedAmount = 50.0),
+                template.copy(cptCode = "LAB", category = CptCategory.Lab, billedAmount = 30.0),
+                template.copy(cptCode = "9921", category = CptCategory.OfficeVisit, billedAmount = 10.0)
+            )
+        )
+
+        val officeEntries = BentoSnapshotExtractor.buildCptFlashcardEntries(
+            language = app.eob.me.data.AppLanguage.English,
+            records = listOf(record),
+            category = CptCategory.OfficeVisit
+        )
+        val labEntries = BentoSnapshotExtractor.buildCptFlashcardEntries(
+            language = app.eob.me.data.AppLanguage.English,
+            records = listOf(record),
+            category = CptCategory.Lab
+        )
+
+        assertEquals(1, officeEntries.size)
+        assertEquals("99213", officeEntries.first().code)
+        assertEquals("$120.00", officeEntries.first().totalBilled)
+        assertTrue(labEntries.isEmpty())
+    }
+
+    @Test
+    fun cptTrackerRouteDoesNotExposeDeleteControls() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val cptRouteStart = navSource.indexOf("composable(EobRoute.CptCount.route)")
+        val nextComposable = navSource.indexOf("composable(", cptRouteStart + 1)
+        val cptRouteBlock = navSource.substring(cptRouteStart, nextComposable)
+        assertTrue(cptRouteBlock.contains("CptTrackerScreen"))
+        assertFalse(cptRouteBlock.contains("EobDeleteBar"))
+        assertFalse(cptRouteBlock.contains("onDeleteEob"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             java.io.File("src/main/java/app/eob/me/$relativePath"),

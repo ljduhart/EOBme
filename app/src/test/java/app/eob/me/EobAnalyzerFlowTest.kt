@@ -83,6 +83,18 @@ class EobAnalyzerFlowTest {
     }
 
     @Test
+    fun isValidCptCodeAcceptsFiveDigitAndAlphanumericHcpcsCodes() {
+        assertTrue(EobAnalyzer.isValidCptCode("99213"))
+        assertTrue(EobAnalyzer.isValidCptCode("80053"))
+        assertTrue(EobAnalyzer.isValidCptCode("J9999"))
+        assertTrue(EobAnalyzer.isValidCptCode("D5225"))
+        assertFalse(EobAnalyzer.isValidCptCode(""))
+        assertFalse(EobAnalyzer.isValidCptCode("LAB"))
+        assertFalse(EobAnalyzer.isValidCptCode("9921"))
+        assertFalse(EobAnalyzer.isValidCptCode("01234"))
+    }
+
+    @Test
     fun recordSignalsOutOfNetworkFromVeryfiBalanceField() {
         val planBalanceOnly = sampleRecord(id = 1).copy(
             rawText = """{"provider_name":"North Clinic","out_of_network_out_of_pocket_balance":2100}"""
