@@ -97,6 +97,8 @@ fun TaxVaultVerticalFilterCard(
     budgetSummary: TaxVaultBudgetSummary,
     onFilterSelected: (TaxVaultFilterState) -> Unit,
     onVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
+    onVaultDoorUnlocked: () -> Unit = {},
+    showTitaniumDoor: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     var uiPhase by remember { mutableStateOf(VaultUiPhase.OFF) }
@@ -161,21 +163,40 @@ fun TaxVaultVerticalFilterCard(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top
         ) {
-            VaultDoorGlyph(
-                openProgress = vaultOpenProgress,
-                glowColor = vaultGlowColor,
-                showLockedBadge = !isGoldTier,
-                onClick = {
-                    if (!isGoldTier) return@VaultDoorGlyph
-                    when (uiPhase) {
-                        VaultUiPhase.OFF -> {
-                            uiPhase = VaultUiPhase.ACTIVATING
+            if (showTitaniumDoor) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    TitaniumVaultBiometricScanner(
+                        onVaultUnlocked = {
+                            if (!isGoldTier) return@TitaniumVaultBiometricScanner
                             rippleAlpha = 1f
+                            uiPhase = VaultUiPhase.ACTIVATING
+                            onVaultDoorUnlocked()
                         }
-                        else -> onFilterSelected(TaxVaultFilterState.OFF)
-                    }
+                    )
+                    Text(
+                        text = EobStrings.t(language, "taxVaultDoorHoldHint"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = VaultNeonText.copy(alpha = 0.72f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
-            )
+            } else {
+                VaultDoorGlyph(
+                    openProgress = vaultOpenProgress,
+                    glowColor = vaultGlowColor,
+                    showLockedBadge = !isGoldTier,
+                    onClick = {
+                        if (!isGoldTier) return@VaultDoorGlyph
+                        when (uiPhase) {
+                            VaultUiPhase.OFF -> {
+                                uiPhase = VaultUiPhase.ACTIVATING
+                                rippleAlpha = 1f
+                            }
+                            else -> onFilterSelected(TaxVaultFilterState.OFF)
+                        }
+                    }
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "\$f",
@@ -328,7 +349,7 @@ fun TaxVaultVerticalFilterCard(
     }
 
     LaunchedEffect(uiPhase) {
-        if (uiPhase == VaultUiPhase.ACTIVATING) {
+        if (uiPhase == VaultUiPhase.ACTIVATING && !showTitaniumDoor) {
             delay(720)
             rippleAlpha = 0f
             onFilterSelected(TaxVaultFilterState.HSA)

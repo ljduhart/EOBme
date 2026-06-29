@@ -131,7 +131,8 @@ class EobStringsCoverageTest {
             EobRoute.Profile.route,
             EobRoute.Settings.route,
             EobRoute.CameraCapture.route,
-            EobRoute.ProviderDirectory.route
+            EobRoute.ProviderDirectory.route,
+            EobRoute.TaxVault.route
         )
         assertTrue(hubFeatureRoutes.all { it in registeredRoutes })
         assertTrue(hubBackRoutes.all { it in registeredRoutes })

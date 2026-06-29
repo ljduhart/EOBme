@@ -183,3 +183,42 @@ async function mirrorEobWrite(event, sourceCollection, targetCollection) {
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, {merge: true});
 }
+
+exports.stapleVaultReceiptToEob = onDocumentWritten("users/{userId}/vault_receipts/{receiptId}", async (event) => {
+  const after = event.data?.after?.data();
+  if (!after) return;
+  if (after.stapledEobId) return;
+
+  const userId = event.params.userId;
+  const receiptId = event.params.receiptId;
+  const amount = Number(after.amount || 0);
+  const serviceDate = String(after.serviceDate || after.service_date || "").trim();
+  if (!amount || !serviceDate) return;
+
+  const eobsSnap = await db.collection("users").doc(userId).collection("eobs")
+    .where("serviceDate", "==", serviceDate)
+    .get();
+
+  for (const doc of eobsSnap.docs) {
+    const eob = doc.data() || {};
+    const patientResp = Number(
+      eob.patient_responsibility ??
+      eob.patientResponsibility ??
+      ((Number(eob.copay || 0)) + (Number(eob.deductible || 0)) + (Number(eob.coinsurance || 0)))
+    );
+    if (Math.abs(patientResp - amount) < 0.01) {
+      await Promise.all([
+        doc.ref.set({
+          vaultSubstantiationStatus: "Paid & Substantiated",
+          stapledReceiptId: receiptId,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, {merge: true}),
+        event.data.after.ref.set({
+          stapledEobId: doc.id,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, {merge: true})
+      ]);
+      break;
+    }
+  }
+});

@@ -11,6 +11,7 @@ sealed class EobRoute(val route: String) {
     data object Profile : EobRoute("profile")
     data object Settings : EobRoute("settings")
     data object CameraCapture : EobRoute("camera_capture")
+    data object TaxVault : EobRoute("tax_vault")
     data object ProviderDirectory : EobRoute("provider_directory")
 }
 
@@ -21,14 +22,16 @@ val hubFeatureRoutes = setOf(
     EobRoute.Appeal.route,
     EobRoute.CptCount.route,
     EobRoute.YearlyExpense.route,
-    EobRoute.News.route
+    EobRoute.News.route,
+    EobRoute.TaxVault.route
 )
 
 /** Routes that show the back-to-home control in the hub header. */
 val hubBackRoutes = hubFeatureRoutes + setOf(
     EobRoute.Dashboard.route,
     EobRoute.Profile.route,
-    EobRoute.Settings.route
+    EobRoute.Settings.route,
+    EobRoute.TaxVault.route
 )
 
 /** Routes where the bottom navigation bar and hub header are hidden (full-screen camera). */

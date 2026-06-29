@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.EobRecord
+import app.eob.me.data.ReceiptRecord
 import app.eob.me.data.DocumentUploadResult
 import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.util.EobDocumentOcrPreCheck
@@ -86,6 +87,20 @@ interface EobRepository {
         uri: Uri,
         sourceName: String
     ): Result<VeryfiAnyDocExtractionResult>
+
+    fun observeVaultReceipts(
+        userId: String,
+        onReceipts: (List<ReceiptRecord>) -> Unit,
+        onError: (String) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration?
+
+    suspend fun uploadVaultReceiptAwaitDownload(
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): DocumentUploadResult
+
+    fun saveVaultReceipt(userId: String, receipt: ReceiptRecord, onComplete: (String) -> Unit)
 
     fun deleteAccount(userId: String, onComplete: (String) -> Unit)
 }

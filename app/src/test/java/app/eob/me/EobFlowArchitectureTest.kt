@@ -2513,6 +2513,58 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr136TaxVaultPremiumFeaturesAudit() {
+        val homeSource = readSource("ui/components/home/TaxVaultVerticalFilterCard.kt")
+        val scannerSource = readSource("ui/components/home/TitaniumVaultBiometricScanner.kt")
+        val vaultScreenSource = readSource("ui/screens/TaxVaultScreen.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val packagerSource = readSource("data/TaxVaultClaimPackager.kt")
+        val functionsSource = readFunctionsSource("index.js")
+
+        listOf(
+            "TitaniumVaultBiometricScanner",
+            "detectTapGestures",
+            "Animatable",
+            "HapticFeedbackType.LongPress",
+            "onVaultDoorUnlocked"
+        ).forEach { snippet ->
+            assertTrue("PR#136: titanium vault door missing $snippet", homeSource.contains(snippet) || scannerSource.contains(snippet))
+        }
+        listOf(
+            "TaxVaultScreen",
+            "FsaDoomsdayMonitorCard",
+            "VaultEvidenceCarousel",
+            "AsyncImage",
+            "VaultExportSection",
+            "EobRoute.TaxVault"
+        ).forEach { snippet ->
+            assertTrue("PR#136: vault dashboard missing $snippet", vaultScreenSource.contains(snippet) || navHostSource.contains(snippet))
+        }
+        listOf(
+            "processVaultReceiptScannedDocument",
+            "vaultReceipts",
+            "exportTaxVaultClaimPackage",
+            "scheduleFsaDoomsdayMonitor",
+            "FsaDoomsdayScheduler"
+        ).forEach { snippet ->
+            assertTrue("PR#136: ViewModel vault source of truth missing $snippet", viewModelSource.contains(snippet))
+        }
+        assertTrue("PR#136: claim packager must use PdfDocument", packagerSource.contains("PdfDocument"))
+        assertTrue("PR#136: cloud stapler trigger missing", functionsSource.contains("stapleVaultReceiptToEob"))
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "network/VeryfiDocumentClient.kt",
+            "data/DocumentScanPipelineRepository.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#136: protected pipeline touched ($path)", source.contains("processVaultReceiptScannedDocument"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

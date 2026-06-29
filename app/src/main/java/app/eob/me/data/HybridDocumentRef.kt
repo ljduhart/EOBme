@@ -7,10 +7,19 @@ object HybridDocumentRef {
     /** Pathway 1 folder: users/{userId}/eobs/{fileName} */
     const val USER_ROOTED_EOB_FOLDER = "eobs"
 
+    /** Vault pharmacy / copay receipts: users/{userId}/vault_receipts/{fileName} */
+    const val USER_ROOTED_VAULT_RECEIPT_FOLDER = "vault_receipts"
+
     /** Pathway 2 root segment: eobs/{userId}/{fileName} */
     const val DOCUMENT_ROOTED_PREFIX = "eobs"
 
     fun fileNameForUpload(extension: String): String = "eob_${System.currentTimeMillis()}.$extension"
+
+    fun vaultReceiptFileNameForUpload(extension: String): String =
+        "vault_receipt_${System.currentTimeMillis()}.$extension"
+
+    fun vaultReceiptStoragePath(userId: String, fileName: String): String =
+        normalizeStoragePath("users/$userId/$USER_ROOTED_VAULT_RECEIPT_FOLDER/$fileName")
 
     fun documentRefId(fileName: String): String =
         fileName.replace(Regex("[^A-Za-z0-9_-]"), "_")

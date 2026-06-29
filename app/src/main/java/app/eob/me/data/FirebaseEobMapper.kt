@@ -68,6 +68,9 @@ object FirebaseEobMapper {
             "totalCoinsuranceAmount" to record.totalCoinsuranceAmount,
             "isHsaEligible" to record.isHsaEligible,
             "isFsaEligible" to record.isFsaEligible,
+            "storageDownloadUrl" to record.storageDownloadUrl,
+            "vaultSubstantiationStatus" to record.vaultSubstantiationStatus,
+            "stapledReceiptId" to record.stapledReceiptId,
             "charges" to record.charges.map(::chargeToMap),
             "provider_name" to record.providerName,
             "insurance_name" to record.insuranceName,
@@ -137,7 +140,18 @@ object FirebaseEobMapper {
             totalDeductibleAmount = enrichedData.doubleValue("totalDeductibleAmount", "deductible"),
             totalCoinsuranceAmount = enrichedData.doubleValue("totalCoinsuranceAmount", "coinsurance"),
             isHsaEligible = taxVaultEligibility.isHsaEligible,
-            isFsaEligible = taxVaultEligibility.isFsaEligible
+            isFsaEligible = taxVaultEligibility.isFsaEligible,
+            storageDownloadUrl = enrichedData.stringValue(
+                "storageDownloadUrl",
+                "storage_download_url",
+                "downloadUrl",
+                "download_url"
+            ),
+            vaultSubstantiationStatus = enrichedData.stringValue(
+                "vaultSubstantiationStatus",
+                "vault_substantiation_status"
+            ),
+            stapledReceiptId = enrichedData.stringValue("stapledReceiptId", "stapled_receipt_id")
         )
         return reconcileNormalizedEobRecord(record, enrichedData)
     }

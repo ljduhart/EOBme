@@ -142,7 +142,10 @@ data class EobRecord(
     val totalDeductibleAmount: Double = 0.0,
     val totalCoinsuranceAmount: Double = 0.0,
     val isHsaEligible: Boolean = false,
-    val isFsaEligible: Boolean = false
+    val isFsaEligible: Boolean = false,
+    val storageDownloadUrl: String = "",
+    val vaultSubstantiationStatus: String = "",
+    val stapledReceiptId: String = ""
 ) {
     val insuranceCompany: String
         get() = insuranceName

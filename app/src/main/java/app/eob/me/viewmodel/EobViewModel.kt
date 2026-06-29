@@ -56,7 +56,15 @@ import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.HubSettingsState
 import app.eob.me.data.HubSettingsStore
 import app.eob.me.data.ImageCompressionLevel
+import app.eob.me.data.ReceiptRecord
 import app.eob.me.data.TaxVaultBudgetSummary
+import app.eob.me.data.TaxVaultExportRow
+import app.eob.me.data.VaultEvidenceThumbnail
+import app.eob.me.data.FsaDoomsdaySnapshot
+import app.eob.me.data.FsaDoomsdayEngine
+import app.eob.me.data.TaxVaultClaimPackager
+import app.eob.me.data.VaultReceiptMapper
+import app.eob.me.work.FsaDoomsdayScheduler
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.SettingsTab
@@ -126,6 +134,10 @@ data class HubUiState(
     val paywallMessage: String = "",
     val paywallPurchasePending: Boolean = false,
     val cameraScanDocumentType: CameraScanDocumentType = CameraScanDocumentType.Eob,
+    val vaultReceiptScanPending: Boolean = false,
+    val taxVaultExportEobIds: Set<String> = emptySet(),
+    val taxVaultExportReceiptIds: Set<String> = emptySet(),
+    val taxVaultDoorAnimating: Boolean = false,
     val hubSettings: HubSettingsState = HubSettingsState()
 )
 
@@ -181,6 +193,10 @@ class EobViewModel : ViewModel() {
     private var newsRotationJob: Job? = null
     private val _syncProfile = MutableStateFlow(UserProfile())
     private var eobListener: ListenerRegistration? = null
+    private var vaultReceiptListener: ListenerRegistration? = null
+
+    private val _vaultReceipts = MutableStateFlow<List<ReceiptRecord>>(emptyList())
+    val vaultReceipts: StateFlow<List<ReceiptRecord>> = _vaultReceipts.asStateFlow()
 
     private val userContextTags: Flow<Set<String>> = combine(
         uiState.map { it.selectedCptCategory }.distinctUntilChanged(),
@@ -676,9 +692,12 @@ class EobViewModel : ViewModel() {
     fun resetHubState() {
         eobListener?.remove()
         eobListener = null
+        vaultReceiptListener?.remove()
+        vaultReceiptListener = null
         profileListener?.remove()
         profileListener = null
         _eobRecords.value = emptyList()
+        _vaultReceipts.value = emptyList()
         val preservedSettings = _uiState.value.hubSettings.copy(
             settingsAccountEditing = false,
             settingsNotice = "",
@@ -752,6 +771,12 @@ class EobViewModel : ViewModel() {
                     )
                 }
             }
+        )
+        vaultReceiptListener?.remove()
+        vaultReceiptListener = repo.observeVaultReceipts(
+            userId = userId,
+            onReceipts = { receipts -> _vaultReceipts.value = receipts },
+            onError = { message -> updateUploadNotice(message) }
         )
     }
 
@@ -1064,6 +1089,277 @@ class EobViewModel : ViewModel() {
     fun setTaxVaultVisibilityMode(mode: TaxVaultVisibilityMode) {
         if (!isTaxVaultGoldUnlocked()) return
         _taxVaultVisibilityMode.value = mode
+    }
+
+    fun requestTaxVaultDoorUnlock() {
+        if (!isTaxVaultGoldUnlocked()) return
+        _uiState.update { it.copy(taxVaultDoorAnimating = true) }
+    }
+
+    fun acknowledgeTaxVaultDoorAnimation() {
+        _uiState.update { it.copy(taxVaultDoorAnimating = false) }
+    }
+
+    fun beginVaultReceiptScan() {
+        _uiState.update {
+            it.copy(
+                cameraScanDocumentType = CameraScanDocumentType.Receipt,
+                vaultReceiptScanPending = true
+            )
+        }
+    }
+
+    fun clearVaultReceiptScanPending() {
+        _uiState.update { it.copy(vaultReceiptScanPending = false) }
+    }
+
+    fun fsaDoomsdaySnapshot(profile: UserProfile): FsaDoomsdaySnapshot {
+        val safeProfile = profile.sanitizedPlanLimits()
+        val eligibleAmount = EobAnalyzer.recordsForTaxVaultFilter(
+            _eobRecords.value,
+            TaxVaultFilterState.FSA
+        ).sumOf { it.totalPatientResponsibility }
+        return FsaDoomsdayEngine.snapshot(
+            fsaAllocation = safeProfile.fsaAllocation,
+            eligibleClaimAmount = eligibleAmount
+        )
+    }
+
+    fun scheduleFsaDoomsdayMonitor(context: Context, profile: UserProfile) {
+        val safeProfile = profile.sanitizedPlanLimits()
+        if (safeProfile.fsaAllocation <= 0.0) return
+        val eligibleAmount = EobAnalyzer.recordsForTaxVaultFilter(
+            _eobRecords.value,
+            TaxVaultFilterState.FSA
+        ).sumOf { it.totalPatientResponsibility }
+        FsaDoomsdayScheduler.schedule(
+            context = context.applicationContext,
+            fsaAllocation = safeProfile.fsaAllocation,
+            eligibleClaimAmount = eligibleAmount
+        )
+    }
+
+    fun taxVaultEvidenceThumbnails(): List<VaultEvidenceThumbnail> {
+        val filter = _taxVaultFilterState.value
+        val eligibleEobs = if (filter == TaxVaultFilterState.OFF) {
+            _eobRecords.value
+        } else {
+            EobAnalyzer.recordsForTaxVaultFilter(_eobRecords.value, filter)
+        }
+        val eobThumbnails = eligibleEobs.mapIndexed { index, record ->
+            VaultEvidenceThumbnail(
+                id = record.historyListKey(),
+                imageUrl = record.storageDownloadUrl,
+                label = record.providerName,
+                rotationDegrees = polaroidRotation(index),
+                isReceipt = false
+            )
+        }
+        val receiptThumbnails = _vaultReceipts.value.mapIndexed { index, receipt ->
+            VaultEvidenceThumbnail(
+                id = receipt.historyListKey(),
+                imageUrl = receipt.thumbnailUrl,
+                label = receipt.providerName,
+                rotationDegrees = polaroidRotation(index + eobThumbnails.size),
+                isReceipt = true
+            )
+        }
+        return eobThumbnails + receiptThumbnails
+    }
+
+    fun toggleTaxVaultExportEob(record: EobRecord) {
+        val key = record.historyListKey()
+        _uiState.update { state ->
+            val updated = state.taxVaultExportEobIds.toMutableSet()
+            if (!updated.add(key)) updated.remove(key)
+            state.copy(taxVaultExportEobIds = updated)
+        }
+    }
+
+    fun toggleTaxVaultExportReceipt(receipt: ReceiptRecord) {
+        val key = receipt.historyListKey()
+        _uiState.update { state ->
+            val updated = state.taxVaultExportReceiptIds.toMutableSet()
+            if (!updated.add(key)) updated.remove(key)
+            state.copy(taxVaultExportReceiptIds = updated)
+        }
+    }
+
+    fun clearTaxVaultExportSelection() {
+        _uiState.update {
+            it.copy(
+                taxVaultExportEobIds = emptySet(),
+                taxVaultExportReceiptIds = emptySet()
+            )
+        }
+    }
+
+    fun buildTaxVaultExportRows(): List<TaxVaultExportRow> {
+        val selectedEobKeys = _uiState.value.taxVaultExportEobIds
+        return _eobRecords.value
+            .filter { it.historyListKey() in selectedEobKeys }
+            .map { record ->
+                TaxVaultExportRow(
+                    date = record.serviceDate,
+                    provider = record.providerName,
+                    cptCode = record.charges.firstOrNull()?.cptCode.orEmpty(),
+                    patientResponsibility = record.totalPatientResponsibility
+                )
+            }
+    }
+
+    fun exportTaxVaultClaimPackage(context: Context): Result<Uri> {
+        val exportRows = buildTaxVaultExportRows()
+        if (exportRows.isEmpty()) {
+            return Result.failure(IllegalStateException("Select at least one EOB for export."))
+        }
+        val selectedReceiptKeys = _uiState.value.taxVaultExportReceiptIds
+        val evidenceUrls = buildList {
+            _eobRecords.value
+                .filter { it.historyListKey() in _uiState.value.taxVaultExportEobIds }
+                .mapNotNull { it.storageDownloadUrl.takeIf(String::isNotBlank) }
+                .forEach(::add)
+            _vaultReceipts.value
+                .filter { it.historyListKey() in selectedReceiptKeys }
+                .mapNotNull { it.thumbnailUrl.takeIf(String::isNotBlank) }
+                .forEach(::add)
+        }
+        return TaxVaultClaimPackager.buildClaimPackage(
+            context = context,
+            coverRows = exportRows,
+            evidenceImageUrls = evidenceUrls
+        )
+    }
+
+    fun processVaultReceiptScannedDocument(
+        userId: String,
+        uri: Uri,
+        sourceName: String,
+        language: AppLanguage
+    ) {
+        val repo = repository ?: return
+        val context = appContext ?: return
+        if (userId.isBlank()) {
+            _documentScanState.value = DocumentScanPipelineState.Error(
+                EobStrings.t(language, "signInBeforeUpload")
+            )
+            return
+        }
+        if (!canUploadOnCurrentNetwork(context)) {
+            _documentScanState.value = DocumentScanPipelineState.Error(
+                EobStrings.t(language, "settingsUploadWifiBlocked")
+            )
+            return
+        }
+        documentScanJob?.cancel()
+        val generation = ++documentScanGeneration
+        documentScanJob = viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                setLoadingInvoice(true)
+                _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
+            }
+            val preCheck = runCatching {
+                repo.runDocumentOcrPreCheck(
+                    context = context,
+                    uri = uri,
+                    scanType = CameraScanDocumentType.Receipt
+                )
+            }.getOrElse { error ->
+                withContext(Dispatchers.Main) {
+                    if (generation != documentScanGeneration) return@withContext
+                    setLoadingInvoice(false)
+                    clearVaultReceiptScanPending()
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "documentScanOcrFailed")
+                    )
+                    updateUploadNotice(error.localizedMessage.orEmpty())
+                }
+                return@launch
+            }
+            if (!preCheck.passed) {
+                withContext(Dispatchers.Main) {
+                    if (generation != documentScanGeneration) return@withContext
+                    setLoadingInvoice(false)
+                    clearVaultReceiptScanPending()
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "documentScanOcrPreCheckFailed")
+                    )
+                }
+                return@launch
+            }
+            val preparedUri = runCatching {
+                OcrProcessor.prepareUriForUpload(context, uri, imageCompressionLevel())
+            }.getOrElse { error ->
+                withContext(Dispatchers.Main) {
+                    if (generation != documentScanGeneration) return@withContext
+                    setLoadingInvoice(false)
+                    clearVaultReceiptScanPending()
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        EobStrings.t(language, "imagePrepFailed")
+                    )
+                    updateUploadNotice(error.localizedMessage.orEmpty())
+                }
+                return@launch
+            }
+            val ocrText = runCatching { OcrProcessor.recognizeFromUri(context, preparedUri) }.getOrDefault("")
+            val parsed = VaultReceiptMapper.parseReceiptFromOcr(ocrText)
+            withContext(Dispatchers.Main) {
+                _documentScanState.value = DocumentScanPipelineState.UploadingAndProcessing
+            }
+            val upload = runCatching {
+                repo.uploadVaultReceiptAwaitDownload(
+                    userId = userId,
+                    uri = preparedUri,
+                    sourceName = sourceName
+                )
+            }.getOrElse { error ->
+                withContext(Dispatchers.Main) {
+                    if (generation != documentScanGeneration) return@withContext
+                    setLoadingInvoice(false)
+                    clearVaultReceiptScanPending()
+                    _documentScanState.value = DocumentScanPipelineState.Error(
+                        error.localizedMessage ?: EobStrings.t(language, "documentScanFailed")
+                    )
+                }
+                return@launch
+            }
+            val receipt = ReceiptRecord(
+                firestoreId = upload.documentRefId,
+                providerName = parsed.providerName,
+                serviceDate = parsed.serviceDate,
+                amount = parsed.amount,
+                thumbnailUrl = upload.downloadUrl,
+                storagePath = upload.storagePath,
+                createdAtMillis = System.currentTimeMillis()
+            )
+            repo.saveVaultReceipt(userId, receipt) { message ->
+                viewModelScope.launch(Dispatchers.Main) {
+                    if (generation != documentScanGeneration) return@launch
+                    setLoadingInvoice(false)
+                    clearVaultReceiptScanPending()
+                    _documentScanState.value = DocumentScanPipelineState.Idle
+                    updateUploadNotice(EobStrings.localizeRepositoryMessage(language, message))
+                }
+            }
+        }
+    }
+
+    private fun polaroidRotation(index: Int): Float {
+        return when (index % 4) {
+            0 -> -4f
+            1 -> 3f
+            2 -> -2f
+            else -> 5f
+        }
+    }
+
+    fun taxVaultEligibleEobs(records: List<EobRecord>): List<EobRecord> {
+        val filter = _taxVaultFilterState.value
+        return if (filter == TaxVaultFilterState.OFF) {
+            records
+        } else {
+            EobAnalyzer.recordsForTaxVaultFilter(records, filter)
+        }
     }
 
     fun taxVaultBudgetSummary(profile: UserProfile): TaxVaultBudgetSummary {
@@ -1672,6 +1968,7 @@ class EobViewModel : ViewModel() {
     override fun onCleared() {
         newsRotationJob?.cancel()
         eobListener?.remove()
+        vaultReceiptListener?.remove()
         profileListener?.remove()
         super.onCleared()
     }

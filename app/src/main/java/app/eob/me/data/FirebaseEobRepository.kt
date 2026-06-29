@@ -437,6 +437,88 @@ class FirebaseEobRepository(private val context: Context) {
             }
     }
 
+    fun observeVaultReceipts(
+        userId: String,
+        onReceipts: (List<ReceiptRecord>) -> Unit,
+        onError: (String) -> Unit
+    ): ListenerRegistration? {
+        if (!configured || userId.isBlank()) return null
+        return firestore().collection(USERS).document(userId).collection(VAULT_RECEIPTS)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError("Vault receipt sync failed: ${error.localizedMessage}")
+                    return@addSnapshotListener
+                }
+                val receipts = snapshot?.documents.orEmpty().mapNotNull { document ->
+                    document.data?.let { data ->
+                        VaultReceiptMapper.receiptFromMap(data, document.id)
+                    }
+                }.sortedByDescending { it.createdAtMillis }
+                onReceipts(receipts)
+            }
+    }
+
+    suspend fun uploadVaultReceiptAwaitDownload(
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): DocumentUploadResult {
+        if (!configured || userId.isBlank()) {
+            throw IllegalStateException("Please sign in before uploading a vault receipt.")
+        }
+        val contentType = context.contentResolver.getType(uri)
+            ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
+        val extension = HybridDocumentRef.extensionForContentType(contentType)
+        val resolvedFileName = HybridDocumentRef.vaultReceiptFileNameForUpload(extension)
+        val ref = FirebaseStorage.getInstance().reference
+            .child("users").child(userId).child(HybridDocumentRef.USER_ROOTED_VAULT_RECEIPT_FOLDER)
+            .child(resolvedFileName)
+        val metadata = StorageMetadata.Builder()
+            .setContentType(contentType)
+            .setCustomMetadata("sourceName", sourceName)
+            .setCustomMetadata("scanType", CameraScanDocumentType.Receipt.name)
+            .setCustomMetadata("vaultRecord", "true")
+            .build()
+        return suspendCancellableCoroutine { continuation ->
+            ref.putFile(uri, metadata)
+                .continueWithTask { task ->
+                    if (!task.isSuccessful) {
+                        throw task.exception ?: IllegalStateException("Vault receipt upload failed.")
+                    }
+                    ref.downloadUrl
+                }
+                .addOnSuccessListener { downloadUrl ->
+                    continuation.resume(
+                        DocumentUploadResult(
+                            storagePath = HybridDocumentRef.vaultReceiptStoragePath(userId, resolvedFileName),
+                            downloadUrl = downloadUrl.toString(),
+                            contentType = contentType,
+                            fileName = resolvedFileName,
+                            documentRefId = HybridDocumentRef.documentRefId(resolvedFileName)
+                        )
+                    )
+                }
+                .addOnFailureListener { error ->
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(error)
+                    }
+                }
+        }
+    }
+
+    fun saveVaultReceipt(userId: String, receipt: ReceiptRecord, onComplete: (String) -> Unit) {
+        if (!configured || userId.isBlank()) {
+            onComplete("Please sign in to save vault receipts.")
+            return
+        }
+        val docId = receipt.firestoreId.ifBlank { receipt.storagePath.hashCode().toString() }
+        firestore().collection(USERS).document(userId).collection(VAULT_RECEIPTS)
+            .document(docId)
+            .set(VaultReceiptMapper.receiptToMap(receipt))
+            .addOnSuccessListener { onComplete("Vault receipt saved.") }
+            .addOnFailureListener { onComplete("Vault receipt save failed: ${it.localizedMessage}") }
+    }
+
     private fun firestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
 
     private fun ensureConfigured(): Boolean {
@@ -450,6 +532,7 @@ class FirebaseEobRepository(private val context: Context) {
     private companion object {
         const val USERS = "users"
         const val EOBS = "eobs"
+        const val VAULT_RECEIPTS = "vault_receipts"
         const val EOB_RECORDS = "eob_records"
         const val DEVICES = "devices"
         const val NEWS = "insuranceNews"

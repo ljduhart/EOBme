@@ -69,7 +69,9 @@ import app.eob.me.ui.components.DocumentProcessingOverlay
 import app.eob.me.ui.components.HubBottomBar
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.navigation.HubBottomTab
+import android.content.Intent
 import app.eob.me.ui.screens.AppealScreen
+import app.eob.me.ui.screens.TaxVaultScreen
 import app.eob.me.ui.screens.AuthChoiceScreen
 import app.eob.me.ui.screens.AuthScreen
 import app.eob.me.ui.screens.CameraCaptureScreen
@@ -728,6 +730,106 @@ private fun MainHubNavHost(
                             eobViewModel.setTaxVaultVisibilityMode(mode)
                             onActivity()
                         },
+                        onVaultDoorUnlocked = {
+                            eobViewModel.requestTaxVaultDoorUnlock()
+                            navController.navigate(EobRoute.TaxVault.route) { launchSingleTop = true }
+                            onActivity()
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                composable(EobRoute.TaxVault.route) {
+                    val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
+                    val taxVaultVisibilityMode by eobViewModel.taxVaultVisibilityMode.collectAsStateWithLifecycle()
+                    val vaultReceipts by eobViewModel.vaultReceipts.collectAsStateWithLifecycle()
+                    val taxVaultBudgetSummary = remember(
+                        sortedEobRecords,
+                        profile.hsaAllocation,
+                        profile.fsaAllocation,
+                        taxVaultFilterState
+                    ) {
+                        eobViewModel.taxVaultBudgetSummary(profile)
+                    }
+                    val fsaSnapshot = remember(sortedEobRecords, profile.fsaAllocation) {
+                        eobViewModel.fsaDoomsdaySnapshot(profile)
+                    }
+                    val evidenceThumbnails = remember(
+                        sortedEobRecords,
+                        vaultReceipts,
+                        taxVaultFilterState
+                    ) {
+                        eobViewModel.taxVaultEvidenceThumbnails()
+                    }
+                    val eligibleEobs = remember(sortedEobRecords, taxVaultFilterState) {
+                        eobViewModel.taxVaultEligibleEobs(sortedEobRecords)
+                    }
+                    LaunchedEffect(profile.fsaAllocation, sortedEobRecords.size) {
+                        eobViewModel.scheduleFsaDoomsdayMonitor(context, profile)
+                    }
+                    TaxVaultScreen(
+                        language = language,
+                        darkModeEnabled = uiState.hubSettings.darkModeEnabled,
+                        isGoldTier = uiState.hubSettings.subscriptionTier.isGold(),
+                        doorAnimating = uiState.taxVaultDoorAnimating,
+                        filterState = taxVaultFilterState,
+                        visibilityMode = taxVaultVisibilityMode,
+                        budgetSummary = taxVaultBudgetSummary,
+                        fsaSnapshot = fsaSnapshot,
+                        evidenceThumbnails = evidenceThumbnails,
+                        eligibleEobs = eligibleEobs,
+                        vaultReceipts = vaultReceipts,
+                        selectedEobIds = uiState.taxVaultExportEobIds,
+                        selectedReceiptIds = uiState.taxVaultExportReceiptIds,
+                        onFilterSelected = { filter ->
+                            eobViewModel.setTaxVaultFilterState(filter)
+                            onActivity()
+                        },
+                        onVisibilityModeSelected = { mode ->
+                            eobViewModel.setTaxVaultVisibilityMode(mode)
+                            onActivity()
+                        },
+                        onToggleExportEob = { record ->
+                            eobViewModel.toggleTaxVaultExportEob(record)
+                            onActivity()
+                        },
+                        onToggleExportReceipt = { receipt ->
+                            eobViewModel.toggleTaxVaultExportReceipt(receipt)
+                            onActivity()
+                        },
+                        onExportClaimPackage = {
+                            eobViewModel.exportTaxVaultClaimPackage(context).fold(
+                                onSuccess = { uri ->
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/pdf"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            shareIntent,
+                                            EobStrings.t(language, "taxVaultExportShare")
+                                        )
+                                    )
+                                },
+                                onFailure = { error ->
+                                    Toast.makeText(
+                                        context,
+                                        error.localizedMessage.orEmpty(),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            )
+                            onActivity()
+                        },
+                        onAddReceipt = {
+                            eobViewModel.beginVaultReceiptScan()
+                            navController.navigate(EobRoute.CameraCapture.route) { launchSingleTop = true }
+                            onActivity()
+                        },
+                        onDoorAnimationComplete = {
+                            eobViewModel.acknowledgeTaxVaultDoorAnimation()
+                            onActivity()
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -807,15 +909,28 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onImageCaptured = { uri ->
-                            eobViewModel.processScannedDocument(
-                                userId = firebaseUser?.uid.orEmpty(),
-                                uri = uri,
-                                sourceName = eobViewModel.cameraScanSourceLabel(language),
-                                language = language
-                            )
-                            navController.navigate(EobRoute.History.route) {
-                                popUpTo(EobRoute.CameraCapture.route) { inclusive = true }
-                                launchSingleTop = true
+                            if (uiState.vaultReceiptScanPending) {
+                                eobViewModel.processVaultReceiptScannedDocument(
+                                    userId = firebaseUser?.uid.orEmpty(),
+                                    uri = uri,
+                                    sourceName = eobViewModel.cameraScanSourceLabel(language),
+                                    language = language
+                                )
+                                navController.navigate(EobRoute.TaxVault.route) {
+                                    popUpTo(EobRoute.CameraCapture.route) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                eobViewModel.processScannedDocument(
+                                    userId = firebaseUser?.uid.orEmpty(),
+                                    uri = uri,
+                                    sourceName = eobViewModel.cameraScanSourceLabel(language),
+                                    language = language
+                                )
+                                navController.navigate(EobRoute.History.route) {
+                                    popUpTo(EobRoute.CameraCapture.route) { inclusive = true }
+                                    launchSingleTop = true
+                                }
                             }
                             onActivity()
                         },

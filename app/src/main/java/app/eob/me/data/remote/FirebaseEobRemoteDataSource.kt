@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.EobRecord
+import app.eob.me.data.ReceiptRecord
 import app.eob.me.data.DocumentScanPipelineRepository
 import app.eob.me.data.DocumentUploadResult
 import app.eob.me.data.FirebaseEobRepository
@@ -103,6 +104,22 @@ class FirebaseEobRemoteDataSource(
         uri: Uri,
         sourceName: String
     ): Result<VeryfiAnyDocExtractionResult> = documentScanPipeline.uploadAndExtractDocument(context, userId, uri, sourceName)
+
+    override fun observeVaultReceipts(
+        userId: String,
+        onReceipts: (List<ReceiptRecord>) -> Unit,
+        onError: (String) -> Unit
+    ): ListenerRegistration? = firebase.observeVaultReceipts(userId, onReceipts, onError)
+
+    override suspend fun uploadVaultReceiptAwaitDownload(
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): DocumentUploadResult = firebase.uploadVaultReceiptAwaitDownload(userId, uri, sourceName)
+
+    override fun saveVaultReceipt(userId: String, receipt: ReceiptRecord, onComplete: (String) -> Unit) {
+        firebase.saveVaultReceipt(userId, receipt, onComplete)
+    }
 
     override fun deleteAccount(userId: String, onComplete: (String) -> Unit) {
         firebase.deleteAccount(userId, onComplete)

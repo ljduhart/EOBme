@@ -133,6 +133,7 @@ fun HomeScreen(
     onPremiumFeatureLocked: () -> Unit,
     onTaxVaultFilterSelected: (TaxVaultFilterState) -> Unit,
     onTaxVaultVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
+    onVaultDoorUnlocked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var appointmentPrefillDate by remember { mutableStateOf("") }
@@ -298,6 +299,7 @@ fun HomeScreen(
                         budgetSummary = taxVaultBudgetSummary,
                         onFilterSelected = onTaxVaultFilterSelected,
                         onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
+                        onVaultDoorUnlocked = onVaultDoorUnlocked,
                         modifier = Modifier
                             .width(vaultWidth)
                             .height(vaultHeight)
