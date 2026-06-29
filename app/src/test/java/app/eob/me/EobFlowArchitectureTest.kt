@@ -1166,11 +1166,15 @@ class EobFlowArchitectureTest {
             "AppealTarget.entries",
             "target.labelKey()",
             "AnimatedVisibility",
-            "selectedTarget == AppealTarget.DOCTOR",
+            "visible = false",
             "DoctorDisputeStrategySelector"
         ).forEach { snippet ->
             assertTrue("Appeal dual-target UI missing: $snippet", appealSource.contains(snippet))
         }
+        assertTrue(
+            "Doctor dispute strategies must be chosen from history floater",
+            readSource("ui/screens/EobHistoryScreen.kt").contains("DoctorAppealStrategyFloater")
+        )
         listOf(
             "appealTargetInsurance",
             "appealTargetDoctor",
@@ -1469,8 +1473,8 @@ class EobFlowArchitectureTest {
         listOf(
             "veryfiData: VeryfiExtractedData?",
             "resolvedServiceDate",
-            "resolvedCopayAmount",
-            "resolvedCptCodes",
+            "resolvedProviderName",
+            "resolvedStatementDate",
             "resolvedPatientResponsibility"
         ).forEach { snippet ->
             assertTrue("PR#114: appeal generator Veryfi injection missing $snippet", appealGeneratorSource.contains(snippet))
@@ -2389,6 +2393,58 @@ class EobFlowArchitectureTest {
         ).forEach { path ->
             val source = readSource(path)
             assertFalse("PR#133: protected file touched ($path)", source.contains("YtdExpenseYearSelection"))
+        }
+    }
+
+    @Test
+    fun pr134DoctorAppealTemplateAndHistoryStrategyFloaterAudit() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val generatorSource = readSource("data/AppealLetterGenerator.kt")
+        val modelsSource = readSource("data/AppealModels.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val appealSource = readSource("ui/screens/AppealScreen.kt")
+
+        listOf(
+            "DoctorAppealStrategyFloater",
+            "doctorAppealTargetRecord",
+            "onAppealDoctorWithStrategy",
+            "DoctorDisputeStrategy.entries"
+        ).forEach { snippet ->
+            assertTrue("PR#134: history doctor appeal floater missing $snippet", historySource.contains(snippet))
+        }
+        listOf(
+            "IMPROPER_BALANCE_BILLING",
+            "CODING_UPCODING_ERROR",
+            "PRIOR_AUTHORIZATION_FAILURE",
+            "NO_SURPRISES_ACT",
+            "Billing Department",
+            "No Surprises Act"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#134: doctor appeal template missing $snippet",
+                generatorSource.contains(snippet) || modelsSource.contains(snippet)
+            )
+        }
+        assertTrue(
+            "PR#134: history must route doctor strategy through ViewModel",
+            navHostSource.contains("disputeStrategy = strategy") &&
+                viewModelSource.contains("disputeStrategy: DoctorDisputeStrategy? = null")
+        )
+        assertTrue(
+            "PR#134: appeal screen must hide history-only strategy selector",
+            appealSource.contains("visible = false") &&
+                appealSource.contains("DoctorDisputeStrategySelector")
+        )
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "network/VeryfiDocumentClient.kt",
+            "data/DocumentScanPipelineRepository.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#134: protected file touched ($path)", source.contains("DoctorAppealStrategyFloater"))
         }
     }
 

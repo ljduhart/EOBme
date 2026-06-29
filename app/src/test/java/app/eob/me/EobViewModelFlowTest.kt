@@ -314,8 +314,26 @@ class EobViewModelFlowTest {
         assertEquals(second.id, viewModel.uiState.value.selectedRecord?.id)
         assertEquals(AppealTarget.DOCTOR, viewModel.uiState.value.selectedAppealTarget)
         assertTrue(viewModel.uiState.value.appealLetter.contains("Beta Clinic"))
-        assertTrue(viewModel.uiState.value.appealLetter.contains("itemized billing statement"))
+        assertTrue(viewModel.uiState.value.appealLetter.contains("Billing Department"))
         assertFalse(viewModel.uiState.value.appealLetterEditingEnabled)
+    }
+
+    @Test
+    fun openAppealForRecordUsesSelectedDoctorDisputeStrategy() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+
+        viewModel.openAppealForRecord(
+            record = record,
+            profile = profile,
+            target = AppealTarget.DOCTOR,
+            disputeStrategy = DoctorDisputeStrategy.NO_SURPRISES_ACT
+        )
+
+        assertEquals(DoctorDisputeStrategy.NO_SURPRISES_ACT, viewModel.uiState.value.selectedDisputeStrategy)
+        assertTrue(viewModel.uiState.value.appealLetter.contains("No Surprises Act"))
     }
 
     @Test
@@ -342,7 +360,7 @@ class EobViewModelFlowTest {
         viewModel.onAppealTargetSwitched(AppealTarget.DOCTOR)
         assertEquals(AppealTarget.DOCTOR, viewModel.uiState.value.selectedAppealTarget)
         assertTrue(viewModel.uiState.value.appealLetter.contains("Appeal Clinic"))
-        assertTrue(viewModel.uiState.value.appealLetter.contains("itemized billing statement"))
+        assertTrue(viewModel.uiState.value.appealLetter.contains("Billing Department"))
     }
 
     @Test
@@ -352,9 +370,9 @@ class EobViewModelFlowTest {
         viewModel.replaceRecords(listOf(record), profile)
         waitForHubRecords(viewModel)
         viewModel.onAppealTargetSwitched(AppealTarget.DOCTOR)
-        viewModel.onDisputeStrategySwitched(DoctorDisputeStrategy.FINANCIAL_HARDSHIP)
-        assertEquals(DoctorDisputeStrategy.FINANCIAL_HARDSHIP, viewModel.uiState.value.selectedDisputeStrategy)
-        assertTrue(viewModel.uiState.value.appealLetter.contains("financial hardship adjustment"))
+        viewModel.onDisputeStrategySwitched(DoctorDisputeStrategy.CODING_UPCODING_ERROR)
+        assertEquals(DoctorDisputeStrategy.CODING_UPCODING_ERROR, viewModel.uiState.value.selectedDisputeStrategy)
+        assertTrue(viewModel.uiState.value.appealLetter.contains("services billed do not accurately reflect"))
     }
 
     @Test

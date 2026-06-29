@@ -1226,8 +1226,13 @@ private fun HistoryRoute(
                         onActivity()
                     },
                     selectedRecord = uiState.selectedRecord,
-                    onAppealDoctor = { record ->
-                        eobViewModel.openAppealForRecord(record, profile, AppealTarget.DOCTOR)
+                    onAppealDoctorWithStrategy = { record, strategy ->
+                        eobViewModel.openAppealForRecord(
+                            record = record,
+                            profile = profile,
+                            target = AppealTarget.DOCTOR,
+                            disputeStrategy = strategy
+                        )
                         navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
                         onActivity()
                     },

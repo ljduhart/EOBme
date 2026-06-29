@@ -119,7 +119,7 @@ data class HubUiState(
     val appealGeneratorBentoProcessing: Boolean = false,
     val appealLetterEditingEnabled: Boolean = false,
     val selectedAppealTarget: AppealTarget = AppealTarget.INSURANCE,
-    val selectedDisputeStrategy: DoctorDisputeStrategy = DoctorDisputeStrategy.ITEMIZED_AUDIT,
+    val selectedDisputeStrategy: DoctorDisputeStrategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING,
     val paywallVisible: Boolean = false,
     val paywallMessage: String = "",
     val paywallPurchasePending: Boolean = false,
@@ -1349,19 +1349,26 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(appealLetter = generateAppealLetter(profile, selected)) }
     }
 
-    fun openAppealForRecord(record: EobRecord, profile: UserProfile, target: AppealTarget) {
+    fun openAppealForRecord(
+        record: EobRecord,
+        profile: UserProfile,
+        target: AppealTarget,
+        disputeStrategy: DoctorDisputeStrategy? = null
+    ) {
         val resolvedVeryfi = scopedVeryfiDataFor(record) ?: refreshVeryfiExtractedDataForRecord(record)
+        val resolvedStrategy = disputeStrategy ?: _uiState.value.selectedDisputeStrategy
         _uiState.update { state ->
             val letter = AppealLetterGenerator.generate(
                 profile = profile,
                 eob = record,
                 target = target,
-                strategy = state.selectedDisputeStrategy,
+                strategy = if (target == AppealTarget.DOCTOR) resolvedStrategy else state.selectedDisputeStrategy,
                 veryfiData = resolvedVeryfi
             )
             state.copy(
                 selectedRecord = record,
                 selectedAppealTarget = target,
+                selectedDisputeStrategy = if (target == AppealTarget.DOCTOR) resolvedStrategy else state.selectedDisputeStrategy,
                 uploadNotice = "",
                 veryfiExtractedData = resolvedVeryfi,
                 veryfiExtractedDataRecordId = if (resolvedVeryfi != null) record.firestoreId else "",

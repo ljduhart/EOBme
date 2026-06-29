@@ -1,11 +1,15 @@
 package app.eob.me.data
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 object AppealLetterGenerator {
     fun generate(
         profile: UserProfile,
         eob: EobRecord?,
         target: AppealTarget = AppealTarget.INSURANCE,
-        strategy: DoctorDisputeStrategy = DoctorDisputeStrategy.ITEMIZED_AUDIT,
+        strategy: DoctorDisputeStrategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING,
         veryfiData: VeryfiExtractedData? = null
     ): String {
         val selectedEob = eob ?: return emptyDraft(profile, target)
@@ -55,75 +59,74 @@ object AppealLetterGenerator {
         strategy: DoctorDisputeStrategy,
         veryfiData: VeryfiExtractedData?
     ): String {
-        val memberName = profile.fullName.ifBlank { "[Member name]" }
+        val letterDate = formattedLetterDate()
+        val providerName = resolvedProviderName(selectedEob, veryfiData)
+        val accountNumber = profile.insuranceId.ifBlank { "[Your Account Number]" }
+        val patientName = profile.fullName.ifBlank { "[Your Name]" }
         val serviceDate = resolvedServiceDate(selectedEob, veryfiData)
-        val providerName = veryfiData?.providerName?.takeIf { it.isNotBlank() } ?: selectedEob.providerName
-        val strategySection = doctorDisputeStrategySection(selectedEob, strategy, veryfiData)
+        val disputedAmount = resolvedPatientResponsibility(selectedEob, veryfiData)
+        val statementDate = resolvedStatementDate(selectedEob, veryfiData)
+        val disputeReason = doctorDisputeReason(strategy)
+        val phoneNumber = "[Your Phone Number]"
+        val emailAddress = profile.email.ifBlank { "[Your Email Address]" }
 
         return """
-            To: $providerName
+            $letterDate
 
-            Re: Patient billing dispute and account review
-
-            Member: $memberName
-            Provider: $providerName
+            To: $providerName - Billing Department
+            Re: Account Number: $accountNumber
+            Patient Name: $patientName
             Date of Service: $serviceDate
+            Disputed Amount: $disputedAmount
 
-            $strategySection
+            I am writing to formally dispute the balance of $disputedAmount listed on my recent billing statement dated $statementDate for services rendered on $serviceDate. After carefully reviewing my itemized bill and comparing it with my insurance company's Explanation of Benefits (EOB), I am requesting a formal review of this account because $disputeReason I have attached copies of my current bill and my insurance EOB for your reference.
 
-            Please respond in writing with your findings and an updated patient responsibility statement if adjustments are warranted.
+            I respectfully request that you place my account on hold to prevent any late fees or progression to collections while we resolve this billing discrepancy. Please review the attached documentation, adjust the charges or submit a corrected claim to my insurance as necessary, and provide me with an updated statement reflecting the accurate, resolved balance. Thank you for your time and assistance; you can reach me at $phoneNumber or $emailAddress if you need any further information to process this review.
 
-            Thank you,
-            $memberName
+            Sincerely,
+
+            $patientName
+            [Your Signature]
+            $emailAddress
         """.trimIndent()
     }
 
-    private fun doctorDisputeStrategySection(
-        selectedEob: EobRecord,
-        strategy: DoctorDisputeStrategy,
-        veryfiData: VeryfiExtractedData?
-    ): String {
-        val serviceDate = resolvedServiceDate(selectedEob, veryfiData)
-        val copayAmount = resolvedCopayAmount(selectedEob, veryfiData)
-        val cptCodes = resolvedCptCodes(selectedEob, veryfiData)
-        val cptSection = if (cptCodes.isNotEmpty()) {
-            " including ${cptCodes.joinToString(", ")}"
-        } else {
-            ""
-        }
-
+    private fun doctorDisputeReason(strategy: DoctorDisputeStrategy): String {
         return when (strategy) {
-            DoctorDisputeStrategy.ITEMIZED_AUDIT ->
-                "I am formally requesting a complete, unbundled itemized billing statement for the services rendered on $serviceDate. Under federal billing transparency regulations, please provide a line-item audit reflecting all specific CPT and HCPCS procedural codes$cptSection, facility fees, and associated pharmacologic charges. Please place a temporary hold on this account pending the review of these line items."
-            DoctorDisputeStrategy.UNAPPLIED_COPAY ->
-                "I am writing to dispute the remaining balance on this account. My records indicate that the required point-of-service patient copayment/coinsurance of $copayAmount was fully tendered. It appears this payment has not been appropriately credited to the final patient responsibility ledger of ${resolvedPatientResponsibility(selectedEob, veryfiData)}. Please review your transactional accounting records, apply the missing credit, and issue a corrected statement."
-            DoctorDisputeStrategy.FINANCIAL_HARDSHIP ->
-                "I am requesting a formal review of this balance for a financial hardship adjustment or self-pay fee schedule write-off. As this current liability of ${resolvedPatientResponsibility(selectedEob, veryfiData)} exceeds my un-budgeted out-of-pocket medical capacity, I ask that you review this account under your facility's Charity Care or uninsured patient forgiveness policies, or offer a negotiated one-time settlement rate."
+            DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING ->
+                "the amount billed exceeds my patient responsibility. Your office is an in-network provider with my insurance, and according to the EOB, you are contractually obligated to write off the network discount rather than billing me for the difference."
+            DoctorDisputeStrategy.CODING_UPCODING_ERROR ->
+                "the services billed do not accurately reflect the level of care I received during my visit. I was billed for a highly complex, extended visit and procedures that were not performed, rather than the standard routine check-up that actually occurred."
+            DoctorDisputeStrategy.PRIOR_AUTHORIZATION_FAILURE ->
+                "my insurance denied the claim due to a lack of prior authorization. As the treating provider, your office was responsible for securing this clinical authorization prior to the procedure, and I should not be held financially liable for an administrative oversight."
+            DoctorDisputeStrategy.NO_SURPRISES_ACT ->
+                "this charge violates the protections under the federal No Surprises Act. I received care at an in-network facility, but was billed by an out-of-network provider who I did not explicitly choose or consent to see."
         }
+    }
+
+    private fun formattedLetterDate(): String {
+        return SimpleDateFormat("MMMM d, yyyy", Locale.US).format(Date())
+    }
+
+    private fun resolvedProviderName(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
+        return veryfiData?.providerName?.takeIf { it.isNotBlank() }
+            ?: selectedEob.providerName.ifBlank { "[Provider or Clinic Name]" }
+    }
+
+    private fun resolvedStatementDate(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
+        return resolvedServiceDate(selectedEob, veryfiData).takeIf { it != "[Date]" }
+            ?: formattedLetterDate()
     }
 
     private fun resolvedServiceDate(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
         return veryfiData?.dateOfService?.takeIf { it.isNotBlank() }
-            ?: selectedEob.serviceDate.ifBlank { "[Date]" }
-    }
-
-    private fun resolvedCopayAmount(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
-        val copay = veryfiData?.copay?.takeIf { it > 0.0 }
-            ?: selectedEob.totalCopayAmount.takeIf { it > 0.0 }
-            ?: selectedEob.charges.map { it.copayAmount }.filter { it > 0.0 }.maxOrNull()
-        return copay?.asCurrency() ?: "[Amount]"
+            ?: selectedEob.serviceDate.ifBlank { "[Date of Service]" }
     }
 
     private fun resolvedPatientResponsibility(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
         val amount = veryfiData?.patientResponsibility?.takeIf { it > 0.0 }
             ?: selectedEob.totalPatientResponsibility.takeIf { it > 0.0 }
         return amount?.asCurrency() ?: "[Amount]"
-    }
-
-    private fun resolvedCptCodes(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): List<String> {
-        val fromVeryfi = veryfiData?.cptCodes.orEmpty().filter { it.isNotBlank() }
-        if (fromVeryfi.isNotEmpty()) return fromVeryfi
-        return selectedEob.charges.map { it.cptCode.trim() }.filter { it.isNotBlank() }.distinct()
     }
 
     private fun issueAppealSection(issues: List<BillingIssue>): String {
@@ -141,7 +144,7 @@ object AppealLetterGenerator {
     }
 
     private fun emptyDraft(profile: UserProfile, target: AppealTarget): String {
-        val memberName = profile.fullName.ifBlank { "[Member name]" }
+        val memberName = profile.fullName.ifBlank { "[Your Name]" }
         return when (target) {
             AppealTarget.INSURANCE -> """
                 To: [Insurance company]
@@ -157,16 +160,21 @@ object AppealLetterGenerator {
                 $memberName
             """.trimIndent()
             AppealTarget.DOCTOR -> """
-                To: [Provider name]
+                ${formattedLetterDate()}
 
-                Re: Patient billing dispute and account review
+                To: [Provider or Clinic Name] - Billing Department
+                Re: Account Number: ${profile.insuranceId.ifBlank { "[Your Account Number]" }}
+                Patient Name: $memberName
+                Date of Service: [Date of Service]
+                Disputed Amount: [Amount]
 
-                Member: $memberName
+                I am writing to formally dispute the balance listed on my recent billing statement. Please review the attached bill and insurance EOB and provide an updated statement.
 
-                Please review the attached patient statement and provide a written response regarding the disputed balance.
+                Sincerely,
 
-                Thank you,
                 $memberName
+                [Your Signature]
+                ${profile.email.ifBlank { "[Your Email Address]" }}
             """.trimIndent()
         }
     }

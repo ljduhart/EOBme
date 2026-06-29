@@ -22,7 +22,7 @@ class AppealInsightTest {
             language = AppLanguage.English,
             record = record,
             target = AppealTarget.INSURANCE,
-            strategy = DoctorDisputeStrategy.ITEMIZED_AUDIT
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
         )
 
         assertTrue(insight.contains("Insurance paid $0"))
@@ -41,7 +41,7 @@ class AppealInsightTest {
             language = AppLanguage.English,
             record = record,
             target = AppealTarget.INSURANCE,
-            strategy = DoctorDisputeStrategy.ITEMIZED_AUDIT
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
         )
 
         assertTrue(insight.contains("unusually high"))
@@ -51,21 +51,21 @@ class AppealInsightTest {
     fun doctorInsightReflectsSelectedStrategy() {
         val record = recordWithTotals(billed = 120.0, insurancePaid = 80.0, copay = 10.0)
 
-        val hardshipInsight = resolveAppealInsight(
+        val noSurprisesInsight = resolveAppealInsight(
             language = AppLanguage.English,
             record = record,
             target = AppealTarget.DOCTOR,
-            strategy = DoctorDisputeStrategy.FINANCIAL_HARDSHIP
+            strategy = DoctorDisputeStrategy.NO_SURPRISES_ACT
         )
-        val auditInsight = resolveAppealInsight(
+        val balanceBillingInsight = resolveAppealInsight(
             language = AppLanguage.English,
             record = record,
             target = AppealTarget.DOCTOR,
-            strategy = DoctorDisputeStrategy.ITEMIZED_AUDIT
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
         )
 
-        assertTrue(hardshipInsight.contains("hardship"))
-        assertTrue(auditInsight.contains("itemized audit"))
+        assertTrue(noSurprisesInsight.contains("No Surprises Act"))
+        assertTrue(balanceBillingInsight.contains("balance billing"))
     }
 
     private fun recordWithTotals(

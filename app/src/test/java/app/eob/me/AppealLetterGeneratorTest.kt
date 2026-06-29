@@ -13,6 +13,7 @@ class AppealLetterGeneratorTest {
     private val profile = UserProfile(
         firstName = "Jane",
         lastName = "Doe",
+        email = "jane@example.com",
         insuranceId = "MEM123"
     )
 
@@ -33,47 +34,72 @@ class AppealLetterGeneratorTest {
             profile = profile,
             eob = sampleRecord(),
             target = AppealTarget.INSURANCE,
-            strategy = DoctorDisputeStrategy.ITEMIZED_AUDIT
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
         )
         assertTrue(letter.contains("Re: Appeal of EOB determination"))
         assertTrue(letter.contains("Aetna"))
-        assertFalse(letter.contains("itemized billing statement"))
+        assertFalse(letter.contains("Billing Department"))
     }
 
     @Test
-    fun doctorItemizedAuditInjectsTransparencyParagraphWithServiceDate() {
+    fun doctorTemplateUsesProviderBillingDepartmentHeader() {
         val letter = AppealLetterGenerator.generate(
             profile = profile,
             eob = sampleRecord(),
             target = AppealTarget.DOCTOR,
-            strategy = DoctorDisputeStrategy.ITEMIZED_AUDIT
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
         )
-        assertTrue(letter.contains("City Medical Group"))
-        assertTrue(letter.contains("itemized billing statement"))
-        assertTrue(letter.contains("03/15/2026"))
+        assertTrue(letter.contains("City Medical Group - Billing Department"))
+        assertTrue(letter.contains("Patient Name: Jane Doe"))
+        assertTrue(letter.contains("Date of Service: 03/15/2026"))
+        assertTrue(letter.contains("Disputed Amount:"))
+        assertTrue(letter.contains("[Your Signature]"))
     }
 
     @Test
-    fun doctorUnappliedCopayInjectsCopayCreditParagraph() {
+    fun doctorImproperBalanceBillingInjectsNetworkDiscountReason() {
         val letter = AppealLetterGenerator.generate(
             profile = profile,
             eob = sampleRecord(),
             target = AppealTarget.DOCTOR,
-            strategy = DoctorDisputeStrategy.UNAPPLIED_COPAY
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
         )
-        assertTrue(letter.contains("copayment/coinsurance"))
-        assertTrue(letter.contains("35"))
+        assertTrue(letter.contains("contractually obligated to write off the network discount"))
     }
 
     @Test
-    fun doctorFinancialHardshipInjectsHardshipParagraph() {
+    fun doctorCodingUpcodingInjectsCodingErrorReason() {
         val letter = AppealLetterGenerator.generate(
             profile = profile,
             eob = sampleRecord(),
             target = AppealTarget.DOCTOR,
-            strategy = DoctorDisputeStrategy.FINANCIAL_HARDSHIP
+            strategy = DoctorDisputeStrategy.CODING_UPCODING_ERROR
         )
-        assertTrue(letter.contains("financial hardship adjustment"))
-        assertTrue(letter.contains("Charity Care"))
+        assertTrue(letter.contains("services billed do not accurately reflect the level of care"))
+        assertTrue(letter.contains("standard routine check-up"))
+    }
+
+    @Test
+    fun doctorPriorAuthorizationInjectsAuthorizationReason() {
+        val letter = AppealLetterGenerator.generate(
+            profile = profile,
+            eob = sampleRecord(),
+            target = AppealTarget.DOCTOR,
+            strategy = DoctorDisputeStrategy.PRIOR_AUTHORIZATION_FAILURE
+        )
+        assertTrue(letter.contains("lack of prior authorization"))
+        assertTrue(letter.contains("administrative oversight"))
+    }
+
+    @Test
+    fun doctorNoSurprisesActInjectsFederalProtectionReason() {
+        val letter = AppealLetterGenerator.generate(
+            profile = profile,
+            eob = sampleRecord(),
+            target = AppealTarget.DOCTOR,
+            strategy = DoctorDisputeStrategy.NO_SURPRISES_ACT
+        )
+        assertTrue(letter.contains("No Surprises Act"))
+        assertTrue(letter.contains("out-of-network provider"))
     }
 }

@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -61,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
@@ -81,13 +84,14 @@ fun EobHistoryScreen(
     onUploadEob: () -> Unit,
     onRecordSelected: (EobRecord) -> Unit,
     selectedRecord: EobRecord? = null,
-    onAppealDoctor: (EobRecord) -> Unit = {},
+    onAppealDoctorWithStrategy: (EobRecord, DoctorDisputeStrategy) -> Unit = { _, _ -> },
     onAppealInsurance: (EobRecord) -> Unit = {},
     showVaultFilterBanner: Boolean = false,
     taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     modifier: Modifier = Modifier
 ) {
     var expandedRecordKey by remember { mutableStateOf("") }
+    var doctorAppealTargetRecord by remember { mutableStateOf<EobRecord?>(null) }
     val listState = rememberLazyListState()
     var fabExpanded by remember { mutableStateOf(true) }
     var previousFirstIndex by remember { mutableIntStateOf(0) }
@@ -138,10 +142,13 @@ fun EobHistoryScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+        ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Text(
@@ -163,6 +170,7 @@ fun EobHistoryScreen(
                     onFilterSelected = {
                         onPaymentFilterSelected(it)
                         expandedRecordKey = ""
+                        doctorAppealTargetRecord = null
                     }
                 )
             }
@@ -210,15 +218,46 @@ fun EobHistoryScreen(
                     showVaultFilterBanner = showVaultFilterBanner,
                     onExpandToggle = { record ->
                         val recordKey = record.historyListKey()
-                        if (expandedRecordKey != recordKey) {
+                        val collapsingSame = expandedRecordKey == recordKey
+                        if (!collapsingSame) {
                             onRecordSelected(record)
+                            doctorAppealTargetRecord = null
                         }
-                        expandedRecordKey = if (expandedRecordKey == recordKey) "" else recordKey
+                        expandedRecordKey = if (collapsingSame) "" else recordKey
                     },
-                    onAppealDoctor = onAppealDoctor,
-                    onAppealInsurance = onAppealInsurance,
+                    onDoctorAppealRequested = { record ->
+                        onRecordSelected(record)
+                        doctorAppealTargetRecord = if (
+                            doctorAppealTargetRecord?.matchesHistoryRecord(record) == true
+                        ) {
+                            null
+                        } else {
+                            record
+                        }
+                    },
+                    onAppealInsurance = { record ->
+                        doctorAppealTargetRecord = null
+                        onAppealInsurance(record)
+                    },
                     onDeleteEob = onDeleteEob
                 )
+            }
+        }
+
+            doctorAppealTargetRecord?.let { record ->
+                if (selectedRecord?.matchesHistoryRecord(record) == true) {
+                    DoctorAppealStrategyFloater(
+                        language = language,
+                        onDismiss = { doctorAppealTargetRecord = null },
+                        onStrategySelected = { strategy ->
+                            onAppealDoctorWithStrategy(record, strategy)
+                            doctorAppealTargetRecord = null
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 16.dp, end = 16.dp, bottom = 96.dp)
+                    )
+                }
             }
         }
     }
@@ -268,7 +307,7 @@ private fun HistoryTimelineList(
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     onExpandToggle: (EobRecord) -> Unit,
-    onAppealDoctor: (EobRecord) -> Unit,
+    onDoctorAppealRequested: (EobRecord) -> Unit,
     onAppealInsurance: (EobRecord) -> Unit,
     onDeleteEob: (EobRecord) -> Unit
 ) {
@@ -294,7 +333,7 @@ private fun HistoryTimelineList(
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
                     onExpandToggle = { onExpandToggle(row.record) },
-                    onAppealDoctor = { onAppealDoctor(row.record) },
+                    onDoctorAppealRequested = { onDoctorAppealRequested(row.record) },
                     onAppealInsurance = { onAppealInsurance(row.record) },
                     onDeleteEob = { onDeleteEob(row.record) }
                 )
@@ -330,7 +369,7 @@ private fun HistoryTimelineItemRow(
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     onExpandToggle: () -> Unit,
-    onAppealDoctor: () -> Unit,
+    onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
     onDeleteEob: () -> Unit
 ) {
@@ -343,7 +382,7 @@ private fun HistoryTimelineItemRow(
             taxVaultFilterState = taxVaultFilterState,
             showVaultFilterBanner = showVaultFilterBanner,
             onExpandToggle = onExpandToggle,
-            onAppealDoctor = onAppealDoctor,
+            onDoctorAppealRequested = onDoctorAppealRequested,
             onAppealInsurance = onAppealInsurance,
             onDeleteEob = onDeleteEob
         )
@@ -360,7 +399,7 @@ private fun HistoryTimelineItemRowContent(
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     onExpandToggle: () -> Unit,
-    onAppealDoctor: () -> Unit,
+    onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
     onDeleteEob: () -> Unit
 ) {
@@ -420,7 +459,7 @@ private fun HistoryTimelineItemRowContent(
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
                     onExpandToggle = onExpandToggle,
-                    onAppealDoctor = onAppealDoctor,
+                    onDoctorAppealRequested = onDoctorAppealRequested,
                     onAppealInsurance = onAppealInsurance
                 )
             }
@@ -481,7 +520,7 @@ private fun WalletReceiptCard(
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     onExpandToggle: () -> Unit,
-    onAppealDoctor: () -> Unit,
+    onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit
 ) {
     val lineCount = record.charges.size.coerceAtLeast(1)
@@ -599,7 +638,7 @@ private fun WalletReceiptCard(
                     Spacer(modifier = Modifier.height(12.dp))
                     HistoryAppealPillButtons(
                         language = language,
-                        onAppealDoctor = onAppealDoctor,
+                        onDoctorAppealRequested = onDoctorAppealRequested,
                         onAppealInsurance = onAppealInsurance
                     )
                 }
@@ -627,7 +666,7 @@ private fun WalletReceiptCard(
 @Composable
 private fun HistoryAppealPillButtons(
     language: AppLanguage,
-    onAppealDoctor: () -> Unit,
+    onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit
 ) {
     Column(
@@ -639,7 +678,7 @@ private fun HistoryAppealPillButtons(
             label = EobStrings.t(language, "historyAppealDoctorPill"),
             backgroundColor = Color(0xFF2979FF),
             contentDescription = EobStrings.t(language, "historyAppealDoctorPill"),
-            onClick = onAppealDoctor
+            onClick = onDoctorAppealRequested
         )
         HistoryAppealPill(
             label = EobStrings.t(language, "historyAppealInsurancePill"),
@@ -670,6 +709,61 @@ private fun HistoryAppealPill(
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
+    }
+}
+
+@Composable
+private fun DoctorAppealStrategyFloater(
+    language: AppLanguage,
+    onDismiss: () -> Unit,
+    onStrategySelected: (DoctorDisputeStrategy) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = EobStrings.t(language, "historyDoctorAppealOptionsTitle"),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = EobStrings.t(language, "historyDoctorAppealDismiss")
+                    )
+                }
+            }
+            DoctorDisputeStrategy.entries.forEach { strategy ->
+                Surface(
+                    onClick = { onStrategySelected(strategy) },
+                    shape = RoundedCornerShape(50),
+                    color = Color(0xFF2979FF).copy(alpha = 0.12f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = EobStrings.t(language, strategy.labelKey()),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF2979FF)
+                    )
+                }
+            }
+        }
     }
 }
 

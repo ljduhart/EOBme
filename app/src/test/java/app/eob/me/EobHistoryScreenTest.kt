@@ -204,15 +204,23 @@ class EobHistoryScreenTest {
     }
 
     @Test
-    fun historyRouteWiresAppealPillsThroughViewModel() {
+    fun historyRouteWiresDoctorAppealStrategyThroughViewModel() {
         val navSource = readSource("navigation/EobNavHost.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         assertTrue(navSource.contains("openAppealForRecord"))
-        assertTrue(navSource.contains("onAppealDoctor"))
-        assertTrue(navSource.contains("onAppealInsurance"))
+        assertTrue(navSource.contains("onAppealDoctorWithStrategy"))
+        assertTrue(navSource.contains("disputeStrategy = strategy"))
         assertTrue(navSource.contains("EobRoute.Appeal.route"))
-        assertTrue(navSource.contains("selectedRecord = uiState.selectedRecord"))
         assertTrue(viewModelSource.contains("fun openAppealForRecord"))
+    }
+
+    @Test
+    fun historyScreenShowsDoctorAppealStrategyFloater() {
+        val source = readSource("ui/screens/EobHistoryScreen.kt")
+        assertTrue(source.contains("DoctorAppealStrategyFloater"))
+        assertTrue(source.contains("doctorAppealTargetRecord"))
+        assertTrue(source.contains("DoctorDisputeStrategy.entries"))
+        assertTrue(source.contains("historyDoctorAppealOptionsTitle"))
     }
 
     private fun sampleRecord(id: Int, rawText: String): EobRecord {

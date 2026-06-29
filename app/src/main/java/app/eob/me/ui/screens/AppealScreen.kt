@@ -164,7 +164,7 @@ fun AppealScreen(
                 )
 
                 AnimatedVisibility(
-                    visible = selectedTarget == AppealTarget.DOCTOR,
+                    visible = false,
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut()
                 ) {
@@ -494,12 +494,14 @@ internal fun resolveAppealInsight(
 
     val insightBody = when (target) {
         AppealTarget.DOCTOR -> when (strategy) {
-            DoctorDisputeStrategy.ITEMIZED_AUDIT ->
-                EobStrings.t(language, "appealInsightDoctorAudit")
-            DoctorDisputeStrategy.UNAPPLIED_COPAY ->
-                EobStrings.t(language, "appealInsightDoctorCopay")
-            DoctorDisputeStrategy.FINANCIAL_HARDSHIP ->
-                EobStrings.t(language, "appealInsightDoctorHardship")
+            DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING ->
+                EobStrings.t(language, strategy.insightKey())
+            DoctorDisputeStrategy.CODING_UPCODING_ERROR ->
+                EobStrings.t(language, strategy.insightKey())
+            DoctorDisputeStrategy.PRIOR_AUTHORIZATION_FAILURE ->
+                EobStrings.t(language, strategy.insightKey())
+            DoctorDisputeStrategy.NO_SURPRISES_ACT ->
+                EobStrings.t(language, strategy.insightKey())
         }
         AppealTarget.INSURANCE -> when {
             billed > 0.0 && insurancePaid <= 0.0 ->
