@@ -1108,6 +1108,7 @@ class EobFlowArchitectureTest {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         assertTrue(careTeamSource.contains("DeviceCallingUtils.safelyDialNumber"))
         assertTrue(careTeamSource.contains("DeviceCallingUtils.extractPhoneDigits"))
+        assertTrue(careTeamSource.contains("DeviceCallingUtils.careTeamPhoneVisualTransformation"))
         assertTrue(careTeamSource.contains("DeviceCallingUtils.formatPhoneForDisplay"))
         assertFalse(careTeamSource.contains("Intent.ACTION_CALL"))
         assertFalse(careTeamSource.contains("ACTION_CALL"))

@@ -4,6 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 
 /**
  * Safety barrier for care-team dial actions. Uses [Intent.ACTION_DIAL] only — no
@@ -36,6 +40,37 @@ object DeviceCallingUtils {
 
     fun applyPhoneInputChange(rawInput: String): String {
         return formatPhoneForDisplay(extractPhoneDigits(rawInput))
+    }
+
+    fun careTeamPhoneVisualTransformation(): VisualTransformation = CareTeamPhoneVisualTransformation
+
+    private object CareTeamPhoneVisualTransformation : VisualTransformation {
+        override fun filter(text: AnnotatedString): TransformedText {
+            val digits = extractPhoneDigits(text.text)
+            val formatted = formatPhoneForDisplay(digits)
+            val offsetMapping = object : OffsetMapping {
+                override fun originalToTransformed(offset: Int): Int {
+                    val clamped = offset.coerceIn(0, digits.length)
+                    return when {
+                        clamped <= 0 -> 0
+                        clamped <= 3 -> clamped + 1
+                        clamped <= 6 -> clamped + 3
+                        else -> (clamped + 4).coerceAtMost(formatted.length)
+                    }
+                }
+
+                override fun transformedToOriginal(offset: Int): Int {
+                    val clamped = offset.coerceIn(0, formatted.length)
+                    return when {
+                        clamped <= 1 -> 0
+                        clamped <= 5 -> (clamped - 1).coerceAtMost(3)
+                        clamped <= 9 -> (clamped - 3).coerceAtMost(6)
+                        else -> (clamped - 4).coerceAtMost(digits.length)
+                    }
+                }
+            }
+            return TransformedText(AnnotatedString(formatted), offsetMapping)
+        }
     }
 
     fun dialUriFor(phone: String): String? {

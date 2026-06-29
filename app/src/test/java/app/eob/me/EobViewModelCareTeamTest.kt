@@ -109,6 +109,17 @@ class EobViewModelCareTeamTest {
     }
 
     @Test
+    fun careTeamPhoneDialogUsesDigitsWithVisualTransformation() {
+        val candidates = listOf(
+            java.io.File("src/main/java/app/eob/me/ui/components/home/HomeCareTeamCards.kt"),
+            java.io.File("app/src/main/java/app/eob/me/ui/components/home/HomeCareTeamCards.kt")
+        )
+        val source = candidates.first { it.isFile }.readText()
+        assertTrue(source.contains("value = phoneDigits"))
+        assertTrue(source.contains("careTeamPhoneVisualTransformation"))
+    }
+
+    @Test
     fun careTeamCardStatesShowSanitizedNameAndPhoneAfterSave() {
         val viewModel = EobViewModel()
         viewModel.updatePreferredDoctor(

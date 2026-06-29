@@ -617,11 +617,12 @@ private fun PreferredDoctorDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = DeviceCallingUtils.formatPhoneForDisplay(phoneDigits),
+                    value = phoneDigits,
                     onValueChange = { phoneDigits = DeviceCallingUtils.extractPhoneDigits(it) },
                     label = { Text(EobStrings.t(language, "careTeamPhone")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    visualTransformation = DeviceCallingUtils.careTeamPhoneVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
                 )
             }

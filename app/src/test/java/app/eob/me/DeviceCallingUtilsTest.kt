@@ -25,6 +25,13 @@ class DeviceCallingUtilsTest {
     }
 
     @Test
+    fun careTeamPhoneVisualTransformationFormatsDigitsWithoutMutatingValue() {
+        val transformation = DeviceCallingUtils.careTeamPhoneVisualTransformation()
+        val transformed = transformation.filter(androidx.compose.ui.text.AnnotatedString("5551234567"))
+        assertEquals("(555) 123-4567", transformed.text.text)
+    }
+
+    @Test
     fun applyPhoneInputChangeCapsAtTenDigits() {
         assertEquals("(555) 555-5555", DeviceCallingUtils.applyPhoneInputChange("55555555551234"))
     }
