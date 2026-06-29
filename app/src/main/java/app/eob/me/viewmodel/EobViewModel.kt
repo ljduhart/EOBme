@@ -1310,11 +1310,24 @@ class EobViewModel : ViewModel() {
     }
 
     fun openAppealForRecord(record: EobRecord, profile: UserProfile, target: AppealTarget) {
-        selectRecord(record, profile)
-        if (_uiState.value.selectedAppealTarget == target) {
-            regenerateAppeal(profile)
-        } else {
-            onAppealTargetSwitched(target)
+        val resolvedVeryfi = scopedVeryfiDataFor(record) ?: refreshVeryfiExtractedDataForRecord(record)
+        _uiState.update { state ->
+            val letter = AppealLetterGenerator.generate(
+                profile = profile,
+                eob = record,
+                target = target,
+                strategy = state.selectedDisputeStrategy,
+                veryfiData = resolvedVeryfi
+            )
+            state.copy(
+                selectedRecord = record,
+                selectedAppealTarget = target,
+                uploadNotice = "",
+                veryfiExtractedData = resolvedVeryfi,
+                veryfiExtractedDataRecordId = if (resolvedVeryfi != null) record.firestoreId else "",
+                appealLetter = letter,
+                appealLetterEditingEnabled = false
+            )
         }
     }
 

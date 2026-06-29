@@ -301,6 +301,39 @@ class EobViewModelFlowTest {
     }
 
     @Test
+    fun openAppealForRecordSelectsRecordTargetAndRegeneratesLetter() {
+        val viewModel = EobViewModel()
+        val first = sampleRecord(id = 1, provider = "Alpha Clinic")
+        val second = sampleRecord(id = 2, provider = "Beta Clinic")
+        viewModel.replaceRecords(listOf(first, second), profile)
+        waitForHubRecords(viewModel)
+        viewModel.onAppealTargetSwitched(AppealTarget.INSURANCE)
+
+        viewModel.openAppealForRecord(second, profile, AppealTarget.DOCTOR)
+
+        assertEquals(second.id, viewModel.uiState.value.selectedRecord?.id)
+        assertEquals(AppealTarget.DOCTOR, viewModel.uiState.value.selectedAppealTarget)
+        assertTrue(viewModel.uiState.value.appealLetter.contains("Beta Clinic"))
+        assertTrue(viewModel.uiState.value.appealLetter.contains("itemized billing statement"))
+        assertFalse(viewModel.uiState.value.appealLetterEditingEnabled)
+    }
+
+    @Test
+    fun openAppealForRecordUsesInsuranceAppealCopy() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+        viewModel.onAppealTargetSwitched(AppealTarget.DOCTOR)
+
+        viewModel.openAppealForRecord(record, profile, AppealTarget.INSURANCE)
+
+        assertEquals(AppealTarget.INSURANCE, viewModel.uiState.value.selectedAppealTarget)
+        assertTrue(viewModel.uiState.value.appealLetter.contains("Appeal Clinic"))
+        assertTrue(viewModel.uiState.value.appealLetter.contains("Explanation of Benefits"))
+    }
+
+    @Test
     fun onAppealTargetSwitchedRegeneratesDoctorLetter() {
         val viewModel = EobViewModel()
         val record = sampleRecord(id = 1, provider = "Appeal Clinic")

@@ -333,6 +333,22 @@ class EobStringsCoverageTest {
     }
 
     @Test
+    fun historyAppealPillKeysResolveForEveryLanguage() {
+        val keys = listOf(
+            "historyAppealDoctorPill",
+            "historyAppealInsurancePill",
+            "appealTargetDoctor",
+            "appealTargetInsurance"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                val value = EobStrings.t(language, key)
+                assertNotEquals(key, value)
+            }
+        }
+    }
+
+    @Test
     fun historyBentoKeysResolveForEveryLanguage() {
         val keys = listOf(
             "historyFilterAll",
