@@ -33,6 +33,33 @@ class AppealLetterGeneratorTest {
     )
 
     @Test
+    fun insuranceTargetFallsBackToProfileInsuranceName() {
+        val profileWithCarrier = profile.copy(
+            insuranceName = "UnitedHealthcare",
+            firstName = "Jane",
+            lastName = "Doe"
+        )
+        val record = EobAnalyzer.analyze(
+            rawText = """
+                Provider: City Medical Group
+
+                03/15/2026
+                99213 office visit copay ${'$'}35.00 billed ${'$'}180.00
+            """.trimIndent(),
+            sourceName = "appeal",
+            nextId = 2
+        )
+        val letter = AppealLetterGenerator.generate(
+            profile = profileWithCarrier,
+            eob = record,
+            target = AppealTarget.INSURANCE,
+            insuranceStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY
+        )
+        assertTrue(letter.contains("To: UnitedHealthcare – Member Appeals Department"))
+        assertFalse(letter.contains("Insurance not recognized"))
+    }
+
+    @Test
     fun insuranceTargetUsesFormalMemberAppealsTemplate() {
         val letter = AppealLetterGenerator.generate(
             profile = profile,

@@ -221,12 +221,16 @@ fun EobHistoryScreen(
                     onExpandToggle = { record ->
                         val recordKey = record.historyListKey()
                         val collapsingSame = expandedRecordKey == recordKey
-                        if (!collapsingSame) {
+                        if (collapsingSame) {
+                            doctorAppealTargetRecord = null
+                            insuranceAppealTargetRecord = null
+                            expandedRecordKey = ""
+                        } else {
                             onRecordSelected(record)
                             doctorAppealTargetRecord = null
                             insuranceAppealTargetRecord = null
+                            expandedRecordKey = recordKey
                         }
-                        expandedRecordKey = if (collapsingSame) "" else recordKey
                     },
                     onDoctorAppealRequested = { record ->
                         onRecordSelected(record)

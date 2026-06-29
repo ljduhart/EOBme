@@ -223,6 +223,8 @@ class EobHistoryScreenTest {
         assertTrue(source.contains("InsuranceAppealStrategy.entries"))
         assertTrue(source.contains("historyInsuranceAppealOptionsTitle"))
         assertTrue(source.contains("onAppealInsuranceWithStrategy"))
+        assertTrue(source.contains("insuranceAppealTargetRecord = null"))
+        assertTrue(source.contains("collapsingSame"))
     }
 
     @Test

@@ -27,8 +27,7 @@ object AppealLetterGenerator {
         veryfiData: VeryfiExtractedData?
     ): String {
         val letterDate = formattedLetterDate()
-        val insuranceCompany = veryfiData?.insuranceCompanyName?.takeIf { it.isNotBlank() }
-            ?: selectedEob.insuranceName.ifBlank { "[Insurance Company Name]" }
+        val insuranceCompany = resolvedInsuranceCompany(profile, selectedEob, veryfiData)
         val memberName = profile.fullName.ifBlank { "[Your Name]" }
         val memberId = profile.insuranceId.ifBlank { "[Your Member ID]" }
         val groupNumber = profile.groupNumber.ifBlank { "[Your Group Number]" }
@@ -137,6 +136,18 @@ object AppealLetterGenerator {
 
     private fun formattedLetterDate(): String {
         return SimpleDateFormat("MMMM d, yyyy", Locale.US).format(Date())
+    }
+
+    private fun resolvedInsuranceCompany(
+        profile: UserProfile,
+        selectedEob: EobRecord,
+        veryfiData: VeryfiExtractedData?
+    ): String {
+        return veryfiData?.insuranceCompanyName?.takeIf { it.isNotBlank() }
+            ?: selectedEob.insuranceName.takeIf {
+                it.isNotBlank() && !it.contains("not recognized", ignoreCase = true)
+            }
+            ?: profile.insuranceName.ifBlank { "[Insurance Company Name]" }
     }
 
     private fun resolvedProviderName(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
