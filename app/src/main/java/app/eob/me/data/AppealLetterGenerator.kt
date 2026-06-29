@@ -90,6 +90,7 @@ object AppealLetterGenerator {
         veryfiData: VeryfiExtractedData?
     ): String {
         val letterDate = formattedLetterDate()
+        val insuranceCompany = resolvedInsuranceCompany(profile, selectedEob, veryfiData)
         val providerName = resolvedProviderName(selectedEob, veryfiData)
         val accountNumber = profile.insuranceId.ifBlank { "[Your Account Number]" }
         val patientName = profile.fullName.ifBlank { "[Your Name]" }
@@ -106,6 +107,7 @@ object AppealLetterGenerator {
             To: $providerName - Billing Department
             Re: Account Number: $accountNumber
             Patient Name: $patientName
+            Insurance Carrier: $insuranceCompany
             Date of Service: $serviceDate
             Disputed Amount: $disputedAmount
 
@@ -143,11 +145,12 @@ object AppealLetterGenerator {
         selectedEob: EobRecord,
         veryfiData: VeryfiExtractedData?
     ): String {
-        return veryfiData?.insuranceCompanyName?.takeIf { it.isNotBlank() }
+        return profile.insuranceCompany.takeIf { it.isNotBlank() }
+            ?: veryfiData?.insuranceCompanyName?.takeIf { it.isNotBlank() }
             ?: selectedEob.insuranceName.takeIf {
                 it.isNotBlank() && !it.contains("not recognized", ignoreCase = true)
             }
-            ?: profile.insuranceName.ifBlank { "[Insurance Company Name]" }
+            ?: "[Insurance Company Name]"
     }
 
     private fun resolvedProviderName(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
@@ -178,11 +181,12 @@ object AppealLetterGenerator {
 
     private fun emptyDraft(profile: UserProfile, target: AppealTarget): String {
         val memberName = profile.fullName.ifBlank { "[Your Name]" }
+        val insuranceCompany = profile.insuranceCompany.ifBlank { "[Insurance Company Name]" }
         return when (target) {
             AppealTarget.INSURANCE -> """
                 ${formattedLetterDate()}
 
-                To: [Insurance Company Name] – Member Appeals Department
+                To: $insuranceCompany – Member Appeals Department
 
                 Re: Formal Claim Appeal for Member: $memberName
 
@@ -212,6 +216,7 @@ object AppealLetterGenerator {
                 To: [Provider or Clinic Name] - Billing Department
                 Re: Account Number: ${profile.insuranceId.ifBlank { "[Your Account Number]" }}
                 Patient Name: $memberName
+                Insurance Carrier: $insuranceCompany
                 Date of Service: [Date of Service]
                 Disputed Amount: [Amount]
 

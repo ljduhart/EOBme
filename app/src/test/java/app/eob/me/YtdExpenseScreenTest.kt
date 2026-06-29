@@ -7,6 +7,7 @@ import app.eob.me.data.YtdMetricKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import app.eob.me.ui.screens.ytdSummaryTitleAnchorEndIndex
 import org.junit.Test
 
 class YtdExpenseScreenTest {
@@ -196,13 +197,25 @@ class YtdExpenseScreenTest {
     fun ytdExpenseScreenContainsYearDropdownUnderSummaryTitle() {
         val source = readSource("ui/screens/YtdExpenseScreen.kt")
         val headerIndex = source.indexOf("private fun YtdSummaryHeaderCard")
-        val headerBlock = source.substring(headerIndex, (headerIndex + 3_000).coerceAtMost(source.length))
+        val headerBlock = source.substring(headerIndex, (headerIndex + 3_500).coerceAtMost(source.length))
         val summaryIndex = headerBlock.indexOf("ytdYearlyExpenseSummary")
         val dropdownIndex = headerBlock.indexOf("ExposedDropdownMenuBox")
         assertTrue(summaryIndex >= 0)
         assertTrue(dropdownIndex > summaryIndex)
         assertTrue(headerBlock.contains("yearOptionLabel"))
         assertTrue(headerBlock.contains("aggregatesAllYears"))
+        assertTrue(headerBlock.contains("ytdYearToggleWidthUnderSummary"))
+        assertFalse(
+            "Year toggle should not span the full card width",
+            headerBlock.contains("ExposedDropdownMenuBox(\n                expanded = yearMenuExpanded,\n                onExpandedChange = { yearMenuExpanded = it },\n                modifier = Modifier\n                    .fillMaxWidth()")
+        )
+    }
+
+    @Test
+    fun ytdSummaryTitleAnchorEndsAtSummaryWord() {
+        val title = "Yearly Expense Summary"
+        assertEquals(title.length, ytdSummaryTitleAnchorEndIndex(title))
+        assertEquals(22, ytdSummaryTitleAnchorEndIndex(title))
     }
 
     @Test

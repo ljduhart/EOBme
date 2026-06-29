@@ -2579,6 +2579,31 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr137YtdYearToggleAndAppealInsuranceProfileAudit() {
+        val ytdSource = readSource("ui/screens/YtdExpenseScreen.kt")
+        val generatorSource = readSource("data/AppealLetterGenerator.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+
+        assertTrue(ytdSource.contains("ytdYearToggleWidthUnderSummary"))
+        assertTrue(ytdSource.contains("ytdSummaryTitleAnchorEndIndex"))
+        assertFalse(
+            "PR#137: year toggle must not use fillMaxWidth in summary header",
+            ytdSource.contains("ExposedDropdownMenuBox(\n                expanded = yearMenuExpanded,\n                onExpandedChange = { yearMenuExpanded = it },\n                modifier = Modifier\n                    .fillMaxWidth()\n                    .padding(top = 8.dp)")
+        )
+        assertTrue(generatorSource.contains("profile.insuranceCompany.takeIf { it.isNotBlank() }"))
+        assertTrue(generatorSource.contains("Insurance Carrier: \$insuranceCompany"))
+        assertTrue(viewModelSource.contains("AppealLetterGenerator.generate"))
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#137: intro/logo screen touched ($path)", source.contains("ytdYearToggleWidthUnderSummary"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

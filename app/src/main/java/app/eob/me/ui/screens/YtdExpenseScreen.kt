@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -60,6 +62,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
@@ -170,6 +176,10 @@ private fun YtdSummaryHeaderCard(
     yearOptionLabel: (YtdExpenseYearSelection) -> String
 ) {
     var yearMenuExpanded by remember { mutableStateOf(false) }
+    val summaryTitle = EobStrings.t(language, "ytdYearlyExpenseSummary")
+    val titleStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+    val density = LocalDensity.current
+    var yearToggleWidth by remember(summaryTitle) { mutableStateOf(0.dp) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -178,17 +188,29 @@ private fun YtdSummaryHeaderCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = EobStrings.t(language, "ytdYearlyExpenseSummary"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = summaryTitle,
+                style = titleStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                onTextLayout = { layout ->
+                    yearToggleWidth = ytdYearToggleWidthUnderSummary(
+                        title = summaryTitle,
+                        layout = layout,
+                        density = density
+                    )
+                }
             )
             ExposedDropdownMenuBox(
                 expanded = yearMenuExpanded,
                 onExpandedChange = { yearMenuExpanded = it },
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(top = 8.dp)
+                    .then(
+                        if (yearToggleWidth > 0.dp) {
+                            Modifier.width(yearToggleWidth)
+                        } else {
+                            Modifier.wrapContentWidth(Alignment.Start)
+                        }
+                    )
             ) {
                 OutlinedTextField(
                     value = yearOptionLabel(selectedYear),
@@ -605,5 +627,27 @@ fun MetricDetailCard(
                 )
             }
         }
+    }
+}
+
+internal fun ytdSummaryTitleAnchorEndIndex(title: String): Int {
+    val summaryMatch = Regex("Summary", RegexOption.IGNORE_CASE).find(title)
+    if (summaryMatch != null) {
+        return summaryMatch.range.last + 1
+    }
+    return title.length
+}
+
+internal fun ytdYearToggleWidthUnderSummary(
+    title: String,
+    layout: TextLayoutResult,
+    density: Density,
+    minimumWidth: Dp = 112.dp
+): Dp {
+    if (title.isBlank()) return minimumWidth
+    val anchorEndIndex = ytdSummaryTitleAnchorEndIndex(title).coerceIn(1, title.length)
+    val anchorRightPx = layout.getBoundingBox(anchorEndIndex - 1).right
+    return with(density) {
+        anchorRightPx.toDp().coerceAtLeast(minimumWidth)
     }
 }

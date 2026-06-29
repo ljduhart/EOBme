@@ -33,6 +33,32 @@ class AppealLetterGeneratorTest {
     )
 
     @Test
+    fun insuranceTargetPrefersProfileInsuranceNameOverEobCarrier() {
+        val profileWithCarrier = profile.copy(insuranceName = "UnitedHealthcare")
+        val record = sampleRecord()
+        val letter = AppealLetterGenerator.generate(
+            profile = profileWithCarrier,
+            eob = record,
+            target = AppealTarget.INSURANCE,
+            insuranceStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY
+        )
+        assertTrue(letter.contains("To: UnitedHealthcare – Member Appeals Department"))
+        assertFalse(letter.contains("To: Aetna"))
+    }
+
+    @Test
+    fun doctorTargetIncludesProfileInsuranceCarrier() {
+        val profileWithCarrier = profile.copy(insuranceName = "UnitedHealthcare")
+        val letter = AppealLetterGenerator.generate(
+            profile = profileWithCarrier,
+            eob = sampleRecord(),
+            target = AppealTarget.DOCTOR,
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
+        )
+        assertTrue(letter.contains("Insurance Carrier: UnitedHealthcare"))
+    }
+
+    @Test
     fun insuranceTargetFallsBackToProfileInsuranceName() {
         val profileWithCarrier = profile.copy(
             insuranceName = "UnitedHealthcare",
