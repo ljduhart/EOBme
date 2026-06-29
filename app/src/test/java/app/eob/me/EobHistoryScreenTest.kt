@@ -181,6 +181,17 @@ class EobHistoryScreenTest {
     }
 
     @Test
+    fun historyAppealPillsStackVerticallyWithAppealLabels() {
+        val source = readSource("ui/screens/EobHistoryScreen.kt")
+        val buttonsIndex = source.indexOf("private fun HistoryAppealPillButtons")
+        val buttonsBlock = source.substring(buttonsIndex, buttonsIndex + 700)
+        assertTrue(buttonsBlock.contains("Column("))
+        assertTrue(buttonsBlock.contains("historyAppealDoctorPill"))
+        assertTrue(buttonsBlock.contains("historyAppealInsurancePill"))
+        assertTrue(buttonsBlock.indexOf("historyAppealDoctorPill") < buttonsBlock.indexOf("historyAppealInsurancePill"))
+    }
+
+    @Test
     fun historyAppealPillsVisibleOnlyForSelectedExpandedRecord() {
         val source = readSource("ui/screens/EobHistoryScreen.kt")
         assertTrue(source.contains("HistoryAppealPillButtons"))

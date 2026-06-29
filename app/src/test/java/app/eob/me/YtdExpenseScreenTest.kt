@@ -136,6 +136,88 @@ class YtdExpenseScreenTest {
     }
 
     @Test
+    fun ytdExpenseDataFiltersAllLastFiveYears() {
+        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        val inRangeRecord = EobAnalyzer.analyze(
+            rawText = "Provider: Clinic\nAetna\n01/15/$currentYear\n99213 billed \$100.00 insurance paid \$60.00",
+            sourceName = "current",
+            nextId = 1
+        )
+        val oldRecord = EobAnalyzer.analyze(
+            rawText = "Provider: Clinic\nAetna\n01/15/${currentYear - 6}\n99213 billed \$200.00 insurance paid \$120.00",
+            sourceName = "old",
+            nextId = 2
+        )
+        val priorYearRecord = EobAnalyzer.analyze(
+            rawText = "Provider: Clinic\nAetna\n01/15/${currentYear - 1}\n99213 billed \$150.00 insurance paid \$90.00",
+            sourceName = "prior",
+            nextId = 3
+        )
+
+        val data = EobAnalyzer.ytdExpenseData(
+            records = listOf(inRangeRecord, oldRecord, priorYearRecord),
+            profile = UserProfile(),
+            yearSelection = app.eob.me.data.YtdExpenseYearSelection.AllLastFiveYears,
+            currentCalendarYear = currentYear
+        )
+
+        assertTrue(data.aggregatesAllYears)
+        assertEquals(2, data.eobCount)
+        assertEquals(250.0, data.totalBilled, 0.0)
+    }
+
+    @Test
+    fun ytdExpenseDataFiltersSingleSelectedYear() {
+        val record2025 = EobAnalyzer.analyze(
+            rawText = "Provider: Clinic\nAetna\n01/15/2025\n99213 billed \$100.00 insurance paid \$60.00",
+            sourceName = "2025",
+            nextId = 1
+        )
+        val record2024 = EobAnalyzer.analyze(
+            rawText = "Provider: Clinic\nAetna\n01/15/2024\n99213 billed \$200.00 insurance paid \$120.00",
+            sourceName = "2024",
+            nextId = 2
+        )
+
+        val data = EobAnalyzer.ytdExpenseData(
+            records = listOf(record2025, record2024),
+            profile = UserProfile(),
+            yearSelection = app.eob.me.data.YtdExpenseYearSelection.Year(2025),
+            currentCalendarYear = 2026
+        )
+
+        assertFalse(data.aggregatesAllYears)
+        assertEquals(2025, data.year)
+        assertEquals(1, data.eobCount)
+        assertEquals(100.0, data.totalBilled, 0.0)
+    }
+
+    @Test
+    fun ytdExpenseScreenContainsYearDropdownUnderSummaryTitle() {
+        val source = readSource("ui/screens/YtdExpenseScreen.kt")
+        val headerIndex = source.indexOf("private fun YtdSummaryHeaderCard")
+        val headerBlock = source.substring(headerIndex, (headerIndex + 3_000).coerceAtMost(source.length))
+        val summaryIndex = headerBlock.indexOf("ytdYearlyExpenseSummary")
+        val dropdownIndex = headerBlock.indexOf("ExposedDropdownMenuBox")
+        assertTrue(summaryIndex >= 0)
+        assertTrue(dropdownIndex > summaryIndex)
+        assertTrue(headerBlock.contains("yearOptionLabel"))
+        assertTrue(headerBlock.contains("aggregatesAllYears"))
+    }
+
+    @Test
+    fun yearlyExpenseRouteWiresYearSelectionThroughViewModel() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(navSource.contains("setYtdExpenseYearSelection"))
+        assertTrue(navSource.contains("ytdExpenseYearOptions"))
+        assertTrue(navSource.contains("resolvedYtdExpenseYearSelection"))
+        assertTrue(viewModelSource.contains("fun ytdExpenseYearOptions"))
+        assertTrue(viewModelSource.contains("fun setYtdExpenseYearSelection"))
+        assertTrue(viewModelSource.contains("YtdExpenseYearSelection"))
+    }
+
+    @Test
     fun ytdExpenseScreenPlacesExpandableTabsBelowGaugeGraphs() {
         val source = readSource("ui/screens/YtdExpenseScreen.kt")
         val gaugeIndex = source.indexOf("ProgressGaugeCard(")
@@ -163,7 +245,7 @@ class YtdExpenseScreenTest {
         assertFalse(source.contains("PathEffect"))
         assertTrue(source.contains("Brush.linearGradient"))
         assertTrue(source.contains("verticalScroll"))
-        assertTrue(source.contains("LaunchedEffect(Unit)"))
+        assertTrue(source.contains("LaunchedEffect(data.year"))
     }
 
     @Test

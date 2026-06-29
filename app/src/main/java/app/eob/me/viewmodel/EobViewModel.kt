@@ -46,6 +46,7 @@ import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderSummary
 import app.eob.me.data.UserProfile
 import app.eob.me.data.YtdExpenseData
+import app.eob.me.data.YtdExpenseYearSelection
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.BillingIssueSeverity
@@ -111,6 +112,7 @@ data class HubUiState(
     val selectedInsuranceArticle: InsuranceArticle? = null,
     val selectedNewsCarrier: MajorInsuranceCarrier = MajorInsuranceCarrier.UnitedHealthcare,
     val ytdBentoViewMode: YtdBentoViewMode = YtdBentoViewMode.CostOverview,
+    val ytdExpenseYearSelection: YtdExpenseYearSelection = YtdExpenseYearSelection.Year(0),
     val selectedCptCategory: CptCategory = CptCategory.OfficeVisit,
     val firebaseSyncStatus: FirebaseSyncStatus = FirebaseSyncStatus(isConfigured = false),
     val newsFeedRevision: Int = 0,
@@ -1106,8 +1108,46 @@ class EobViewModel : ViewModel() {
         return EobAnalyzer.yearlyHealthCostSummary(_eobRecords.value, preferredYear)
     }
 
-    fun ytdExpenseData(profile: UserProfile, preferredYear: Int? = null): YtdExpenseData {
-        return EobAnalyzer.ytdExpenseData(_eobRecords.value, profile, preferredYear)
+    fun ytdExpenseData(profile: UserProfile): YtdExpenseData {
+        return EobAnalyzer.ytdExpenseData(
+            records = _eobRecords.value,
+            profile = profile,
+            yearSelection = resolvedYtdExpenseYearSelection(),
+            currentCalendarYear = currentCalendarYear()
+        )
+    }
+
+    fun ytdExpenseYearOptions(): List<YtdExpenseYearSelection> {
+        val currentYear = currentCalendarYear()
+        return buildList {
+            add(YtdExpenseYearSelection.AllLastFiveYears)
+            repeat(5) { offset ->
+                add(YtdExpenseYearSelection.Year(currentYear - offset))
+            }
+        }
+    }
+
+    fun setYtdExpenseYearSelection(selection: YtdExpenseYearSelection) {
+        _uiState.update { it.copy(ytdExpenseYearSelection = selection) }
+    }
+
+    fun resolvedYtdExpenseYearSelection(): YtdExpenseYearSelection {
+        return when (val selection = _uiState.value.ytdExpenseYearSelection) {
+            is YtdExpenseYearSelection.Year if selection.value <= 0 ->
+                YtdExpenseYearSelection.Year(currentCalendarYear())
+            else -> selection
+        }
+    }
+
+    fun currentCalendarYear(): Int = Calendar.getInstance().get(Calendar.YEAR)
+
+    fun ytdExpenseYearLabel(language: AppLanguage, selection: YtdExpenseYearSelection): String {
+        return when (selection) {
+            YtdExpenseYearSelection.AllLastFiveYears ->
+                EobStrings.t(language, "ytdYearFilterAll")
+            is YtdExpenseYearSelection.Year ->
+                selection.value.toString()
+        }
     }
 
     fun historyRecordsForDisplay(

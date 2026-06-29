@@ -754,12 +754,27 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.YearlyExpense.route) {
-                    val ytdExpenseData = remember(sortedEobRecords, profile, eobViewModel.hubTimeKey()) {
+                    val ytdYearSelection = uiState.ytdExpenseYearSelection
+                    val ytdExpenseData = remember(
+                        sortedEobRecords,
+                        profile,
+                        ytdYearSelection,
+                        eobViewModel.hubTimeKey()
+                    ) {
                         eobViewModel.ytdExpenseData(profile)
                     }
                     YtdExpenseScreen(
                         language = language,
                         data = ytdExpenseData,
+                        yearOptions = eobViewModel.ytdExpenseYearOptions(),
+                        selectedYear = eobViewModel.resolvedYtdExpenseYearSelection(),
+                        onYearSelected = { selection ->
+                            eobViewModel.setYtdExpenseYearSelection(selection)
+                            onActivity()
+                        },
+                        yearOptionLabel = { selection ->
+                            eobViewModel.ytdExpenseYearLabel(language, selection)
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

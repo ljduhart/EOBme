@@ -383,7 +383,7 @@ private fun HistoryTimelineItemRowContent(
             isLastInMonth = row.isLastInMonth,
             modifier = Modifier
                 .width(28.dp)
-                .height(if (isExpanded) 268.dp else 132.dp)
+                .height(if (isExpanded) 300.dp else 132.dp)
         )
 
         SwipeToDismissBox(
@@ -630,20 +630,19 @@ private fun HistoryAppealPillButtons(
     onAppealDoctor: () -> Unit,
     onAppealInsurance: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.Start
     ) {
         HistoryAppealPill(
-            label = EobStrings.t(language, "appealTargetDoctor"),
+            label = EobStrings.t(language, "historyAppealDoctorPill"),
             backgroundColor = Color(0xFF2979FF),
             contentDescription = EobStrings.t(language, "historyAppealDoctorPill"),
             onClick = onAppealDoctor
         )
-        Spacer(modifier = Modifier.width(8.dp))
         HistoryAppealPill(
-            label = EobStrings.t(language, "appealTargetInsurance"),
+            label = EobStrings.t(language, "historyAppealInsurancePill"),
             backgroundColor = Color(0xFFE53935),
             contentDescription = EobStrings.t(language, "historyAppealInsurancePill"),
             onClick = onAppealInsurance

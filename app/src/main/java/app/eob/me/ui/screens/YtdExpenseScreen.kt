@@ -32,8 +32,15 @@ import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.YtdExpenseData
+import app.eob.me.data.YtdExpenseYearSelection
 import app.eob.me.data.YtdMetricKind
 import app.eob.me.data.YtdMetricSection
 import app.eob.me.data.asCurrency
@@ -65,15 +73,21 @@ import kotlin.math.roundToInt
 private val GaugeTeal = Color(0xFF00695C)
 private val GaugeGold = Color(0xFFFFB300)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun YtdExpenseScreen(
     language: AppLanguage,
     data: YtdExpenseData,
+    yearOptions: List<YtdExpenseYearSelection>,
+    selectedYear: YtdExpenseYearSelection,
+    onYearSelected: (YtdExpenseYearSelection) -> Unit,
+    yearOptionLabel: (YtdExpenseYearSelection) -> String,
     modifier: Modifier = Modifier
 ) {
     var animateEntrance by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(data.year, data.aggregatesAllYears, data.eobCount) {
+        animateEntrance = false
         animateEntrance = true
     }
 
@@ -102,7 +116,14 @@ fun YtdExpenseScreen(
             color = MaterialTheme.colorScheme.primary
         )
 
-        YtdSummaryHeaderCard(language = language, data = data)
+        YtdSummaryHeaderCard(
+            language = language,
+            data = data,
+            yearOptions = yearOptions,
+            selectedYear = selectedYear,
+            onYearSelected = onYearSelected,
+            yearOptionLabel = yearOptionLabel
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -138,8 +159,18 @@ fun YtdExpenseScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun YtdSummaryHeaderCard(language: AppLanguage, data: YtdExpenseData) {
+private fun YtdSummaryHeaderCard(
+    language: AppLanguage,
+    data: YtdExpenseData,
+    yearOptions: List<YtdExpenseYearSelection>,
+    selectedYear: YtdExpenseYearSelection,
+    onYearSelected: (YtdExpenseYearSelection) -> Unit,
+    yearOptionLabel: (YtdExpenseYearSelection) -> String
+) {
+    var yearMenuExpanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -152,15 +183,51 @@ private fun YtdSummaryHeaderCard(language: AppLanguage, data: YtdExpenseData) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            ExposedDropdownMenuBox(
+                expanded = yearMenuExpanded,
+                onExpandedChange = { yearMenuExpanded = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = yearOptionLabel(selectedYear),
+                    onValueChange = {},
+                    readOnly = true,
+                    singleLine = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = yearMenuExpanded)
+                    },
+                    modifier = Modifier
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                        .fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
+                DropdownMenu(
+                    expanded = yearMenuExpanded,
+                    onDismissRequest = { yearMenuExpanded = false }
+                ) {
+                    yearOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(yearOptionLabel(option)) },
+                            onClick = {
+                                onYearSelected(option)
+                                yearMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
             Text(
-                text = if (data.year == 0) {
-                    EobStrings.t(language, "yearlyNoEobs")
-                } else {
-                    EobStrings.tf(language, "ytdYearEobsSubtitle", data.year, data.eobCount)
+                text = when {
+                    data.eobCount == 0 -> EobStrings.t(language, "yearlyNoEobs")
+                    data.aggregatesAllYears ->
+                        EobStrings.tf(language, "ytdAllYearsEobsSubtitle", data.eobCount)
+                    else -> EobStrings.tf(language, "ytdYearEobsSubtitle", data.year, data.eobCount)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 8.dp)
             )
         }
     }

@@ -338,7 +338,9 @@ class EobStringsCoverageTest {
             "historyAppealDoctorPill",
             "historyAppealInsurancePill",
             "appealTargetDoctor",
-            "appealTargetInsurance"
+            "appealTargetInsurance",
+            "ytdYearFilterAll",
+            "ytdAllYearsEobsSubtitle"
         )
         AppLanguage.entries.forEach { language ->
             keys.forEach { key ->

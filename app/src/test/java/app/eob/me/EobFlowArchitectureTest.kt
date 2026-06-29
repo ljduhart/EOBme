@@ -2296,8 +2296,8 @@ class EobFlowArchitectureTest {
             "isSelected",
             "onAppealDoctor",
             "onAppealInsurance",
-            "appealTargetDoctor",
-            "appealTargetInsurance"
+            "historyAppealDoctorPill",
+            "historyAppealInsurancePill"
         ).forEach { snippet ->
             assertTrue("PR#132: history appeal pills missing $snippet", historySource.contains(snippet))
         }
@@ -2337,6 +2337,58 @@ class EobFlowArchitectureTest {
         ).forEach { path ->
             val source = readSource(path)
             assertFalse("PR#132: protected file touched ($path)", source.contains("HistoryAppealPill"))
+        }
+    }
+
+    @Test
+    fun pr133HistoryAppealStackAndYtdYearFilterAudit() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val ytdSource = readSource("ui/screens/YtdExpenseScreen.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val analyzerSource = readSource("data/EobAnalyzer.kt")
+        val modelsSource = readSource("data/EobModels.kt")
+        val stringsSource = readSource("data/EobStrings.kt")
+
+        assertTrue(historySource.contains("Column("))
+        assertTrue(historySource.contains("historyAppealDoctorPill"))
+        assertTrue(historySource.contains("historyAppealInsurancePill"))
+        assertTrue(
+            historySource.indexOf("historyAppealDoctorPill") < historySource.indexOf("historyAppealInsurancePill")
+        )
+        listOf(
+            "YtdExpenseYearSelection",
+            "aggregatesAllYears",
+            "ExposedDropdownMenuBox",
+            "ytdYearFilterAll",
+            "setYtdExpenseYearSelection",
+            "ytdExpenseYearOptions",
+            "resolvedYtdExpenseYearSelection"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#133: YTD year filter missing $snippet",
+                ytdSource.contains(snippet) ||
+                    navHostSource.contains(snippet) ||
+                    viewModelSource.contains(snippet) ||
+                    analyzerSource.contains(snippet) ||
+                    modelsSource.contains(snippet)
+            )
+        }
+        listOf(
+            "ytdYearFilterAll",
+            "ytdAllYearsEobsSubtitle"
+        ).forEach { key ->
+            assertTrue("PR#133: YTD year strings missing $key", stringsSource.contains("\"$key\""))
+        }
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "network/VeryfiDocumentClient.kt",
+            "data/DocumentScanPipelineRepository.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#133: protected file touched ($path)", source.contains("YtdExpenseYearSelection"))
         }
     }
 

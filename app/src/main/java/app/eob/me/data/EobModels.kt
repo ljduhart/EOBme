@@ -265,6 +265,12 @@ enum class YtdBentoViewMode {
     DeductibleTracker
 }
 
+sealed interface YtdExpenseYearSelection {
+    data object AllLastFiveYears : YtdExpenseYearSelection
+
+    data class Year(val value: Int) : YtdExpenseYearSelection
+}
+
 data class CptBentoSnapshot(
     val dominantCode: String,
     val translatorLine: String,
@@ -494,7 +500,8 @@ data class YtdExpenseData(
     val coinsurance: Double,
     val deductibleMax: Double,
     val outOfPocketMax: Double,
-    val metricSections: List<YtdMetricSection> = emptyList()
+    val metricSections: List<YtdMetricSection> = emptyList(),
+    val aggregatesAllYears: Boolean = false
 ) {
     val deductibleProgress: Float
         get() = (deductibles / deductibleMax.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f)

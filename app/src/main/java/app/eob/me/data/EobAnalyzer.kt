@@ -234,26 +234,54 @@ object EobAnalyzer {
         profile: UserProfile,
         preferredYear: Int? = null
     ): YtdExpenseData {
-        val summary = yearlyHealthCostSummary(records, preferredYear)
+        val calendarYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        val selection = if (preferredYear != null) {
+            YtdExpenseYearSelection.Year(preferredYear)
+        } else {
+            val resolvedYear = records.map { serviceYear(it.serviceDate) }.filter { it > 0 }.maxOrNull() ?: 0
+            YtdExpenseYearSelection.Year(resolvedYear)
+        }
+        return ytdExpenseData(records, profile, selection, calendarYear)
+    }
+
+    fun ytdExpenseData(
+        records: List<EobRecord>,
+        profile: UserProfile,
+        yearSelection: YtdExpenseYearSelection,
+        currentCalendarYear: Int
+    ): YtdExpenseData {
+        val minYear = currentCalendarYear - 4
+        val scopedRecords = when (yearSelection) {
+            YtdExpenseYearSelection.AllLastFiveYears -> records.filter { record ->
+                val year = serviceYear(record.serviceDate)
+                year in minYear..currentCalendarYear
+            }
+            is YtdExpenseYearSelection.Year -> records.filter { record ->
+                serviceYear(record.serviceDate) == yearSelection.value
+            }
+        }.sortedByDescending { it.serviceDateSortKey }
+        val aggregatesAllYears = yearSelection is YtdExpenseYearSelection.AllLastFiveYears
+        val displayYear = when (yearSelection) {
+            YtdExpenseYearSelection.AllLastFiveYears -> 0
+            is YtdExpenseYearSelection.Year -> yearSelection.value
+        }
         val safeProfile = profile.sanitizedPlanLimits()
         val deductibleMax = safeProfile.annualDeductibleLimit.takeIf { it > 0 } ?: YTD_DEFAULT_DEDUCTIBLE_MAX
         val outOfPocketMax = safeProfile.annualOutOfPocketMax.takeIf { it > 0 } ?: YTD_DEFAULT_OUT_OF_POCKET_MAX
-        val yearRecords = records
-            .filter { serviceYear(it.serviceDate) == summary.year }
-            .sortedByDescending { it.serviceDateSortKey }
         return YtdExpenseData(
-            year = summary.year,
-            eobCount = summary.eobCount,
-            totalBilled = summary.totalBilled,
-            insurancePaid = summary.totalInsurancePaid,
-            adjustments = summary.totalContractualAdjustment,
-            patientResponsibility = summary.totalPatientResponsibility,
-            copays = summary.totalCopay,
-            deductibles = summary.totalDeductible,
-            coinsurance = summary.totalCoinsurance,
+            year = displayYear,
+            eobCount = scopedRecords.size,
+            totalBilled = scopedRecords.sumOf { it.totalBilledAmount },
+            insurancePaid = scopedRecords.sumOf { it.totalInsurancePaidAmount },
+            adjustments = scopedRecords.sumOf { it.totalContractualAdjustmentAmount },
+            patientResponsibility = scopedRecords.sumOf { it.totalPatientResponsibility },
+            copays = scopedRecords.sumOf { it.totalCopayAmount },
+            deductibles = scopedRecords.sumOf { it.totalDeductibleAmount },
+            coinsurance = scopedRecords.sumOf { it.totalCoinsuranceAmount },
             deductibleMax = deductibleMax,
             outOfPocketMax = outOfPocketMax,
-            metricSections = buildYtdMetricSections(yearRecords)
+            metricSections = buildYtdMetricSections(scopedRecords),
+            aggregatesAllYears = aggregatesAllYears
         )
     }
 
