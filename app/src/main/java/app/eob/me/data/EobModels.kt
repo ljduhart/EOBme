@@ -462,6 +462,26 @@ data class YearlyHealthCostSummary(
         get() = totalCopay + totalDeductible + totalCoinsurance
 }
 
+enum class YtdMetricKind {
+    Copay,
+    Coinsurance,
+    TotalBilled,
+    InsurancePaid,
+    Adjustments,
+    Deductible
+}
+
+data class YtdMetricLineItem(
+    val serviceDate: String,
+    val amount: Double
+)
+
+data class YtdMetricSection(
+    val kind: YtdMetricKind,
+    val lineItems: List<YtdMetricLineItem>,
+    val total: Double
+)
+
 data class YtdExpenseData(
     val year: Int,
     val eobCount: Int,
@@ -473,7 +493,8 @@ data class YtdExpenseData(
     val deductibles: Double,
     val coinsurance: Double,
     val deductibleMax: Double,
-    val outOfPocketMax: Double
+    val outOfPocketMax: Double,
+    val metricSections: List<YtdMetricSection> = emptyList()
 ) {
     val deductibleProgress: Float
         get() = (deductibles / deductibleMax.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f)

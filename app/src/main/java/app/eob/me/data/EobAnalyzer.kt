@@ -238,6 +238,9 @@ object EobAnalyzer {
         val safeProfile = profile.sanitizedPlanLimits()
         val deductibleMax = safeProfile.annualDeductibleLimit.takeIf { it > 0 } ?: YTD_DEFAULT_DEDUCTIBLE_MAX
         val outOfPocketMax = safeProfile.annualOutOfPocketMax.takeIf { it > 0 } ?: YTD_DEFAULT_OUT_OF_POCKET_MAX
+        val yearRecords = records
+            .filter { serviceYear(it.serviceDate) == summary.year }
+            .sortedByDescending { it.serviceDateSortKey }
         return YtdExpenseData(
             year = summary.year,
             eobCount = summary.eobCount,
@@ -249,7 +252,38 @@ object EobAnalyzer {
             deductibles = summary.totalDeductible,
             coinsurance = summary.totalCoinsurance,
             deductibleMax = deductibleMax,
-            outOfPocketMax = outOfPocketMax
+            outOfPocketMax = outOfPocketMax,
+            metricSections = buildYtdMetricSections(yearRecords)
+        )
+    }
+
+    private fun buildYtdMetricSections(yearRecords: List<EobRecord>): List<YtdMetricSection> {
+        fun section(
+            kind: YtdMetricKind,
+            amountSelector: (EobRecord) -> Double
+        ): YtdMetricSection {
+            val lineItems = yearRecords.mapNotNull { record ->
+                val amount = amountSelector(record)
+                if (amount <= 0.0) return@mapNotNull null
+                YtdMetricLineItem(
+                    serviceDate = record.serviceDate,
+                    amount = amount
+                )
+            }
+            return YtdMetricSection(
+                kind = kind,
+                lineItems = lineItems,
+                total = lineItems.sumOf { it.amount }
+            )
+        }
+
+        return listOf(
+            section(YtdMetricKind.Copay) { it.totalCopayAmount },
+            section(YtdMetricKind.Coinsurance) { it.totalCoinsuranceAmount },
+            section(YtdMetricKind.TotalBilled) { it.totalBilledAmount },
+            section(YtdMetricKind.InsurancePaid) { it.totalInsurancePaidAmount },
+            section(YtdMetricKind.Adjustments) { it.totalContractualAdjustmentAmount },
+            section(YtdMetricKind.Deductible) { it.totalDeductibleAmount }
         )
     }
 

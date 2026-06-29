@@ -3,6 +3,7 @@ package app.eob.me
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.UserProfile
 import app.eob.me.data.YtdExpenseData
+import app.eob.me.data.YtdMetricKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -56,6 +57,104 @@ class YtdExpenseScreenTest {
     }
 
     @Test
+    fun ytdExpenseDataBuildsExpandableMetricSectionsPerEob() {
+        val records = listOf(
+            EobAnalyzer.analyze(
+                rawText = """
+                    Provider: Clinic A
+                    Aetna
+                    01/15/2026
+                    99213 billed $200.00 insurance paid $120.00 contractual adjustment $30.00
+                    copay $25.00 deductible $0.00 coinsurance $0.00
+                """.trimIndent(),
+                sourceName = "a",
+                nextId = 1
+            ),
+            EobAnalyzer.analyze(
+                rawText = """
+                    Provider: Clinic B
+                    Aetna
+                    02/10/2026
+                    99213 billed $180.00 insurance paid $100.00 contractual adjustment $20.00
+                    copay $25.00 deductible $0.00 coinsurance $0.00
+                """.trimIndent(),
+                sourceName = "b",
+                nextId = 2
+            ),
+            EobAnalyzer.analyze(
+                rawText = """
+                    Provider: Clinic C
+                    Aetna
+                    03/05/2026
+                    99213 billed $160.00 insurance paid $90.00 contractual adjustment $15.00
+                    copay $25.00 deductible $0.00 coinsurance $0.00
+                """.trimIndent(),
+                sourceName = "c",
+                nextId = 3
+            )
+        )
+
+        val data = EobAnalyzer.ytdExpenseData(records, UserProfile(), preferredYear = 2026)
+        val copaySection = data.metricSections.first { it.kind == YtdMetricKind.Copay }
+
+        assertEquals(3, copaySection.lineItems.size)
+        assertEquals(75.0, copaySection.total, 0.0)
+        assertEquals(75.0, data.copays, 0.0)
+        copaySection.lineItems.forEach { lineItem ->
+            assertEquals(25.0, lineItem.amount, 0.0)
+        }
+    }
+
+    @Test
+    fun ytdMetricSectionTotalsAlignWithSummaryForAllChargeTypes() {
+        val record = EobAnalyzer.analyze(
+            rawText = """
+                Provider: Downtown Medical
+                Aetna
+                01/15/2026
+                99213 billed $200.00 insurance paid $120.00 contractual adjustment $30.00
+                copay $20.00 deductible $15.00 coinsurance $5.00
+            """.trimIndent(),
+            sourceName = "test",
+            nextId = 10
+        )
+        val data = EobAnalyzer.ytdExpenseData(listOf(record), UserProfile(), preferredYear = 2026)
+
+        assertEquals(6, data.metricSections.size)
+        val totalsByKind = data.metricSections.associate { it.kind to it.total }
+        assertEquals(data.copays, totalsByKind[YtdMetricKind.Copay] ?: 0.0, 0.0)
+        assertEquals(data.coinsurance, totalsByKind[YtdMetricKind.Coinsurance] ?: 0.0, 0.0)
+        assertEquals(data.totalBilled, totalsByKind[YtdMetricKind.TotalBilled] ?: 0.0, 0.0)
+        assertEquals(data.insurancePaid, totalsByKind[YtdMetricKind.InsurancePaid] ?: 0.0, 0.0)
+        assertEquals(data.adjustments, totalsByKind[YtdMetricKind.Adjustments] ?: 0.0, 0.0)
+        assertEquals(data.deductibles, totalsByKind[YtdMetricKind.Deductible] ?: 0.0, 0.0)
+
+        val copaySection = data.metricSections.first { it.kind == YtdMetricKind.Copay }
+        assertEquals(1, copaySection.lineItems.size)
+        assertEquals("01/15/2026", copaySection.lineItems.first().serviceDate)
+        assertEquals(20.0, copaySection.lineItems.first().amount, 0.0)
+    }
+
+    @Test
+    fun ytdExpenseScreenPlacesExpandableTabsBelowGaugeGraphs() {
+        val source = readSource("ui/screens/YtdExpenseScreen.kt")
+        val gaugeIndex = source.indexOf("ProgressGaugeCard(")
+        val expandableIndex = source.indexOf("YtdExpandableMetricSections")
+        assertTrue(gaugeIndex >= 0)
+        assertTrue(expandableIndex > gaugeIndex)
+    }
+
+    @Test
+    fun ytdExpenseScreenContainsExpandableMetricPatterns() {
+        val source = readSource("ui/screens/YtdExpenseScreen.kt")
+        assertTrue(source.contains("fun YtdExpandableMetricSections"))
+        assertTrue(source.contains("fun ExpandableYtdMetricCard"))
+        assertTrue(source.contains("AnimatedVisibility"))
+        assertTrue(source.contains("animateContentSize"))
+        assertTrue(source.contains("metricSections"))
+    }
+
+    @Test
     fun ytdExpenseScreenContainsGaugeAndMetricPatterns() {
         val source = readSource("ui/screens/YtdExpenseScreen.kt")
         assertTrue(source.contains("fun ProgressGaugeCard"))
@@ -99,7 +198,8 @@ class YtdExpenseScreenTest {
             "deductibles",
             "coinsurance",
             "deductibleMax",
-            "outOfPocketMax"
+            "outOfPocketMax",
+            "metricSections"
         ).forEach { name ->
             assertTrue("Missing YtdExpenseData field: $name", fields.contains(name))
         }
