@@ -21,6 +21,7 @@ data class ReceiptRecord(
     val firestoreId: String,
     val providerName: String,
     val serviceDate: String,
+    val serviceDateSortKey: Int = 0,
     val amount: Double,
     val thumbnailUrl: String,
     val storagePath: String,

@@ -13,6 +13,7 @@ object VaultReceiptMapper {
         return mapOf(
             "providerName" to record.providerName,
             "serviceDate" to record.serviceDate,
+            "serviceDateSortKey" to record.serviceDateSortKey,
             "amount" to record.amount,
             "thumbnailUrl" to record.thumbnailUrl,
             "storagePath" to record.storagePath,
@@ -25,10 +26,16 @@ object VaultReceiptMapper {
     }
 
     fun receiptFromMap(data: Map<String, Any?>, documentId: String): ReceiptRecord {
+        val serviceDate = normalizeServiceDate(
+            data.stringValue("serviceDate", "service_date", "dateOfService", "date_of_service")
+        )
         return ReceiptRecord(
             firestoreId = documentId,
             providerName = data.stringValue("providerName", "provider_name").ifBlank { "Pharmacy Receipt" },
-            serviceDate = data.stringValue("serviceDate", "service_date", "dateOfService", "date_of_service"),
+            serviceDate = serviceDate,
+            serviceDateSortKey = data.intValue("serviceDateSortKey", "service_date_sort_key")
+                .takeUnless { it == 0 }
+                ?: EobAnalyzer.serviceDateSortKey(serviceDate),
             amount = data.doubleValue("amount", "patientAmount", "patient_amount"),
             thumbnailUrl = data.stringValue("thumbnailUrl", "thumbnail_url", "storageDownloadUrl", "storage_download_url"),
             storagePath = data.stringValue("storagePath", "storage_path", "sourceFilePath", "source_file_path"),
@@ -44,9 +51,11 @@ object VaultReceiptMapper {
                 .mapNotNull { it?.toDoubleOrNull() }
                 .maxOrNull()
         } ?: 0.0
-        val serviceDate = datePattern.matcher(ocrText).let { matcher ->
-            if (matcher.find()) matcher.group() else ""
-        }
+        val serviceDate = normalizeServiceDate(
+            datePattern.matcher(ocrText).let { matcher ->
+                if (matcher.find()) matcher.group() else ""
+            }
+        )
         val provider = ocrText.lineSequence()
             .map { it.trim() }
             .firstOrNull { line ->
@@ -94,5 +103,38 @@ object VaultReceiptMapper {
             }
         }
         return 0L
+    }
+
+    private fun Map<String, Any?>.intValue(vararg keys: String): Int {
+        keys.forEach { key ->
+            when (val value = this[key]) {
+                is Number -> return value.toInt()
+                is String -> value.toIntOrNull()?.let { return it }
+            }
+        }
+        return 0
+    }
+
+    fun normalizeServiceDate(rawDate: String): String {
+        val trimmed = rawDate.trim()
+        if (trimmed.isBlank()) return ""
+        val slashMatch = Regex("""^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$""").find(trimmed)
+        if (slashMatch != null) {
+            val month = slashMatch.groupValues[1].padStart(2, '0')
+            val day = slashMatch.groupValues[2].padStart(2, '0')
+            var year = slashMatch.groupValues[3]
+            if (year.length == 2) {
+                year = if (year.toInt() > 50) "19$year" else "20$year"
+            }
+            return "$month/$day/$year"
+        }
+        val isoMatch = Regex("""^(\d{4})-(\d{1,2})-(\d{1,2})""").find(trimmed)
+        if (isoMatch != null) {
+            val month = isoMatch.groupValues[2].padStart(2, '0')
+            val day = isoMatch.groupValues[3].padStart(2, '0')
+            val year = isoMatch.groupValues[1]
+            return "$month/$day/$year"
+        }
+        return trimmed
     }
 }

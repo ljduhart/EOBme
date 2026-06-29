@@ -61,6 +61,7 @@ import app.eob.me.data.TaxVaultBudgetSummary
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.VaultEvidenceThumbnail
+import app.eob.me.data.VaultSubstantiationStatus
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
 import coil.compose.AsyncImage
@@ -418,7 +419,7 @@ private fun VaultExportSection(
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            eligibleEobs.take(8).forEach { record ->
+            eligibleEobs.forEach { record ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -431,6 +432,15 @@ private fun VaultExportSection(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = record.providerName, color = Color.White)
+                        if (VaultSubstantiationStatus.fromFirestore(record.vaultSubstantiationStatus) ==
+                            VaultSubstantiationStatus.PAID_AND_SUBSTANTIATED
+                        ) {
+                            Text(
+                                text = EobStrings.t(language, "taxVaultSubstantiated"),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF3DDC84)
+                            )
+                        }
                         Text(
                             text = EobStrings.tf(
                                 language,
@@ -444,7 +454,7 @@ private fun VaultExportSection(
                     }
                 }
             }
-            vaultReceipts.take(4).forEach { receipt ->
+            vaultReceipts.forEach { receipt ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

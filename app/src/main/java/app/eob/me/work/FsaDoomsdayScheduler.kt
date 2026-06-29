@@ -5,38 +5,24 @@ import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import app.eob.me.data.FsaDoomsdayEngine
-import app.eob.me.data.FsaDoomsdayPhase
-import app.eob.me.data.asCurrency
 import java.util.concurrent.TimeUnit
 
 object FsaDoomsdayScheduler {
     fun schedule(context: Context, fsaAllocation: Double, eligibleClaimAmount: Double) {
         if (fsaAllocation <= 0.0) {
-            WorkManager.getInstance(context).cancelUniqueWork(FsaDoomsdayNotificationWorker.WORK_NAME)
+            cancel(context)
             return
         }
-        val snapshot = FsaDoomsdayEngine.snapshot(
-            fsaAllocation = fsaAllocation,
-            eligibleClaimAmount = eligibleClaimAmount
-        )
-        val phase = when (snapshot.phase) {
-            FsaDoomsdayPhase.GREEN -> FsaDoomsdayNotificationWorker.PHASE_GREEN
-            FsaDoomsdayPhase.ORANGE -> FsaDoomsdayNotificationWorker.PHASE_ORANGE
-            FsaDoomsdayPhase.RED -> FsaDoomsdayNotificationWorker.PHASE_RED
-        }
         val input = Data.Builder()
-            .putString(FsaDoomsdayNotificationWorker.KEY_PHASE, phase)
-            .putInt(FsaDoomsdayNotificationWorker.KEY_DAYS_REMAINING, snapshot.daysRemaining)
-            .putString(
-                FsaDoomsdayNotificationWorker.KEY_ELIGIBLE_AMOUNT,
-                snapshot.eligibleClaimAmount.asCurrency()
+            .putDouble(FsaDoomsdayNotificationWorker.KEY_FSA_ALLOCATION, fsaAllocation)
+            .putDouble(
+                FsaDoomsdayNotificationWorker.KEY_ELIGIBLE_CLAIM_AMOUNT,
+                eligibleClaimAmount
             )
-            .putString(
-                FsaDoomsdayNotificationWorker.KEY_UNSPENT_AMOUNT,
-                snapshot.unspentAmount.asCurrency()
+            .putInt(
+                FsaDoomsdayNotificationWorker.KEY_NOTIFICATION_ID,
+                FsaDoomsdayNotificationWorker.DEFAULT_NOTIFICATION_ID
             )
-            .putInt(FsaDoomsdayNotificationWorker.KEY_NOTIFICATION_ID, FsaDoomsdayNotificationWorker.DEFAULT_NOTIFICATION_ID)
             .build()
         val request = PeriodicWorkRequestBuilder<FsaDoomsdayNotificationWorker>(7, TimeUnit.DAYS)
             .setInputData(input)
@@ -46,5 +32,9 @@ object FsaDoomsdayScheduler {
             ExistingPeriodicWorkPolicy.UPDATE,
             request
         )
+    }
+
+    fun cancel(context: Context) {
+        WorkManager.getInstance(context).cancelUniqueWork(FsaDoomsdayNotificationWorker.WORK_NAME)
     }
 }

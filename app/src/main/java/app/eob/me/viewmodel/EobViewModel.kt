@@ -77,6 +77,7 @@ import app.eob.me.util.CacheSizeCalculator
 import app.eob.me.util.DeviceCallingUtils
 import app.eob.me.util.NetworkUploadGate
 import app.eob.me.util.HubCrashlyticsGate
+import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.util.OcrProcessor
 import app.eob.me.ui.history.HistoryPagination
 import com.google.firebase.firestore.ListenerRegistration
@@ -135,6 +136,7 @@ data class HubUiState(
     val paywallPurchasePending: Boolean = false,
     val cameraScanDocumentType: CameraScanDocumentType = CameraScanDocumentType.Eob,
     val vaultReceiptScanPending: Boolean = false,
+    val isVaultReceiptProcessing: Boolean = false,
     val taxVaultExportEobIds: Set<String> = emptySet(),
     val taxVaultExportReceiptIds: Set<String> = emptySet(),
     val taxVaultDoorAnimating: Boolean = false,
@@ -150,6 +152,11 @@ data class HubUiState(
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class EobViewModel : ViewModel() {
+    companion object {
+        const val TAX_VAULT_MAX_EXPORT_EOBS = 5
+        const val TAX_VAULT_MAX_EXPORT_RECEIPTS = 2
+    }
+
     private var repository: EobRepository? = null
     private val _repository = MutableStateFlow<EobRepository?>(null)
     private var settingsStore: HubSettingsStore? = null
@@ -720,6 +727,7 @@ class EobViewModel : ViewModel() {
         documentScanJob?.cancel()
         documentScanJob = null
         documentScanGeneration = 0L
+        appContext?.let { FsaDoomsdayScheduler.cancel(it) }
     }
 
     fun startFirestoreSync(userId: String, profile: UserProfile, onProfileChanged: (UserProfile) -> Unit) {
@@ -1093,6 +1101,9 @@ class EobViewModel : ViewModel() {
 
     fun requestTaxVaultDoorUnlock() {
         if (!isTaxVaultGoldUnlocked()) return
+        if (_taxVaultFilterState.value == TaxVaultFilterState.OFF) {
+            _taxVaultFilterState.value = TaxVaultFilterState.HSA
+        }
         _uiState.update { it.copy(taxVaultDoorAnimating = true) }
     }
 
@@ -1101,6 +1112,7 @@ class EobViewModel : ViewModel() {
     }
 
     fun beginVaultReceiptScan() {
+        if (!isTaxVaultGoldUnlocked()) return
         _uiState.update {
             it.copy(
                 cameraScanDocumentType = CameraScanDocumentType.Receipt,
@@ -1110,7 +1122,16 @@ class EobViewModel : ViewModel() {
     }
 
     fun clearVaultReceiptScanPending() {
-        _uiState.update { it.copy(vaultReceiptScanPending = false) }
+        _uiState.update {
+            it.copy(
+                vaultReceiptScanPending = false,
+                cameraScanDocumentType = CameraScanDocumentType.Eob
+            )
+        }
+    }
+
+    private fun setVaultReceiptProcessing(processing: Boolean) {
+        _uiState.update { it.copy(isVaultReceiptProcessing = processing) }
     }
 
     fun fsaDoomsdaySnapshot(profile: UserProfile): FsaDoomsdaySnapshot {
@@ -1168,19 +1189,29 @@ class EobViewModel : ViewModel() {
     }
 
     fun toggleTaxVaultExportEob(record: EobRecord) {
+        if (!isTaxVaultGoldUnlocked()) return
         val key = record.historyListKey()
         _uiState.update { state ->
             val updated = state.taxVaultExportEobIds.toMutableSet()
-            if (!updated.add(key)) updated.remove(key)
+            if (key in updated) {
+                updated.remove(key)
+            } else if (updated.size < TAX_VAULT_MAX_EXPORT_EOBS) {
+                updated.add(key)
+            }
             state.copy(taxVaultExportEobIds = updated)
         }
     }
 
     fun toggleTaxVaultExportReceipt(receipt: ReceiptRecord) {
+        if (!isTaxVaultGoldUnlocked()) return
         val key = receipt.historyListKey()
         _uiState.update { state ->
             val updated = state.taxVaultExportReceiptIds.toMutableSet()
-            if (!updated.add(key)) updated.remove(key)
+            if (key in updated) {
+                updated.remove(key)
+            } else if (updated.size < TAX_VAULT_MAX_EXPORT_RECEIPTS) {
+                updated.add(key)
+            }
             state.copy(taxVaultExportReceiptIds = updated)
         }
     }
@@ -1208,10 +1239,22 @@ class EobViewModel : ViewModel() {
             }
     }
 
-    fun exportTaxVaultClaimPackage(context: Context): Result<Uri> {
+    fun exportTaxVaultClaimPackage(context: Context, onResult: (Result<Uri>) -> Unit) {
+        if (!isTaxVaultGoldUnlocked()) {
+            onResult(Result.failure(IllegalStateException("Tax Vault requires Gold subscription.")))
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = runCatching { buildTaxVaultClaimPackage(context) }
+                .fold(onSuccess = { Result.success(it) }, onFailure = { Result.failure(it) })
+            withContext(Dispatchers.Main) { onResult(result) }
+        }
+    }
+
+    private fun buildTaxVaultClaimPackage(context: Context): Uri {
         val exportRows = buildTaxVaultExportRows()
         if (exportRows.isEmpty()) {
-            return Result.failure(IllegalStateException("Select at least one EOB for export."))
+            throw IllegalStateException("Select at least one EOB for export.")
         }
         val selectedReceiptKeys = _uiState.value.taxVaultExportReceiptIds
         val evidenceUrls = buildList {
@@ -1228,7 +1271,7 @@ class EobViewModel : ViewModel() {
             context = context,
             coverRows = exportRows,
             evidenceImageUrls = evidenceUrls
-        )
+        ).getOrThrow()
     }
 
     fun processVaultReceiptScannedDocument(
@@ -1255,31 +1298,18 @@ class EobViewModel : ViewModel() {
         val generation = ++documentScanGeneration
         documentScanJob = viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
-                setLoadingInvoice(true)
+                setVaultReceiptProcessing(true)
                 _documentScanState.value = DocumentScanPipelineState.OcrPreCheck
             }
-            val preCheck = runCatching {
-                repo.runDocumentOcrPreCheck(
-                    context = context,
-                    uri = uri,
-                    scanType = CameraScanDocumentType.Receipt
-                )
-            }.getOrElse { error ->
-                withContext(Dispatchers.Main) {
-                    if (generation != documentScanGeneration) return@withContext
-                    setLoadingInvoice(false)
-                    clearVaultReceiptScanPending()
-                    _documentScanState.value = DocumentScanPipelineState.Error(
-                        EobStrings.t(language, "documentScanOcrFailed")
-                    )
-                    updateUploadNotice(error.localizedMessage.orEmpty())
-                }
-                return@launch
-            }
+            val ocrText = runCatching { OcrProcessor.recognizeFromUri(context, uri) }.getOrDefault("")
+            val preCheck = EobDocumentOcrPreCheck.validateForScanType(
+                ocrText,
+                CameraScanDocumentType.Receipt
+            )
             if (!preCheck.passed) {
                 withContext(Dispatchers.Main) {
                     if (generation != documentScanGeneration) return@withContext
-                    setLoadingInvoice(false)
+                    setVaultReceiptProcessing(false)
                     clearVaultReceiptScanPending()
                     _documentScanState.value = DocumentScanPipelineState.Error(
                         EobStrings.t(language, "documentScanOcrPreCheckFailed")
@@ -1292,7 +1322,7 @@ class EobViewModel : ViewModel() {
             }.getOrElse { error ->
                 withContext(Dispatchers.Main) {
                     if (generation != documentScanGeneration) return@withContext
-                    setLoadingInvoice(false)
+                    setVaultReceiptProcessing(false)
                     clearVaultReceiptScanPending()
                     _documentScanState.value = DocumentScanPipelineState.Error(
                         EobStrings.t(language, "imagePrepFailed")
@@ -1301,7 +1331,6 @@ class EobViewModel : ViewModel() {
                 }
                 return@launch
             }
-            val ocrText = runCatching { OcrProcessor.recognizeFromUri(context, preparedUri) }.getOrDefault("")
             val parsed = VaultReceiptMapper.parseReceiptFromOcr(ocrText)
             withContext(Dispatchers.Main) {
                 _documentScanState.value = DocumentScanPipelineState.UploadingAndProcessing
@@ -1315,7 +1344,7 @@ class EobViewModel : ViewModel() {
             }.getOrElse { error ->
                 withContext(Dispatchers.Main) {
                     if (generation != documentScanGeneration) return@withContext
-                    setLoadingInvoice(false)
+                    setVaultReceiptProcessing(false)
                     clearVaultReceiptScanPending()
                     _documentScanState.value = DocumentScanPipelineState.Error(
                         error.localizedMessage ?: EobStrings.t(language, "documentScanFailed")
@@ -1327,6 +1356,7 @@ class EobViewModel : ViewModel() {
                 firestoreId = upload.documentRefId,
                 providerName = parsed.providerName,
                 serviceDate = parsed.serviceDate,
+                serviceDateSortKey = EobAnalyzer.serviceDateSortKey(parsed.serviceDate),
                 amount = parsed.amount,
                 thumbnailUrl = upload.downloadUrl,
                 storagePath = upload.storagePath,
@@ -1335,7 +1365,7 @@ class EobViewModel : ViewModel() {
             repo.saveVaultReceipt(userId, receipt) { message ->
                 viewModelScope.launch(Dispatchers.Main) {
                     if (generation != documentScanGeneration) return@launch
-                    setLoadingInvoice(false)
+                    setVaultReceiptProcessing(false)
                     clearVaultReceiptScanPending()
                     _documentScanState.value = DocumentScanPipelineState.Idle
                     updateUploadNotice(EobStrings.localizeRepositoryMessage(language, message))

@@ -74,4 +74,11 @@ class TaxVaultPremiumFeaturesTest {
         assertEquals("03/15/2026", parsed.serviceDate)
         assertTrue(parsed.providerName.contains("CVS"))
     }
+
+    @Test
+    fun vaultReceiptDateNormalizationHandlesIsoAndShortYear() {
+        assertEquals("03/15/2026", VaultReceiptMapper.normalizeServiceDate("2026-03-15"))
+        assertEquals("03/15/2026", VaultReceiptMapper.normalizeServiceDate("3/15/26"))
+        assertEquals("03/15/2026", VaultReceiptMapper.normalizeServiceDate("03/15/2026"))
+    }
 }

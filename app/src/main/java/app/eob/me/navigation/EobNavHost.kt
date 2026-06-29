@@ -95,7 +95,6 @@ import app.eob.me.scanner.GmsDocumentScannerLauncher
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.HubUiState
-import kotlinx.coroutines.launch
 
 @Composable
 fun EobNavHost(
@@ -742,6 +741,13 @@ private fun MainHubNavHost(
                     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
                     val taxVaultVisibilityMode by eobViewModel.taxVaultVisibilityMode.collectAsStateWithLifecycle()
                     val vaultReceipts by eobViewModel.vaultReceipts.collectAsStateWithLifecycle()
+                    val isGoldTier = uiState.hubSettings.subscriptionTier.isGold()
+                    if (!isGoldTier) {
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack(EobRoute.Home.route, inclusive = false)
+                        }
+                        return@composable
+                    }
                     val taxVaultBudgetSummary = remember(
                         sortedEobRecords,
                         profile.hsaAllocation,
@@ -763,7 +769,12 @@ private fun MainHubNavHost(
                     val eligibleEobs = remember(sortedEobRecords, taxVaultFilterState) {
                         eobViewModel.taxVaultEligibleEobs(sortedEobRecords)
                     }
-                    LaunchedEffect(profile.fsaAllocation, sortedEobRecords.size) {
+                    val fsaEligibleAmount = remember(sortedEobRecords, taxVaultFilterState) {
+                        eobViewModel.taxVaultEligibleEobs(sortedEobRecords)
+                            .filter { it.isFsaEligible }
+                            .sumOf { it.totalPatientResponsibility }
+                    }
+                    LaunchedEffect(profile.fsaAllocation, fsaEligibleAmount) {
                         eobViewModel.scheduleFsaDoomsdayMonitor(context, profile)
                     }
                     TaxVaultScreen(
@@ -797,28 +808,30 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onExportClaimPackage = {
-                            eobViewModel.exportTaxVaultClaimPackage(context).fold(
-                                onSuccess = { uri ->
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "application/pdf"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(
-                                        Intent.createChooser(
-                                            shareIntent,
-                                            EobStrings.t(language, "taxVaultExportShare")
+                            eobViewModel.exportTaxVaultClaimPackage(context) { result ->
+                                result.fold(
+                                    onSuccess = { uri ->
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "application/pdf"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(
+                                            Intent.createChooser(
+                                                shareIntent,
+                                                EobStrings.t(language, "taxVaultExportShare")
+                                            )
                                         )
-                                    )
-                                },
-                                onFailure = { error ->
-                                    Toast.makeText(
-                                        context,
-                                        error.localizedMessage.orEmpty(),
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            )
+                                    },
+                                    onFailure = { error ->
+                                        Toast.makeText(
+                                            context,
+                                            error.localizedMessage.orEmpty(),
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                )
+                            }
                             onActivity()
                         },
                         onAddReceipt = {
@@ -934,7 +947,10 @@ private fun MainHubNavHost(
                             }
                             onActivity()
                         },
-                        onClose = { navController.popBackStack() }
+                        onClose = {
+                            eobViewModel.clearVaultReceiptScanPending()
+                            navController.popBackStack()
+                        }
                     )
                 }
                 composable(EobRoute.CptCount.route) {

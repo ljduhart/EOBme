@@ -155,22 +155,28 @@ class FirebaseEobRepository(private val context: Context) {
                     onComplete("Account deletion failed: $cardError")
                     return@deleteSubcollectionDocuments
                 }
-                deleteSubcollectionDocuments(userRef.collection(DEVICES)) { deviceError ->
-                    if (deviceError != null) {
-                        onComplete("Account deletion failed: $deviceError")
+                deleteSubcollectionDocuments(userRef.collection(VAULT_RECEIPTS)) { receiptError ->
+                    if (receiptError != null) {
+                        onComplete("Account deletion failed: $receiptError")
                         return@deleteSubcollectionDocuments
                     }
-                    userRef.delete()
-                        .addOnSuccessListener {
-                            authUser.delete()
-                                .addOnSuccessListener { onComplete("Account deleted.") }
-                                .addOnFailureListener { error ->
-                                    onComplete("Auth account deletion failed: ${error.localizedMessage}")
-                                }
+                    deleteSubcollectionDocuments(userRef.collection(DEVICES)) { deviceError ->
+                        if (deviceError != null) {
+                            onComplete("Account deletion failed: $deviceError")
+                            return@deleteSubcollectionDocuments
                         }
-                        .addOnFailureListener { error ->
-                            onComplete("Firestore account deletion failed: ${error.localizedMessage}")
-                        }
+                        userRef.delete()
+                            .addOnSuccessListener {
+                                authUser.delete()
+                                    .addOnSuccessListener { onComplete("Account deleted.") }
+                                    .addOnFailureListener { error ->
+                                        onComplete("Auth account deletion failed: ${error.localizedMessage}")
+                                    }
+                            }
+                            .addOnFailureListener { error ->
+                                onComplete("Firestore account deletion failed: ${error.localizedMessage}")
+                            }
+                    }
                 }
             }
         }

@@ -192,15 +192,21 @@ exports.stapleVaultReceiptToEob = onDocumentWritten("users/{userId}/vault_receip
   const userId = event.params.userId;
   const receiptId = event.params.receiptId;
   const amount = Number(after.amount || 0);
-  const serviceDate = String(after.serviceDate || after.service_date || "").trim();
-  if (!amount || !serviceDate) return;
+  const serviceDate = normalizeServiceDate(
+    String(after.serviceDate || after.service_date || "").trim()
+  );
+  const serviceDateSortKey = Number(
+    after.serviceDateSortKey || after.service_date_sort_key || serviceDateSortKey(serviceDate)
+  );
+  if (!amount || !serviceDateSortKey) return;
 
   const eobsSnap = await db.collection("users").doc(userId).collection("eobs")
-    .where("serviceDate", "==", serviceDate)
+    .where("serviceDateSortKey", "==", serviceDateSortKey)
     .get();
 
   for (const doc of eobsSnap.docs) {
     const eob = doc.data() || {};
+    if (eob.stapledReceiptId || eob.vaultSubstantiationStatus) continue;
     const patientResp = Number(
       eob.patient_responsibility ??
       eob.patientResponsibility ??
@@ -222,3 +228,37 @@ exports.stapleVaultReceiptToEob = onDocumentWritten("users/{userId}/vault_receip
     }
   }
 });
+
+function normalizeServiceDate(rawDate) {
+  const trimmed = String(rawDate || "").trim();
+  if (!trimmed || trimmed === "Date not recognized") return "";
+  const slashMatch = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/.exec(trimmed);
+  if (slashMatch) {
+    const month = slashMatch[1].padStart(2, "0");
+    const day = slashMatch[2].padStart(2, "0");
+    let year = slashMatch[3];
+    if (year.length === 2) {
+      year = Number(year) > 50 ? `19${year}` : `20${year}`;
+    }
+    return `${month}/${day}/${year}`;
+  }
+  const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(trimmed);
+  if (isoMatch) {
+    const month = isoMatch[2].padStart(2, "0");
+    const day = isoMatch[3].padStart(2, "0");
+    const year = isoMatch[1];
+    return `${month}/${day}/${year}`;
+  }
+  return trimmed;
+}
+
+function serviceDateSortKey(dateStr) {
+  const normalized = normalizeServiceDate(dateStr);
+  const parts = normalized.split("/");
+  if (parts.length !== 3) return 0;
+  const month = Number(parts[0]);
+  const day = Number(parts[1]);
+  const year = Number(parts[2]);
+  if (!month || !day || !year) return 0;
+  return year * 10000 + month * 100 + day;
+}
