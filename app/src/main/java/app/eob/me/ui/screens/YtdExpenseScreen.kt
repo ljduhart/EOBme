@@ -641,13 +641,12 @@ internal fun ytdSummaryTitleAnchorEndIndex(title: String): Int {
 internal fun ytdYearToggleWidthUnderSummary(
     title: String,
     layout: TextLayoutResult,
-    density: Density,
-    minimumWidth: Dp = 112.dp
+    density: Density
 ): Dp {
-    if (title.isBlank()) return minimumWidth
+    if (title.isBlank()) return 0.dp
     val anchorEndIndex = ytdSummaryTitleAnchorEndIndex(title).coerceIn(1, title.length)
     val anchorRightPx = layout.getBoundingBox(anchorEndIndex - 1).right
     return with(density) {
-        anchorRightPx.toDp().coerceAtLeast(minimumWidth)
+        anchorRightPx.toDp().coerceAtLeast(1.dp)
     }
 }

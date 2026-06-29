@@ -33,6 +33,34 @@ class AppealLetterGeneratorTest {
     )
 
     @Test
+    fun emptyDraftUsesProfileInsuranceNameForBothTargets() {
+        val profileWithCarrier = profile.copy(insuranceName = "Cigna")
+        val insuranceDraft = AppealLetterGenerator.generate(
+            profile = profileWithCarrier,
+            eob = null,
+            target = AppealTarget.INSURANCE
+        )
+        val doctorDraft = AppealLetterGenerator.generate(
+            profile = profileWithCarrier,
+            eob = null,
+            target = AppealTarget.DOCTOR
+        )
+        assertTrue(insuranceDraft.contains("To: Cigna – Member Appeals Department"))
+        assertTrue(doctorDraft.contains("Insurance Carrier: Cigna"))
+    }
+
+    @Test
+    fun doctorTargetFallsBackToEobInsuranceWhenProfileBlank() {
+        val letter = AppealLetterGenerator.generate(
+            profile = profile,
+            eob = sampleRecord(),
+            target = AppealTarget.DOCTOR,
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
+        )
+        assertTrue(letter.contains("Insurance Carrier: Aetna"))
+    }
+
+    @Test
     fun insuranceTargetPrefersProfileInsuranceNameOverEobCarrier() {
         val profileWithCarrier = profile.copy(insuranceName = "UnitedHealthcare")
         val record = sampleRecord()
