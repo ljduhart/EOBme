@@ -364,6 +364,29 @@ class EobViewModelFlowTest {
     }
 
     @Test
+    fun openAppealForRecordProducesShareableInsuranceAndDoctorLetters() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+
+        viewModel.openAppealForRecord(record, profile, AppealTarget.INSURANCE)
+        val insuranceLetter = viewModel.uiState.value.appealLetter
+        assertTrue(insuranceLetter.isNotBlank())
+        assertTrue(insuranceLetter.contains("Re: Appeal of EOB determination"))
+
+        viewModel.openAppealForRecord(
+            record = record,
+            profile = profile,
+            target = AppealTarget.DOCTOR,
+            disputeStrategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
+        )
+        val doctorLetter = viewModel.uiState.value.appealLetter
+        assertTrue(doctorLetter.isNotBlank())
+        assertTrue(doctorLetter.contains("Billing Department"))
+    }
+
+    @Test
     fun onDisputeStrategySwitchedUpdatesDoctorAppealCopy() {
         val viewModel = EobViewModel()
         val record = sampleRecord(id = 1, provider = "Appeal Clinic")

@@ -312,6 +312,8 @@ object EobStrings {
         "appealEditLetter" to "Edit",
         "appealSaveLetter" to "Save",
         "appealSend" to "Send",
+        "appealSendSubjectDoctor" to "Provider Billing Dispute Appeal",
+        "appealSendSubjectInsurance" to "Insurance EOB Appeal",
         "appealTargetInsurance" to "Insurer",
         "appealTargetDoctor" to "Doctor",
         "appealStrategyImproperBalanceBilling" to "Improper Balance Billing",

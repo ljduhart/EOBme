@@ -224,7 +224,8 @@ fun AppealScreen(
                     shareAppealLetter(
                         context = context,
                         language = language,
-                        appealLetter = appealLetter
+                        appealLetter = appealLetter,
+                        selectedTarget = selectedTarget
                     )
                 },
                 modifier = Modifier
@@ -532,12 +533,17 @@ private fun copyAppealLetterToClipboard(
 private fun shareAppealLetter(
     context: Context,
     language: AppLanguage,
-    appealLetter: String
+    appealLetter: String,
+    selectedTarget: AppealTarget
 ) {
     if (appealLetter.isBlank()) return
+    val subject = when (selectedTarget) {
+        AppealTarget.DOCTOR -> EobStrings.t(language, "appealSendSubjectDoctor")
+        AppealTarget.INSURANCE -> EobStrings.t(language, "appealSendSubjectInsurance")
+    }
     val sendIntent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, EobStrings.t(language, "appealLetter"))
+        putExtra(Intent.EXTRA_SUBJECT, subject)
         putExtra(Intent.EXTRA_TEXT, appealLetter)
     }
     context.startActivity(

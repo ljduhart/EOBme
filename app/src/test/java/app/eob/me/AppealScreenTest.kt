@@ -55,6 +55,18 @@ class AppealScreenTest {
     }
 
     @Test
+    fun appealShareUsesTargetSpecificEmailSubjectsForDoctorAndInsurance() {
+        val source = readSource("ui/screens/AppealScreen.kt")
+        assertTrue(source.contains("appealSendSubjectDoctor"))
+        assertTrue(source.contains("appealSendSubjectInsurance"))
+        assertTrue(source.contains("selectedTarget = selectedTarget"))
+        assertTrue(source.contains("Intent.ACTION_SEND"))
+        assertTrue(source.contains("Intent.EXTRA_SUBJECT"))
+        assertTrue(source.contains("Intent.EXTRA_TEXT"))
+        assertTrue(source.contains("Intent.createChooser"))
+    }
+
+    @Test
     fun appealActionBarWiresEditSaveCopySendAndShare() {
         val source = readSource("ui/screens/AppealScreen.kt")
         assertTrue(source.contains("appealEditLetter"))

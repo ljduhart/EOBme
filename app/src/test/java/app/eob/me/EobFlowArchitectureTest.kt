@@ -2437,6 +2437,18 @@ class EobFlowArchitectureTest {
                 appealSource.contains("DoctorDisputeStrategySelector")
         )
         listOf(
+            "appealSendSubjectDoctor",
+            "appealSendSubjectInsurance",
+            "Intent.EXTRA_SUBJECT",
+            "Intent.EXTRA_TEXT",
+            "Intent.createChooser"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#134: doctor and insurance appeals must export through email share intent ($snippet)",
+                appealSource.contains(snippet)
+            )
+        }
+        listOf(
             "ui/screens/SplashScreen.kt",
             "ui/screens/LanguageScreen.kt",
             "ui/screens/IntroScreen.kt",
