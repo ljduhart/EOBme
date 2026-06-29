@@ -109,6 +109,54 @@ class EobViewModelCareTeamTest {
     }
 
     @Test
+    fun allCareTeamCardsStayUnassignedWithoutNameAcrossProviderTypes() {
+        val viewModel = EobViewModel()
+        CareTeamProviderType.displayOrder.forEach { type ->
+            viewModel.updatePreferredDoctor(
+                PreferredDoctor(
+                    type = type,
+                    name = "",
+                    phone = "5551234567"
+                )
+            )
+        }
+        val cards = viewModel.careTeamCardStates(AppLanguage.English)
+        CareTeamProviderType.displayOrder.forEach { type ->
+            val card = cards.first { it.type == type }
+            val stored = viewModel.uiState.value.preferredDoctors[type]
+            assertEquals("", stored?.name)
+            assertFalse(card.isAssigned)
+            assertEquals("Tap to add", card.primaryLine)
+            assertFalse(card.primaryLine.startsWith("Dr."))
+        }
+    }
+
+    @Test
+    fun clearingProviderNameOnResaveRemovesDrFromCard() {
+        val viewModel = EobViewModel()
+        viewModel.updatePreferredDoctor(
+            PreferredDoctor(
+                type = CareTeamProviderType.Therapist,
+                name = "jane doe",
+                phone = "5551234567"
+            )
+        )
+        viewModel.updatePreferredDoctor(
+            PreferredDoctor(
+                type = CareTeamProviderType.Therapist,
+                name = "",
+                phone = "5551234567"
+            )
+        )
+        val stored = viewModel.uiState.value.preferredDoctors[CareTeamProviderType.Therapist]
+        val card = viewModel.careTeamCardStates(AppLanguage.English)
+            .first { it.type == CareTeamProviderType.Therapist }
+        assertEquals("", stored?.name)
+        assertEquals("Tap to add", card.primaryLine)
+        assertEquals("(555) 123-4567", stored?.phone)
+    }
+
+    @Test
     fun careTeamPhoneDialogUsesDigitsWithVisualTransformation() {
         val candidates = listOf(
             java.io.File("src/main/java/app/eob/me/ui/components/home/HomeCareTeamCards.kt"),
