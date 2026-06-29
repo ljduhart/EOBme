@@ -195,13 +195,13 @@ exports.stapleVaultReceiptToEob = onDocumentWritten("users/{userId}/vault_receip
   const serviceDate = normalizeServiceDate(
     String(after.serviceDate || after.service_date || "").trim()
   );
-  const serviceDateSortKey = Number(
-    after.serviceDateSortKey || after.service_date_sort_key || serviceDateSortKey(serviceDate)
+  const receiptDateSortKey = Number(
+    after.serviceDateSortKey || after.service_date_sort_key || computeServiceDateSortKey(serviceDate)
   );
-  if (!amount || !serviceDateSortKey) return;
+  if (!amount || !receiptDateSortKey) return;
 
   const eobsSnap = await db.collection("users").doc(userId).collection("eobs")
-    .where("serviceDateSortKey", "==", serviceDateSortKey)
+    .where("serviceDateSortKey", "==", receiptDateSortKey)
     .get();
 
   for (const doc of eobsSnap.docs) {
@@ -252,7 +252,7 @@ function normalizeServiceDate(rawDate) {
   return trimmed;
 }
 
-function serviceDateSortKey(dateStr) {
+function computeServiceDateSortKey(dateStr) {
   const normalized = normalizeServiceDate(dateStr);
   const parts = normalized.split("/");
   if (parts.length !== 3) return 0;

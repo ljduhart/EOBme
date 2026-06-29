@@ -2553,7 +2553,16 @@ class EobFlowArchitectureTest {
         }
         assertTrue("PR#136: claim packager must use PdfDocument", packagerSource.contains("PdfDocument"))
         assertTrue("PR#136: cloud stapler trigger missing", functionsSource.contains("stapleVaultReceiptToEob"))
+        assertTrue(
+            "PR#136: FSA monitor schedules from hub-level ViewModel wiring",
+            navHostSource.contains("scheduleFsaDoomsdayMonitor(context, profile)") &&
+                navHostSource.contains("fsaEligibleAmountForMonitor")
+        )
         assertTrue("PR#136: stapler must match on serviceDateSortKey", functionsSource.contains("serviceDateSortKey"))
+        assertTrue(
+            "PR#136: stapler must avoid TDZ shadowing on sort key helper",
+            functionsSource.contains("computeServiceDateSortKey")
+        )
         assertTrue(
             "PR#136: camera close must clear vault receipt pending",
             navHostSource.contains("clearVaultReceiptScanPending")

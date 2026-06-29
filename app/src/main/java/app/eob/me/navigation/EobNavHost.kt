@@ -432,6 +432,20 @@ private fun MainHubNavHost(
         )
     }
 
+    val fsaEligibleAmountForMonitor = remember(sortedEobRecords, profile.fsaAllocation) {
+        if (profile.fsaAllocation <= 0.0) {
+            0.0
+        } else {
+            sortedEobRecords
+                .filter { it.isFsaEligible }
+                .sumOf { it.totalPatientResponsibility }
+        }
+    }
+    LaunchedEffect(userId, profile.fsaAllocation, fsaEligibleAmountForMonitor) {
+        if (userId.isBlank()) return@LaunchedEffect
+        eobViewModel.scheduleFsaDoomsdayMonitor(context, profile)
+    }
+
     LaunchedEffect(profile, userId) {
         if (userId.isNotBlank()) {
             eobViewModel.updateSyncProfile(profile)
@@ -768,14 +782,6 @@ private fun MainHubNavHost(
                     }
                     val eligibleEobs = remember(sortedEobRecords, taxVaultFilterState) {
                         eobViewModel.taxVaultEligibleEobs(sortedEobRecords)
-                    }
-                    val fsaEligibleAmount = remember(sortedEobRecords, taxVaultFilterState) {
-                        eobViewModel.taxVaultEligibleEobs(sortedEobRecords)
-                            .filter { it.isFsaEligible }
-                            .sumOf { it.totalPatientResponsibility }
-                    }
-                    LaunchedEffect(profile.fsaAllocation, fsaEligibleAmount) {
-                        eobViewModel.scheduleFsaDoomsdayMonitor(context, profile)
                     }
                     TaxVaultScreen(
                         language = language,
