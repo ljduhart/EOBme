@@ -180,6 +180,30 @@ class EobHistoryScreenTest {
         assertEquals(compacted.size, compacted.map { it.historyListKey() }.distinct().size)
     }
 
+    @Test
+    fun historyAppealPillsVisibleOnlyForSelectedExpandedRecord() {
+        val source = readSource("ui/screens/EobHistoryScreen.kt")
+        assertTrue(source.contains("HistoryAppealPillButtons"))
+        assertTrue(source.contains("isSelected"))
+        assertTrue(source.contains("if (isSelected)"))
+        assertTrue(source.contains("Color(0xFF2979FF)"))
+        assertTrue(source.contains("Color(0xFFE53935)"))
+        assertTrue(source.contains("onAppealDoctor"))
+        assertTrue(source.contains("onAppealInsurance"))
+    }
+
+    @Test
+    fun historyRouteWiresAppealPillsThroughViewModel() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(navSource.contains("openAppealForRecord"))
+        assertTrue(navSource.contains("onAppealDoctor"))
+        assertTrue(navSource.contains("onAppealInsurance"))
+        assertTrue(navSource.contains("EobRoute.Appeal.route"))
+        assertTrue(navSource.contains("selectedRecord = uiState.selectedRecord"))
+        assertTrue(viewModelSource.contains("fun openAppealForRecord"))
+    }
+
     private fun sampleRecord(id: Int, rawText: String): EobRecord {
         return EobAnalyzer.analyze(
             rawText = "Provider: Clinic $id\nAetna\n$rawText",

@@ -2283,6 +2283,63 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr132HistoryAppealPillButtonsAudit() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val stringsSource = readSource("data/EobStrings.kt")
+
+        listOf(
+            "HistoryAppealPillButtons",
+            "HistoryAppealPill",
+            "isSelected",
+            "onAppealDoctor",
+            "onAppealInsurance",
+            "appealTargetDoctor",
+            "appealTargetInsurance"
+        ).forEach { snippet ->
+            assertTrue("PR#132: history appeal pills missing $snippet", historySource.contains(snippet))
+        }
+        assertTrue(
+            "PR#132: appeal pills must sit between patient responsibility and CPT codes",
+            historySource.indexOf("emphasized = true") < historySource.indexOf("HistoryAppealPillButtons") &&
+                historySource.indexOf("HistoryAppealPillButtons") < historySource.indexOf("historyProcedureCodes")
+        )
+        listOf(
+            "openAppealForRecord",
+            "onAppealDoctor",
+            "onAppealInsurance",
+            "EobRoute.Appeal.route",
+            "selectedRecord = uiState.selectedRecord"
+        ).forEach { snippet ->
+            assertTrue("PR#132: history appeal navigation missing $snippet", navHostSource.contains(snippet))
+        }
+        assertTrue(
+            "PR#132: EobViewModel remains appeal source of truth",
+            viewModelSource.contains("fun openAppealForRecord") &&
+                viewModelSource.contains("selectRecord") &&
+                viewModelSource.contains("onAppealTargetSwitched")
+        )
+        listOf(
+            "historyAppealDoctorPill",
+            "historyAppealInsurancePill"
+        ).forEach { key ->
+            assertTrue("PR#132: appeal pill strings missing $key", stringsSource.contains("\"$key\""))
+        }
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "ui/components/EobSplashLogo.kt",
+            "network/VeryfiDocumentClient.kt",
+            "data/DocumentScanPipelineRepository.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#132: protected file touched ($path)", source.contains("HistoryAppealPill"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

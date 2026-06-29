@@ -1309,6 +1309,15 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(appealLetter = generateAppealLetter(profile, selected)) }
     }
 
+    fun openAppealForRecord(record: EobRecord, profile: UserProfile, target: AppealTarget) {
+        selectRecord(record, profile)
+        if (_uiState.value.selectedAppealTarget == target) {
+            regenerateAppeal(profile)
+        } else {
+            onAppealTargetSwitched(target)
+        }
+    }
+
     fun onDisputeStrategySwitched(strategy: DoctorDisputeStrategy) {
         if (_uiState.value.selectedDisputeStrategy == strategy) return
         _uiState.update {

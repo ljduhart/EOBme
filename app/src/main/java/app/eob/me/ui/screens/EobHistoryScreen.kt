@@ -50,6 +50,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -78,6 +80,9 @@ fun EobHistoryScreen(
     onDeleteEob: (EobRecord) -> Unit,
     onUploadEob: () -> Unit,
     onRecordSelected: (EobRecord) -> Unit,
+    selectedRecord: EobRecord? = null,
+    onAppealDoctor: (EobRecord) -> Unit = {},
+    onAppealInsurance: (EobRecord) -> Unit = {},
     showVaultFilterBanner: Boolean = false,
     taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     modifier: Modifier = Modifier
@@ -200,6 +205,7 @@ fun EobHistoryScreen(
                     timelineSections = timelineSections,
                     listState = listState,
                     expandedRecordKey = expandedRecordKey,
+                    selectedRecord = selectedRecord,
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
                     onExpandToggle = { record ->
@@ -209,6 +215,8 @@ fun EobHistoryScreen(
                         }
                         expandedRecordKey = if (expandedRecordKey == recordKey) "" else recordKey
                     },
+                    onAppealDoctor = onAppealDoctor,
+                    onAppealInsurance = onAppealInsurance,
                     onDeleteEob = onDeleteEob
                 )
             }
@@ -256,9 +264,12 @@ private fun HistoryTimelineList(
     timelineSections: List<HistoryTimelineSection>,
     listState: LazyListState,
     expandedRecordKey: String,
+    selectedRecord: EobRecord?,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     onExpandToggle: (EobRecord) -> Unit,
+    onAppealDoctor: (EobRecord) -> Unit,
+    onAppealInsurance: (EobRecord) -> Unit,
     onDeleteEob: (EobRecord) -> Unit
 ) {
     LazyColumn(
@@ -279,9 +290,12 @@ private fun HistoryTimelineList(
                     language = language,
                     row = row,
                     isExpanded = expandedRecordKey == row.record.historyListKey(),
+                    isSelected = selectedRecord?.matchesHistoryRecord(row.record) == true,
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
                     onExpandToggle = { onExpandToggle(row.record) },
+                    onAppealDoctor = { onAppealDoctor(row.record) },
+                    onAppealInsurance = { onAppealInsurance(row.record) },
                     onDeleteEob = { onDeleteEob(row.record) }
                 )
             }
@@ -312,9 +326,12 @@ private fun HistoryTimelineItemRow(
     language: AppLanguage,
     row: HistoryTimelineRow,
     isExpanded: Boolean,
+    isSelected: Boolean,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     onExpandToggle: () -> Unit,
+    onAppealDoctor: () -> Unit,
+    onAppealInsurance: () -> Unit,
     onDeleteEob: () -> Unit
 ) {
     key(row.record.historyListKey()) {
@@ -322,9 +339,12 @@ private fun HistoryTimelineItemRow(
             language = language,
             row = row,
             isExpanded = isExpanded,
+            isSelected = isSelected,
             taxVaultFilterState = taxVaultFilterState,
             showVaultFilterBanner = showVaultFilterBanner,
             onExpandToggle = onExpandToggle,
+            onAppealDoctor = onAppealDoctor,
+            onAppealInsurance = onAppealInsurance,
             onDeleteEob = onDeleteEob
         )
     }
@@ -336,9 +356,12 @@ private fun HistoryTimelineItemRowContent(
     language: AppLanguage,
     row: HistoryTimelineRow,
     isExpanded: Boolean,
+    isSelected: Boolean,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     onExpandToggle: () -> Unit,
+    onAppealDoctor: () -> Unit,
+    onAppealInsurance: () -> Unit,
     onDeleteEob: () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState()
@@ -360,7 +383,7 @@ private fun HistoryTimelineItemRowContent(
             isLastInMonth = row.isLastInMonth,
             modifier = Modifier
                 .width(28.dp)
-                .height(if (isExpanded) 220.dp else 132.dp)
+                .height(if (isExpanded) 268.dp else 132.dp)
         )
 
         SwipeToDismissBox(
@@ -393,9 +416,12 @@ private fun HistoryTimelineItemRowContent(
                     language = language,
                     record = row.record,
                     isExpanded = isExpanded,
+                    isSelected = isSelected,
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
-                    onExpandToggle = onExpandToggle
+                    onExpandToggle = onExpandToggle,
+                    onAppealDoctor = onAppealDoctor,
+                    onAppealInsurance = onAppealInsurance
                 )
             }
         )
@@ -451,9 +477,12 @@ private fun WalletReceiptCard(
     language: AppLanguage,
     record: EobRecord,
     isExpanded: Boolean,
+    isSelected: Boolean,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
-    onExpandToggle: () -> Unit
+    onExpandToggle: () -> Unit,
+    onAppealDoctor: () -> Unit,
+    onAppealInsurance: () -> Unit
 ) {
     val lineCount = record.charges.size.coerceAtLeast(1)
     val elevation = if (isExpanded) 12.dp else 3.dp
@@ -566,6 +595,15 @@ private fun WalletReceiptCard(
                     emphasized = true
                 )
 
+                if (isSelected) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HistoryAppealPillButtons(
+                        language = language,
+                        onAppealDoctor = onAppealDoctor,
+                        onAppealInsurance = onAppealInsurance
+                    )
+                }
+
                 if (record.charges.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(14.dp))
                     ReceiptDashedDivider()
@@ -583,6 +621,56 @@ private fun WalletReceiptCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HistoryAppealPillButtons(
+    language: AppLanguage,
+    onAppealDoctor: () -> Unit,
+    onAppealInsurance: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HistoryAppealPill(
+            label = EobStrings.t(language, "appealTargetDoctor"),
+            backgroundColor = Color(0xFF2979FF),
+            contentDescription = EobStrings.t(language, "historyAppealDoctorPill"),
+            onClick = onAppealDoctor
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        HistoryAppealPill(
+            label = EobStrings.t(language, "appealTargetInsurance"),
+            backgroundColor = Color(0xFFE53935),
+            contentDescription = EobStrings.t(language, "historyAppealInsurancePill"),
+            onClick = onAppealInsurance
+        )
+    }
+}
+
+@Composable
+private fun HistoryAppealPill(
+    label: String,
+    backgroundColor: Color,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        color = backgroundColor,
+        modifier = Modifier.semantics { this.contentDescription = contentDescription }
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
     }
 }
 

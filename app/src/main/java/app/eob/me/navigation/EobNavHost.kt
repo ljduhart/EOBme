@@ -49,6 +49,7 @@ import app.eob.me.billing.SubscriptionState
 import app.eob.me.viewmodel.SubscriptionViewModel
 import app.eob.me.ui.components.HubSettingsGearIcon
 import app.eob.me.ui.screens.SettingsScreen
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -81,6 +82,7 @@ import app.eob.me.ui.screens.IntroScreen
 import app.eob.me.ui.screens.LanguageScreen
 import app.eob.me.ui.screens.LoadingInvoiceScreen
 import app.eob.me.ui.screens.NewsScreen
+import app.eob.me.data.AppealTarget
 import app.eob.me.data.BillingInterval
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.ui.screens.PaywallDialog
@@ -743,6 +745,7 @@ private fun MainHubNavHost(
                         uiState = uiState,
                         sortedEobRecords = sortedEobRecords,
                         eobViewModel = eobViewModel,
+                        navController = navController,
                         onDeleteEob = { deleteEob(it) },
                         onLibraryUpload = {
                             libraryUploadLauncher.launch(arrayOf("image/*", "application/pdf"))
@@ -1113,6 +1116,7 @@ private fun HistoryRoute(
     uiState: HubUiState,
     sortedEobRecords: List<EobRecord>,
     eobViewModel: EobViewModel,
+    navController: NavHostController,
     onDeleteEob: (EobRecord) -> Unit,
     onLibraryUpload: () -> Unit,
     onActivity: () -> Unit
@@ -1204,6 +1208,17 @@ private fun HistoryRoute(
                     onUploadEob = onLibraryUpload,
                     onRecordSelected = { record ->
                         eobViewModel.selectRecord(record, profile)
+                        onActivity()
+                    },
+                    selectedRecord = uiState.selectedRecord,
+                    onAppealDoctor = { record ->
+                        eobViewModel.openAppealForRecord(record, profile, AppealTarget.DOCTOR)
+                        navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
+                        onActivity()
+                    },
+                    onAppealInsurance = { record ->
+                        eobViewModel.openAppealForRecord(record, profile, AppealTarget.INSURANCE)
+                        navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
                         onActivity()
                     },
                     showVaultFilterBanner = eobViewModel.isTaxVaultHistoryGated(),
