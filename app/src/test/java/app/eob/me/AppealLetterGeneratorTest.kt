@@ -4,6 +4,7 @@ import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.AppealTarget
 import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.data.UserProfile
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,7 +15,10 @@ class AppealLetterGeneratorTest {
         firstName = "Jane",
         lastName = "Doe",
         email = "jane@example.com",
-        insuranceId = "MEM123"
+        insuranceId = "MEM123",
+        groupName = "GRP456",
+        city = "Austin",
+        state = "TX"
     )
 
     private fun sampleRecord() = EobAnalyzer.analyze(
@@ -29,16 +33,59 @@ class AppealLetterGeneratorTest {
     )
 
     @Test
-    fun insuranceTargetUsesStandardInsurerAppealCopy() {
+    fun insuranceTargetUsesFormalMemberAppealsTemplate() {
         val letter = AppealLetterGenerator.generate(
             profile = profile,
             eob = sampleRecord(),
             target = AppealTarget.INSURANCE,
-            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
+            insuranceStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY
         )
-        assertTrue(letter.contains("Re: Appeal of EOB determination"))
-        assertTrue(letter.contains("Aetna"))
+        assertTrue(letter.contains("Member Appeals Department"))
+        assertTrue(letter.contains("Re: Formal Claim Appeal for Member: Jane Doe"))
+        assertTrue(letter.contains("Member ID: MEM123"))
+        assertTrue(letter.contains("Group Number: GRP456"))
+        assertTrue(letter.contains("Claim Number: [Claim Number listed on EOB]"))
+        assertTrue(letter.contains("Provider Name: City Medical Group"))
+        assertTrue(letter.contains("30-day review window"))
+        assertTrue(letter.contains("[Your Signature]"))
+        assertTrue(letter.contains("Austin, TX"))
         assertFalse(letter.contains("Billing Department"))
+    }
+
+    @Test
+    fun insuranceProcessedIncorrectlyInjectsSystemGlitchReason() {
+        val letter = AppealLetterGenerator.generate(
+            profile = profile,
+            eob = sampleRecord(),
+            target = AppealTarget.INSURANCE,
+            insuranceStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY
+        )
+        assertTrue(letter.contains("your system appears to have processed this claim incorrectly"))
+        assertTrue(letter.contains("contracted fee schedule"))
+    }
+
+    @Test
+    fun insuranceDeniedIncorrectlyInjectsMedicalNecessityReason() {
+        val letter = AppealLetterGenerator.generate(
+            profile = profile,
+            eob = sampleRecord(),
+            target = AppealTarget.INSURANCE,
+            insuranceStrategy = InsuranceAppealStrategy.DENIED_INCORRECTLY
+        )
+        assertTrue(letter.contains("this claim was denied incorrectly"))
+        assertTrue(letter.contains("medically necessary"))
+    }
+
+    @Test
+    fun insurancePatientResponsibilityIncorrectInjectsDeductibleMathReason() {
+        val letter = AppealLetterGenerator.generate(
+            profile = profile,
+            eob = sampleRecord(),
+            target = AppealTarget.INSURANCE,
+            insuranceStrategy = InsuranceAppealStrategy.PATIENT_RESPONSIBILITY_INCORRECT
+        )
+        assertTrue(letter.contains("my patient responsibility was assigned incorrectly"))
+        assertTrue(letter.contains("deductible / out-of-pocket maximum"))
     }
 
     @Test

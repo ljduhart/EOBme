@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppealTarget
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorDisputeStrategy
+import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
 import app.eob.me.data.UserProfile
@@ -83,6 +84,7 @@ fun AppealScreen(
     selectedRecord: EobRecord?,
     selectedTarget: AppealTarget,
     selectedDisputeStrategy: DoctorDisputeStrategy,
+    selectedInsuranceAppealStrategy: InsuranceAppealStrategy,
     appealLetter: String,
     appealLetterEditingEnabled: Boolean,
     veryfiExtractedData: VeryfiExtractedData? = null,
@@ -101,7 +103,7 @@ fun AppealScreen(
         val veryfiKey = veryfiExtractedData?.let { data ->
             "${data.dateOfService}_${data.copay}_${data.cptCodes.joinToString(",")}"
         }.orEmpty()
-        "${selectedTarget.name}_${selectedDisputeStrategy.name}_${veryfiKey}_$appealLetter"
+        "${selectedTarget.name}_${selectedDisputeStrategy.name}_${selectedInsuranceAppealStrategy.name}_${veryfiKey}_$appealLetter"
     }
 
     Box(
@@ -180,6 +182,7 @@ fun AppealScreen(
                     record = selectedRecord,
                     selectedTarget = selectedTarget,
                     selectedDisputeStrategy = selectedDisputeStrategy,
+                    selectedInsuranceAppealStrategy = selectedInsuranceAppealStrategy,
                     modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
                 )
 
@@ -308,6 +311,7 @@ private fun AppealInsightHud(
     record: EobRecord,
     selectedTarget: AppealTarget,
     selectedDisputeStrategy: DoctorDisputeStrategy,
+    selectedInsuranceAppealStrategy: InsuranceAppealStrategy,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -334,7 +338,8 @@ private fun AppealInsightHud(
                     language = language,
                     record = record,
                     target = selectedTarget,
-                    strategy = selectedDisputeStrategy
+                    strategy = selectedDisputeStrategy,
+                    insuranceStrategy = selectedInsuranceAppealStrategy
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -486,33 +491,12 @@ internal fun resolveAppealInsight(
     language: AppLanguage,
     record: EobRecord,
     target: AppealTarget,
-    strategy: DoctorDisputeStrategy
+    strategy: DoctorDisputeStrategy,
+    insuranceStrategy: InsuranceAppealStrategy
 ): String {
-    val billed = record.totalBilledAmount
-    val patientResponsibility = record.totalPatientResponsibility
-    val insurancePaid = record.totalInsurancePaidAmount
-    val contractualAdjustment = record.totalContractualAdjustmentAmount
-
     val insightBody = when (target) {
-        AppealTarget.DOCTOR -> when (strategy) {
-            DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING ->
-                EobStrings.t(language, strategy.insightKey())
-            DoctorDisputeStrategy.CODING_UPCODING_ERROR ->
-                EobStrings.t(language, strategy.insightKey())
-            DoctorDisputeStrategy.PRIOR_AUTHORIZATION_FAILURE ->
-                EobStrings.t(language, strategy.insightKey())
-            DoctorDisputeStrategy.NO_SURPRISES_ACT ->
-                EobStrings.t(language, strategy.insightKey())
-        }
-        AppealTarget.INSURANCE -> when {
-            billed > 0.0 && insurancePaid <= 0.0 ->
-                EobStrings.t(language, "appealInsightInsuranceDenied")
-            billed > 0.0 && patientResponsibility / billed >= 0.35 ->
-                EobStrings.t(language, "appealInsightHighPatientResp")
-            billed > 0.0 && contractualAdjustment / billed >= 0.4 ->
-                EobStrings.t(language, "appealInsightContractualAdj")
-            else -> EobStrings.t(language, "appealInsightDefaultInsurance")
-        }
+        AppealTarget.DOCTOR -> EobStrings.t(language, strategy.insightKey())
+        AppealTarget.INSURANCE -> EobStrings.t(language, insuranceStrategy.insightKey())
     }
 
     return EobStrings.tf(language, "appealInsightSentence", insightBody)

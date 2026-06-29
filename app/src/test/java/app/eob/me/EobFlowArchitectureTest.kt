@@ -762,6 +762,7 @@ class EobFlowArchitectureTest {
             "onDisputeStrategySwitched",
             "selectedAppealTarget",
             "selectedDisputeStrategy",
+            "selectedInsuranceAppealStrategy",
             "updateAppeal",
             "enableAppealLetterEditing",
             "saveAppealLetter",
@@ -2312,8 +2313,8 @@ class EobFlowArchitectureTest {
         )
         listOf(
             "openAppealForRecord",
-            "onAppealDoctor",
-            "onAppealInsurance",
+            "onAppealDoctorWithStrategy",
+            "onAppealInsuranceWithStrategy",
             "EobRoute.Appeal.route",
             "selectedRecord = uiState.selectedRecord"
         ).forEach { snippet ->
@@ -2457,6 +2458,58 @@ class EobFlowArchitectureTest {
         ).forEach { path ->
             val source = readSource(path)
             assertFalse("PR#134: protected file touched ($path)", source.contains("DoctorAppealStrategyFloater"))
+        }
+    }
+
+    @Test
+    fun pr135InsuranceAppealTemplateAndHistoryStrategyFloaterAudit() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val generatorSource = readSource("data/AppealLetterGenerator.kt")
+        val modelsSource = readSource("data/AppealModels.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val appealSource = readSource("ui/screens/AppealScreen.kt")
+
+        listOf(
+            "InsuranceAppealStrategyFloater",
+            "insuranceAppealTargetRecord",
+            "onAppealInsuranceWithStrategy",
+            "InsuranceAppealStrategy.entries"
+        ).forEach { snippet ->
+            assertTrue("PR#135: history insurance appeal floater missing $snippet", historySource.contains(snippet))
+        }
+        listOf(
+            "PROCESSED_INCORRECTLY",
+            "DENIED_INCORRECTLY",
+            "PATIENT_RESPONSIBILITY_INCORRECT",
+            "Member Appeals Department",
+            "Formal Claim Appeal for Member",
+            "30-day review window"
+        ).forEach { snippet ->
+            assertTrue(
+                "PR#135: insurance appeal template missing $snippet",
+                generatorSource.contains(snippet) || modelsSource.contains(snippet)
+            )
+        }
+        assertTrue(
+            "PR#135: history must route insurance strategy through ViewModel",
+            navHostSource.contains("insuranceStrategy = strategy") &&
+                viewModelSource.contains("insuranceStrategy: InsuranceAppealStrategy? = null")
+        )
+        assertTrue(
+            "PR#135: appeal screen must use insurance strategy insights",
+            appealSource.contains("insuranceStrategy.insightKey()") &&
+                appealSource.contains("selectedInsuranceAppealStrategy")
+        )
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "network/VeryfiDocumentClient.kt",
+            "data/DocumentScanPipelineRepository.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#135: protected file touched ($path)", source.contains("InsuranceAppealStrategyFloater"))
         }
     }
 

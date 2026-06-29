@@ -9,6 +9,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealLetterGenerator
 import app.eob.me.data.AppealTarget
 import app.eob.me.data.DoctorDisputeStrategy
+import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.data.BentoSnapshotExtractor
 import app.eob.me.data.CptBentoSnapshot
 import app.eob.me.data.CptCodeEntry
@@ -120,6 +121,7 @@ data class HubUiState(
     val appealLetterEditingEnabled: Boolean = false,
     val selectedAppealTarget: AppealTarget = AppealTarget.INSURANCE,
     val selectedDisputeStrategy: DoctorDisputeStrategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING,
+    val selectedInsuranceAppealStrategy: InsuranceAppealStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY,
     val paywallVisible: Boolean = false,
     val paywallMessage: String = "",
     val paywallPurchasePending: Boolean = false,
@@ -623,6 +625,7 @@ class EobViewModel : ViewModel() {
             eob = record,
             target = state.selectedAppealTarget,
             strategy = state.selectedDisputeStrategy,
+            insuranceStrategy = state.selectedInsuranceAppealStrategy,
             veryfiData = veryfiData
         )
     }
@@ -1353,22 +1356,42 @@ class EobViewModel : ViewModel() {
         record: EobRecord,
         profile: UserProfile,
         target: AppealTarget,
-        disputeStrategy: DoctorDisputeStrategy? = null
+        disputeStrategy: DoctorDisputeStrategy? = null,
+        insuranceStrategy: InsuranceAppealStrategy? = null
     ) {
         val resolvedVeryfi = scopedVeryfiDataFor(record) ?: refreshVeryfiExtractedDataForRecord(record)
-        val resolvedStrategy = disputeStrategy ?: _uiState.value.selectedDisputeStrategy
+        val resolvedDoctorStrategy = disputeStrategy ?: _uiState.value.selectedDisputeStrategy
+        val resolvedInsuranceStrategy = insuranceStrategy ?: _uiState.value.selectedInsuranceAppealStrategy
         _uiState.update { state ->
             val letter = AppealLetterGenerator.generate(
                 profile = profile,
                 eob = record,
                 target = target,
-                strategy = if (target == AppealTarget.DOCTOR) resolvedStrategy else state.selectedDisputeStrategy,
+                strategy = if (target == AppealTarget.DOCTOR) {
+                    resolvedDoctorStrategy
+                } else {
+                    state.selectedDisputeStrategy
+                },
+                insuranceStrategy = if (target == AppealTarget.INSURANCE) {
+                    resolvedInsuranceStrategy
+                } else {
+                    state.selectedInsuranceAppealStrategy
+                },
                 veryfiData = resolvedVeryfi
             )
             state.copy(
                 selectedRecord = record,
                 selectedAppealTarget = target,
-                selectedDisputeStrategy = if (target == AppealTarget.DOCTOR) resolvedStrategy else state.selectedDisputeStrategy,
+                selectedDisputeStrategy = if (target == AppealTarget.DOCTOR) {
+                    resolvedDoctorStrategy
+                } else {
+                    state.selectedDisputeStrategy
+                },
+                selectedInsuranceAppealStrategy = if (target == AppealTarget.INSURANCE) {
+                    resolvedInsuranceStrategy
+                } else {
+                    state.selectedInsuranceAppealStrategy
+                },
                 uploadNotice = "",
                 veryfiExtractedData = resolvedVeryfi,
                 veryfiExtractedDataRecordId = if (resolvedVeryfi != null) record.firestoreId else "",
@@ -1387,6 +1410,20 @@ class EobViewModel : ViewModel() {
             )
         }
         if (_uiState.value.selectedAppealTarget != AppealTarget.DOCTOR) return
+        val profile = _syncProfile.value
+        val selected = _uiState.value.selectedRecord
+        _uiState.update { it.copy(appealLetter = generateAppealLetter(profile, selected)) }
+    }
+
+    fun onInsuranceAppealStrategySwitched(strategy: InsuranceAppealStrategy) {
+        if (_uiState.value.selectedInsuranceAppealStrategy == strategy) return
+        _uiState.update {
+            it.copy(
+                selectedInsuranceAppealStrategy = strategy,
+                appealLetterEditingEnabled = false
+            )
+        }
+        if (_uiState.value.selectedAppealTarget != AppealTarget.INSURANCE) return
         val profile = _syncProfile.value
         val selected = _uiState.value.selectedRecord
         _uiState.update { it.copy(appealLetter = generateAppealLetter(profile, selected)) }

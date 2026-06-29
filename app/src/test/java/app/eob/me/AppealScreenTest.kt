@@ -42,6 +42,7 @@ class AppealScreenTest {
         assertTrue(navSource.contains("AppealScreen"))
         assertTrue(navSource.contains("selectedAppealTarget"))
         assertTrue(navSource.contains("selectedDisputeStrategy"))
+        assertTrue(navSource.contains("selectedInsuranceAppealStrategy"))
         assertTrue(navSource.contains("onAppealTargetSwitched"))
         assertTrue(navSource.contains("onDisputeStrategySwitched"))
         assertTrue(navSource.contains("regenerateAppeal"))
@@ -85,16 +86,16 @@ class AppealScreenTest {
         assertTrue(source.contains("documentAnimationKey"))
         assertTrue(source.contains("selectedTarget.name"))
         assertTrue(source.contains("selectedDisputeStrategy.name"))
+        assertTrue(source.contains("selectedInsuranceAppealStrategy.name"))
         assertTrue(source.contains("appealLetter = appealLetter"))
         assertFalse(source.contains("displayedLetter"))
     }
 
     @Test
-    fun appealInsightUsesRecordFinancialSignals() {
+    fun appealInsightUsesStrategyInsightKeys() {
         val source = readSource("ui/screens/AppealScreen.kt")
-        assertTrue(source.contains("totalPatientResponsibility"))
-        assertTrue(source.contains("totalBilledAmount"))
-        assertTrue(source.contains("totalInsurancePaidAmount"))
+        assertTrue(source.contains("insuranceStrategy.insightKey()"))
+        assertTrue(source.contains("strategy.insightKey()"))
         assertTrue(source.contains("appealInsightSentence"))
     }
 

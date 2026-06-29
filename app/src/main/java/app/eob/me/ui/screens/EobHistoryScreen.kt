@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorDisputeStrategy
+import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
@@ -85,13 +86,14 @@ fun EobHistoryScreen(
     onRecordSelected: (EobRecord) -> Unit,
     selectedRecord: EobRecord? = null,
     onAppealDoctorWithStrategy: (EobRecord, DoctorDisputeStrategy) -> Unit = { _, _ -> },
-    onAppealInsurance: (EobRecord) -> Unit = {},
+    onAppealInsuranceWithStrategy: (EobRecord, InsuranceAppealStrategy) -> Unit = { _, _ -> },
     showVaultFilterBanner: Boolean = false,
     taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     modifier: Modifier = Modifier
 ) {
     var expandedRecordKey by remember { mutableStateOf("") }
     var doctorAppealTargetRecord by remember { mutableStateOf<EobRecord?>(null) }
+    var insuranceAppealTargetRecord by remember { mutableStateOf<EobRecord?>(null) }
     val listState = rememberLazyListState()
     var fabExpanded by remember { mutableStateOf(true) }
     var previousFirstIndex by remember { mutableIntStateOf(0) }
@@ -222,11 +224,13 @@ fun EobHistoryScreen(
                         if (!collapsingSame) {
                             onRecordSelected(record)
                             doctorAppealTargetRecord = null
+                            insuranceAppealTargetRecord = null
                         }
                         expandedRecordKey = if (collapsingSame) "" else recordKey
                     },
                     onDoctorAppealRequested = { record ->
                         onRecordSelected(record)
+                        insuranceAppealTargetRecord = null
                         doctorAppealTargetRecord = if (
                             doctorAppealTargetRecord?.matchesHistoryRecord(record) == true
                         ) {
@@ -236,8 +240,15 @@ fun EobHistoryScreen(
                         }
                     },
                     onAppealInsurance = { record ->
+                        onRecordSelected(record)
                         doctorAppealTargetRecord = null
-                        onAppealInsurance(record)
+                        insuranceAppealTargetRecord = if (
+                            insuranceAppealTargetRecord?.matchesHistoryRecord(record) == true
+                        ) {
+                            null
+                        } else {
+                            record
+                        }
                     },
                     onDeleteEob = onDeleteEob
                 )
@@ -252,6 +263,22 @@ fun EobHistoryScreen(
                         onStrategySelected = { strategy ->
                             onAppealDoctorWithStrategy(record, strategy)
                             doctorAppealTargetRecord = null
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 16.dp, end = 16.dp, bottom = 96.dp)
+                    )
+                }
+            }
+
+            insuranceAppealTargetRecord?.let { record ->
+                if (selectedRecord?.matchesHistoryRecord(record) == true) {
+                    InsuranceAppealStrategyFloater(
+                        language = language,
+                        onDismiss = { insuranceAppealTargetRecord = null },
+                        onStrategySelected = { strategy ->
+                            onAppealInsuranceWithStrategy(record, strategy)
+                            insuranceAppealTargetRecord = null
                         },
                         modifier = Modifier
                             .align(Alignment.BottomStart)
@@ -709,6 +736,61 @@ private fun HistoryAppealPill(
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
+    }
+}
+
+@Composable
+private fun InsuranceAppealStrategyFloater(
+    language: AppLanguage,
+    onDismiss: () -> Unit,
+    onStrategySelected: (InsuranceAppealStrategy) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = EobStrings.t(language, "historyInsuranceAppealOptionsTitle"),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE53935)
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = EobStrings.t(language, "historyInsuranceAppealDismiss")
+                    )
+                }
+            }
+            InsuranceAppealStrategy.entries.forEach { strategy ->
+                Surface(
+                    onClick = { onStrategySelected(strategy) },
+                    shape = RoundedCornerShape(50),
+                    color = Color(0xFFE53935).copy(alpha = 0.12f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = EobStrings.t(language, strategy.labelKey()),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFE53935)
+                    )
+                }
+            }
+        }
     }
 }
 

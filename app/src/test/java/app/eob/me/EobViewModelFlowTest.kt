@@ -3,6 +3,7 @@ package app.eob.me
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppealTarget
 import app.eob.me.data.DoctorDisputeStrategy
+import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
@@ -344,11 +345,21 @@ class EobViewModelFlowTest {
         waitForHubRecords(viewModel)
         viewModel.onAppealTargetSwitched(AppealTarget.DOCTOR)
 
-        viewModel.openAppealForRecord(record, profile, AppealTarget.INSURANCE)
+        viewModel.openAppealForRecord(
+            record = record,
+            profile = profile,
+            target = AppealTarget.INSURANCE,
+            insuranceStrategy = InsuranceAppealStrategy.DENIED_INCORRECTLY
+        )
 
         assertEquals(AppealTarget.INSURANCE, viewModel.uiState.value.selectedAppealTarget)
+        assertEquals(
+            InsuranceAppealStrategy.DENIED_INCORRECTLY,
+            viewModel.uiState.value.selectedInsuranceAppealStrategy
+        )
         assertTrue(viewModel.uiState.value.appealLetter.contains("Appeal Clinic"))
-        assertTrue(viewModel.uiState.value.appealLetter.contains("Explanation of Benefits"))
+        assertTrue(viewModel.uiState.value.appealLetter.contains("Member Appeals Department"))
+        assertTrue(viewModel.uiState.value.appealLetter.contains("this claim was denied incorrectly"))
     }
 
     @Test
@@ -373,7 +384,7 @@ class EobViewModelFlowTest {
         viewModel.openAppealForRecord(record, profile, AppealTarget.INSURANCE)
         val insuranceLetter = viewModel.uiState.value.appealLetter
         assertTrue(insuranceLetter.isNotBlank())
-        assertTrue(insuranceLetter.contains("Re: Appeal of EOB determination"))
+        assertTrue(insuranceLetter.contains("Re: Formal Claim Appeal for Member:"))
 
         viewModel.openAppealForRecord(
             record = record,
@@ -384,6 +395,21 @@ class EobViewModelFlowTest {
         val doctorLetter = viewModel.uiState.value.appealLetter
         assertTrue(doctorLetter.isNotBlank())
         assertTrue(doctorLetter.contains("Billing Department"))
+    }
+
+    @Test
+    fun onInsuranceAppealStrategySwitchedUpdatesInsuranceAppealCopy() {
+        val viewModel = EobViewModel()
+        val record = sampleRecord(id = 1, provider = "Appeal Clinic")
+        viewModel.replaceRecords(listOf(record), profile)
+        waitForHubRecords(viewModel)
+        viewModel.onAppealTargetSwitched(AppealTarget.INSURANCE)
+        viewModel.onInsuranceAppealStrategySwitched(InsuranceAppealStrategy.PATIENT_RESPONSIBILITY_INCORRECT)
+        assertEquals(
+            InsuranceAppealStrategy.PATIENT_RESPONSIBILITY_INCORRECT,
+            viewModel.uiState.value.selectedInsuranceAppealStrategy
+        )
+        assertTrue(viewModel.uiState.value.appealLetter.contains("my patient responsibility was assigned incorrectly"))
     }
 
     @Test

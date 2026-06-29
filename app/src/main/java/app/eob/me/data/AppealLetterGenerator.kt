@@ -10,11 +10,12 @@ object AppealLetterGenerator {
         eob: EobRecord?,
         target: AppealTarget = AppealTarget.INSURANCE,
         strategy: DoctorDisputeStrategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING,
+        insuranceStrategy: InsuranceAppealStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY,
         veryfiData: VeryfiExtractedData? = null
     ): String {
         val selectedEob = eob ?: return emptyDraft(profile, target)
         return when (target) {
-            AppealTarget.INSURANCE -> generateInsuranceAppeal(profile, selectedEob, veryfiData)
+            AppealTarget.INSURANCE -> generateInsuranceAppeal(profile, selectedEob, insuranceStrategy, veryfiData)
             AppealTarget.DOCTOR -> generateDoctorAppeal(profile, selectedEob, strategy, veryfiData)
         }
     }
@@ -22,35 +23,65 @@ object AppealLetterGenerator {
     private fun generateInsuranceAppeal(
         profile: UserProfile,
         selectedEob: EobRecord,
+        strategy: InsuranceAppealStrategy,
         veryfiData: VeryfiExtractedData?
     ): String {
-        val memberName = profile.fullName.ifBlank { "[Member name]" }
-        val cityState = listOf(profile.city, profile.state).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "[City, State]" }
-        val subscriber = profile.insuranceId.ifBlank { "[Insurance ID]" }
+        val letterDate = formattedLetterDate()
+        val insuranceCompany = veryfiData?.insuranceCompanyName?.takeIf { it.isNotBlank() }
+            ?: selectedEob.insuranceName.ifBlank { "[Insurance Company Name]" }
+        val memberName = profile.fullName.ifBlank { "[Your Name]" }
+        val memberId = profile.insuranceId.ifBlank { "[Your Member ID]" }
+        val groupNumber = profile.groupNumber.ifBlank { "[Your Group Number]" }
+        val claimNumber = "[Claim Number listed on EOB]"
         val serviceDate = resolvedServiceDate(selectedEob, veryfiData)
-        val issues = EobAnalyzer.detectBillingIssues(selectedEob)
-        val issueSection = issueAppealSection(issues)
+        val providerName = resolvedProviderName(selectedEob, veryfiData)
+        val disputedAmount = resolvedPatientResponsibility(selectedEob, veryfiData)
+        val eobDate = resolvedEobDate(selectedEob, veryfiData)
+        val appealReason = insuranceAppealReason(strategy)
+        val phoneNumber = "[Your Phone Number]"
+        val emailAddress = profile.email.ifBlank { "[Your Email Address]" }
+        val mailingAddress = profile.locationLine().ifBlank { "[Your Mailing Address]" }
 
         return """
-            To: ${veryfiData?.insuranceCompanyName?.takeIf { it.isNotBlank() } ?: selectedEob.insuranceName}
+            $letterDate
 
-            Re: Appeal of EOB determination
+            To: $insuranceCompany – Member Appeals Department
 
-            Member: $memberName
-            Insurance ID: $subscriber
-            Location: $cityState
-            Provider: ${veryfiData?.providerName?.takeIf { it.isNotBlank() } ?: selectedEob.providerName}
+            Re: Formal Claim Appeal for Member: $memberName
+
+            Member ID: $memberId
+
+            Group Number: $groupNumber
+
+            Claim Number: $claimNumber
+
             Date of Service: $serviceDate
 
-            I am requesting a review of the Explanation of Benefits for the services listed above. The EOB shows a billed amount of ${selectedEob.totalBilledAmount.asCurrency()}, insurance paid of ${selectedEob.totalInsurancePaidAmount.asCurrency()}, and contractual adjustment of ${selectedEob.totalContractualAdjustmentAmount.asCurrency()}.
+            Provider Name: $providerName
 
-            $issueSection
+            I am writing to formally appeal the processing of the healthcare claim referenced above, which resulted in an unexpected patient balance of $disputedAmount on my recent Explanation of Benefits (EOB) dated $eobDate. After carefully reviewing my plan's Summary of Benefits, my provider's billing statement, and the EOB in question, I am disputing this determination because $appealReason Based on my active coverage policy at the time of the visit, the services rendered by $providerName fall well within my plan's covered benefits and should not have resulted in this financial outcome.
 
-            Please reprocess this claim, confirm the provider contract rate, and provide a written explanation for any copay, deductible, coinsurance, denial, or patient responsibility amount that remains.
+            Enclosed with this letter, please find a copy of the disputed Explanation of Benefits, the itemized statement from my healthcare provider, and [insert additional proof, e.g., a copy of my insurance card / my plan's coverage ledger]. I respectfully request that your claims department conduct a secondary review of this file, correct the system adjudication error, and issue a revised EOB reflecting the proper contractual reimbursement to the provider and the accurate patient responsibility. Please confirm receipt of this appeal and notify me of your written determination within the standard 30-day review window; I can be reached at $phoneNumber or $emailAddress should your review team require any clarification.
 
-            Thank you,
+            Sincerely,
+
             $memberName
+
+            [Your Signature]
+
+            $mailingAddress
         """.trimIndent()
+    }
+
+    private fun insuranceAppealReason(strategy: InsuranceAppealStrategy): String {
+        return when (strategy) {
+            InsuranceAppealStrategy.PROCESSED_INCORRECTLY ->
+                "your system appears to have processed this claim incorrectly. The billing codes submitted by the provider match covered standard benefits under my policy, yet the claim was finalized with administrative calculation errors that do not align with my plan's contracted fee schedule."
+            InsuranceAppealStrategy.DENIED_INCORRECTLY ->
+                "this claim was denied incorrectly. The procedures performed were medically necessary to treat my diagnosed condition, were ordered by an authorized provider, and are explicitly listed as covered medical services under my active plan document."
+            InsuranceAppealStrategy.PATIENT_RESPONSIBILITY_INCORRECT ->
+                "my patient responsibility was assigned incorrectly. According to my year-to-date plan records, I had already met my [select one: deductible / out-of-pocket maximum] prior to this date of service, meaning this claim should have been reimbursed at a higher tier rather than shifting the balance to me."
+        }
     }
 
     private fun generateDoctorAppeal(
@@ -118,6 +149,11 @@ object AppealLetterGenerator {
             ?: formattedLetterDate()
     }
 
+    private fun resolvedEobDate(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
+        return resolvedServiceDate(selectedEob, veryfiData).takeIf { it.isNotBlank() && it != "[Date of Service]" }
+            ?: "[Date of EOB]"
+    }
+
     private fun resolvedServiceDate(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
         return veryfiData?.dateOfService?.takeIf { it.isNotBlank() }
             ?: selectedEob.serviceDate.ifBlank { "[Date of Service]" }
@@ -126,38 +162,38 @@ object AppealLetterGenerator {
     private fun resolvedPatientResponsibility(selectedEob: EobRecord, veryfiData: VeryfiExtractedData?): String {
         val amount = veryfiData?.patientResponsibility?.takeIf { it > 0.0 }
             ?: selectedEob.totalPatientResponsibility.takeIf { it > 0.0 }
-        return amount?.asCurrency() ?: "[Amount]"
-    }
-
-    private fun issueAppealSection(issues: List<BillingIssue>): String {
-        if (issues.isEmpty()) {
-            return "I am requesting confirmation that this claim was processed according to my plan benefits and the provider contract."
-        }
-        return buildString {
-            appendLine("Issues identified for review:")
-            issues.forEach { issue ->
-                appendLine("- ${issue.title}: ${issue.explanation}")
-                appendLine("  Requested action: ${issue.recommendedAction}")
-            }
-            append("Please treat this appeal as a request for a full claim review and written explanation for each issue above.")
-        }
+        return amount?.asCurrency() ?: "[Disputed Amount]"
     }
 
     private fun emptyDraft(profile: UserProfile, target: AppealTarget): String {
         val memberName = profile.fullName.ifBlank { "[Your Name]" }
         return when (target) {
             AppealTarget.INSURANCE -> """
-                To: [Insurance company]
+                ${formattedLetterDate()}
 
-                Re: Appeal of EOB determination
+                To: [Insurance Company Name] – Member Appeals Department
 
-                Member: $memberName
-                Insurance ID: ${profile.insuranceId.ifBlank { "[Insurance ID]" }}
+                Re: Formal Claim Appeal for Member: $memberName
+
+                Member ID: ${profile.insuranceId.ifBlank { "[Your Member ID]" }}
+
+                Group Number: ${profile.groupNumber.ifBlank { "[Your Group Number]" }}
+
+                Claim Number: [Claim Number listed on EOB]
+
+                Date of Service: [Date of Service]
+
+                Provider Name: [Doctor or Facility Name]
 
                 Please review the attached Explanation of Benefits and reprocess the claim according to the plan benefits and provider contract.
 
-                Thank you,
+                Sincerely,
+
                 $memberName
+
+                [Your Signature]
+
+                ${profile.locationLine().ifBlank { "[Your Mailing Address]" }}
             """.trimIndent()
             AppealTarget.DOCTOR -> """
                 ${formattedLetterDate()}

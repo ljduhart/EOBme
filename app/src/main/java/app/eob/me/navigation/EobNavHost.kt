@@ -888,6 +888,7 @@ private fun MainHubNavHost(
                         selectedRecord = uiState.selectedRecord,
                         selectedTarget = uiState.selectedAppealTarget,
                         selectedDisputeStrategy = uiState.selectedDisputeStrategy,
+                        selectedInsuranceAppealStrategy = uiState.selectedInsuranceAppealStrategy,
                         appealLetter = uiState.appealLetter,
                         appealLetterEditingEnabled = uiState.appealLetterEditingEnabled,
                         veryfiExtractedData = uiState.veryfiExtractedData,
@@ -1236,8 +1237,13 @@ private fun HistoryRoute(
                         navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
                         onActivity()
                     },
-                    onAppealInsurance = { record ->
-                        eobViewModel.openAppealForRecord(record, profile, AppealTarget.INSURANCE)
+                    onAppealInsuranceWithStrategy = { record, strategy ->
+                        eobViewModel.openAppealForRecord(
+                            record = record,
+                            profile = profile,
+                            target = AppealTarget.INSURANCE,
+                            insuranceStrategy = strategy
+                        )
                         navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
                         onActivity()
                     },

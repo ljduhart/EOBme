@@ -5,13 +5,14 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobRecord
+import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.ui.screens.resolveAppealInsight
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AppealInsightTest {
     @Test
-    fun insuranceInsightFlagsDeniedClaimWhenInsurancePaidIsZero() {
+    fun insuranceInsightReflectsProcessedIncorrectlyStrategy() {
         val record = recordWithTotals(
             billed = 500.0,
             insurancePaid = 0.0,
@@ -22,14 +23,15 @@ class AppealInsightTest {
             language = AppLanguage.English,
             record = record,
             target = AppealTarget.INSURANCE,
-            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING,
+            insuranceStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY
         )
 
-        assertTrue(insight.contains("Insurance paid $0"))
+        assertTrue(insight.contains("administrative calculation errors"))
     }
 
     @Test
-    fun insuranceInsightFlagsHighPatientResponsibility() {
+    fun insuranceInsightReflectsDeniedIncorrectlyStrategy() {
         val record = recordWithTotals(
             billed = 200.0,
             insurancePaid = 40.0,
@@ -41,10 +43,11 @@ class AppealInsightTest {
             language = AppLanguage.English,
             record = record,
             target = AppealTarget.INSURANCE,
-            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING,
+            insuranceStrategy = InsuranceAppealStrategy.DENIED_INCORRECTLY
         )
 
-        assertTrue(insight.contains("unusually high"))
+        assertTrue(insight.contains("incorrect denial"))
     }
 
     @Test
@@ -55,13 +58,15 @@ class AppealInsightTest {
             language = AppLanguage.English,
             record = record,
             target = AppealTarget.DOCTOR,
-            strategy = DoctorDisputeStrategy.NO_SURPRISES_ACT
+            strategy = DoctorDisputeStrategy.NO_SURPRISES_ACT,
+            insuranceStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY
         )
         val balanceBillingInsight = resolveAppealInsight(
             language = AppLanguage.English,
             record = record,
             target = AppealTarget.DOCTOR,
-            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
+            strategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING,
+            insuranceStrategy = InsuranceAppealStrategy.PROCESSED_INCORRECTLY
         )
 
         assertTrue(noSurprisesInsight.contains("No Surprises Act"))

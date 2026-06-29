@@ -10,6 +10,24 @@ enum class AppealTarget {
     }
 }
 
+enum class InsuranceAppealStrategy {
+    PROCESSED_INCORRECTLY,
+    DENIED_INCORRECTLY,
+    PATIENT_RESPONSIBILITY_INCORRECT;
+
+    fun labelKey(): String = when (this) {
+        PROCESSED_INCORRECTLY -> "appealStrategyInsuranceProcessedIncorrectly"
+        DENIED_INCORRECTLY -> "appealStrategyInsuranceDeniedIncorrectly"
+        PATIENT_RESPONSIBILITY_INCORRECT -> "appealStrategyInsurancePatientResponsibilityIncorrect"
+    }
+
+    fun insightKey(): String = when (this) {
+        PROCESSED_INCORRECTLY -> "appealInsightInsuranceProcessedIncorrectly"
+        DENIED_INCORRECTLY -> "appealInsightInsuranceDeniedIncorrectly"
+        PATIENT_RESPONSIBILITY_INCORRECT -> "appealInsightInsurancePatientResponsibilityIncorrect"
+    }
+}
+
 enum class DoctorDisputeStrategy {
     IMPROPER_BALANCE_BILLING,
     CODING_UPCODING_ERROR,

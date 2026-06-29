@@ -145,8 +145,9 @@ class ExampleUnitTest {
             target = app.eob.me.data.AppealTarget.INSURANCE
         )
 
-        assertTrue(letter.contains("Issues identified for review"))
-        assertTrue(letter.contains("Possible denial language"))
+        assertTrue(letter.contains("Member Appeals Department"))
+        assertTrue(letter.contains("Formal Claim Appeal for Member"))
+        assertTrue(letter.contains("your system appears to have processed this claim incorrectly"))
     }
 
     @Test

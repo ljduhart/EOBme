@@ -210,8 +210,19 @@ class EobHistoryScreenTest {
         assertTrue(navSource.contains("openAppealForRecord"))
         assertTrue(navSource.contains("onAppealDoctorWithStrategy"))
         assertTrue(navSource.contains("disputeStrategy = strategy"))
-        assertTrue(navSource.contains("EobRoute.Appeal.route"))
+        assertTrue(navSource.contains("onAppealInsuranceWithStrategy"))
+        assertTrue(navSource.contains("insuranceStrategy = strategy"))
         assertTrue(viewModelSource.contains("fun openAppealForRecord"))
+    }
+
+    @Test
+    fun historyScreenShowsInsuranceAppealStrategyFloater() {
+        val source = readSource("ui/screens/EobHistoryScreen.kt")
+        assertTrue(source.contains("InsuranceAppealStrategyFloater"))
+        assertTrue(source.contains("insuranceAppealTargetRecord"))
+        assertTrue(source.contains("InsuranceAppealStrategy.entries"))
+        assertTrue(source.contains("historyInsuranceAppealOptionsTitle"))
+        assertTrue(source.contains("onAppealInsuranceWithStrategy"))
     }
 
     @Test
