@@ -71,6 +71,7 @@ fun HistoryBentoCell(
     processingPhase: InvoiceProcessingPhase,
     isLoadingInvoice: Boolean,
     activeFilter: HistoryBentoFilter,
+    billingErrorDetectionEnabled: Boolean = true,
     onClick: () -> Unit,
     onFilterSelected: (HistoryBentoFilter) -> Unit,
     onFileDropAnimationFinished: () -> Unit,
@@ -183,15 +184,17 @@ fun HistoryBentoCell(
                         onClick = { onFilterSelected(HistoryBentoFilter.All) },
                         modifier = Modifier.weight(1f)
                     )
-                    HistoryFilterBadge(
-                        language = language,
-                        label = EobStrings.t(language, "historyFilterFlagged"),
-                        count = snapshot.flaggedBillingErrorCount,
-                        selected = activeFilter == HistoryBentoFilter.Flagged,
-                        tint = MaterialTheme.colorScheme.error,
-                        onClick = { onFilterSelected(HistoryBentoFilter.Flagged) },
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (billingErrorDetectionEnabled) {
+                        HistoryFilterBadge(
+                            language = language,
+                            label = EobStrings.t(language, "historyFilterFlagged"),
+                            count = snapshot.flaggedBillingErrorCount,
+                            selected = activeFilter == HistoryBentoFilter.Flagged,
+                            tint = MaterialTheme.colorScheme.error,
+                            onClick = { onFilterSelected(HistoryBentoFilter.Flagged) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
                 }
 

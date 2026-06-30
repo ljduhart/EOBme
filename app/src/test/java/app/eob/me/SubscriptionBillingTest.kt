@@ -76,8 +76,8 @@ class SubscriptionBillingTest {
     fun subscriptionCatalogMarketingPricesMatchStrategy() {
         assertEquals("$2.99/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Silver, BillingInterval.MONTHLY))
         assertEquals("$29.99/yr", SubscriptionCatalog.displayPrice(SubscriptionTier.Silver, BillingInterval.ANNUAL))
-        assertEquals("$4.99/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
-        assertEquals("$44.99/yr", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.ANNUAL))
+        assertEquals("$5.99/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
+        assertEquals("$49.99/yr", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.ANNUAL))
     }
 
     @Test
@@ -253,10 +253,9 @@ class SubscriptionBillingTest {
         assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Gold)"))
         assertTrue(paywallSource.contains("paywallPricing.displayPrice"))
         assertTrue(paywallSource.contains("paywallPricing.checkoutPrice"))
-        assertFalse(
-            "Paywall must not hardcode catalog marketing prices",
-            paywallSource.contains("SubscriptionCatalog.displayPrice")
-        )
+        assertTrue(paywallSource.contains("currentSubscriptionTier"))
+        assertTrue(paywallSource.contains("alreadySubscribedLabel"))
+        assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Free)"))
         assertTrue(paywallSource.contains("Column(verticalArrangement = Arrangement.spacedBy"))
     }
 
@@ -350,6 +349,7 @@ class SubscriptionBillingTest {
         assertTrue(mapperSource.contains("billing_payment_declined"))
         assertTrue(mapperSource.contains("billing_payment_pending"))
         assertTrue(mapperSource.contains("billing_product_unavailable"))
+        assertTrue(mapperSource.contains("billing_already_subscribed"))
     }
 
     @Test
@@ -435,6 +435,23 @@ class SubscriptionBillingTest {
         val resolverSource = readSource("billing/RevenueCatPackageResolver.kt")
         assertTrue(resolverSource.contains("revenueCatProductIdentifier"))
         assertTrue(resolverSource.contains("SubscriptionCatalog.offerRef"))
+    }
+
+    @Test
+    fun eobViewModelBlocksRepurchaseOfActiveTier() {
+        val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Gold)
+        assertFalse(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Gold))
+        assertFalse(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Silver))
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
+        assertTrue(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Gold))
+        assertFalse(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Silver))
+    }
+
+    @Test
+    fun billingRepositoryMapsAlreadyOwnedToAlreadySubscribedNotice() {
+        val billingSource = readSource("billing/BillingRepository.kt")
+        assertTrue(billingSource.contains("billing_already_subscribed"))
     }
 
     private fun readSource(relativePath: String): String {

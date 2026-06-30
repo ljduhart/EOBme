@@ -41,7 +41,9 @@ import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.VeryfiAnyDocExtractionState
 import app.eob.me.data.VeryfiExtractedData
 import app.eob.me.data.toVeryfiExtractedData
+import app.eob.me.data.EobmeFeatureGate
 import app.eob.me.data.EobKnowledgeBase
+import app.eob.me.data.FeatureAccess
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.ProviderAvatarPreview
 import app.eob.me.data.ProviderSummary
@@ -70,6 +72,7 @@ import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.SettingsTab
 import app.eob.me.data.SubscriptionTier
+import app.eob.me.data.SubscriptionUsageStore
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.network.InsuranceNewsRotation
 import app.eob.me.network.RetrofitClient
@@ -162,6 +165,7 @@ class EobViewModel : ViewModel() {
     private var repository: EobRepository? = null
     private val _repository = MutableStateFlow<EobRepository?>(null)
     private var settingsStore: HubSettingsStore? = null
+    private var subscriptionUsageStore: SubscriptionUsageStore? = null
     private var appContext: Context? = null
     private var profileListener: ListenerRegistration? = null
     private var lastBackgroundAt: Long = System.currentTimeMillis()
@@ -250,6 +254,7 @@ class EobViewModel : ViewModel() {
         _repository.value = repo
         appContext = context.applicationContext
         settingsStore = HubSettingsStore(context)
+        subscriptionUsageStore = SubscriptionUsageStore(context)
         loadHubSettings()
         refreshCacheSize()
         refreshFirebaseStatus()
@@ -505,7 +510,8 @@ class EobViewModel : ViewModel() {
         EobStrings.t(language, "billingPaymentPending"),
         EobStrings.t(language, "billingRestoreNone"),
         EobStrings.t(language, "billingRestoreFailed"),
-        EobStrings.t(language, "billingRestoreSuccess")
+        EobStrings.t(language, "billingRestoreSuccess"),
+        EobStrings.t(language, "billingAlreadySubscribed")
     )
 
     fun isTaxVaultGoldUnlocked(): Boolean {
@@ -572,6 +578,7 @@ class EobViewModel : ViewModel() {
             "billing_restore_none" -> EobStrings.t(language, "billingRestoreNone")
             "billing_restore_failed" -> EobStrings.t(language, "billingRestoreFailed")
             "billing_restore_success" -> EobStrings.t(language, "billingRestoreSuccess")
+            "billing_already_subscribed" -> EobStrings.t(language, "billingAlreadySubscribed")
             "billing_user_canceled" -> ""
             else -> EobStrings.t(language, "billingFlowFailed")
         }
@@ -696,6 +703,66 @@ class EobViewModel : ViewModel() {
     fun hubTimeKey(): Int {
         val calendar = Calendar.getInstance()
         return calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.MONTH)
+    }
+
+    fun monthlyEobScanCount(): Int {
+        return subscriptionUsageStore?.readMonthlyEobScanCount(hubTimeKey()) ?: 0
+    }
+
+    fun monthlyAppealLetterCount(): Int {
+        return subscriptionUsageStore?.readMonthlyAppealLetterCount(hubTimeKey()) ?: 0
+    }
+
+    fun canPerformEobScan(): Boolean {
+        val tier = _uiState.value.hubSettings.subscriptionTier
+        return when (val access = EobmeFeatureGate.getEobScanLimit(tier)) {
+            FeatureAccess.Unlimited -> true
+            is FeatureAccess.Limited -> monthlyEobScanCount() < access.limit
+            FeatureAccess.Denied -> false
+        }
+    }
+
+    fun isEobScanLimitReached(): Boolean {
+        val tier = _uiState.value.hubSettings.subscriptionTier
+        return when (val access = EobmeFeatureGate.getEobScanLimit(tier)) {
+            FeatureAccess.Unlimited -> false
+            is FeatureAccess.Limited -> monthlyEobScanCount() >= access.limit
+            FeatureAccess.Denied -> true
+        }
+    }
+
+    fun eobScanLimitMessage(language: AppLanguage): String {
+        return EobStrings.t(language, "eobScanLimitReached")
+    }
+
+    fun canGenerateAppealLetter(): Boolean {
+        val tier = _uiState.value.hubSettings.subscriptionTier
+        return when (val access = EobmeFeatureGate.getAppealLetterLimit(tier)) {
+            FeatureAccess.Unlimited -> true
+            is FeatureAccess.Limited -> monthlyAppealLetterCount() < access.limit
+            FeatureAccess.Denied -> false
+        }
+    }
+
+    fun appealLetterLimitMessage(language: AppLanguage): String {
+        return EobStrings.t(language, "appealLetterLimitReached")
+    }
+
+    fun canPurchaseSubscriptionTier(targetTier: SubscriptionTier): Boolean {
+        if (targetTier == SubscriptionTier.Free) return false
+        return _uiState.value.hubSettings.subscriptionTier.rank() < targetTier.rank()
+    }
+
+    fun alreadySubscribedMessage(language: AppLanguage): String {
+        return EobStrings.t(language, "billingAlreadySubscribed")
+    }
+
+    private fun recordEobScanUsage() {
+        subscriptionUsageStore?.incrementMonthlyEobScanCount(hubTimeKey())
+    }
+
+    private fun recordAppealLetterUsage() {
+        subscriptionUsageStore?.incrementMonthlyAppealLetterCount(hubTimeKey())
     }
 
     fun resetHubState() {
@@ -1071,6 +1138,11 @@ class EobViewModel : ViewModel() {
     }
 
     fun setHistoryBentoFilter(filter: HistoryBentoFilter) {
+        if (filter == HistoryBentoFilter.Flagged &&
+            !EobmeFeatureGate.hasBillingErrorDetection(_uiState.value.hubSettings.subscriptionTier)
+        ) {
+            return
+        }
         _uiState.update { it.copy(historyBentoFilter = filter) }
     }
 
@@ -1448,11 +1520,24 @@ class EobViewModel : ViewModel() {
     }
 
     fun providerAvatarPreviews(language: AppLanguage): List<ProviderAvatarPreview> {
-        return EobAnalyzer.providerAvatarPreviews(_eobRecords.value, language)
+        val tier = _uiState.value.hubSettings.subscriptionTier
+        val previewLimit = when (val access = EobmeFeatureGate.getProviderStorageLimit(tier)) {
+            FeatureAccess.Unlimited -> 3
+            is FeatureAccess.Limited -> access.limit.coerceAtMost(3)
+            FeatureAccess.Denied -> 0
+        }
+        if (previewLimit == 0) return emptyList()
+        return EobAnalyzer.providerAvatarPreviews(_eobRecords.value, language, limit = previewLimit)
     }
 
     fun providerDirectory(): List<ProviderSummary> {
-        return EobAnalyzer.providerDirectory(_eobRecords.value)
+        val all = EobAnalyzer.providerDirectory(_eobRecords.value)
+        val tier = _uiState.value.hubSettings.subscriptionTier
+        return when (val access = EobmeFeatureGate.getProviderStorageLimit(tier)) {
+            FeatureAccess.Unlimited -> all
+            is FeatureAccess.Limited -> all.take(access.limit)
+            FeatureAccess.Denied -> emptyList()
+        }
     }
 
     fun yearlyHealthCostSummary(preferredYear: Int? = null): YearlyHealthCostSummary {
@@ -1677,7 +1762,11 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(historyPage = page.coerceIn(0, HistoryPagination.MAX_PAGE_INDEX)) }
     }
 
-    fun regenerateAppeal(profile: UserProfile) {
+    fun regenerateAppeal(profile: UserProfile, language: AppLanguage): Boolean {
+        if (!canGenerateAppealLetter()) {
+            showPaywall(appealLetterLimitMessage(language))
+            return false
+        }
         val selected = _uiState.value.selectedRecord
         _uiState.update {
             it.copy(
@@ -1685,6 +1774,8 @@ class EobViewModel : ViewModel() {
                 appealLetterEditingEnabled = false
             )
         }
+        recordAppealLetterUsage()
+        return true
     }
 
     fun onAppealTargetSwitched(target: AppealTarget) {
@@ -1704,9 +1795,14 @@ class EobViewModel : ViewModel() {
         record: EobRecord,
         profile: UserProfile,
         target: AppealTarget,
+        language: AppLanguage,
         disputeStrategy: DoctorDisputeStrategy? = null,
         insuranceStrategy: InsuranceAppealStrategy? = null
-    ) {
+    ): Boolean {
+        if (!canGenerateAppealLetter()) {
+            showPaywall(appealLetterLimitMessage(language))
+            return false
+        }
         val resolvedVeryfi = scopedVeryfiDataFor(record) ?: refreshVeryfiExtractedDataForRecord(record)
         val resolvedDoctorStrategy = disputeStrategy ?: _uiState.value.selectedDisputeStrategy
         val resolvedInsuranceStrategy = insuranceStrategy ?: _uiState.value.selectedInsuranceAppealStrategy
@@ -1747,6 +1843,8 @@ class EobViewModel : ViewModel() {
                 appealLetterEditingEnabled = false
             )
         }
+        recordAppealLetterUsage()
+        return true
     }
 
     fun onDisputeStrategySwitched(strategy: DoctorDisputeStrategy) {
@@ -1777,9 +1875,10 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(appealLetter = generateAppealLetter(profile, selected)) }
     }
 
-    fun activateAppealGeneratorBento(profile: UserProfile) {
-        regenerateAppeal(profile)
+    fun activateAppealGeneratorBento(profile: UserProfile, language: AppLanguage): Boolean {
+        if (!regenerateAppeal(profile, language)) return false
         _uiState.update { it.copy(appealGeneratorBentoProcessing = true) }
+        return true
     }
 
     fun acknowledgeAppealGeneratorBentoActivation() {
@@ -1831,6 +1930,13 @@ class EobViewModel : ViewModel() {
         if (userId.isBlank()) {
             _documentScanState.value = DocumentScanPipelineState.Error(
                 EobStrings.t(language, "signInBeforeUpload")
+            )
+            return
+        }
+        if (resolvedScanType == CameraScanDocumentType.Eob && !canPerformEobScan()) {
+            showPaywall(eobScanLimitMessage(language))
+            _documentScanState.value = DocumentScanPipelineState.Error(
+                eobScanLimitMessage(language)
             )
             return
         }
@@ -1927,6 +2033,9 @@ class EobViewModel : ViewModel() {
                                 appealLetterEditingEnabled = false
                             )
                         }
+                        if (resolvedScanType == CameraScanDocumentType.Eob) {
+                            recordEobScanUsage()
+                        }
                         updateUploadNotice(EobStrings.t(language, "documentScanSuccess"))
                         setLoadingInvoice(false)
                     },
@@ -1956,6 +2065,12 @@ class EobViewModel : ViewModel() {
             updateUploadNotice(EobStrings.t(language, "signInBeforeScan"))
             return
         }
+        if (!canPerformEobScan()) {
+            showPaywall(eobScanLimitMessage(language))
+            setLoadingInvoice(false)
+            updateUploadNotice(eobScanLimitMessage(language))
+            return
+        }
         val context = appContext
         if (context != null && !canUploadOnCurrentNetwork(context)) {
             setLoadingInvoice(false)
@@ -1968,6 +2083,9 @@ class EobViewModel : ViewModel() {
                 .ifBlank { EobStrings.t(language, "cameraScanStarted") }
             updateUploadNotice(notice)
             if (message.contains("failed", ignoreCase = true)) {
+                setLoadingInvoice(false)
+            } else {
+                recordEobScanUsage()
                 setLoadingInvoice(false)
             }
         }

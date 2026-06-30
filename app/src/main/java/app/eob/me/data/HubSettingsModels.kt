@@ -12,6 +12,14 @@ enum class SubscriptionTier {
     }
 
     fun isGold(): Boolean = this == Gold
+
+    fun isSilverOrAbove(): Boolean = this == Silver || this == Gold
+
+    fun rank(): Int = when (this) {
+        Free -> 0
+        Silver -> 1
+        Gold -> 2
+    }
 }
 
 enum class AppLockTimeout(val millis: Long) {

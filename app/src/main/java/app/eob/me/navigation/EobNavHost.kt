@@ -57,6 +57,7 @@ import androidx.navigation.compose.rememberNavController
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.DocumentScanPipelineState
+import app.eob.me.data.EobmeFeatureGate
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
@@ -325,6 +326,11 @@ private fun MainHubNavHost(
     }
 
     fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
+        if (!eobViewModel.canPurchaseSubscriptionTier(tier)) {
+            eobViewModel.handleBillingNoticeForPaywall(language, "billing_already_subscribed")
+            onActivity()
+            return
+        }
         val host = activity
         if (host == null) {
             eobViewModel.handleBillingNoticeForPaywall(language, "billing_flow_failed")
@@ -535,6 +541,7 @@ private fun MainHubNavHost(
                     language = language,
                     selectedTab = selectedBottomTab,
                     scanEnabled = userId.isNotBlank(),
+                    scanLimitReached = userId.isNotBlank() && eobViewModel.isEobScanLimitReached(),
                     onTabSelected = { tab ->
                         when (tab) {
                             HubBottomTab.Dashboard -> {
@@ -544,14 +551,21 @@ private fun MainHubNavHost(
                                 onActivity()
                             }
                             HubBottomTab.ScanEob -> {
-                                if (userId.isNotBlank()) {
-                                    customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        EobStrings.t(language, "signInBeforeUpload"),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                when {
+                                    userId.isBlank() -> {
+                                        Toast.makeText(
+                                            context,
+                                            EobStrings.t(language, "signInBeforeUpload"),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                    eobViewModel.isEobScanLimitReached() -> {
+                                        eobViewModel.showPaywall(eobViewModel.eobScanLimitMessage(language))
+                                        onActivity()
+                                    }
+                                    else -> {
+                                        customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
                                 }
                             }
                             HubBottomTab.Profile -> {
@@ -717,9 +731,16 @@ private fun MainHubNavHost(
                         historyFilter = uiState.historyBentoFilter,
                         providerAvatars = providerAvatars,
                         onHistoryFilterSelected = { filter ->
-                            eobViewModel.setHistoryBentoFilter(filter)
-                            navController.navigate(EobRoute.History.route) { launchSingleTop = true }
-                            onActivity()
+                            if (filter == HistoryBentoFilter.Flagged &&
+                                !EobmeFeatureGate.hasBillingErrorDetection(uiState.hubSettings.subscriptionTier)
+                            ) {
+                                eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                                onActivity()
+                            } else {
+                                eobViewModel.setHistoryBentoFilter(filter)
+                                navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+                                onActivity()
+                            }
                         },
                         onInvoiceFileDropFinished = {
                             eobViewModel.acknowledgeInvoiceFileDropAnimation()
@@ -729,10 +750,14 @@ private fun MainHubNavHost(
                             eobViewModel.acknowledgeAppealGeneratorBentoActivation()
                         },
                         onBentoSelected = { destination ->
-                            if (destination == HubBentoDestination.AppealGenerator) {
-                                eobViewModel.activateAppealGeneratorBento(profile)
+                            val canNavigate = if (destination == HubBentoDestination.AppealGenerator) {
+                                eobViewModel.activateAppealGeneratorBento(profile, language)
+                            } else {
+                                true
                             }
-                            navController.navigate(destination.route) { launchSingleTop = true }
+                            if (canNavigate) {
+                                navController.navigate(destination.route) { launchSingleTop = true }
+                            }
                             onActivity()
                         },
                         taxVaultFilterState = taxVaultFilterState,
@@ -1069,7 +1094,7 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onRegenerate = {
-                            eobViewModel.regenerateAppeal(profile)
+                            eobViewModel.regenerateAppeal(profile, language)
                             onActivity()
                         },
                         onEditLetter = {
@@ -1279,8 +1304,10 @@ private fun MainHubNavHost(
             if (uiState.paywallVisible) {
                 PaywallDialog(
                     message = uiState.paywallMessage,
+                    currentSubscriptionTier = uiState.hubSettings.subscriptionTier,
                     paywallPricing = paywallPricing,
                     restorePurchasesLabel = EobStrings.t(language, "billingRestorePurchases"),
+                    alreadySubscribedLabel = EobStrings.t(language, "billingAlreadySubscribed"),
                     onPurchaseClicked = ::launchTierPurchaseFlow,
                     onRestorePurchasesClicked = ::restorePurchases,
                     onDismiss = {
@@ -1400,6 +1427,7 @@ private fun HistoryRoute(
                             record = record,
                             profile = profile,
                             target = AppealTarget.DOCTOR,
+                            language = language,
                             disputeStrategy = strategy
                         )
                         navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
@@ -1410,6 +1438,7 @@ private fun HistoryRoute(
                             record = record,
                             profile = profile,
                             target = AppealTarget.INSURANCE,
+                            language = language,
                             insuranceStrategy = strategy
                         )
                         navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }

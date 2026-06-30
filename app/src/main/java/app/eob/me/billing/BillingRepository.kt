@@ -126,6 +126,7 @@ class BillingRepository(
             }
 
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                _billingErrorKey.value = "billing_already_subscribed"
                 refreshPurchases()
             }
 

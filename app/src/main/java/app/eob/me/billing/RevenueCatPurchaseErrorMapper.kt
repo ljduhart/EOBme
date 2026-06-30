@@ -15,6 +15,7 @@ internal object RevenueCatPurchaseErrorMapper {
             PurchasesErrorCode.InvalidReceiptError,
             PurchasesErrorCode.SignatureVerificationError -> "billing_payment_declined"
             PurchasesErrorCode.ProductNotAvailableForPurchaseError -> "billing_product_unavailable"
+            PurchasesErrorCode.ProductAlreadyPurchasedError -> "billing_already_subscribed"
             PurchasesErrorCode.NetworkError -> "billing_not_ready"
             PurchasesErrorCode.PurchaseCancelledError -> "billing_user_canceled"
             else -> "billing_flow_failed"

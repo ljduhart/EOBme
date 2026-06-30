@@ -45,8 +45,10 @@ import app.eob.me.data.SubscriptionTier
 @Composable
 fun PaywallDialog(
     message: String,
+    currentSubscriptionTier: SubscriptionTier,
     paywallPricing: PaywallPricing,
     restorePurchasesLabel: String,
+    alreadySubscribedLabel: String,
     onPurchaseClicked: (SubscriptionTier, BillingInterval) -> Unit,
     onRestorePurchasesClicked: () -> Unit,
     onDismiss: () -> Unit
@@ -57,8 +59,10 @@ fun PaywallDialog(
     ) {
         PaywallScreen(
             message = message,
+            currentSubscriptionTier = currentSubscriptionTier,
             paywallPricing = paywallPricing,
             restorePurchasesLabel = restorePurchasesLabel,
+            alreadySubscribedLabel = alreadySubscribedLabel,
             onPurchaseClicked = onPurchaseClicked,
             onRestorePurchasesClicked = onRestorePurchasesClicked,
             onDismiss = onDismiss
@@ -70,15 +74,26 @@ fun PaywallDialog(
 @Composable
 private fun PaywallScreen(
     message: String,
+    currentSubscriptionTier: SubscriptionTier,
     paywallPricing: PaywallPricing,
     restorePurchasesLabel: String,
+    alreadySubscribedLabel: String,
     onPurchaseClicked: (SubscriptionTier, BillingInterval) -> Unit,
     onRestorePurchasesClicked: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var isAnnual by remember { mutableStateOf(true) }
-    var selectedTier by remember { mutableStateOf(SubscriptionTier.Gold) }
+    var selectedTier by remember(currentSubscriptionTier) {
+        mutableStateOf(
+            when (currentSubscriptionTier) {
+                SubscriptionTier.Gold -> SubscriptionTier.Gold
+                SubscriptionTier.Silver -> SubscriptionTier.Gold
+                SubscriptionTier.Free -> SubscriptionTier.Silver
+            }
+        )
+    }
     val billingInterval = if (isAnnual) BillingInterval.ANNUAL else BillingInterval.MONTHLY
+    val purchaseBlocked = selectedTier.rank() <= currentSubscriptionTier.rank()
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -129,10 +144,24 @@ private fun PaywallScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             TierSelectorCard(
+                title = "Free Tier",
+                price = SubscriptionCatalog.displayPrice(SubscriptionTier.Free, billingInterval),
+                features = SubscriptionCatalog.features(SubscriptionTier.Free),
+                isSelected = false,
+                isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Free,
+                enabled = false,
+                onClick = {}
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TierSelectorCard(
                 title = "Silver Tier",
                 price = paywallPricing.displayPrice(SubscriptionTier.Silver, billingInterval),
                 features = SubscriptionCatalog.features(SubscriptionTier.Silver),
                 isSelected = selectedTier == SubscriptionTier.Silver,
+                isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Silver,
+                enabled = SubscriptionTier.Silver.rank() > currentSubscriptionTier.rank(),
                 onClick = { selectedTier = SubscriptionTier.Silver }
             )
 
@@ -143,7 +172,9 @@ private fun PaywallScreen(
                 price = paywallPricing.displayPrice(SubscriptionTier.Gold, billingInterval),
                 features = SubscriptionCatalog.features(SubscriptionTier.Gold),
                 isSelected = selectedTier == SubscriptionTier.Gold,
+                isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Gold,
                 isRecommended = true,
+                enabled = SubscriptionTier.Gold.rank() > currentSubscriptionTier.rank(),
                 onClick = { selectedTier = SubscriptionTier.Gold }
             )
 
@@ -152,14 +183,23 @@ private fun PaywallScreen(
             val finalPrice = paywallPricing.checkoutPrice(selectedTier, billingInterval)
 
             Button(
-                onClick = { onPurchaseClicked(selectedTier, billingInterval) },
+                onClick = {
+                    if (!purchaseBlocked) {
+                        onPurchaseClicked(selectedTier, billingInterval)
+                    }
+                },
+                enabled = !purchaseBlocked,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "Subscribe for $finalPrice",
+                    text = if (purchaseBlocked) {
+                        alreadySubscribedLabel
+                    } else {
+                        "Subscribe for $finalPrice"
+                    },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -189,7 +229,9 @@ private fun TierSelectorCard(
     price: String,
     features: List<String>,
     isSelected: Boolean,
+    isCurrentPlan: Boolean = false,
     isRecommended: Boolean = false,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val borderColor = if (isSelected) {
@@ -206,7 +248,13 @@ private fun TierSelectorCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .then(
+                if (enabled) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                }
+            ),
         border = BorderStroke(if (isSelected) 2.dp else 1.dp, borderColor),
         colors = CardDefaults.cardColors(containerColor = bgColor)
     ) {
@@ -221,12 +269,22 @@ private fun TierSelectorCard(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-                if (isRecommended) {
-                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                        Text(
-                            text = "RECOMMENDED",
-                            modifier = Modifier.padding(4.dp)
-                        )
+                when {
+                    isCurrentPlan -> {
+                        Badge(containerColor = MaterialTheme.colorScheme.secondary) {
+                            Text(
+                                text = "CURRENT",
+                                modifier = Modifier.padding(4.dp)
+                            )
+                        }
+                    }
+                    isRecommended -> {
+                        Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                            Text(
+                                text = "RECOMMENDED",
+                                modifier = Modifier.padding(4.dp)
+                            )
+                        }
                     }
                 }
             }

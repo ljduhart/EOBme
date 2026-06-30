@@ -7,7 +7,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
@@ -18,7 +17,8 @@ fun HubBottomBar(
     language: AppLanguage,
     selectedTab: HubBottomTab?,
     onTabSelected: (HubBottomTab) -> Unit,
-    scanEnabled: Boolean
+    scanEnabled: Boolean,
+    scanLimitReached: Boolean = false
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -26,6 +26,7 @@ fun HubBottomBar(
     ) {
         HubBottomTab.entries.forEach { tab ->
             val selected = selectedTab == tab
+            val scanTabLimited = tab == HubBottomTab.ScanEob && scanLimitReached
             NavigationBarItem(
                 selected = selected,
                 onClick = { onTabSelected(tab) },
@@ -37,13 +38,25 @@ fun HubBottomBar(
                     )
                 },
                 label = { Text(EobStrings.t(language, tab.labelKey)) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                )
+                colors = if (scanTabLimited) {
+                    NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        selectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        indicatorColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        disabledIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                } else {
+                    NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
+                }
             )
         }
     }

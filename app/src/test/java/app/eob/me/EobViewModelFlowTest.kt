@@ -12,6 +12,7 @@ import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.data.InvoiceProcessingPhase
 import app.eob.me.data.SettingsTab
+import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.viewmodel.EobViewModel
@@ -70,8 +71,16 @@ class EobViewModelFlowTest {
     }
 
     @Test
-    fun setHistoryBentoFilterUpdatesUiState() {
+    fun setHistoryBentoFilterBlocksFlaggedOnFreeTier() {
         val viewModel = EobViewModel()
+        viewModel.setHistoryBentoFilter(HistoryBentoFilter.Flagged)
+        assertEquals(HistoryBentoFilter.All, viewModel.uiState.value.historyBentoFilter)
+    }
+
+    @Test
+    fun setHistoryBentoFilterUpdatesUiStateForSilverTier() {
+        val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         viewModel.setHistoryBentoFilter(HistoryBentoFilter.Flagged)
         assertEquals(HistoryBentoFilter.Flagged, viewModel.uiState.value.historyBentoFilter)
     }
@@ -79,10 +88,11 @@ class EobViewModelFlowTest {
     @Test
     fun activateAppealGeneratorBentoSetsProcessingAndRegeneratesLetter() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         val record = sampleRecord(id = 1, provider = "Appeal Clinic")
         viewModel.replaceRecords(listOf(record), profile)
         waitForHubRecords(viewModel)
-        viewModel.activateAppealGeneratorBento(profile)
+        viewModel.activateAppealGeneratorBento(profile, AppLanguage.English)
         assertTrue(viewModel.uiState.value.appealGeneratorBentoProcessing)
         assertTrue(viewModel.uiState.value.appealLetter.contains("Appeal Clinic"))
     }
@@ -90,7 +100,8 @@ class EobViewModelFlowTest {
     @Test
     fun acknowledgeAppealGeneratorBentoActivationClearsProcessing() {
         val viewModel = EobViewModel()
-        viewModel.activateAppealGeneratorBento(profile)
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
+        viewModel.activateAppealGeneratorBento(profile, AppLanguage.English)
         viewModel.acknowledgeAppealGeneratorBentoActivation()
         assertFalse(viewModel.uiState.value.appealGeneratorBentoProcessing)
     }
@@ -187,11 +198,12 @@ class EobViewModelFlowTest {
     @Test
     fun regenerateAppealUsesSelectedRecord() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         val record = sampleRecord(id = 1, provider = "Appeal Clinic")
         viewModel.replaceRecords(listOf(record), profile)
         waitForHubRecords(viewModel)
         viewModel.updateAppeal("draft")
-        viewModel.regenerateAppeal(profile)
+        viewModel.regenerateAppeal(profile, AppLanguage.English)
         assertTrue(viewModel.uiState.value.appealLetter.contains("Appeal Clinic"))
         assertFalse(viewModel.uiState.value.appealLetter.contains("draft"))
     }
@@ -213,6 +225,7 @@ class EobViewModelFlowTest {
     @Test
     fun saveAppealLetterDisablesEditingAndRegenerateResetsEditing() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         val record = sampleRecord(id = 1, provider = "Appeal Clinic")
         viewModel.replaceRecords(listOf(record), profile)
         waitForHubRecords(viewModel)
@@ -221,7 +234,7 @@ class EobViewModelFlowTest {
         viewModel.saveAppealLetter()
         assertFalse(viewModel.uiState.value.appealLetterEditingEnabled)
         viewModel.enableAppealLetterEditing()
-        viewModel.regenerateAppeal(profile)
+        viewModel.regenerateAppeal(profile, AppLanguage.English)
         assertFalse(viewModel.uiState.value.appealLetterEditingEnabled)
     }
 
@@ -241,6 +254,7 @@ class EobViewModelFlowTest {
     @Test
     fun resetHubStateClearsBentoPhaseAndFilter() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         viewModel.setLoadingInvoice(true)
         viewModel.setHistoryBentoFilter(HistoryBentoFilter.Flagged)
         viewModel.resetHubState()
@@ -304,13 +318,14 @@ class EobViewModelFlowTest {
     @Test
     fun openAppealForRecordSelectsRecordTargetAndRegeneratesLetter() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         val first = sampleRecord(id = 1, provider = "Alpha Clinic")
         val second = sampleRecord(id = 2, provider = "Beta Clinic")
         viewModel.replaceRecords(listOf(first, second), profile)
         waitForHubRecords(viewModel)
         viewModel.onAppealTargetSwitched(AppealTarget.INSURANCE)
 
-        viewModel.openAppealForRecord(second, profile, AppealTarget.DOCTOR)
+        viewModel.openAppealForRecord(second, profile, AppealTarget.DOCTOR, AppLanguage.English)
 
         assertEquals(second.id, viewModel.uiState.value.selectedRecord?.id)
         assertEquals(AppealTarget.DOCTOR, viewModel.uiState.value.selectedAppealTarget)
@@ -322,6 +337,7 @@ class EobViewModelFlowTest {
     @Test
     fun openAppealForRecordUsesSelectedDoctorDisputeStrategy() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         val record = sampleRecord(id = 1, provider = "Appeal Clinic")
         viewModel.replaceRecords(listOf(record), profile)
         waitForHubRecords(viewModel)
@@ -330,6 +346,7 @@ class EobViewModelFlowTest {
             record = record,
             profile = profile,
             target = AppealTarget.DOCTOR,
+            language = AppLanguage.English,
             disputeStrategy = DoctorDisputeStrategy.NO_SURPRISES_ACT
         )
 
@@ -340,6 +357,7 @@ class EobViewModelFlowTest {
     @Test
     fun openAppealForRecordUsesInsuranceAppealCopy() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         val record = sampleRecord(id = 1, provider = "Appeal Clinic")
         viewModel.replaceRecords(listOf(record), profile)
         waitForHubRecords(viewModel)
@@ -349,6 +367,7 @@ class EobViewModelFlowTest {
             record = record,
             profile = profile,
             target = AppealTarget.INSURANCE,
+            language = AppLanguage.English,
             insuranceStrategy = InsuranceAppealStrategy.DENIED_INCORRECTLY
         )
 
@@ -377,11 +396,12 @@ class EobViewModelFlowTest {
     @Test
     fun openAppealForRecordProducesShareableInsuranceAndDoctorLetters() {
         val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         val record = sampleRecord(id = 1, provider = "Appeal Clinic")
         viewModel.replaceRecords(listOf(record), profile)
         waitForHubRecords(viewModel)
 
-        viewModel.openAppealForRecord(record, profile, AppealTarget.INSURANCE)
+        viewModel.openAppealForRecord(record, profile, AppealTarget.INSURANCE, AppLanguage.English)
         val insuranceLetter = viewModel.uiState.value.appealLetter
         assertTrue(insuranceLetter.isNotBlank())
         assertTrue(insuranceLetter.contains("Re: Formal Claim Appeal for Member:"))
@@ -390,6 +410,7 @@ class EobViewModelFlowTest {
             record = record,
             profile = profile,
             target = AppealTarget.DOCTOR,
+            language = AppLanguage.English,
             disputeStrategy = DoctorDisputeStrategy.IMPROPER_BALANCE_BILLING
         )
         val doctorLetter = viewModel.uiState.value.appealLetter

@@ -14,11 +14,13 @@ class FeatureGateTest {
     fun subscriptionCatalogSilverFeaturesMatchManageSubscriptionCopy() {
         assertEquals(
             listOf(
-                "5 EOB Scans",
+                "4 EOB Scans per month",
                 "5 Providers Storage",
                 "Billing Error Detection",
-                "2 Automated Appeal Letters",
-                "CPT Tracker"
+                "2 Automated Appeal Letters per month",
+                "CPT Tracker",
+                "4 Smart Cards (CareTeam)",
+                "Real Time Insurance News"
             ),
             SubscriptionCatalog.features(SubscriptionTier.Silver)
         )
@@ -36,7 +38,8 @@ class FeatureGateTest {
                 "CPT Tracker",
                 "Smart Card Summaries",
                 "Y-T-D Expense Tracker",
-                "Tax Vault Filter (HSA/FSA)"
+                "Tax Vault Filter (HSA/FSA)",
+                "Tax Vault Claim Packager"
             ),
             SubscriptionCatalog.features(SubscriptionTier.Gold)
         )
@@ -44,8 +47,8 @@ class FeatureGateTest {
 
     @Test
     fun eobScanLimitsFollowTier() {
-        assertEquals(FeatureAccess.Limited(2), EobmeFeatureGate.getEobScanLimit(SubscriptionTier.Free))
-        assertEquals(FeatureAccess.Limited(5), EobmeFeatureGate.getEobScanLimit(SubscriptionTier.Silver))
+        assertEquals(FeatureAccess.Limited(1), EobmeFeatureGate.getEobScanLimit(SubscriptionTier.Free))
+        assertEquals(FeatureAccess.Limited(4), EobmeFeatureGate.getEobScanLimit(SubscriptionTier.Silver))
         assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getEobScanLimit(SubscriptionTier.Gold))
     }
 
@@ -57,15 +60,24 @@ class FeatureGateTest {
     }
 
     @Test
-    fun goldOnlyFeaturesAreGated() {
+    fun silverUnlocksRealTimeNews() {
         assertFalse(EobmeFeatureGate.hasRealTimeNews(SubscriptionTier.Free))
+        assertTrue(EobmeFeatureGate.hasRealTimeNews(SubscriptionTier.Silver))
+        assertTrue(EobmeFeatureGate.hasRealTimeNews(SubscriptionTier.Gold))
+    }
+
+    @Test
+    fun goldOnlyFeaturesAreGated() {
         assertFalse(EobmeFeatureGate.hasYtdExpenseTracker(SubscriptionTier.Silver))
         assertTrue(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Gold))
+        assertTrue(EobmeFeatureGate.hasTaxVaultClaimPackager(SubscriptionTier.Gold))
+        assertTrue(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Gold))
     }
 
     @Test
     fun universalFeaturesAlwaysEnabled() {
         assertTrue(EobmeFeatureGate.hasCptTracker())
         assertTrue(EobmeFeatureGate.hasAppointmentCalendar())
+        assertTrue(EobmeFeatureGate.hasCareTeamSmartCards())
     }
 }

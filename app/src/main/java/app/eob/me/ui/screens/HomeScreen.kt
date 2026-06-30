@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
+import app.eob.me.data.EobmeFeatureGate
 import app.eob.me.data.EobStrings
 import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.CptBentoSnapshot
@@ -215,6 +216,7 @@ fun HomeScreen(
                     careTeamCards = careTeamCards,
                     preferredDoctors = preferredDoctors,
                     onSaveDoctor = onSavePreferredDoctor,
+                    smartCardSummariesEnabled = EobmeFeatureGate.hasSmartCardSummaries(subscriptionTier),
                     modifier = Modifier.fillMaxWidth()
                 )
             }

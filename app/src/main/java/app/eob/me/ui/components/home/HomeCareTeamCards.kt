@@ -136,6 +136,7 @@ fun HomeCareTeamCards(
     careTeamCards: List<CareTeamCardDisplayState>,
     preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>,
     onSaveDoctor: (PreferredDoctor) -> Unit,
+    smartCardSummariesEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     var editingType by remember { mutableStateOf<CareTeamProviderType?>(null) }
@@ -149,6 +150,7 @@ fun HomeCareTeamCards(
                 language = language,
                 cardState = cardState,
                 doctor = preferredDoctors[cardState.type] ?: PreferredDoctor(type = cardState.type),
+                smartCardSummariesEnabled = smartCardSummariesEnabled,
                 onEdit = { editingType = cardState.type },
                 modifier = Modifier.weight(1f)
             )
@@ -174,6 +176,7 @@ private fun CareTeamSmartCard(
     language: AppLanguage,
     cardState: CareTeamCardDisplayState,
     doctor: PreferredDoctor,
+    smartCardSummariesEnabled: Boolean,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -249,6 +252,7 @@ private fun CareTeamSmartCard(
                     CareTeamCardFront(
                         language = language,
                         cardState = cardState,
+                        smartCardSummariesEnabled = smartCardSummariesEnabled,
                         onCall = cardState.phoneDialUri?.let {
                             { dialCareTeamPhone(context, language, doctor.phone) }
                         }
@@ -284,6 +288,7 @@ private fun CareTeamSmartCard(
 private fun CareTeamCardFront(
     language: AppLanguage,
     cardState: CareTeamCardDisplayState,
+    smartCardSummariesEnabled: Boolean,
     onCall: (() -> Unit)?
 ) {
     Box(
@@ -360,7 +365,7 @@ private fun CareTeamCardFront(
                 }
             }
             Text(
-                text = formatMicroMetrics(language, cardState),
+                text = formatMicroMetrics(language, cardState, smartCardSummariesEnabled),
                 style = MaterialTheme.typography.labelSmall,
                 color = CardInk.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
@@ -677,7 +682,18 @@ private fun tertiaryLineColor(card: CareTeamCardDisplayState): Color {
     }
 }
 
-private fun formatMicroMetrics(language: AppLanguage, card: CareTeamCardDisplayState): String {
+private fun formatMicroMetrics(
+    language: AppLanguage,
+    card: CareTeamCardDisplayState,
+    smartCardSummariesEnabled: Boolean
+): String {
+    if (!smartCardSummariesEnabled) {
+        return if (card.isAssigned) {
+            EobStrings.t(language, "careTeamTapToFlip")
+        } else {
+            EobStrings.t(language, "careTeamLongPressEdit")
+        }
+    }
     val parts = mutableListOf<String>()
     if (card.metrics.relatedEobCount > 0) {
         parts += EobStrings.tf(language, "careTeamMicroEobs", card.metrics.relatedEobCount)

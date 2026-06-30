@@ -2683,6 +2683,43 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr141RevenueCatPaywallTierEnforcementAudit() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val featureGateSource = readSource("data/FeatureGate.kt")
+        val usageStoreSource = readSource("data/SubscriptionUsageStore.kt")
+
+        assertTrue(featureGateSource.contains("FeatureAccess.Limited(1)"))
+        assertTrue(featureGateSource.contains("FeatureAccess.Limited(4)"))
+        assertTrue(featureGateSource.contains("hasRealTimeNews(tier: SubscriptionTier): Boolean = tier != SubscriptionTier.Free"))
+        assertTrue(usageStoreSource.contains("class SubscriptionUsageStore"))
+        assertTrue(viewModelSource.contains("fun canPerformEobScan"))
+        assertTrue(viewModelSource.contains("fun isEobScanLimitReached"))
+        assertTrue(viewModelSource.contains("fun canGenerateAppealLetter"))
+        assertTrue(viewModelSource.contains("fun canPurchaseSubscriptionTier"))
+        assertTrue(viewModelSource.contains("recordEobScanUsage"))
+        assertTrue(viewModelSource.contains("SubscriptionUsageStore"))
+        assertTrue(navHostSource.contains("scanLimitReached"))
+        assertTrue(navHostSource.contains("isEobScanLimitReached"))
+        assertTrue(navHostSource.contains("canPurchaseSubscriptionTier"))
+        assertTrue(navHostSource.contains("currentSubscriptionTier"))
+        assertTrue(navHostSource.contains("alreadySubscribedLabel"))
+        assertTrue(paywallSource.contains("alreadySubscribedLabel"))
+        assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Free)"))
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "network/VeryfiDocumentClient.kt",
+            "data/DocumentScanPipelineRepository.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#141: protected area touched ($path)", source.contains("SubscriptionUsageStore"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

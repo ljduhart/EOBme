@@ -74,6 +74,7 @@ fun BentoGridCell(
             onHistoryFilterSelected = onHistoryFilterSelected,
             onInvoiceFileDropFinished = onInvoiceFileDropFinished,
             onAppealGeneratorProcessingFinished = onAppealGeneratorProcessingFinished,
+            billingErrorDetectionEnabled = EobmeFeatureGate.hasBillingErrorDetection(subscriptionTier),
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -112,6 +113,7 @@ private fun BentoGridCellContent(
     ytdBentoViewMode: YtdBentoViewMode,
     onYtdViewModeSelected: (YtdBentoViewMode) -> Unit,
     appealGeneratorBentoProcessing: Boolean,
+    billingErrorDetectionEnabled: Boolean,
     onClick: () -> Unit,
     onHistoryFilterSelected: (HistoryBentoFilter) -> Unit,
     onInvoiceFileDropFinished: () -> Unit,
@@ -129,6 +131,7 @@ private fun BentoGridCellContent(
                 processingPhase = processingPhase,
                 isLoadingInvoice = isLoadingInvoice,
                 activeFilter = historyFilter,
+                billingErrorDetectionEnabled = billingErrorDetectionEnabled,
                 onClick = onClick,
                 onFilterSelected = onHistoryFilterSelected,
                 onFileDropAnimationFinished = onInvoiceFileDropFinished,
