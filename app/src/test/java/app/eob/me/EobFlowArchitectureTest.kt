@@ -2623,6 +2623,11 @@ class EobFlowArchitectureTest {
         assertTrue(monthCalendarSource.contains("appointmentDateHoldClickable"))
         assertTrue(homeSource.contains("HomeAppointmentsSection"))
         assertTrue(homeSource.contains("onPrefillHandled"))
+        val stringsSource = readSource("data/EobStrings.kt")
+        assertTrue(
+            "PR#138: calendar hint should describe 2-second hold",
+            stringsSource.contains("Press and hold a date for 2 seconds")
+        )
         listOf(
             "ui/screens/SplashScreen.kt",
             "ui/screens/LanguageScreen.kt",
