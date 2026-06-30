@@ -1,6 +1,7 @@
 package app.eob.me.ui.components
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.ui.components.home.AppointmentDayColorBackground
-import app.eob.me.ui.components.home.appointmentDateHoldClickable
 import app.eob.me.ui.components.home.CalendarDayCellContent
 import app.eob.me.ui.components.home.appointmentTypesOnDate
 import java.text.SimpleDateFormat
@@ -100,7 +100,7 @@ fun CalendarPicker(
                                         Modifier
                                     }
                                 )
-                                .appointmentDateHoldClickable(onHoldComplete = { onDateSelected(dateLabel) }),
+                                .clickable { onDateSelected(dateLabel) },
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
                                     hasAppointment -> Color.Transparent

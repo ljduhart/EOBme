@@ -2605,36 +2605,51 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun pr138HistoryUploadTitleRowAndAppointmentHoldAudit() {
+    fun pr138HistoryUploadTitleRowAudit() {
         val historySource = readSource("ui/screens/EobHistoryScreen.kt")
-        val holdSource = readSource("ui/components/home/AppointmentDateHoldGesture.kt")
-        val weekCalendarSource = readSource("ui/components/home/HomeWeekCalendar.kt")
-        val monthCalendarSource = readSource("ui/components/CalendarComponents.kt")
-        val homeSource = readSource("ui/screens/HomeScreen.kt")
 
         assertFalse(
             "PR#138: upload must not remain a scaffold FAB",
             historySource.contains("floatingActionButton = {")
         )
         assertTrue(historySource.contains("ExtendedFloatingActionButton"))
-        assertTrue(holdSource.contains("2_000L"))
-        assertTrue(holdSource.contains("rememberUpdatedState"))
-        assertTrue(weekCalendarSource.contains("appointmentDateHoldClickable"))
-        assertTrue(monthCalendarSource.contains("appointmentDateHoldClickable"))
+    }
+
+    @Test
+    fun pr139HelpfulInsightsAndCalendarTapAudit() {
+        val settingsSource = readSource("ui/screens/SettingsScreen.kt")
+        val stringsSource = readSource("data/EobStrings.kt")
+        val weekCalendarSource = readSource("ui/components/home/HomeWeekCalendar.kt")
+        val monthCalendarSource = readSource("ui/components/CalendarComponents.kt")
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+
+        assertTrue(
+            "PR#139: Helpful Insights title",
+            stringsSource.contains("\"settingsHelpfulHintsTitle\" to \"Helpful Insights\"")
+        )
+        listOf("settingsHelpfulHint6", "settingsHelpfulHint7", "settingsHelpfulHint8").forEach { key ->
+            assertTrue("PR#139: missing $key in strings", stringsSource.contains(key))
+            assertTrue("PR#139: missing $key in settings dialog", settingsSource.contains(key))
+        }
+        assertTrue(weekCalendarSource.contains(".clickable { onDateSelected(dateLabel) }"))
+        assertTrue(monthCalendarSource.contains(".clickable { onDateSelected(dateLabel) }"))
+        assertFalse(weekCalendarSource.contains("appointmentDateHoldClickable"))
+        assertFalse(monthCalendarSource.contains("appointmentDateHoldClickable"))
+        assertFalse(
+            "PR#139: hold gesture file removed",
+            File(appModuleRoot, "ui/components/home/AppointmentDateHoldGesture.kt").isFile
+        )
         assertTrue(homeSource.contains("HomeAppointmentsSection"))
         assertTrue(homeSource.contains("onPrefillHandled"))
-        val stringsSource = readSource("data/EobStrings.kt")
-        assertTrue(
-            "PR#138: calendar hint should describe 2-second hold",
-            stringsSource.contains("Press and hold a date for 2 seconds")
-        )
+        assertTrue(stringsSource.contains("Select a date to add an appointment."))
+        assertFalse(stringsSource.contains("Press and hold a date for 2 seconds"))
         listOf(
             "ui/screens/SplashScreen.kt",
             "ui/screens/LanguageScreen.kt",
             "ui/screens/IntroScreen.kt"
         ).forEach { path ->
             val source = readSource(path)
-            assertFalse("PR#138: intro/logo screen touched ($path)", source.contains("appointmentDateHoldClickable"))
+            assertFalse("PR#139: intro/logo screen touched ($path)", source.contains("settingsHelpfulHint6"))
         }
     }
 
