@@ -2618,6 +2618,7 @@ class EobFlowArchitectureTest {
         )
         assertTrue(historySource.contains("ExtendedFloatingActionButton"))
         assertTrue(holdSource.contains("2_000L"))
+        assertTrue(holdSource.contains("rememberUpdatedState"))
         assertTrue(weekCalendarSource.contains("appointmentDateHoldClickable"))
         assertTrue(monthCalendarSource.contains("appointmentDateHoldClickable"))
         assertTrue(homeSource.contains("HomeAppointmentsSection"))

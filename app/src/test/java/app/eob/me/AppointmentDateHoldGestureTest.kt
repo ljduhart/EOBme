@@ -11,7 +11,9 @@ class AppointmentDateHoldGestureTest {
         assertTrue(source.contains("2_000L"))
         assertTrue(source.contains("detectTapGestures"))
         assertTrue(source.contains("tryAwaitRelease"))
-        assertTrue(source.contains("appointmentDateHoldClickable"))
+        assertTrue(source.contains("rememberUpdatedState"))
+        assertTrue(source.contains("pointerInput(holdDurationMs)"))
+        assertFalse(source.contains("pointerInput(holdDurationMs, onHoldComplete)"))
     }
 
     @Test
