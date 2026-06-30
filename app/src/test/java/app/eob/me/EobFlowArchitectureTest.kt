@@ -2604,6 +2604,34 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr138HistoryUploadTitleRowAndAppointmentHoldAudit() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        val holdSource = readSource("ui/components/home/AppointmentDateHoldGesture.kt")
+        val weekCalendarSource = readSource("ui/components/home/HomeWeekCalendar.kt")
+        val monthCalendarSource = readSource("ui/components/CalendarComponents.kt")
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+
+        assertFalse(
+            "PR#138: upload must not remain a scaffold FAB",
+            historySource.contains("floatingActionButton = {")
+        )
+        assertTrue(historySource.contains("ExtendedFloatingActionButton"))
+        assertTrue(holdSource.contains("2_000L"))
+        assertTrue(weekCalendarSource.contains("appointmentDateHoldClickable"))
+        assertTrue(monthCalendarSource.contains("appointmentDateHoldClickable"))
+        assertTrue(homeSource.contains("HomeAppointmentsSection"))
+        assertTrue(homeSource.contains("onPrefillHandled"))
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#138: intro/logo screen touched ($path)", source.contains("appointmentDateHoldClickable"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

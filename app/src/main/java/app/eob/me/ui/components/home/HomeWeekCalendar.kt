@@ -1,7 +1,6 @@
 package app.eob.me.ui.components.home
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -147,7 +146,7 @@ fun HomeWeekCalendar(
                                         Modifier
                                     }
                                 )
-                                .clickable { onDateSelected(dateLabel) },
+                                .appointmentDateHoldClickable(onHoldComplete = { onDateSelected(dateLabel) }),
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
                                     hasAppointment -> Color.Transparent

@@ -46,11 +46,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -95,54 +93,13 @@ fun EobHistoryScreen(
     var doctorAppealTargetRecord by remember { mutableStateOf<EobRecord?>(null) }
     var insuranceAppealTargetRecord by remember { mutableStateOf<EobRecord?>(null) }
     val listState = rememberLazyListState()
-    var fabExpanded by remember { mutableStateOf(true) }
-    var previousFirstIndex by remember { mutableIntStateOf(0) }
-    var previousScrollOffset by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(listState) {
-        snapshotFlow {
-            Triple(
-                listState.firstVisibleItemIndex,
-                listState.firstVisibleItemScrollOffset,
-                listState.isScrollInProgress
-            )
-        }.collect { (index, offset, scrolling) ->
-            if (scrolling) {
-                val scrollingDown = index > previousFirstIndex ||
-                    (index == previousFirstIndex && offset > previousScrollOffset)
-                fabExpanded = !scrollingDown
-            } else if (index == 0 && offset == 0) {
-                fabExpanded = true
-            }
-            previousFirstIndex = index
-            previousScrollOffset = offset
-        }
-    }
 
     val recordCount = remember(timelineSections) {
         timelineSections.sumOf { section -> section.rows.size }
     }
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                expanded = fabExpanded,
-                onClick = onUploadEob,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = EobStrings.t(language, "uploadEob")
-                    )
-                },
-                text = {
-                    Text(
-                        text = EobStrings.t(language, "uploadEob"),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            )
-        }
+        modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -153,12 +110,37 @@ fun EobHistoryScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text(
-                    text = EobStrings.t(language, "history"),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = EobStrings.t(language, "history"),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    ExtendedFloatingActionButton(
+                        expanded = true,
+                        onClick = onUploadEob,
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = EobStrings.t(language, "uploadEob")
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = EobStrings.t(language, "uploadEob"),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    )
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "$recordCount ${EobStrings.t(language, "eobs")}",

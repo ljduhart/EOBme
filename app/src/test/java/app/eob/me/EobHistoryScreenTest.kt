@@ -62,6 +62,19 @@ class EobHistoryScreenTest {
     }
 
     @Test
+    fun historyUploadButtonAlignsWithTitleRow() {
+        val source = readSource("ui/screens/EobHistoryScreen.kt")
+        val rowIndex = source.indexOf("horizontalArrangement = Arrangement.SpaceBetween")
+        val headerBlock = source.substring(
+            (rowIndex - 200).coerceAtLeast(0),
+            (rowIndex + 1_200).coerceAtMost(source.length)
+        )
+        assertTrue(headerBlock.contains("EobStrings.t(language, \"history\")"))
+        assertTrue(headerBlock.contains("ExtendedFloatingActionButton"))
+        assertFalse(source.contains("floatingActionButton = {"))
+    }
+
+    @Test
     fun eobHistoryScreenUsesStableLazyColumnKeys() {
         val source = readSource("ui/screens/EobHistoryScreen.kt")
         assertTrue(source.contains("lazySectionKey()"))
