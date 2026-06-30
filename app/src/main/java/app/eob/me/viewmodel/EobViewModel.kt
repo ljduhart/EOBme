@@ -475,7 +475,12 @@ class EobViewModel : ViewModel() {
                 setSubscriptionTier(SubscriptionTier.Silver)
                 dismissPaywall()
             }
-            SubscriptionState.Free -> setSubscriptionTier(SubscriptionTier.Free)
+            SubscriptionState.Free -> {
+                setSubscriptionTier(SubscriptionTier.Free)
+                if (_uiState.value.historyBentoFilter == HistoryBentoFilter.Flagged) {
+                    setHistoryBentoFilter(HistoryBentoFilter.All)
+                }
+            }
             SubscriptionState.Loading, is SubscriptionState.Error -> Unit
         }
     }
@@ -763,6 +768,12 @@ class EobViewModel : ViewModel() {
 
     private fun recordAppealLetterUsage() {
         subscriptionUsageStore?.incrementMonthlyAppealLetterCount(hubTimeKey())
+    }
+
+    fun requestEobScanOrPaywall(language: AppLanguage): Boolean {
+        if (canPerformEobScan()) return true
+        showPaywall(eobScanLimitMessage(language))
+        return false
     }
 
     fun resetHubState() {

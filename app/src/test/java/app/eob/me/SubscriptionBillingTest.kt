@@ -4,6 +4,7 @@ import android.app.Application
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.BillingInterval
+import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobStrings
 import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
@@ -452,6 +453,25 @@ class SubscriptionBillingTest {
     fun billingRepositoryMapsAlreadyOwnedToAlreadySubscribedNotice() {
         val billingSource = readSource("billing/BillingRepository.kt")
         assertTrue(billingSource.contains("billing_already_subscribed"))
+    }
+
+    @Test
+    fun eobViewModelApplySubscriptionStateClearsFlaggedFilterOnFree() {
+        val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
+        viewModel.setHistoryBentoFilter(HistoryBentoFilter.Flagged)
+        viewModel.applySubscriptionState(SubscriptionState.Free)
+        assertEquals(HistoryBentoFilter.All, viewModel.uiState.value.historyBentoFilter)
+    }
+
+    @Test
+    fun navHostGuardsAppealAndScanNavigationPaths() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("if (eobViewModel.openAppealForRecord"))
+        assertTrue(navSource.contains("requestEobScanOrPaywall"))
+        assertTrue(navSource.contains("EobRoute.YearlyExpense.route"))
+        assertTrue(navSource.contains("!subscriptionTier.isGold()"))
+        assertTrue(navSource.contains("!EobmeFeatureGate.hasRealTimeNews(subscriptionTier)"))
     }
 
     private fun readSource(relativePath: String): String {

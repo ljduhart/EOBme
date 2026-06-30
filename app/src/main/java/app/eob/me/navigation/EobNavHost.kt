@@ -58,6 +58,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.EobmeFeatureGate
+import app.eob.me.data.FeatureAccess
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.EobRecord
@@ -237,6 +238,10 @@ private fun MainHubNavHost(
             Toast.makeText(context, EobStrings.t(language, "settingsUploadWifiBlocked"), Toast.LENGTH_LONG).show()
             return
         }
+        if (!eobViewModel.requestEobScanOrPaywall(language)) {
+            onActivity()
+            return
+        }
         eobViewModel.processScannedDocument(
             userId = uid,
             uri = uri,
@@ -266,13 +271,15 @@ private fun MainHubNavHost(
     ) { result ->
         val scannedUri = GmsDocumentScannerLauncher.parseScanResult(result.resultCode, result.data)
         if (scannedUri != null) {
-            eobViewModel.processScannedDocument(
-                userId = firebaseUser?.uid.orEmpty(),
-                uri = scannedUri,
-                sourceName = EobStrings.t(language, "documentScannerSource"),
-                language = language
-            )
-            navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+            if (eobViewModel.requestEobScanOrPaywall(language)) {
+                eobViewModel.processScannedDocument(
+                    userId = firebaseUser?.uid.orEmpty(),
+                    uri = scannedUri,
+                    sourceName = EobStrings.t(language, "documentScannerSource"),
+                    language = language
+                )
+                navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+            }
             onActivity()
         } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) {
             eobViewModel.onDocumentScanLaunchFailed(
@@ -327,7 +334,7 @@ private fun MainHubNavHost(
 
     fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
         if (!eobViewModel.canPurchaseSubscriptionTier(tier)) {
-            eobViewModel.handleBillingNoticeForPaywall(language, "billing_already_subscribed")
+            eobViewModel.showPaywall(eobViewModel.alreadySubscribedMessage(language))
             onActivity()
             return
         }
@@ -931,6 +938,14 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.YearlyExpense.route) {
+                    val subscriptionTier = uiState.hubSettings.subscriptionTier
+                    if (!subscriptionTier.isGold()) {
+                        LaunchedEffect(Unit) {
+                            eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                            navController.popBackStack(EobRoute.Home.route, inclusive = false)
+                        }
+                        return@composable
+                    }
                     val ytdYearSelection = uiState.ytdExpenseYearSelection
                     val ytdExpenseData = remember(
                         sortedEobRecords,
@@ -995,7 +1010,7 @@ private fun MainHubNavHost(
                                     popUpTo(EobRoute.CameraCapture.route) { inclusive = true }
                                     launchSingleTop = true
                                 }
-                            } else {
+                            } else if (eobViewModel.requestEobScanOrPaywall(language)) {
                                 eobViewModel.processScannedDocument(
                                     userId = firebaseUser?.uid.orEmpty(),
                                     uri = uri,
@@ -1039,6 +1054,14 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.News.route) {
+                    val subscriptionTier = uiState.hubSettings.subscriptionTier
+                    if (!EobmeFeatureGate.hasRealTimeNews(subscriptionTier)) {
+                        LaunchedEffect(Unit) {
+                            eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                            navController.popBackStack(EobRoute.Home.route, inclusive = false)
+                        }
+                        return@composable
+                    }
                     val newsFeedRevision = uiState.newsFeedRevision
                     val selectedNewsCarrier = uiState.selectedNewsCarrier
                     val hubTimeKey = eobViewModel.hubTimeKey()
@@ -1072,6 +1095,14 @@ private fun MainHubNavHost(
                     )
                 }
                 composable(EobRoute.Appeal.route) {
+                    val subscriptionTier = uiState.hubSettings.subscriptionTier
+                    if (EobmeFeatureGate.getAppealLetterLimit(subscriptionTier) is FeatureAccess.Denied) {
+                        LaunchedEffect(Unit) {
+                            eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                            navController.popBackStack(EobRoute.Home.route, inclusive = false)
+                        }
+                        return@composable
+                    }
                     LaunchedEffect(Unit) {
                         eobViewModel.acknowledgeAppealGeneratorBentoActivation()
                     }
@@ -1423,25 +1454,29 @@ private fun HistoryRoute(
                     },
                     selectedRecord = uiState.selectedRecord,
                     onAppealDoctorWithStrategy = { record, strategy ->
-                        eobViewModel.openAppealForRecord(
-                            record = record,
-                            profile = profile,
-                            target = AppealTarget.DOCTOR,
-                            language = language,
-                            disputeStrategy = strategy
-                        )
-                        navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
+                        if (eobViewModel.openAppealForRecord(
+                                record = record,
+                                profile = profile,
+                                target = AppealTarget.DOCTOR,
+                                language = language,
+                                disputeStrategy = strategy
+                            )
+                        ) {
+                            navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
+                        }
                         onActivity()
                     },
                     onAppealInsuranceWithStrategy = { record, strategy ->
-                        eobViewModel.openAppealForRecord(
-                            record = record,
-                            profile = profile,
-                            target = AppealTarget.INSURANCE,
-                            language = language,
-                            insuranceStrategy = strategy
-                        )
-                        navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
+                        if (eobViewModel.openAppealForRecord(
+                                record = record,
+                                profile = profile,
+                                target = AppealTarget.INSURANCE,
+                                language = language,
+                                insuranceStrategy = strategy
+                            )
+                        ) {
+                            navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
+                        }
                         onActivity()
                     },
                     showVaultFilterBanner = eobViewModel.isTaxVaultHistoryGated(),
