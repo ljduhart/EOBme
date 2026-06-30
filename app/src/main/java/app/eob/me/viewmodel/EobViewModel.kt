@@ -59,6 +59,7 @@ import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.data.ReceiptRecord
 import app.eob.me.data.TaxVaultBudgetSummary
 import app.eob.me.data.TaxVaultExportRow
+import app.eob.me.data.VaultEvidencePreviewDetail
 import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.FsaDoomsdaySnapshot
 import app.eob.me.data.FsaDoomsdayEngine
@@ -139,6 +140,7 @@ data class HubUiState(
     val isVaultReceiptProcessing: Boolean = false,
     val taxVaultExportEobIds: Set<String> = emptySet(),
     val taxVaultExportReceiptIds: Set<String> = emptySet(),
+    val taxVaultEvidencePreviewId: String? = null,
     val taxVaultDoorAnimating: Boolean = false,
     val hubSettings: HubSettingsState = HubSettingsState()
 )
@@ -1186,6 +1188,26 @@ class EobViewModel : ViewModel() {
             )
         }
         return eobThumbnails + receiptThumbnails
+    }
+
+    fun taxVaultEvidencePreviewDetail(evidenceId: String): VaultEvidencePreviewDetail? {
+        _eobRecords.value.firstOrNull { it.historyListKey() == evidenceId }?.let { record ->
+            return VaultEvidencePreviewDetail.Eob(record)
+        }
+        _vaultReceipts.value.firstOrNull { it.historyListKey() == evidenceId }?.let { receipt ->
+            return VaultEvidencePreviewDetail.Receipt(receipt)
+        }
+        return null
+    }
+
+    fun selectTaxVaultEvidencePreview(evidenceId: String) {
+        if (!isTaxVaultGoldUnlocked()) return
+        if (taxVaultEvidencePreviewDetail(evidenceId) == null) return
+        _uiState.update { it.copy(taxVaultEvidencePreviewId = evidenceId) }
+    }
+
+    fun dismissTaxVaultEvidencePreview() {
+        _uiState.update { it.copy(taxVaultEvidencePreviewId = null) }
     }
 
     fun toggleTaxVaultExportEob(record: EobRecord) {

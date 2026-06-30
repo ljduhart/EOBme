@@ -39,6 +39,11 @@ data class VaultEvidenceThumbnail(
     val isReceipt: Boolean
 )
 
+sealed class VaultEvidencePreviewDetail {
+    data class Eob(val record: EobRecord) : VaultEvidencePreviewDetail()
+    data class Receipt(val record: ReceiptRecord) : VaultEvidencePreviewDetail()
+}
+
 data class TaxVaultExportRow(
     val date: String,
     val provider: String,

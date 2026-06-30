@@ -244,6 +244,8 @@ object EobStrings {
         "taxVaultDashboardTitle" to "Tax Vault Dashboard",
         "taxVaultAddReceipt" to "Add Receipt",
         "taxVaultEvidenceGalleryTitle" to "Vault Evidence",
+        "taxVaultEvidencePreviewIncludeExport" to "Include in claim package",
+        "taxVaultEvidencePreviewReceiptTitle" to "Receipt details",
         "taxVaultExportTitle" to "One-Tap Claim Packager",
         "taxVaultExportEobLine" to "%s • %s",
         "taxVaultExportReceiptLine" to "Receipt %s • %s",

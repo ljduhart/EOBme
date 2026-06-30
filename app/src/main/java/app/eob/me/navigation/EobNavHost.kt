@@ -783,6 +783,20 @@ private fun MainHubNavHost(
                     val eligibleEobs = remember(sortedEobRecords, taxVaultFilterState) {
                         eobViewModel.taxVaultEligibleEobs(sortedEobRecords)
                     }
+                    val evidencePreviewDetail = remember(
+                        uiState.taxVaultEvidencePreviewId,
+                        sortedEobRecords,
+                        vaultReceipts
+                    ) {
+                        uiState.taxVaultEvidencePreviewId?.let { evidenceId ->
+                            eobViewModel.taxVaultEvidencePreviewDetail(evidenceId)
+                        }
+                    }
+                    LaunchedEffect(uiState.taxVaultEvidencePreviewId, evidencePreviewDetail) {
+                        if (uiState.taxVaultEvidencePreviewId != null && evidencePreviewDetail == null) {
+                            eobViewModel.dismissTaxVaultEvidencePreview()
+                        }
+                    }
                     TaxVaultScreen(
                         language = language,
                         darkModeEnabled = uiState.hubSettings.darkModeEnabled,
@@ -793,6 +807,7 @@ private fun MainHubNavHost(
                         budgetSummary = taxVaultBudgetSummary,
                         fsaSnapshot = fsaSnapshot,
                         evidenceThumbnails = evidenceThumbnails,
+                        evidencePreviewDetail = evidencePreviewDetail,
                         eligibleEobs = eligibleEobs,
                         vaultReceipts = vaultReceipts,
                         selectedEobIds = uiState.taxVaultExportEobIds,
@@ -811,6 +826,14 @@ private fun MainHubNavHost(
                         },
                         onToggleExportReceipt = { receipt ->
                             eobViewModel.toggleTaxVaultExportReceipt(receipt)
+                            onActivity()
+                        },
+                        onEvidenceSelected = { evidenceId ->
+                            eobViewModel.selectTaxVaultEvidencePreview(evidenceId)
+                            onActivity()
+                        },
+                        onDismissEvidencePreview = {
+                            eobViewModel.dismissTaxVaultEvidencePreview()
                             onActivity()
                         },
                         onExportClaimPackage = {

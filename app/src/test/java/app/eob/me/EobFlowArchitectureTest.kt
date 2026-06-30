@@ -2653,6 +2653,34 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr140VaultEvidencePreviewBlurAndDetailAudit() {
+        val vaultScreenSource = readSource("ui/screens/TaxVaultScreen.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val navHostSource = readSource("navigation/EobNavHost.kt")
+        val modelsSource = readSource("data/TaxVaultModels.kt")
+
+        assertTrue(modelsSource.contains("sealed class VaultEvidencePreviewDetail"))
+        assertTrue(viewModelSource.contains("fun selectTaxVaultEvidencePreview"))
+        assertTrue(viewModelSource.contains("fun dismissTaxVaultEvidencePreview"))
+        assertTrue(viewModelSource.contains("fun taxVaultEvidencePreviewDetail"))
+        assertTrue(vaultScreenSource.contains("VaultEvidencePreviewOverlay"))
+        assertTrue(vaultScreenSource.contains("Modifier.blur(12.dp)"))
+        assertTrue(vaultScreenSource.contains("scaleIn"))
+        assertTrue(navHostSource.contains("evidencePreviewDetail"))
+        assertTrue(navHostSource.contains("selectTaxVaultEvidencePreview"))
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "network/VeryfiDocumentClient.kt",
+            "data/DocumentScanPipelineRepository.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#140: protected area touched ($path)", source.contains("VaultEvidencePreviewOverlay"))
+        }
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }

@@ -2,6 +2,10 @@ package app.eob.me.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -35,8 +40,10 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,16 +51,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
-import app.eob.me.data.EobRecord
+import androidx.compose.ui.text.font.FontWeight
+import app.eob.me.data.EobCharge
 import app.eob.me.data.EobStrings
+import app.eob.me.data.EobRecord
+import app.eob.me.data.VaultEvidencePreviewDetail
 import app.eob.me.data.FsaDoomsdayPhase
 import app.eob.me.data.FsaDoomsdaySnapshot
 import app.eob.me.data.ReceiptRecord
@@ -82,6 +93,7 @@ fun TaxVaultScreen(
     budgetSummary: TaxVaultBudgetSummary,
     fsaSnapshot: FsaDoomsdaySnapshot,
     evidenceThumbnails: List<VaultEvidenceThumbnail>,
+    evidencePreviewDetail: VaultEvidencePreviewDetail?,
     eligibleEobs: List<EobRecord>,
     vaultReceipts: List<ReceiptRecord>,
     selectedEobIds: Set<String>,
@@ -91,6 +103,8 @@ fun TaxVaultScreen(
     onToggleExportEob: (EobRecord) -> Unit,
     onToggleExportReceipt: (ReceiptRecord) -> Unit,
     onExportClaimPackage: () -> Unit,
+    onEvidenceSelected: (String) -> Unit,
+    onDismissEvidencePreview: () -> Unit,
     onAddReceipt: () -> Unit,
     onDoorAnimationComplete: () -> Unit,
     modifier: Modifier = Modifier
@@ -102,6 +116,9 @@ fun TaxVaultScreen(
             doorsOpen = true
             onDoorAnimationComplete()
         }
+    }
+    DisposableEffect(Unit) {
+        onDispose { onDismissEvidencePreview() }
     }
 
     Box(
@@ -135,6 +152,7 @@ fun TaxVaultScreen(
                 budgetSummary = budgetSummary,
                 fsaSnapshot = fsaSnapshot,
                 evidenceThumbnails = evidenceThumbnails,
+                evidencePreviewDetail = evidencePreviewDetail,
                 eligibleEobs = eligibleEobs,
                 vaultReceipts = vaultReceipts,
                 selectedEobIds = selectedEobIds,
@@ -144,6 +162,8 @@ fun TaxVaultScreen(
                 onToggleExportEob = onToggleExportEob,
                 onToggleExportReceipt = onToggleExportReceipt,
                 onExportClaimPackage = onExportClaimPackage,
+                onEvidenceSelected = onEvidenceSelected,
+                onDismissEvidencePreview = onDismissEvidencePreview,
                 onAddReceipt = onAddReceipt
             )
         }
@@ -198,6 +218,7 @@ private fun TaxVaultDashboard(
     budgetSummary: TaxVaultBudgetSummary,
     fsaSnapshot: FsaDoomsdaySnapshot,
     evidenceThumbnails: List<VaultEvidenceThumbnail>,
+    evidencePreviewDetail: VaultEvidencePreviewDetail?,
     eligibleEobs: List<EobRecord>,
     vaultReceipts: List<ReceiptRecord>,
     selectedEobIds: Set<String>,
@@ -207,10 +228,16 @@ private fun TaxVaultDashboard(
     onToggleExportEob: (EobRecord) -> Unit,
     onToggleExportReceipt: (ReceiptRecord) -> Unit,
     onExportClaimPackage: () -> Unit,
+    onEvidenceSelected: (String) -> Unit,
+    onDismissEvidencePreview: () -> Unit,
     onAddReceipt: () -> Unit
 ) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
+    val previewOpen = evidencePreviewDetail != null
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (previewOpen) Modifier.blur(12.dp) else Modifier),
         containerColor = Color.Transparent,
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -249,7 +276,11 @@ private fun TaxVaultDashboard(
             )
             FsaDoomsdayMonitorCard(language = language, snapshot = fsaSnapshot)
             if (evidenceThumbnails.isNotEmpty()) {
-                VaultEvidenceCarousel(language = language, thumbnails = evidenceThumbnails)
+                VaultEvidenceCarousel(
+                    language = language,
+                    thumbnails = evidenceThumbnails,
+                    onEvidenceSelected = onEvidenceSelected
+                )
             }
             TaxVaultVerticalFilterCard(
                 language = language,
@@ -277,6 +308,18 @@ private fun TaxVaultDashboard(
                 onExportClaimPackage = onExportClaimPackage
             )
             Spacer(modifier = Modifier.height(88.dp))
+        }
+    }
+        if (evidencePreviewDetail != null) {
+            VaultEvidencePreviewOverlay(
+                language = language,
+                detail = evidencePreviewDetail,
+                selectedEobIds = selectedEobIds,
+                selectedReceiptIds = selectedReceiptIds,
+                onDismiss = onDismissEvidencePreview,
+                onToggleExportEob = onToggleExportEob,
+                onToggleExportReceipt = onToggleExportReceipt
+            )
         }
     }
 }
@@ -326,7 +369,8 @@ private fun FsaDoomsdayMonitorCard(
 @Composable
 private fun VaultEvidenceCarousel(
     language: AppLanguage,
-    thumbnails: List<VaultEvidenceThumbnail>
+    thumbnails: List<VaultEvidenceThumbnail>,
+    onEvidenceSelected: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -340,18 +384,25 @@ private fun VaultEvidenceCarousel(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             items(thumbnails, key = { it.id }) { thumbnail ->
-                PolaroidEvidenceThumbnail(thumbnail = thumbnail)
+                PolaroidEvidenceThumbnail(
+                    thumbnail = thumbnail,
+                    onClick = { onEvidenceSelected(thumbnail.id) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun PolaroidEvidenceThumbnail(thumbnail: VaultEvidenceThumbnail) {
+private fun PolaroidEvidenceThumbnail(
+    thumbnail: VaultEvidenceThumbnail,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .width(132.dp)
-            .graphicsLayer { rotationZ = thumbnail.rotationDegrees },
+            .graphicsLayer { rotationZ = thumbnail.rotationDegrees }
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -503,5 +554,322 @@ private fun VaultExportSection(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun VaultEvidencePreviewOverlay(
+    language: AppLanguage,
+    detail: VaultEvidencePreviewDetail,
+    selectedEobIds: Set<String>,
+    selectedReceiptIds: Set<String>,
+    onDismiss: () -> Unit,
+    onToggleExportEob: (EobRecord) -> Unit,
+    onToggleExportReceipt: (ReceiptRecord) -> Unit
+) {
+    var revealed by remember(detail) { mutableStateOf(false) }
+    LaunchedEffect(detail) {
+        revealed = false
+        revealed = true
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.62f))
+                .clickable(onClick = onDismiss)
+        )
+        AnimatedVisibility(
+            visible = revealed,
+            enter = fadeIn(animationSpec = tween(220)) + scaleIn(
+                initialScale = 0.88f,
+                animationSpec = tween(280)
+            ),
+            exit = fadeOut(animationSpec = tween(180)) + scaleOut(
+                targetScale = 0.92f,
+                animationSpec = tween(180)
+            ),
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            Card(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
+                    .fillMaxWidth()
+                    .heightIn(max = 560.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 18.dp)
+            ) {
+                when (detail) {
+                    is VaultEvidencePreviewDetail.Eob -> VaultEvidenceEobPreviewContent(
+                        language = language,
+                        record = detail.record,
+                        includeInExport = detail.record.historyListKey() in selectedEobIds,
+                        onToggleExport = { onToggleExportEob(detail.record) },
+                        onDismiss = onDismiss
+                    )
+                    is VaultEvidencePreviewDetail.Receipt -> VaultEvidenceReceiptPreviewContent(
+                        language = language,
+                        receipt = detail.record,
+                        includeInExport = detail.record.historyListKey() in selectedReceiptIds,
+                        onToggleExport = { onToggleExportReceipt(detail.record) },
+                        onDismiss = onDismiss
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VaultEvidenceEobPreviewContent(
+    language: AppLanguage,
+    record: EobRecord,
+    includeInExport: Boolean,
+    onToggleExport: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = record.providerName.ifBlank { EobStrings.t(language, "provider") },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF102A43),
+                modifier = Modifier.weight(1f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            TextButton(onClick = onDismiss) {
+                Text(EobStrings.t(language, "close"))
+            }
+        }
+        if (record.storageDownloadUrl.isNotBlank()) {
+            AsyncImage(
+                model = record.storageDownloadUrl,
+                contentDescription = record.providerName,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
+        VaultEvidenceDetailLine(
+            label = EobStrings.t(language, "provider"),
+            value = record.providerName
+        )
+        VaultEvidenceDetailLine(
+            label = EobStrings.t(language, "insurance"),
+            value = record.insuranceName
+        )
+        VaultEvidenceDetailLine(
+            label = EobStrings.t(language, "appointmentDate"),
+            value = record.serviceDate
+        )
+        VaultEvidenceDetailLine(
+            label = EobStrings.t(language, "patientResponsibility"),
+            value = record.totalPatientResponsibility.asCurrency()
+        )
+        if (record.isHsaEligible || record.isFsaEligible) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (record.isHsaEligible) {
+                    VaultEvidenceEligibilityChip(
+                        text = EobStrings.t(language, "taxVaultHsaEligibleChip")
+                    )
+                }
+                if (record.isFsaEligible) {
+                    VaultEvidenceEligibilityChip(
+                        text = EobStrings.t(language, "taxVaultFsaEligibleChip")
+                    )
+                }
+            }
+        }
+        if (VaultSubstantiationStatus.fromFirestore(record.vaultSubstantiationStatus) ==
+            VaultSubstantiationStatus.PAID_AND_SUBSTANTIATED
+        ) {
+            Text(
+                text = EobStrings.t(language, "taxVaultSubstantiated"),
+                style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFF1B5E20),
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        if (record.charges.isNotEmpty()) {
+            Text(
+                text = EobStrings.t(language, "historyProcedureCodes"),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF546E7A)
+            )
+            record.charges.forEach { charge ->
+                VaultEvidenceChargeLine(language = language, charge = charge)
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleExport),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = includeInExport,
+                onCheckedChange = { onToggleExport() }
+            )
+            Text(
+                text = EobStrings.t(language, "taxVaultEvidencePreviewIncludeExport"),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF263238)
+            )
+        }
+    }
+}
+
+@Composable
+private fun VaultEvidenceReceiptPreviewContent(
+    language: AppLanguage,
+    receipt: ReceiptRecord,
+    includeInExport: Boolean,
+    onToggleExport: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = EobStrings.t(language, "taxVaultEvidencePreviewReceiptTitle"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF102A43),
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onDismiss) {
+                Text(EobStrings.t(language, "close"))
+            }
+        }
+        if (receipt.thumbnailUrl.isNotBlank()) {
+            AsyncImage(
+                model = receipt.thumbnailUrl,
+                contentDescription = receipt.providerName,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
+        VaultEvidenceDetailLine(
+            label = EobStrings.t(language, "provider"),
+            value = receipt.providerName
+        )
+        VaultEvidenceDetailLine(
+            label = EobStrings.t(language, "appointmentDate"),
+            value = receipt.serviceDate
+        )
+        VaultEvidenceDetailLine(
+            label = EobStrings.t(language, "patientResponsibility"),
+            value = receipt.amount.asCurrency()
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleExport),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = includeInExport,
+                onCheckedChange = { onToggleExport() }
+            )
+            Text(
+                text = EobStrings.t(language, "taxVaultEvidencePreviewIncludeExport"),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF263238)
+            )
+        }
+    }
+}
+
+@Composable
+private fun VaultEvidenceDetailLine(label: String, value: String) {
+    if (value.isBlank()) return
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color(0xFF78909C)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF263238),
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun VaultEvidenceEligibilityChip(text: String) {
+    Text(
+        text = text,
+        modifier = Modifier
+            .background(Color(0xFFE8F5E9), RoundedCornerShape(50))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        style = MaterialTheme.typography.labelSmall,
+        color = Color(0xFF1B5E20),
+        fontWeight = FontWeight.Bold
+    )
+}
+
+@Composable
+private fun VaultEvidenceChargeLine(
+    language: AppLanguage,
+    charge: EobCharge
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = EobStrings.tf(language, "cptCodeLabel", charge.cptCode),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF263238)
+            )
+            if (charge.cptDescription.isNotBlank()) {
+                Text(
+                    text = charge.cptDescription,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF607D8B),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        Text(
+            text = charge.billedAmount.asCurrency(),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF263238)
+        )
     }
 }
