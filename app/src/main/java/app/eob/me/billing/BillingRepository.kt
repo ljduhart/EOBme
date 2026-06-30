@@ -251,7 +251,10 @@ class BillingRepository(
         val launchResult = billingClient.launchBillingFlow(activity, flowParams)
         when (launchResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> Unit
-            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> refreshPurchases()
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                _billingErrorKey.value = "billing_already_subscribed"
+                refreshPurchases()
+            }
             else -> _billingErrorKey.value = "billing_flow_failed"
         }
     }

@@ -94,6 +94,7 @@ private fun PaywallScreen(
     }
     val billingInterval = if (isAnnual) BillingInterval.ANNUAL else BillingInterval.MONTHLY
     val purchaseBlocked = selectedTier.rank() <= currentSubscriptionTier.rank()
+    val pricingReady = paywallPricing.isLoaded || selectedTier == SubscriptionTier.Free
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -184,21 +185,21 @@ private fun PaywallScreen(
 
             Button(
                 onClick = {
-                    if (!purchaseBlocked) {
+                    if (!purchaseBlocked && pricingReady) {
                         onPurchaseClicked(selectedTier, billingInterval)
                     }
                 },
-                enabled = !purchaseBlocked,
+                enabled = !purchaseBlocked && pricingReady,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = if (purchaseBlocked) {
-                        alreadySubscribedLabel
-                    } else {
-                        "Subscribe for $finalPrice"
+                    text = when {
+                        purchaseBlocked -> alreadySubscribedLabel
+                        !pricingReady -> "Loading prices…"
+                        else -> "Subscribe for $finalPrice"
                     },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold

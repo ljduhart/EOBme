@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.callbackFlow
 
 /**
  * Listens to `users/{userId}` and maps `subscriptionTier`, with legacy `isPremium` fallback.
+ *
+ * RevenueCat purchases are written server-side by the Firebase extension
+ * `ext-firestore-revenuecat-purchases-handler` (same Firebase UID as [Purchases.logIn]).
+ * The client never writes subscription tier fields; [app.eob.me.viewmodel.SubscriptionViewModel]
+ * merges this snapshot with Play Billing and RevenueCat entitlements.
  */
 class FirestoreSubscriptionRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()

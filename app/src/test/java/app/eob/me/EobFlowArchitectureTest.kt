@@ -2708,6 +2708,7 @@ class EobFlowArchitectureTest {
         assertTrue(navHostSource.contains("currentSubscriptionTier"))
         assertTrue(navHostSource.contains("alreadySubscribedLabel"))
         assertTrue(paywallSource.contains("alreadySubscribedLabel"))
+        assertTrue(paywallSource.contains("paywallPricing.isLoaded"))
         assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Free)"))
         listOf(
             "ui/screens/SplashScreen.kt",

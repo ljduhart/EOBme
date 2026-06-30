@@ -141,6 +141,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
             }
             billingRepository.startConnection()
             revenueCatBillingRepository.refreshCustomerInfo()
+            revenueCatBillingRepository.refreshOfferings()
         }
     }
 

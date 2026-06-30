@@ -265,6 +265,7 @@ class SubscriptionBillingTest {
         val source = readSource("viewmodel/SubscriptionViewModel.kt")
         assertTrue(source.contains("billingRepository.activePlayTier.collect"))
         assertTrue(source.contains("revenueCatBillingRepository.refreshCustomerInfo()"))
+        assertTrue(source.contains("revenueCatBillingRepository.refreshOfferings()"))
     }
 
     @Test
@@ -472,6 +473,50 @@ class SubscriptionBillingTest {
         assertTrue(navSource.contains("EobRoute.YearlyExpense.route"))
         assertTrue(navSource.contains("!subscriptionTier.isGold()"))
         assertTrue(navSource.contains("!EobmeFeatureGate.hasRealTimeNews(subscriptionTier)"))
+    }
+
+    @Test
+    fun mergeSubscriptionStatusPrefersHighestTierAcrossAllSources() {
+        assertEquals(
+            SubscriptionState.Gold,
+            mergeSubscriptionStatus(
+                playTier = SubscriptionTier.Silver,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Resolved(SubscriptionTier.Gold),
+                revenueCatTier = SubscriptionTier.Silver
+            )
+        )
+        assertEquals(
+            SubscriptionState.Silver,
+            mergeSubscriptionStatus(
+                playTier = SubscriptionTier.Free,
+                firestoreSnapshot = FirestoreSubscriptionSnapshot.Resolved(SubscriptionTier.Silver),
+                revenueCatTier = SubscriptionTier.Free
+            )
+        )
+    }
+
+    @Test
+    fun paywallDialogBlocksPurchaseUntilRevenueCatPricingLoads() {
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        assertTrue(paywallSource.contains("paywallPricing.isLoaded"))
+        assertTrue(paywallSource.contains("pricingReady"))
+        assertTrue(paywallSource.contains("Loading prices"))
+    }
+
+    @Test
+    fun androidManifestDeclaresBillingPermissionForPlayAndRevenueCat() {
+        val manifest = readManifest()
+        assertTrue(manifest.contains("com.android.vending.BILLING"))
+        assertTrue(manifest.contains("ext-firestore-revenuecat-purchases-handler"))
+        assertTrue(manifest.contains("com.android.vending"))
+    }
+
+    private fun readManifest(): String {
+        val candidates = listOf(
+            java.io.File("src/main/AndroidManifest.xml"),
+            java.io.File("app/src/main/AndroidManifest.xml")
+        )
+        return candidates.first { it.isFile }.readText()
     }
 
     private fun readSource(relativePath: String): String {

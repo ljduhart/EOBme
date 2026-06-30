@@ -11,8 +11,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- POST_NOTIFICATIONS — EobFirebaseMessagingService; runtime request API 33+ in EobNavHost -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel)
-         and RevenueCat SDK (EobApplication / Purchases.configure) -->
+    <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel),
+         RevenueCat SDK (EobApplication / Purchases.configure), and Play Store package visibility.
+         Purchases sync to Firestore users/{uid}.subscriptionTier via the RevenueCat
+         ext-firestore-revenuecat-purchases-handler extension (read-only on client). -->
     <uses-permission android:name="com.android.vending.BILLING" />
     <!-- Onboarding (Splash → Language → Intro → AuthChoice → Auth) via AppViewModel.
          Sign-up LegalAcceptanceText opens policy URLs with ACTION_VIEW (queries below). -->
