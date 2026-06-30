@@ -2669,6 +2669,8 @@ class EobFlowArchitectureTest {
         assertTrue(vaultScreenSource.contains("scaleIn"))
         assertTrue(navHostSource.contains("evidencePreviewDetail"))
         assertTrue(navHostSource.contains("selectTaxVaultEvidencePreview"))
+        assertTrue(navHostSource.contains("dismissTaxVaultEvidencePreview"))
+        assertTrue(navHostSource.contains("EobRoute.TaxVault.route"))
         listOf(
             "ui/screens/SplashScreen.kt",
             "ui/screens/LanguageScreen.kt",

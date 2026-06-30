@@ -68,6 +68,7 @@ class TaxVaultEvidencePreviewTest {
         assertTrue(screenSource.contains("onEvidenceSelected"))
         assertTrue(navSource.contains("selectTaxVaultEvidencePreview"))
         assertTrue(navSource.contains("dismissTaxVaultEvidencePreview"))
+        assertTrue(navSource.contains("EobRoute.TaxVault.route"))
         assertTrue(viewModelSource.contains("taxVaultEvidencePreviewId"))
         assertTrue(viewModelSource.contains("VaultEvidencePreviewDetail"))
     }

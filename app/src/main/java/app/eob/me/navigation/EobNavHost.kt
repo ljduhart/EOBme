@@ -504,6 +504,14 @@ private fun MainHubNavHost(
         eobViewModel.dismissInsuranceArticle()
     }
 
+    BackHandler(
+        enabled = currentRoute == EobRoute.TaxVault.route &&
+            uiState.taxVaultEvidencePreviewId != null
+    ) {
+        eobViewModel.dismissTaxVaultEvidencePreview()
+        onActivity()
+    }
+
     BackHandler(enabled = uiState.paywallVisible) {
         eobViewModel.dismissPaywall()
         onActivity()
