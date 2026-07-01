@@ -2684,10 +2684,36 @@ class EobFlowArchitectureTest {
     }
 
     @Test
+    fun pr142PaywallPricingCatalogFallbackAudit() {
+        val pricingSource = readSource("billing/PaywallPricing.kt")
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val catalogSource = readSource("data/SubscriptionCatalog.kt")
+
+        assertTrue(pricingSource.contains("isStorePricingLoaded"))
+        assertTrue(pricingSource.contains("SubscriptionCatalog.displayPrice"))
+        assertTrue(pricingSource.contains("SubscriptionCatalog.checkoutPrice"))
+        assertTrue(catalogSource.contains("\"$5.99/mo\""))
+        assertTrue(catalogSource.contains("\"$49.99/yr\""))
+        assertFalse(catalogSource.contains("private val SubscriptionTier.rank"))
+        assertFalse(paywallSource.contains("Loading prices"))
+        listOf(
+            "ui/screens/SplashScreen.kt",
+            "ui/screens/LanguageScreen.kt",
+            "ui/screens/IntroScreen.kt",
+            "network/VeryfiDocumentClient.kt",
+            "data/DocumentScanPipelineRepository.kt"
+        ).forEach { path ->
+            val source = readSource(path)
+            assertFalse("PR#142: protected area touched ($path)", source.contains("PaywallPricing"))
+        }
+    }
+
+    @Test
     fun pr141RevenueCatPaywallTierEnforcementAudit() {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         val navHostSource = readSource("navigation/EobNavHost.kt")
         val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val pricingSource = readSource("billing/PaywallPricing.kt")
         val featureGateSource = readSource("data/FeatureGate.kt")
         val usageStoreSource = readSource("data/SubscriptionUsageStore.kt")
 
@@ -2708,7 +2734,7 @@ class EobFlowArchitectureTest {
         assertTrue(navHostSource.contains("currentSubscriptionTier"))
         assertTrue(navHostSource.contains("alreadySubscribedLabel"))
         assertTrue(paywallSource.contains("alreadySubscribedLabel"))
-        assertTrue(paywallSource.contains("paywallPricing.isLoaded"))
+        assertTrue(pricingSource.contains("SubscriptionCatalog.displayPrice"))
         assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Free)"))
         listOf(
             "ui/screens/SplashScreen.kt",

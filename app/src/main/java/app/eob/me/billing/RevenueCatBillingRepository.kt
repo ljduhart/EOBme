@@ -89,7 +89,7 @@ class RevenueCatBillingRepository(
         try {
             val offerings = Purchases.sharedInstance.awaitOfferings()
             val pricing = PaywallPricing.fromOfferings(offerings)
-            if (pricing.isLoaded) {
+            if (pricing.isStorePricingLoaded) {
                 _paywallPricing.value = pricing
             }
         } catch (_: PurchasesException) {
@@ -115,7 +115,7 @@ class RevenueCatBillingRepository(
             val purchaseResult = Purchases.sharedInstance.awaitPurchase(purchaseParams)
             _activeTier.value = RevenueCatEntitlementMapper.tierFromCustomerInfo(purchaseResult.customerInfo)
             val pricing = PaywallPricing.fromOfferings(offerings)
-            if (pricing.isLoaded) {
+            if (pricing.isStorePricingLoaded) {
                 _paywallPricing.value = pricing
             }
             true

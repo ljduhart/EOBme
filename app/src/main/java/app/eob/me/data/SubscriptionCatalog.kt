@@ -113,13 +113,6 @@ object SubscriptionCatalog {
     }
 
     fun highestTier(first: SubscriptionTier, second: SubscriptionTier): SubscriptionTier {
-        return if (first.rank >= second.rank) first else second
+        return if (first.rank() >= second.rank()) first else second
     }
-
-    private val SubscriptionTier.rank: Int
-        get() = when (this) {
-            SubscriptionTier.Free -> 0
-            SubscriptionTier.Silver -> 1
-            SubscriptionTier.Gold -> 2
-        }
 }

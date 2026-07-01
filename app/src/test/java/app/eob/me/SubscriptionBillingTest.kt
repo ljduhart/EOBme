@@ -497,10 +497,11 @@ class SubscriptionBillingTest {
 
     @Test
     fun paywallDialogBlocksPurchaseUntilRevenueCatPricingLoads() {
+        val pricingSource = readSource("billing/PaywallPricing.kt")
         val paywallSource = readSource("ui/screens/PaywallDialog.kt")
-        assertTrue(paywallSource.contains("paywallPricing.isLoaded"))
-        assertTrue(paywallSource.contains("pricingReady"))
-        assertTrue(paywallSource.contains("Loading prices"))
+        assertTrue(pricingSource.contains("SubscriptionCatalog.displayPrice"))
+        assertTrue(pricingSource.contains("isStorePricingLoaded"))
+        assertFalse(paywallSource.contains("Loading prices"))
     }
 
     @Test

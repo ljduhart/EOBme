@@ -1,29 +1,40 @@
 package app.eob.me.billing
 
 import app.eob.me.data.BillingInterval
+import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
 import com.revenuecat.purchases.Offerings
 
 /**
  * Store-localized paywall prices resolved from RevenueCat offerings.
- * UI must never hardcode subscription amounts; fall back to placeholders until offerings load.
+ * Falls back to [SubscriptionCatalog] marketing prices until Play offerings sync.
  */
 data class PaywallPricing(
     private val displayPrices: Map<String, String> = emptyMap(),
-    private val checkoutPrices: Map<String, String> = emptyMap()
+    private val checkoutPrices: Map<String, String> = emptyMap(),
+    private val storePricesLoaded: Boolean = false
 ) {
-    fun displayPrice(tier: SubscriptionTier, interval: BillingInterval): String =
-        displayPrices[priceKey(tier, interval)] ?: PLACEHOLDER
+    fun displayPrice(tier: SubscriptionTier, interval: BillingInterval): String {
+        if (tier == SubscriptionTier.Free) {
+            return SubscriptionCatalog.displayPrice(tier, interval)
+        }
+        return displayPrices[priceKey(tier, interval)]
+            ?: SubscriptionCatalog.displayPrice(tier, interval)
+    }
 
-    fun checkoutPrice(tier: SubscriptionTier, interval: BillingInterval): String =
-        checkoutPrices[priceKey(tier, interval)] ?: PLACEHOLDER
+    fun checkoutPrice(tier: SubscriptionTier, interval: BillingInterval): String {
+        if (tier == SubscriptionTier.Free) {
+            return SubscriptionCatalog.checkoutPrice(tier, interval)
+        }
+        return checkoutPrices[priceKey(tier, interval)]
+            ?: SubscriptionCatalog.checkoutPrice(tier, interval)
+    }
 
-    val isLoaded: Boolean
-        get() = displayPrices.isNotEmpty()
+    /** True when RevenueCat returned localized Play Store prices for at least one package. */
+    val isStorePricingLoaded: Boolean
+        get() = storePricesLoaded
 
     companion object {
-        private const val PLACEHOLDER = "—"
-
         fun empty(): PaywallPricing = PaywallPricing()
 
         fun fromOfferings(offerings: Offerings): PaywallPricing {
@@ -44,7 +55,11 @@ data class PaywallPricing(
                     checkout[key] = formatted
                 }
             }
-            return PaywallPricing(display, checkout)
+            return PaywallPricing(
+                displayPrices = display,
+                checkoutPrices = checkout,
+                storePricesLoaded = display.isNotEmpty()
+            )
         }
 
         private fun priceKey(tier: SubscriptionTier, interval: BillingInterval): String =
