@@ -939,7 +939,7 @@ private fun MainHubNavHost(
                 }
                 composable(EobRoute.YearlyExpense.route) {
                     val subscriptionTier = uiState.hubSettings.subscriptionTier
-                    if (!subscriptionTier.isGold()) {
+                    if (!EobmeFeatureGate.hasYtdExpenseTracker(subscriptionTier)) {
                         LaunchedEffect(Unit) {
                             eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
                             navController.popBackStack(EobRoute.Home.route, inclusive = false)

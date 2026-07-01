@@ -70,8 +70,43 @@ class FeatureGateTest {
     }
 
     @Test
+    fun silverTierCodedFeaturesMatchManageSubscriptionList() {
+        val tier = SubscriptionTier.Silver
+        assertEquals(8, SubscriptionCatalog.features(tier).size)
+        assertEquals(FeatureAccess.Limited(4), EobmeFeatureGate.getEobScanLimit(tier))
+        assertEquals(FeatureAccess.Limited(5), EobmeFeatureGate.getProviderStorageLimit(tier))
+        assertEquals(FeatureAccess.Limited(2), EobmeFeatureGate.getAppealLetterLimit(tier))
+        assertTrue(EobmeFeatureGate.hasBillingErrorDetection(tier))
+        assertTrue(EobmeFeatureGate.hasRealTimeNews(tier))
+        assertTrue(EobmeFeatureGate.hasYtdExpenseTracker(tier))
+        assertTrue(EobmeFeatureGate.hasCptTracker())
+        assertTrue(EobmeFeatureGate.hasCareTeamSmartCards())
+        assertFalse(EobmeFeatureGate.hasSmartCardSummaries(tier))
+        assertFalse(EobmeFeatureGate.hasTaxVaultFilter(tier))
+        assertFalse(EobmeFeatureGate.hasTaxVaultClaimPackager(tier))
+    }
+
+    @Test
+    fun goldTierCodedFeaturesMatchManageSubscriptionList() {
+        val tier = SubscriptionTier.Gold
+        assertEquals(10, SubscriptionCatalog.features(tier).size)
+        assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getEobScanLimit(tier))
+        assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getProviderStorageLimit(tier))
+        assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getAppealLetterLimit(tier))
+        assertTrue(EobmeFeatureGate.hasBillingErrorDetection(tier))
+        assertTrue(EobmeFeatureGate.hasRealTimeNews(tier))
+        assertTrue(EobmeFeatureGate.hasYtdExpenseTracker(tier))
+        assertTrue(EobmeFeatureGate.hasSmartCardSummaries(tier))
+        assertTrue(EobmeFeatureGate.hasTaxVaultFilter(tier))
+        assertTrue(EobmeFeatureGate.hasTaxVaultClaimPackager(tier))
+        assertTrue(EobmeFeatureGate.hasCptTracker())
+    }
+
+    @Test
     fun goldOnlyFeaturesAreGated() {
-        assertFalse(EobmeFeatureGate.hasYtdExpenseTracker(SubscriptionTier.Silver))
+        assertFalse(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Silver))
+        assertFalse(EobmeFeatureGate.hasTaxVaultClaimPackager(SubscriptionTier.Silver))
+        assertFalse(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Silver))
         assertTrue(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Gold))
         assertTrue(EobmeFeatureGate.hasTaxVaultClaimPackager(SubscriptionTier.Gold))
         assertTrue(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Gold))

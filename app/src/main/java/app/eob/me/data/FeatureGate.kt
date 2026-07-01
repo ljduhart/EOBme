@@ -28,7 +28,7 @@ object EobmeFeatureGate {
     fun hasBillingErrorDetection(tier: SubscriptionTier): Boolean = tier != SubscriptionTier.Free
     fun hasRealTimeNews(tier: SubscriptionTier): Boolean = tier != SubscriptionTier.Free
     fun hasSmartCardSummaries(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
-    fun hasYtdExpenseTracker(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
+    fun hasYtdExpenseTracker(tier: SubscriptionTier): Boolean = tier != SubscriptionTier.Free
     fun hasTaxVaultFilter(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
     fun hasTaxVaultClaimPackager(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
 

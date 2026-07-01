@@ -515,7 +515,7 @@ class SubscriptionBillingTest {
         assertTrue(navSource.contains("if (eobViewModel.openAppealForRecord"))
         assertTrue(navSource.contains("requestEobScanOrPaywall"))
         assertTrue(navSource.contains("EobRoute.YearlyExpense.route"))
-        assertTrue(navSource.contains("!subscriptionTier.isGold()"))
+        assertTrue(navSource.contains("EobmeFeatureGate.hasYtdExpenseTracker(subscriptionTier)"))
         assertTrue(navSource.contains("!EobmeFeatureGate.hasRealTimeNews(subscriptionTier)"))
     }
 
