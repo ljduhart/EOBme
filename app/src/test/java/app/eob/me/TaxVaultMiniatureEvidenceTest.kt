@@ -65,7 +65,7 @@ class TaxVaultMiniatureEvidenceTest {
         assertFalse(carouselBlock.contains("VaultAddReceiptButton"))
         assertFalse(carouselBlock.contains("onAddReceipt"))
         assertTrue(exportBlock.contains("VaultAddReceiptButton"))
-        assertTrue(exportBlock.contains("Arrangement.Start"))
+        assertTrue(exportBlock.contains("Arrangement.End"))
         assertFalse(screenSource.contains("floatingActionButton"))
         assertTrue(screenSource.contains("onEvidenceSelected"))
         assertTrue(navSource.contains("beginVaultReceiptScan"))

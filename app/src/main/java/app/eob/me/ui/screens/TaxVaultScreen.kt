@@ -485,7 +485,7 @@ private fun VaultExportSection(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
+                horizontalArrangement = Arrangement.End
             ) {
                 VaultAddReceiptButton(
                     language = language,
