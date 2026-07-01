@@ -57,11 +57,9 @@ private val AddReceiptGlow = Color(0x9900E5FF)
 @Composable
 fun VaultAddReceiptButton(
     language: AppLanguage,
-    mirrored: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sparkleAlignment = if (mirrored) Alignment.BottomEnd else Alignment.BottomStart
     Box(
         modifier = modifier
             .size(width = 112.dp, height = 124.dp)
@@ -110,11 +108,8 @@ fun VaultAddReceiptButton(
         }
         VaultSparkleAccent(
             modifier = Modifier
-                .align(sparkleAlignment)
-                .offset(
-                    x = if (mirrored) 6.dp else (-6).dp,
-                    y = 6.dp
-                )
+                .align(Alignment.BottomStart)
+                .offset(x = (-6).dp, y = 6.dp)
         )
     }
 }

@@ -46,17 +46,20 @@ class TaxVaultMiniatureEvidenceTest {
     }
 
     @Test
-    fun miniatureEvidenceUiUsesPolaroidCardsAndAddReceiptButtons() {
+    fun miniatureEvidenceUiUsesPolaroidCardsAndSingleAddReceiptButton() {
         val screenSource = readSource("ui/screens/TaxVaultScreen.kt")
         val uiSource = readSource("ui/components/taxvault/TaxVaultEvidenceUi.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         val modelsSource = readSource("data/TaxVaultModels.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
 
         assertTrue(screenSource.contains("MiniaturePolaroidEvidenceCard"))
         assertTrue(screenSource.contains("VaultAddReceiptButton"))
-        assertTrue(screenSource.contains("mirrored = false"))
-        assertTrue(screenSource.contains("mirrored = true"))
+        assertEquals(1, screenSource.split("VaultAddReceiptButton(").size - 1)
+        assertFalse(screenSource.contains("floatingActionButton"))
         assertTrue(screenSource.contains("onEvidenceSelected"))
+        assertTrue(navSource.contains("beginVaultReceiptScan"))
+        assertTrue(navSource.contains("EobRoute.CameraCapture.route"))
         assertTrue(uiSource.contains("MiniatureEobPolaroidBody"))
         assertTrue(uiSource.contains("MiniatureReceiptPolaroidBody"))
         assertTrue(uiSource.contains("providerName.uppercase()"))

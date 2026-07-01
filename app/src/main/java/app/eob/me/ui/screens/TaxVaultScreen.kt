@@ -236,16 +236,8 @@ private fun TaxVaultDashboard(
             modifier = Modifier
                 .fillMaxSize()
                 .then(if (previewOpen) Modifier.blur(12.dp) else Modifier),
-        containerColor = Color.Transparent,
-        floatingActionButton = {
-            VaultAddReceiptButton(
-                language = language,
-                mirrored = true,
-                onClick = onAddReceipt,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-        }
-    ) { innerPadding ->
+            containerColor = Color.Transparent
+        ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -292,7 +284,7 @@ private fun TaxVaultDashboard(
                 onToggleExportReceipt = onToggleExportReceipt,
                 onExportClaimPackage = onExportClaimPackage
             )
-            Spacer(modifier = Modifier.height(88.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
         if (evidencePreviewDetail != null) {
@@ -373,7 +365,6 @@ private fun VaultEvidenceCarousel(
             )
             VaultAddReceiptButton(
                 language = language,
-                mirrored = false,
                 onClick = onAddReceipt
             )
         }
