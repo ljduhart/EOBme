@@ -243,7 +243,7 @@ object EobStrings {
         "taxVaultDoorHoldHint" to "Hold scanner for 3 seconds to unlock",
         "taxVaultDashboardTitle" to "Tax Vault Dashboard",
         "taxVaultAddReceipt" to "Add Receipt",
-        "taxVaultEvidenceGalleryTitle" to "Vault Evidence",
+        "taxVaultEvidenceGalleryTitle" to "Miniature Evidence",
         "taxVaultEvidencePreviewIncludeExport" to "Include in claim package",
         "taxVaultEvidencePreviewReceiptTitle" to "Receipt details",
         "taxVaultExportTitle" to "One-Tap Claim Packager",

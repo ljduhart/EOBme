@@ -62,6 +62,7 @@ import app.eob.me.data.ReceiptRecord
 import app.eob.me.data.TaxVaultBudgetSummary
 import app.eob.me.data.TaxVaultExportRow
 import app.eob.me.data.VaultEvidencePreviewDetail
+import app.eob.me.data.VaultEvidenceChargePreview
 import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.FsaDoomsdaySnapshot
 import app.eob.me.data.FsaDoomsdayEngine
@@ -73,6 +74,7 @@ import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.SettingsTab
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.SubscriptionUsageStore
+import app.eob.me.data.asCurrency
 import app.eob.me.data.repository.EobRepository
 import app.eob.me.network.InsuranceNewsRotation
 import app.eob.me.network.RetrofitClient
@@ -1290,21 +1292,40 @@ class EobViewModel : ViewModel() {
             VaultEvidenceThumbnail(
                 id = record.historyListKey(),
                 imageUrl = record.storageDownloadUrl,
-                label = record.providerName,
+                providerName = resolveProviderDirectoryName(record.providerName),
                 rotationDegrees = polaroidRotation(index),
-                isReceipt = false
+                isReceipt = false,
+                serviceDate = record.serviceDate,
+                amountDisplay = record.totalPatientResponsibility.asCurrency(),
+                chargePreviewLines = record.charges.take(3).map { charge ->
+                    VaultEvidenceChargePreview(
+                        code = charge.cptCode,
+                        amount = charge.billedAmount.asCurrency()
+                    )
+                }
             )
         }
         val receiptThumbnails = _vaultReceipts.value.mapIndexed { index, receipt ->
             VaultEvidenceThumbnail(
                 id = receipt.historyListKey(),
                 imageUrl = receipt.thumbnailUrl,
-                label = receipt.providerName,
+                providerName = resolveProviderDirectoryName(receipt.providerName),
                 rotationDegrees = polaroidRotation(index + eobThumbnails.size),
-                isReceipt = true
+                isReceipt = true,
+                serviceDate = receipt.serviceDate,
+                amountDisplay = receipt.amount.asCurrency()
             )
         }
         return eobThumbnails + receiptThumbnails
+    }
+
+    private fun resolveProviderDirectoryName(providerName: String): String {
+        val trimmed = providerName.trim()
+        if (trimmed.isBlank()) return providerName
+        return EobAnalyzer.providerDirectory(_eobRecords.value)
+            .firstOrNull { it.providerName.equals(trimmed, ignoreCase = true) }
+            ?.providerName
+            ?: trimmed
     }
 
     fun taxVaultEvidencePreviewDetail(evidenceId: String): VaultEvidencePreviewDetail? {

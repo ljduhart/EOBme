@@ -30,13 +30,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -55,7 +52,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -75,6 +71,8 @@ import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.VaultSubstantiationStatus
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
+import app.eob.me.ui.components.taxvault.MiniaturePolaroidEvidenceCard
+import app.eob.me.ui.components.taxvault.VaultAddReceiptButton
 import coil.compose.AsyncImage
 
 private val VaultInteriorBackground = Brush.verticalGradient(
@@ -240,23 +238,11 @@ private fun TaxVaultDashboard(
                 .then(if (previewOpen) Modifier.blur(12.dp) else Modifier),
         containerColor = Color.Transparent,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            VaultAddReceiptButton(
+                language = language,
+                mirrored = true,
                 onClick = onAddReceipt,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = EobStrings.t(language, "taxVaultAddReceipt")
-                    )
-                },
-                text = {
-                    Text(
-                        text = EobStrings.t(language, "taxVaultAddReceipt"),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                containerColor = Color(0xFF7AD7FF),
-                contentColor = Color(0xFF0B1F45),
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
+                modifier = Modifier.padding(bottom = 4.dp)
             )
         }
     ) { innerPadding ->
@@ -275,13 +261,12 @@ private fun TaxVaultDashboard(
                 color = Color.White
             )
             FsaDoomsdayMonitorCard(language = language, snapshot = fsaSnapshot)
-            if (evidenceThumbnails.isNotEmpty()) {
-                VaultEvidenceCarousel(
-                    language = language,
-                    thumbnails = evidenceThumbnails,
-                    onEvidenceSelected = onEvidenceSelected
-                )
-            }
+            VaultEvidenceCarousel(
+                language = language,
+                thumbnails = evidenceThumbnails,
+                onEvidenceSelected = onEvidenceSelected,
+                onAddReceipt = onAddReceipt
+            )
             TaxVaultVerticalFilterCard(
                 language = language,
                 darkModeEnabled = darkModeEnabled,
@@ -370,76 +355,41 @@ private fun FsaDoomsdayMonitorCard(
 private fun VaultEvidenceCarousel(
     language: AppLanguage,
     thumbnails: List<VaultEvidenceThumbnail>,
-    onEvidenceSelected: (String) -> Unit
+    onEvidenceSelected: (String) -> Unit,
+    onAddReceipt: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = EobStrings.t(language, "taxVaultEvidenceGalleryTitle"),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            items(thumbnails, key = { it.id }) { thumbnail ->
-                PolaroidEvidenceThumbnail(
-                    thumbnail = thumbnail,
-                    onClick = { onEvidenceSelected(thumbnail.id) }
-                )
-            }
+            Text(
+                text = EobStrings.t(language, "taxVaultEvidenceGalleryTitle"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.weight(1f)
+            )
+            VaultAddReceiptButton(
+                language = language,
+                mirrored = false,
+                onClick = onAddReceipt
+            )
         }
-    }
-}
-
-@Composable
-private fun PolaroidEvidenceThumbnail(
-    thumbnail: VaultEvidenceThumbnail,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .width(132.dp)
-            .graphicsLayer { rotationZ = thumbnail.rotationDegrees }
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            if (thumbnail.imageUrl.isNotBlank()) {
-                AsyncImage(
-                    model = thumbnail.imageUrl,
-                    contentDescription = thumbnail.label,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(96.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(96.dp)
-                        .background(Color(0xFFECEFF1)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = thumbnail.label.take(12),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF455A64)
+        if (thumbnails.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                items(thumbnails, key = { it.id }) { thumbnail ->
+                    MiniaturePolaroidEvidenceCard(
+                        thumbnail = thumbnail,
+                        onClick = { onEvidenceSelected(thumbnail.id) }
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = thumbnail.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF263238),
-                maxLines = 2
-            )
         }
     }
 }

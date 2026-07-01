@@ -31,12 +31,20 @@ data class ReceiptRecord(
     fun historyListKey(): String = "receipt:$firestoreId"
 }
 
+data class VaultEvidenceChargePreview(
+    val code: String,
+    val amount: String
+)
+
 data class VaultEvidenceThumbnail(
     val id: String,
     val imageUrl: String,
-    val label: String,
+    val providerName: String,
     val rotationDegrees: Float,
-    val isReceipt: Boolean
+    val isReceipt: Boolean,
+    val serviceDate: String = "",
+    val amountDisplay: String = "",
+    val chargePreviewLines: List<VaultEvidenceChargePreview> = emptyList()
 )
 
 sealed class VaultEvidencePreviewDetail {
