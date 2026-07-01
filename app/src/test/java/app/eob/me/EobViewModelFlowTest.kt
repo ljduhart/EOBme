@@ -86,6 +86,15 @@ class EobViewModelFlowTest {
     }
 
     @Test
+    fun activateAppealGeneratorBentoBlocksFreeTierWithPaywall() {
+        val viewModel = EobViewModel()
+        val opened = viewModel.activateAppealGeneratorBento(profile, AppLanguage.English)
+        assertFalse(opened)
+        assertTrue(viewModel.uiState.value.paywallVisible)
+        assertFalse(viewModel.uiState.value.appealGeneratorBentoProcessing)
+    }
+
+    @Test
     fun activateAppealGeneratorBentoSetsProcessingAndRegeneratesLetter() {
         val viewModel = EobViewModel()
         viewModel.setSubscriptionTier(SubscriptionTier.Silver)

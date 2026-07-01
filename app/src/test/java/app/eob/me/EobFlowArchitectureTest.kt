@@ -2724,6 +2724,8 @@ class EobFlowArchitectureTest {
         assertTrue(viewModelSource.contains("fun canPerformEobScan"))
         assertTrue(viewModelSource.contains("fun isEobScanLimitReached"))
         assertTrue(viewModelSource.contains("fun canGenerateAppealLetter"))
+        assertTrue(viewModelSource.contains("fun canAccessAppealGenerator"))
+        assertTrue(viewModelSource.contains("fun appealGateMessage"))
         assertTrue(viewModelSource.contains("fun canPurchaseSubscriptionTier"))
         assertTrue(viewModelSource.contains("recordEobScanUsage"))
         assertTrue(viewModelSource.contains("SubscriptionUsageStore"))

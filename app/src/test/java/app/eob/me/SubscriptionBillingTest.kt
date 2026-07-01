@@ -8,6 +8,7 @@ import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobStrings
 import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
+import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.repository.FirestoreSubscriptionSnapshot
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
@@ -463,6 +464,38 @@ class SubscriptionBillingTest {
         viewModel.setHistoryBentoFilter(HistoryBentoFilter.Flagged)
         viewModel.applySubscriptionState(SubscriptionState.Free)
         assertEquals(HistoryBentoFilter.All, viewModel.uiState.value.historyBentoFilter)
+    }
+
+    @Test
+    fun eobViewModelApplySubscriptionStateClearsGoldExclusiveStateOnDowngrade() {
+        val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Gold)
+        viewModel.setTaxVaultFilterState(TaxVaultFilterState.HSA)
+        viewModel.applySubscriptionState(SubscriptionState.Silver)
+        assertEquals(TaxVaultFilterState.OFF, viewModel.taxVaultFilterState.value)
+        viewModel.setTaxVaultFilterState(TaxVaultFilterState.FSA)
+        viewModel.applySubscriptionState(SubscriptionState.Free)
+        assertEquals(TaxVaultFilterState.OFF, viewModel.taxVaultFilterState.value)
+    }
+
+    @Test
+    fun eobViewModelAppealGateMessageUsesUpgradeCopyForFreeTier() {
+        val viewModel = EobViewModel()
+        assertEquals(
+            EobStrings.t(AppLanguage.English, "premiumUpgradeToUnlock"),
+            viewModel.appealGateMessage(AppLanguage.English)
+        )
+    }
+
+    @Test
+    fun eobViewModelActivateAppealBentoDoesNotRequireRegenerate() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(viewModelSource.contains("fun canAccessAppealGenerator"))
+        assertTrue(viewModelSource.contains("fun reconcileTierExclusiveFeatures"))
+        assertFalse(
+            "Appeal bento must not burn quota via regenerateAppeal on navigation",
+            viewModelSource.contains("if (!regenerateAppeal(profile, language)) return false")
+        )
     }
 
     @Test

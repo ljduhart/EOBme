@@ -473,15 +473,36 @@ class EobViewModel : ViewModel() {
             }
             SubscriptionState.Silver -> {
                 setSubscriptionTier(SubscriptionTier.Silver)
+                reconcileTierExclusiveFeatures(SubscriptionTier.Silver)
                 dismissPaywall()
             }
             SubscriptionState.Free -> {
                 setSubscriptionTier(SubscriptionTier.Free)
-                if (_uiState.value.historyBentoFilter == HistoryBentoFilter.Flagged) {
-                    setHistoryBentoFilter(HistoryBentoFilter.All)
-                }
+                reconcileTierExclusiveFeatures(SubscriptionTier.Free)
             }
             SubscriptionState.Loading, is SubscriptionState.Error -> Unit
+        }
+    }
+
+    /** Clears Gold-only hub state and billing-error filters when subscription downgrades. */
+    private fun reconcileTierExclusiveFeatures(tier: SubscriptionTier) {
+        if (!tier.isGold()) {
+            _taxVaultFilterState.value = TaxVaultFilterState.OFF
+            _taxVaultVisibilityMode.value = TaxVaultVisibilityMode.GATED
+            _uiState.update { state ->
+                state.copy(
+                    taxVaultExportEobIds = emptySet(),
+                    taxVaultExportReceiptIds = emptySet(),
+                    taxVaultEvidencePreviewId = null,
+                    taxVaultDoorAnimating = false,
+                    vaultReceiptScanPending = false
+                )
+            }
+        }
+        if (!EobmeFeatureGate.hasBillingErrorDetection(tier) &&
+            _uiState.value.historyBentoFilter == HistoryBentoFilter.Flagged
+        ) {
+            setHistoryBentoFilter(HistoryBentoFilter.All)
         }
     }
 
@@ -740,6 +761,11 @@ class EobViewModel : ViewModel() {
         return EobStrings.t(language, "eobScanLimitReached")
     }
 
+    fun canAccessAppealGenerator(): Boolean {
+        val tier = _uiState.value.hubSettings.subscriptionTier
+        return EobmeFeatureGate.getAppealLetterLimit(tier) !is FeatureAccess.Denied
+    }
+
     fun canGenerateAppealLetter(): Boolean {
         val tier = _uiState.value.hubSettings.subscriptionTier
         return when (val access = EobmeFeatureGate.getAppealLetterLimit(tier)) {
@@ -751,6 +777,14 @@ class EobViewModel : ViewModel() {
 
     fun appealLetterLimitMessage(language: AppLanguage): String {
         return EobStrings.t(language, "appealLetterLimitReached")
+    }
+
+    fun appealGateMessage(language: AppLanguage): String {
+        val tier = _uiState.value.hubSettings.subscriptionTier
+        return when (EobmeFeatureGate.getAppealLetterLimit(tier)) {
+            FeatureAccess.Denied -> EobStrings.t(language, "premiumUpgradeToUnlock")
+            else -> appealLetterLimitMessage(language)
+        }
     }
 
     fun canPurchaseSubscriptionTier(targetTier: SubscriptionTier): Boolean {
@@ -1775,10 +1809,10 @@ class EobViewModel : ViewModel() {
 
     fun regenerateAppeal(profile: UserProfile, language: AppLanguage): Boolean {
         if (!canGenerateAppealLetter()) {
-            showPaywall(appealLetterLimitMessage(language))
+            showPaywall(appealGateMessage(language))
             return false
         }
-        val selected = _uiState.value.selectedRecord
+        val selected = _uiState.value.selectedRecord ?: return false
         _uiState.update {
             it.copy(
                 appealLetter = generateAppealLetter(profile, selected),
@@ -1811,7 +1845,7 @@ class EobViewModel : ViewModel() {
         insuranceStrategy: InsuranceAppealStrategy? = null
     ): Boolean {
         if (!canGenerateAppealLetter()) {
-            showPaywall(appealLetterLimitMessage(language))
+            showPaywall(appealGateMessage(language))
             return false
         }
         val resolvedVeryfi = scopedVeryfiDataFor(record) ?: refreshVeryfiExtractedDataForRecord(record)
@@ -1887,7 +1921,14 @@ class EobViewModel : ViewModel() {
     }
 
     fun activateAppealGeneratorBento(profile: UserProfile, language: AppLanguage): Boolean {
-        if (!regenerateAppeal(profile, language)) return false
+        if (!canAccessAppealGenerator()) {
+            showPaywall(
+                billingNoticeForPaywall(language).ifBlank {
+                    appealGateMessage(language)
+                }
+            )
+            return false
+        }
         _uiState.update { it.copy(appealGeneratorBentoProcessing = true) }
         return true
     }
