@@ -46,7 +46,7 @@ class TaxVaultMiniatureEvidenceTest {
     }
 
     @Test
-    fun miniatureEvidenceUiUsesUniformCardsAndExportAddReceiptButton() {
+    fun pr145TaxVaultExportAddReceiptBottomRightAndUniformCards() {
         val screenSource = readSource("ui/screens/TaxVaultScreen.kt")
         val uiSource = readSource("ui/components/taxvault/TaxVaultEvidenceUi.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")

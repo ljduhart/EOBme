@@ -31,6 +31,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -414,7 +415,7 @@ private fun VaultSparkleAccent(modifier: Modifier = Modifier) {
 }
 
 private fun Modifier.vaultAddReceiptGlow(): Modifier = drawBehind {
-    val paint = androidx.compose.ui.graphics.Paint().asFrameworkPaint().apply {
+    val paint = Paint().asFrameworkPaint().apply {
         color = AddReceiptGlow.toArgb()
         setShadowLayer(
             18.dp.toPx(),
