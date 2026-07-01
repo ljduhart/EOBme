@@ -20,10 +20,12 @@ class FeatureGateTest {
                 "2 Automated Appeal Letters per month",
                 "CPT Tracker",
                 "4 Smart Cards (CareTeam)",
-                "Real Time Insurance News"
+                "Real Time Insurance News",
+                "Y-T-D Expense Tracker"
             ),
             SubscriptionCatalog.features(SubscriptionTier.Silver)
         )
+        assertEquals(8, SubscriptionCatalog.features(SubscriptionTier.Silver).size)
     }
 
     @Test
@@ -38,11 +40,12 @@ class FeatureGateTest {
                 "CPT Tracker",
                 "Smart Card Summaries",
                 "Y-T-D Expense Tracker",
-                "Tax Vault Filter (HSA/FSA)",
+                "Tax Vault Filter",
                 "Tax Vault Claim Packager"
             ),
             SubscriptionCatalog.features(SubscriptionTier.Gold)
         )
+        assertEquals(10, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
     }
 
     @Test

@@ -2692,7 +2692,7 @@ class EobFlowArchitectureTest {
         assertTrue(pricingSource.contains("isStorePricingLoaded"))
         assertTrue(pricingSource.contains("SubscriptionCatalog.displayPrice"))
         assertTrue(pricingSource.contains("SubscriptionCatalog.checkoutPrice"))
-        assertTrue(catalogSource.contains("\"$5.99/mo\""))
+        assertTrue(catalogSource.contains("\"$5.49/mo\""))
         assertTrue(catalogSource.contains("\"$49.99/yr\""))
         assertFalse(catalogSource.contains("private val SubscriptionTier.rank"))
         assertFalse(paywallSource.contains("Loading prices"))

@@ -63,7 +63,7 @@ object SubscriptionCatalog {
             BillingInterval.ANNUAL -> "$29.99/yr"
         }
         SubscriptionTier.Gold -> when (interval) {
-            BillingInterval.MONTHLY -> "$5.99/mo"
+            BillingInterval.MONTHLY -> "$5.49/mo"
             BillingInterval.ANNUAL -> "$49.99/yr"
         }
         SubscriptionTier.Free -> "$0.00"
@@ -75,7 +75,7 @@ object SubscriptionCatalog {
             BillingInterval.ANNUAL -> "$29.99"
         }
         SubscriptionTier.Gold -> when (interval) {
-            BillingInterval.MONTHLY -> "$5.99"
+            BillingInterval.MONTHLY -> "$5.49"
             BillingInterval.ANNUAL -> "$49.99"
         }
         SubscriptionTier.Free -> "$0.00"
@@ -96,7 +96,8 @@ object SubscriptionCatalog {
             "2 Automated Appeal Letters per month",
             "CPT Tracker",
             "4 Smart Cards (CareTeam)",
-            "Real Time Insurance News"
+            "Real Time Insurance News",
+            "Y-T-D Expense Tracker"
         )
         SubscriptionTier.Gold -> listOf(
             "Unlimited EOB Scans",
@@ -107,7 +108,7 @@ object SubscriptionCatalog {
             "CPT Tracker",
             "Smart Card Summaries",
             "Y-T-D Expense Tracker",
-            "Tax Vault Filter (HSA/FSA)",
+            "Tax Vault Filter",
             "Tax Vault Claim Packager"
         )
     }

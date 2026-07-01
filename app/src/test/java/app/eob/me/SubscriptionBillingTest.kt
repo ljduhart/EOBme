@@ -78,7 +78,7 @@ class SubscriptionBillingTest {
     fun subscriptionCatalogMarketingPricesMatchStrategy() {
         assertEquals("$2.99/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Silver, BillingInterval.MONTHLY))
         assertEquals("$29.99/yr", SubscriptionCatalog.displayPrice(SubscriptionTier.Silver, BillingInterval.ANNUAL))
-        assertEquals("$5.99/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
+        assertEquals("$5.49/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
         assertEquals("$49.99/yr", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.ANNUAL))
     }
 
@@ -259,6 +259,17 @@ class SubscriptionBillingTest {
         assertTrue(paywallSource.contains("alreadySubscribedLabel"))
         assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Free)"))
         assertTrue(paywallSource.contains("Column(verticalArrangement = Arrangement.spacedBy"))
+    }
+
+    @Test
+    fun pr146ManageSubscriptionTierFeatureCountsAndGoldMonthlyPrice() {
+        assertEquals(8, SubscriptionCatalog.features(SubscriptionTier.Silver).size)
+        assertEquals(10, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Silver).contains("Y-T-D Expense Tracker"))
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Tax Vault Filter"))
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Tax Vault Claim Packager"))
+        assertEquals("$5.49/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
+        assertEquals("$5.49", SubscriptionCatalog.checkoutPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
     }
 
     @Test

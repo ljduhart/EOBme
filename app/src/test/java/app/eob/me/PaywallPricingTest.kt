@@ -15,9 +15,9 @@ class PaywallPricingTest {
         assertFalse(pricing.isStorePricingLoaded)
         assertEquals("$2.99/mo", pricing.displayPrice(SubscriptionTier.Silver, BillingInterval.MONTHLY))
         assertEquals("$29.99/yr", pricing.displayPrice(SubscriptionTier.Silver, BillingInterval.ANNUAL))
-        assertEquals("$5.99/mo", pricing.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
+        assertEquals("$5.49/mo", pricing.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
         assertEquals("$49.99/yr", pricing.displayPrice(SubscriptionTier.Gold, BillingInterval.ANNUAL))
         assertEquals("$2.99", pricing.checkoutPrice(SubscriptionTier.Silver, BillingInterval.MONTHLY))
-        assertEquals("$5.99", pricing.checkoutPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
+        assertEquals("$5.49", pricing.checkoutPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
     }
 }
