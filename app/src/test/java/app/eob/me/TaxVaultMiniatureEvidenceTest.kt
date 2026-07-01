@@ -46,7 +46,7 @@ class TaxVaultMiniatureEvidenceTest {
     }
 
     @Test
-    fun miniatureEvidenceUiUsesPolaroidCardsAndSingleAddReceiptButton() {
+    fun miniatureEvidenceUiUsesUniformCardsAndExportAddReceiptButton() {
         val screenSource = readSource("ui/screens/TaxVaultScreen.kt")
         val uiSource = readSource("ui/components/taxvault/TaxVaultEvidenceUi.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
@@ -56,12 +56,25 @@ class TaxVaultMiniatureEvidenceTest {
         assertTrue(screenSource.contains("MiniaturePolaroidEvidenceCard"))
         assertTrue(screenSource.contains("VaultAddReceiptButton"))
         assertEquals(1, screenSource.split("VaultAddReceiptButton(").size - 1)
+        val carouselBlock = screenSource
+            .substringAfter("private fun VaultEvidenceCarousel")
+            .substringBefore("private fun VaultExportSection")
+        val exportBlock = screenSource
+            .substringAfter("private fun VaultExportSection")
+            .substringBefore("@Composable\nprivate fun VaultEvidencePreviewOverlay")
+        assertFalse(carouselBlock.contains("VaultAddReceiptButton"))
+        assertFalse(carouselBlock.contains("onAddReceipt"))
+        assertTrue(exportBlock.contains("VaultAddReceiptButton"))
+        assertTrue(exportBlock.contains("Arrangement.Start"))
         assertFalse(screenSource.contains("floatingActionButton"))
         assertTrue(screenSource.contains("onEvidenceSelected"))
         assertTrue(navSource.contains("beginVaultReceiptScan"))
         assertTrue(navSource.contains("EobRoute.CameraCapture.route"))
         assertTrue(uiSource.contains("MiniatureEobPolaroidBody"))
         assertTrue(uiSource.contains("MiniatureReceiptPolaroidBody"))
+        assertTrue(uiSource.contains("MiniatureCardWidth"))
+        assertTrue(uiSource.contains("MiniatureCardHeight"))
+        assertTrue(uiSource.contains("VaultAddReceiptDocumentCameraIcon"))
         assertTrue(uiSource.contains("providerName.uppercase()"))
         assertTrue(uiSource.contains("VaultSparkleAccent"))
         assertTrue(viewModelSource.contains("resolveProviderDirectoryName"))

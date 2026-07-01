@@ -256,8 +256,7 @@ private fun TaxVaultDashboard(
             VaultEvidenceCarousel(
                 language = language,
                 thumbnails = evidenceThumbnails,
-                onEvidenceSelected = onEvidenceSelected,
-                onAddReceipt = onAddReceipt
+                onEvidenceSelected = onEvidenceSelected
             )
             TaxVaultVerticalFilterCard(
                 language = language,
@@ -282,7 +281,8 @@ private fun TaxVaultDashboard(
                 selectedReceiptIds = selectedReceiptIds,
                 onToggleExportEob = onToggleExportEob,
                 onToggleExportReceipt = onToggleExportReceipt,
-                onExportClaimPackage = onExportClaimPackage
+                onExportClaimPackage = onExportClaimPackage,
+                onAddReceipt = onAddReceipt
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -347,27 +347,15 @@ private fun FsaDoomsdayMonitorCard(
 private fun VaultEvidenceCarousel(
     language: AppLanguage,
     thumbnails: List<VaultEvidenceThumbnail>,
-    onEvidenceSelected: (String) -> Unit,
-    onAddReceipt: () -> Unit
+    onEvidenceSelected: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = EobStrings.t(language, "taxVaultEvidenceGalleryTitle"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.weight(1f)
-            )
-            VaultAddReceiptButton(
-                language = language,
-                onClick = onAddReceipt
-            )
-        }
+        Text(
+            text = EobStrings.t(language, "taxVaultEvidenceGalleryTitle"),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
         if (thumbnails.isNotEmpty()) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
@@ -394,7 +382,8 @@ private fun VaultExportSection(
     selectedReceiptIds: Set<String>,
     onToggleExportEob: (EobRecord) -> Unit,
     onToggleExportReceipt: (ReceiptRecord) -> Unit,
-    onExportClaimPackage: () -> Unit
+    onExportClaimPackage: () -> Unit,
+    onAddReceipt: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -492,6 +481,15 @@ private fun VaultExportSection(
                     text = EobStrings.t(language, "taxVaultExportAction"),
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0B1F45)
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                VaultAddReceiptButton(
+                    language = language,
+                    onClick = onAddReceipt
                 )
             }
         }
