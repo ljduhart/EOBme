@@ -113,7 +113,13 @@ fun EobNavHost(
     val isSignUp by viewModel.isSignUp.collectAsStateWithLifecycle()
     val awaitingEmailVerification by viewModel.awaitingEmailVerification.collectAsStateWithLifecycle()
     val authMessage by viewModel.authMessage.collectAsStateWithLifecycle()
+    val authMessageIsError by viewModel.authMessageIsError.collectAsStateWithLifecycle()
     val registrationCredentials by viewModel.registrationCredentials.collectAsStateWithLifecycle()
+    val signupTermsAccepted by viewModel.signupTermsAccepted.collectAsStateWithLifecycle()
+    val authRecoveryFlow by viewModel.authRecoveryFlow.collectAsStateWithLifecycle()
+    val passwordResetEmail by viewModel.passwordResetEmail.collectAsStateWithLifecycle()
+    val passwordResetCode by viewModel.passwordResetCode.collectAsStateWithLifecycle()
+    val passwordResetDraft by viewModel.passwordResetDraft.collectAsStateWithLifecycle()
 
     LaunchedEffect(currentScreen) {
         if (currentScreen != Screen.MainHub) {
@@ -172,15 +178,30 @@ fun EobNavHost(
                 profile = profile,
                 credentials = registrationCredentials,
                 isSignUp = isSignUp == true,
+                signupTermsAccepted = signupTermsAccepted,
+                authRecoveryFlow = authRecoveryFlow,
+                passwordResetEmail = passwordResetEmail,
+                passwordResetCode = passwordResetCode,
+                passwordResetDraft = passwordResetDraft,
                 awaitingEmailVerification = awaitingEmailVerification,
                 authMessage = authMessage,
+                authMessageIsError = authMessageIsError,
                 modifier = Modifier.fillMaxSize(),
                 onProfileChanged = viewModel::onProfileChanged,
                 onCredentialsChanged = viewModel::onCredentialsChanged,
+                onSignupTermsAcceptedChanged = viewModel::onSignupTermsAcceptedChanged,
                 onToggleMode = viewModel::onAuthToggleMode,
                 onSubmit = viewModel::onAuthSubmit,
                 onForgotPassword = viewModel::onForgotPassword,
                 onForgotUsername = viewModel::onForgotUsername,
+                onCancelAuthRecovery = viewModel::onCancelAuthRecovery,
+                onBackFromPasswordVerify = viewModel::onBackFromPasswordVerify,
+                onSendForgotUsername = viewModel::onSendForgotUsername,
+                onPasswordResetEmailChanged = viewModel::onPasswordResetEmailChanged,
+                onRequestPasswordResetCode = viewModel::onRequestPasswordResetCode,
+                onPasswordResetCodeChanged = viewModel::onPasswordResetCodeChanged,
+                onPasswordResetDraftChanged = viewModel::onPasswordResetDraftChanged,
+                onConfirmPasswordReset = viewModel::onConfirmPasswordReset,
                 onResendVerification = viewModel::onResendVerification,
                 onRefreshVerification = viewModel::onRefreshVerification
             )
