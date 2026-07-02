@@ -14,6 +14,7 @@ class PlaySubscriptionManagementTest {
         assertTrue(source.contains("appendQueryParameter(\"package\""))
         assertTrue(source.contains("appendQueryParameter(\"sku\""))
         assertTrue(source.contains("Intent.ACTION_VIEW"))
+        assertTrue(source.contains("FLAG_ACTIVITY_NEW_TASK"))
         assertEquals(
             SubscriptionCatalog.GOLD_SUBSCRIPTION_ID,
             SubscriptionCatalog.subscriptionProductId(app.eob.me.data.SubscriptionTier.Gold)

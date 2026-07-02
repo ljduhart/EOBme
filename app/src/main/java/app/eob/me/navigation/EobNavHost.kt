@@ -353,15 +353,17 @@ private fun MainHubNavHost(
         subscriptionViewModel.restoreUserPurchases(
             onSuccess = { hasActiveSubscription ->
                 if (hasActiveSubscription) {
+                    eobViewModel.dismissPaywall()
                     eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreSuccess"))
                 } else {
-                    eobViewModel.showPaywall(EobStrings.t(language, "billingResubscribePrompt"))
+                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreNone"))
+                    eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
                 }
                 onActivity()
             },
             onFailure = {
-                eobViewModel.handleBillingNoticeForPaywall(language, "billing_restore_failed")
-                eobViewModel.showPaywall(EobStrings.t(language, "billingResubscribePrompt"))
+                eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreFailed"))
+                eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
                 onActivity()
             }
         )

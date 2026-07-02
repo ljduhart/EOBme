@@ -814,6 +814,10 @@ class EobViewModel : ViewModel() {
         return SubscriptionCatalog.subscriptionProductId(_uiState.value.hubSettings.subscriptionTier)
     }
 
+    fun resubscribePaywallMessage(language: AppLanguage): String {
+        return EobStrings.t(language, "billingResubscribePrompt")
+    }
+
     fun alreadySubscribedMessage(language: AppLanguage): String {
         return EobStrings.t(language, "billingAlreadySubscribed")
     }

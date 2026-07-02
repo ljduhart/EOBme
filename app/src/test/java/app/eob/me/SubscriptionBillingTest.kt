@@ -470,6 +470,10 @@ class SubscriptionBillingTest {
         assertFalse(viewModel.shouldShowResubscribeAction())
         assertTrue(viewModel.shouldShowCancelSubscriptionAction())
         assertEquals(SubscriptionCatalog.GOLD_SUBSCRIPTION_ID, viewModel.subscriptionManagementProductId())
+        assertEquals(
+            "Choose a plan to resubscribe, or restore a previous purchase.",
+            viewModel.resubscribePaywallMessage(app.eob.me.data.AppLanguage.English)
+        )
     }
 
     @Test
@@ -478,6 +482,9 @@ class SubscriptionBillingTest {
         assertTrue(navSource.contains("launchSubscribeFlow"))
         assertTrue(navSource.contains("launchCancelSubscriptionFlow"))
         assertTrue(navSource.contains("launchResubscribeFlow"))
+        assertTrue(navSource.contains("resubscribePaywallMessage"))
+        assertTrue(navSource.contains("updateSettingsNotice(EobStrings.t(language, \"billingRestoreFailed\"))"))
+        assertTrue(navSource.contains("updateSettingsNotice(EobStrings.t(language, \"billingRestoreNone\"))"))
         assertTrue(navSource.contains("PlaySubscriptionManagement.buildManagementIntent"))
         assertTrue(navSource.contains("shouldShowSubscribeAction()"))
         assertTrue(navSource.contains("shouldShowCancelSubscriptionAction()"))

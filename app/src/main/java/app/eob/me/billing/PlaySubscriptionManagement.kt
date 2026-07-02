@@ -18,6 +18,8 @@ object PlaySubscriptionManagement {
     }
 
     fun buildManagementIntent(applicationId: String, subscriptionProductId: String?): Intent {
-        return Intent(Intent.ACTION_VIEW, managementUri(applicationId, subscriptionProductId))
+        return Intent(Intent.ACTION_VIEW, managementUri(applicationId, subscriptionProductId)).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
     }
 }
