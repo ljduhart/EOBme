@@ -86,7 +86,7 @@ class EobStringsCoverageTest {
         val navHostSource = File("src/main/java/app/eob/me/navigation/EobNavHost.kt").readText()
         val routeNames = listOf(
             "Home", "History", "Dashboard", "YearlyExpense", "CptCount",
-            "News", "Appeal", "Profile", "CameraCapture", "ProviderDirectory"
+            "News", "Appeal", "Profile", "Settings", "ManageSubscription", "CameraCapture", "ProviderDirectory"
         )
         routeNames.forEach { name ->
             assertTrue(
@@ -130,6 +130,7 @@ class EobStringsCoverageTest {
             EobRoute.Appeal.route,
             EobRoute.Profile.route,
             EobRoute.Settings.route,
+            EobRoute.ManageSubscription.route,
             EobRoute.CameraCapture.route,
             EobRoute.ProviderDirectory.route,
             EobRoute.TaxVault.route

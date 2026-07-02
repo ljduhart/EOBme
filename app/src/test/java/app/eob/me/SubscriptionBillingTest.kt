@@ -438,15 +438,19 @@ class SubscriptionBillingTest {
     @Test
     fun settingsManageSubscriptionIsNotTierGated() {
         val settingsSource = readSource("ui/screens/SettingsScreen.kt")
+        val manageSource = readSource("ui/screens/ManageSubscriptionScreen.kt")
         assertTrue(settingsSource.contains("SubscriptionManagementSection"))
-        assertTrue(settingsSource.contains("onSubscribe"))
-        assertTrue(settingsSource.contains("onCancelSubscription"))
-        assertTrue(settingsSource.contains("onResubscribe"))
-        assertTrue(settingsSource.contains("showSubscribeAction"))
-        assertTrue(settingsSource.contains("showCancelSubscriptionAction"))
-        assertTrue(settingsSource.contains("showResubscribeAction"))
+        assertTrue(settingsSource.contains("onManageSubscription"))
+        assertFalse(settingsSource.contains("onSubscribe"))
+        assertFalse(settingsSource.contains("onCancelSubscription"))
+        assertFalse(settingsSource.contains("onResubscribe"))
+        assertTrue(manageSource.contains("onCancelSubscription"))
+        assertTrue(manageSource.contains("onResubscribe"))
+        assertTrue(manageSource.contains("showSubscribeAction"))
+        assertTrue(manageSource.contains("showCancelSubscriptionAction"))
+        assertTrue(manageSource.contains("showResubscribeAction"))
         assertFalse(
-            "Manage subscription actions must remain available for Free, Silver, and Gold",
+            "Manage subscription entry must remain available for Free, Silver, and Gold",
             settingsSource.contains("if (subscriptionTier") && settingsSource.contains("onManageSubscription")
         )
     }
@@ -480,7 +484,9 @@ class SubscriptionBillingTest {
     @Test
     fun navHostWiresSubscribeCancelAndResubscribeFlows() {
         val navSource = readSource("navigation/EobNavHost.kt")
-        assertTrue(navSource.contains("launchSubscribeFlow"))
+        assertTrue(navSource.contains("ManageSubscriptionScreen"))
+        assertTrue(navSource.contains("EobRoute.ManageSubscription.route"))
+        assertTrue(navSource.contains("handleManageSubscriptionTierSelection"))
         assertTrue(navSource.contains("launchCancelSubscriptionFlow"))
         assertTrue(navSource.contains("launchResubscribeFlow"))
         assertTrue(navSource.contains("resubscribePaywallMessage"))
@@ -504,10 +510,31 @@ class SubscriptionBillingTest {
         val viewModel = EobViewModel()
         viewModel.setSubscriptionTier(SubscriptionTier.Gold)
         assertFalse(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Gold))
-        assertFalse(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Silver))
+        assertTrue(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Silver))
+        assertTrue(viewModel.isSubscriptionTierDowngrade(SubscriptionTier.Silver))
+        assertTrue(viewModel.isSubscriptionTierAlreadyOwned(SubscriptionTier.Gold))
         viewModel.setSubscriptionTier(SubscriptionTier.Silver)
         assertTrue(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Gold))
         assertFalse(viewModel.canPurchaseSubscriptionTier(SubscriptionTier.Silver))
+    }
+
+    @Test
+    fun pr148ManageSubscriptionAllowsGoldToSilverDowngrade() {
+        val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Gold)
+        assertEquals(
+            "Already purchased by user.",
+            viewModel.alreadyPurchasedByUserMessage(AppLanguage.English)
+        )
+        assertEquals(
+            "Plan change takes effect at your next billing cycle.",
+            viewModel.downgradeNextCycleMessage(AppLanguage.English)
+        )
+        val manageSource = readSource("ui/screens/ManageSubscriptionScreen.kt")
+        assertTrue(manageSource.contains("goldHighlightFeatures"))
+        assertTrue(manageSource.contains("goldStandardFeatures"))
+        assertTrue(manageSource.contains("billingAlreadyPurchasedByUser"))
+        assertTrue(manageSource.contains("billingDowngradeNextCycle"))
     }
 
     @Test

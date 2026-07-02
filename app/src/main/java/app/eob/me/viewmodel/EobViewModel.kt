@@ -790,9 +790,22 @@ class EobViewModel : ViewModel() {
         }
     }
 
+    fun isSubscriptionTierAlreadyOwned(targetTier: SubscriptionTier): Boolean {
+        return _uiState.value.hubSettings.subscriptionTier == targetTier
+    }
+
+    fun isSubscriptionTierDowngrade(targetTier: SubscriptionTier): Boolean {
+        val currentTier = _uiState.value.hubSettings.subscriptionTier
+        return currentTier.rank() > targetTier.rank()
+    }
+
     fun canPurchaseSubscriptionTier(targetTier: SubscriptionTier): Boolean {
         if (targetTier == SubscriptionTier.Free) return false
-        return _uiState.value.hubSettings.subscriptionTier.rank() < targetTier.rank()
+        return !isSubscriptionTierAlreadyOwned(targetTier)
+    }
+
+    fun canSelectSubscriptionTier(targetTier: SubscriptionTier): Boolean {
+        return targetTier != SubscriptionTier.Free
     }
 
     /** True when the user can open the paywall to start a new paid plan or upgrade (Free or Silver). */
@@ -820,6 +833,14 @@ class EobViewModel : ViewModel() {
 
     fun alreadySubscribedMessage(language: AppLanguage): String {
         return EobStrings.t(language, "billingAlreadySubscribed")
+    }
+
+    fun alreadyPurchasedByUserMessage(language: AppLanguage): String {
+        return EobStrings.t(language, "billingAlreadyPurchasedByUser")
+    }
+
+    fun downgradeNextCycleMessage(language: AppLanguage): String {
+        return EobStrings.t(language, "billingDowngradeNextCycle")
     }
 
     private fun recordEobScanUsage() {

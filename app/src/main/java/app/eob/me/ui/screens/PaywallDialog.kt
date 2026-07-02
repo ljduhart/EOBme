@@ -93,7 +93,8 @@ private fun PaywallScreen(
         )
     }
     val billingInterval = if (isAnnual) BillingInterval.ANNUAL else BillingInterval.MONTHLY
-    val purchaseBlocked = selectedTier.rank() <= currentSubscriptionTier.rank()
+    val purchaseBlocked = selectedTier == currentSubscriptionTier
+    val isDowngrade = currentSubscriptionTier.rank() > selectedTier.rank()
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -118,6 +119,14 @@ private fun PaywallScreen(
                 Text(
                     text = message,
                     color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            } else if (isDowngrade && !purchaseBlocked) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Plan change takes effect at your next billing cycle.",
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
@@ -161,7 +170,7 @@ private fun PaywallScreen(
                 features = SubscriptionCatalog.features(SubscriptionTier.Silver),
                 isSelected = selectedTier == SubscriptionTier.Silver,
                 isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Silver,
-                enabled = SubscriptionTier.Silver.rank() > currentSubscriptionTier.rank(),
+                enabled = currentSubscriptionTier != SubscriptionTier.Silver,
                 onClick = { selectedTier = SubscriptionTier.Silver }
             )
 
@@ -174,7 +183,7 @@ private fun PaywallScreen(
                 isSelected = selectedTier == SubscriptionTier.Gold,
                 isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Gold,
                 isRecommended = true,
-                enabled = SubscriptionTier.Gold.rank() > currentSubscriptionTier.rank(),
+                enabled = currentSubscriptionTier != SubscriptionTier.Gold,
                 onClick = { selectedTier = SubscriptionTier.Gold }
             )
 
@@ -195,10 +204,10 @@ private fun PaywallScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = if (purchaseBlocked) {
-                        alreadySubscribedLabel
-                    } else {
-                        "Subscribe for $finalPrice"
+                    text = when {
+                        purchaseBlocked -> alreadySubscribedLabel
+                        isDowngrade -> "Change plan"
+                        else -> "Subscribe for $finalPrice"
                     },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold

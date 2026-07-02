@@ -90,6 +90,7 @@ import app.eob.me.ui.screens.NewsScreen
 import app.eob.me.data.AppealTarget
 import app.eob.me.data.BillingInterval
 import app.eob.me.data.SubscriptionTier
+import app.eob.me.ui.screens.ManageSubscriptionScreen
 import app.eob.me.ui.screens.PaywallDialog
 import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
@@ -329,7 +330,23 @@ private fun MainHubNavHost(
     val paywallPricing by subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
-        eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+        eobViewModel.updateSettingsNotice("")
+        navController.navigate(EobRoute.ManageSubscription.route) { launchSingleTop = true }
+        onActivity()
+    }
+
+    fun handleManageSubscriptionTierSelection(tier: SubscriptionTier, interval: BillingInterval) {
+        when {
+            eobViewModel.isSubscriptionTierAlreadyOwned(tier) -> {
+                eobViewModel.updateSettingsNotice(eobViewModel.alreadyPurchasedByUserMessage(language))
+            }
+            eobViewModel.isSubscriptionTierDowngrade(tier) -> {
+                eobViewModel.updateSettingsNotice(eobViewModel.downgradeNextCycleMessage(language))
+            }
+            else -> {
+                eobViewModel.updateSettingsNotice("")
+            }
+        }
         onActivity()
     }
 
@@ -370,8 +387,12 @@ private fun MainHubNavHost(
     }
 
     fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
+        if (eobViewModel.isSubscriptionTierAlreadyOwned(tier)) {
+            eobViewModel.updateSettingsNotice(eobViewModel.alreadyPurchasedByUserMessage(language))
+            onActivity()
+            return
+        }
         if (!eobViewModel.canPurchaseSubscriptionTier(tier)) {
-            eobViewModel.showPaywall(eobViewModel.alreadySubscribedMessage(language))
             onActivity()
             return
         }
@@ -1213,12 +1234,6 @@ private fun MainHubNavHost(
                             eobViewModel.disableSettingsAccountEditing()
                         },
                         onManageSubscription = ::launchManageSubscriptionFlow,
-                        onSubscribe = ::launchSubscribeFlow,
-                        onCancelSubscription = ::launchCancelSubscriptionFlow,
-                        onResubscribe = ::launchResubscribeFlow,
-                        showSubscribeAction = eobViewModel.shouldShowSubscribeAction(),
-                        showCancelSubscriptionAction = eobViewModel.shouldShowCancelSubscriptionAction(),
-                        showResubscribeAction = eobViewModel.shouldShowResubscribeAction(),
                         onLogout = {
                             eobViewModel.resetHubState()
                             profileSaveMessage = ""
@@ -1289,6 +1304,22 @@ private fun MainHubNavHost(
                             eobViewModel.setSettingsTab(it)
                             onActivity()
                         },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                composable(EobRoute.ManageSubscription.route) {
+                    ManageSubscriptionScreen(
+                        language = language,
+                        currentSubscriptionTier = uiState.hubSettings.subscriptionTier,
+                        paywallPricing = paywallPricing,
+                        tierNotice = uiState.hubSettings.settingsNotice,
+                        showSubscribeAction = eobViewModel.shouldShowSubscribeAction(),
+                        showCancelSubscriptionAction = eobViewModel.shouldShowCancelSubscriptionAction(),
+                        showResubscribeAction = eobViewModel.shouldShowResubscribeAction(),
+                        onTierSelected = ::handleManageSubscriptionTierSelection,
+                        onSubscribeSelectedTier = ::launchTierPurchaseFlow,
+                        onCancelSubscription = ::launchCancelSubscriptionFlow,
+                        onResubscribe = ::launchResubscribeFlow,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
