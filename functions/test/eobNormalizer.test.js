@@ -77,6 +77,19 @@ test("maps Veryfi AnyDocs health_insurance_eob nested claims payload into normal
   assert.ok(normalized.totalBilledAmount > 0);
 });
 
+test("routes Pascal-case Claims[] through nested health_insurance_eob mapper", () => {
+  const payload = healthTexasInsuranceEobPayload();
+  const {claims, ...rest} = payload;
+  const normalized = veryfiToEobDocument({...rest, Claims: claims}, {
+    documentId: "eob_pascal_jpg",
+    sourceName: "Camera",
+    sourceFilePath: "users/u1/eobs/eob_pascal.jpg"
+  });
+
+  assert.equal(normalized.charges.length, 8);
+  assert.equal(normalized.charges[0].cptCode, "D5225");
+});
+
 test("maps Veryfi AnyDocs health_insurance_eob flat payload into normalized EOB fields", () => {
   const normalized = veryfiToEobDocument({
     id: "anydoc-1",

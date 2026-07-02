@@ -18,7 +18,13 @@ const COINSURANCE_BASE_KEYS = ["coinsurance_amount", "coinsurance", "co_insuranc
 const PATIENT_RESP_BASE_KEYS = ["patient_responsibility", "patientResponsibility"];
 
 function isNestedClaimsPayload(payload) {
-  return Array.isArray(payload?.claims) && payload.claims.length > 0;
+  const claims = payload?.claims ?? payload?.Claims;
+  return Array.isArray(claims) && claims.length > 0;
+}
+
+function resolveClaims(payload = {}) {
+  return Array.isArray(payload.claims) ? payload.claims :
+    (Array.isArray(payload.Claims) ? payload.Claims : []);
 }
 
 function stringValue(fieldMap, keys, index) {
@@ -147,7 +153,7 @@ function mapClaim(claimDto, claimIndex) {
 }
 
 function nestedClaimsToEobDocument(veryfi = {}, metadata = {}) {
-  const claims = (veryfi.claims || []).map((claimDto, index) => mapClaim(claimDto, index));
+  const claims = resolveClaims(veryfi).map((claimDto, index) => mapClaim(claimDto, index));
   const allServiceLines = claims.flatMap((claim) => claim.serviceLines);
   const providers = [...new Set(claims.map((claim) => claim.providerName).filter(Boolean))];
   const primaryProvider = providers.join(" / ");
@@ -239,5 +245,6 @@ function nestedClaimsToEobDocument(veryfi = {}, metadata = {}) {
 
 module.exports = {
   isNestedClaimsPayload,
-  nestedClaimsToEobDocument
+  nestedClaimsToEobDocument,
+  resolveClaims
 };

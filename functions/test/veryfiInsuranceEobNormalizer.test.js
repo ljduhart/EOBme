@@ -60,6 +60,7 @@ function healthTexasInsuranceEobPayload() {
 describe("veryfiInsuranceEobNormalizer", () => {
   it("detects nested claims payloads", () => {
     assert.equal(isNestedClaimsPayload(healthTexasInsuranceEobPayload()), true);
+    assert.equal(isNestedClaimsPayload({Claims: [{provider_name: "Clinic"}]}), true);
     assert.equal(isNestedClaimsPayload({provider_name: "Clinic"}), false);
   });
 
