@@ -38,12 +38,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.eob.me.billing.PaywallPricing
+import app.eob.me.data.AppLanguage
 import app.eob.me.data.BillingInterval
+import app.eob.me.data.EobStrings
 import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
 
 @Composable
 fun PaywallDialog(
+    language: AppLanguage,
     message: String,
     currentSubscriptionTier: SubscriptionTier,
     paywallPricing: PaywallPricing,
@@ -58,6 +61,7 @@ fun PaywallDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         PaywallScreen(
+            language = language,
             message = message,
             currentSubscriptionTier = currentSubscriptionTier,
             paywallPricing = paywallPricing,
@@ -73,6 +77,7 @@ fun PaywallDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PaywallScreen(
+    language: AppLanguage,
     message: String,
     currentSubscriptionTier: SubscriptionTier,
     paywallPricing: PaywallPricing,
@@ -86,7 +91,7 @@ private fun PaywallScreen(
     var selectedTier by remember(currentSubscriptionTier) {
         mutableStateOf(
             when (currentSubscriptionTier) {
-                SubscriptionTier.Gold -> SubscriptionTier.Gold
+                SubscriptionTier.Gold -> SubscriptionTier.Silver
                 SubscriptionTier.Silver -> SubscriptionTier.Gold
                 SubscriptionTier.Free -> SubscriptionTier.Silver
             }
@@ -105,11 +110,11 @@ private fun PaywallScreen(
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) {
-                    Text(text = "Close")
+                    Text(text = EobStrings.t(language, "billingPaywallClose"))
                 }
             }
             Text(
-                text = "Upgrade EOBme",
+                text = EobStrings.t(language, "billingPaywallTitle"),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -125,7 +130,7 @@ private fun PaywallScreen(
             } else if (isDowngrade && !purchaseBlocked) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Plan change takes effect at your next billing cycle.",
+                    text = EobStrings.t(language, "billingDowngradeNextCycle"),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
@@ -141,12 +146,12 @@ private fun PaywallScreen(
                 Tab(
                     selected = !isAnnual,
                     onClick = { isAnnual = false },
-                    text = { Text("Monthly") }
+                    text = { Text(EobStrings.t(language, "billingIntervalMonthly")) }
                 )
                 Tab(
                     selected = isAnnual,
                     onClick = { isAnnual = true },
-                    text = { Text("Annual (Save up to 25%)") }
+                    text = { Text(EobStrings.t(language, "billingIntervalAnnual")) }
                 )
             }
 
@@ -206,8 +211,8 @@ private fun PaywallScreen(
                 Text(
                     text = when {
                         purchaseBlocked -> alreadySubscribedLabel
-                        isDowngrade -> "Change plan"
-                        else -> "Subscribe for $finalPrice"
+                        isDowngrade -> EobStrings.t(language, "billingChangePlan")
+                        else -> EobStrings.tf(language, "billingSubscribeForPrice", finalPrice)
                     },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold

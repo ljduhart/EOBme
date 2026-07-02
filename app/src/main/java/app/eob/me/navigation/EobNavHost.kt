@@ -330,21 +330,29 @@ private fun MainHubNavHost(
     val paywallPricing by subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
-        eobViewModel.updateSettingsNotice("")
+        eobViewModel.clearManageSubscriptionNotice()
         navController.navigate(EobRoute.ManageSubscription.route) { launchSingleTop = true }
         onActivity()
+    }
+
+    fun isOnManageSubscriptionRoute(): Boolean {
+        return navController.currentBackStackEntry?.destination?.route == EobRoute.ManageSubscription.route
     }
 
     fun handleManageSubscriptionTierSelection(tier: SubscriptionTier, interval: BillingInterval) {
         when {
             eobViewModel.isSubscriptionTierAlreadyOwned(tier) -> {
-                eobViewModel.updateSettingsNotice(eobViewModel.alreadyPurchasedByUserMessage(language))
+                eobViewModel.updateManageSubscriptionNotice(
+                    eobViewModel.alreadyPurchasedByUserMessage(language)
+                )
             }
             eobViewModel.isSubscriptionTierDowngrade(tier) -> {
-                eobViewModel.updateSettingsNotice(eobViewModel.downgradeNextCycleMessage(language))
+                eobViewModel.updateManageSubscriptionNotice(
+                    eobViewModel.downgradeNextCycleMessage(language)
+                )
             }
             else -> {
-                eobViewModel.updateSettingsNotice("")
+                eobViewModel.clearManageSubscriptionNotice()
             }
         }
         onActivity()
@@ -356,7 +364,12 @@ private fun MainHubNavHost(
         runCatching {
             context.startActivity(intent)
         }.onFailure {
-            eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingFlowFailed"))
+            val message = EobStrings.t(language, "billingFlowFailed")
+            if (isOnManageSubscriptionRoute()) {
+                eobViewModel.updateManageSubscriptionNotice(message)
+            } else {
+                eobViewModel.updateSettingsNotice(message)
+            }
         }
         onActivity()
     }
@@ -366,16 +379,31 @@ private fun MainHubNavHost(
             onSuccess = { hasActiveSubscription ->
                 if (hasActiveSubscription) {
                     eobViewModel.dismissPaywall()
-                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreSuccess"))
+                    val message = EobStrings.t(language, "billingRestoreSuccess")
+                    if (isOnManageSubscriptionRoute()) {
+                        eobViewModel.updateManageSubscriptionNotice(message)
+                    } else {
+                        eobViewModel.updateSettingsNotice(message)
+                    }
                 } else {
-                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreNone"))
-                    eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
+                    val noneMessage = EobStrings.t(language, "billingRestoreNone")
+                    if (isOnManageSubscriptionRoute()) {
+                        eobViewModel.updateManageSubscriptionNotice(noneMessage)
+                    } else {
+                        eobViewModel.updateSettingsNotice(noneMessage)
+                        eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
+                    }
                 }
                 onActivity()
             },
             onFailure = {
-                eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreFailed"))
-                eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
+                val failedMessage = EobStrings.t(language, "billingRestoreFailed")
+                if (isOnManageSubscriptionRoute()) {
+                    eobViewModel.updateManageSubscriptionNotice(failedMessage)
+                } else {
+                    eobViewModel.updateSettingsNotice(failedMessage)
+                    eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
+                }
                 onActivity()
             }
         )
@@ -383,7 +411,12 @@ private fun MainHubNavHost(
 
     fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
         if (eobViewModel.isSubscriptionTierAlreadyOwned(tier)) {
-            eobViewModel.updateSettingsNotice(eobViewModel.alreadyPurchasedByUserMessage(language))
+            val message = eobViewModel.alreadyPurchasedByUserMessage(language)
+            if (isOnManageSubscriptionRoute()) {
+                eobViewModel.updateManageSubscriptionNotice(message)
+            } else {
+                eobViewModel.updateSettingsNotice(message)
+            }
             onActivity()
             return
         }
@@ -397,7 +430,11 @@ private fun MainHubNavHost(
             onActivity()
             return
         }
-        eobViewModel.beginPaywallPurchase()
+        if (isOnManageSubscriptionRoute()) {
+            eobViewModel.beginManageSubscriptionPurchase()
+        } else {
+            eobViewModel.beginPaywallPurchase()
+        }
         subscriptionViewModel.launchPurchaseFlow(host, tier, interval)
         onActivity()
     }
@@ -1307,7 +1344,7 @@ private fun MainHubNavHost(
                         language = language,
                         currentSubscriptionTier = uiState.hubSettings.subscriptionTier,
                         paywallPricing = paywallPricing,
-                        tierNotice = uiState.hubSettings.settingsNotice,
+                        tierNotice = uiState.hubSettings.manageSubscriptionNotice,
                         showSubscribeAction = eobViewModel.shouldShowSubscribeAction(),
                         showCancelSubscriptionAction = eobViewModel.shouldShowCancelSubscriptionAction(),
                         showResubscribeAction = eobViewModel.shouldShowResubscribeAction(),
@@ -1403,6 +1440,7 @@ private fun MainHubNavHost(
             }
             if (uiState.paywallVisible) {
                 PaywallDialog(
+                    language = language,
                     message = uiState.paywallMessage,
                     currentSubscriptionTier = uiState.hubSettings.subscriptionTier,
                     paywallPricing = paywallPricing,

@@ -263,9 +263,11 @@ class SubscriptionBillingTest {
 
     @Test
     fun pr146ManageSubscriptionTierFeatureCountsAndGoldMonthlyPrice() {
-        assertEquals(8, SubscriptionCatalog.features(SubscriptionTier.Silver).size)
-        assertEquals(10, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
+        assertEquals(9, SubscriptionCatalog.features(SubscriptionTier.Silver).size)
+        assertEquals(12, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Silver).contains("Appointment Calendar"))
         assertTrue(SubscriptionCatalog.features(SubscriptionTier.Silver).contains("Y-T-D Expense Tracker"))
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("4 Smart Cards (CareTeam)"))
         assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Tax Vault Filter"))
         assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Tax Vault Claim Packager"))
         assertEquals("$5.49/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
@@ -490,8 +492,8 @@ class SubscriptionBillingTest {
         assertTrue(navSource.contains("launchCancelSubscriptionFlow"))
         assertTrue(navSource.contains("launchResubscribeFlow"))
         assertTrue(navSource.contains("resubscribePaywallMessage"))
-        assertTrue(navSource.contains("updateSettingsNotice(EobStrings.t(language, \"billingRestoreFailed\"))"))
-        assertTrue(navSource.contains("updateSettingsNotice(EobStrings.t(language, \"billingRestoreNone\"))"))
+        assertTrue(navSource.contains("updateManageSubscriptionNotice"))
+        assertTrue(navSource.contains("isOnManageSubscriptionRoute"))
         assertTrue(navSource.contains("PlaySubscriptionManagement.buildManagementIntent"))
         assertTrue(navSource.contains("shouldShowSubscribeAction()"))
         assertTrue(navSource.contains("shouldShowCancelSubscriptionAction()"))
@@ -535,6 +537,44 @@ class SubscriptionBillingTest {
         assertTrue(manageSource.contains("goldStandardFeatures"))
         assertTrue(manageSource.contains("billingAlreadyPurchasedByUser"))
         assertTrue(manageSource.contains("billingDowngradeNextCycle"))
+        assertTrue(manageSource.contains("billingGoldHighlightsTitle"))
+    }
+
+    @Test
+    fun manageSubscriptionPurchaseFailureRoutesNoticeToTierPage() {
+        val viewModel = EobViewModel()
+        viewModel.beginManageSubscriptionPurchase()
+        assertTrue(viewModel.uiState.value.manageSubscriptionPurchasePending)
+
+        viewModel.handleBillingNoticeForPaywall(AppLanguage.English, "billing_flow_failed")
+
+        assertFalse(viewModel.uiState.value.manageSubscriptionPurchasePending)
+        assertFalse(viewModel.uiState.value.paywallVisible)
+        assertEquals(
+            EobStrings.t(AppLanguage.English, "billingFlowFailed"),
+            viewModel.uiState.value.hubSettings.manageSubscriptionNotice
+        )
+    }
+
+    @Test
+    fun manageSubscriptionUsesDedicatedNoticeChannel() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(navSource.contains("manageSubscriptionNotice"))
+        assertTrue(navSource.contains("clearManageSubscriptionNotice"))
+        assertTrue(navSource.contains("beginManageSubscriptionPurchase"))
+        assertTrue(navSource.contains("isOnManageSubscriptionRoute"))
+        assertTrue(viewModelSource.contains("manageSubscriptionPurchasePending"))
+        assertTrue(viewModelSource.contains("fun updateManageSubscriptionNotice"))
+    }
+
+    @Test
+    fun paywallDialogUsesLocalizedBillingCopy() {
+        val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        assertTrue(paywallSource.contains("language: AppLanguage"))
+        assertTrue(paywallSource.contains("billingPaywallTitle"))
+        assertTrue(paywallSource.contains("billingIntervalMonthly"))
+        assertTrue(paywallSource.contains("billingSubscribeForPrice"))
     }
 
     @Test

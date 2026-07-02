@@ -19,13 +19,14 @@ class FeatureGateTest {
                 "Billing Error Detection",
                 "2 Automated Appeal Letters per month",
                 "CPT Tracker",
+                "Appointment Calendar",
                 "4 Smart Cards (CareTeam)",
                 "Real Time Insurance News",
                 "Y-T-D Expense Tracker"
             ),
             SubscriptionCatalog.features(SubscriptionTier.Silver)
         )
-        assertEquals(8, SubscriptionCatalog.features(SubscriptionTier.Silver).size)
+        assertEquals(9, SubscriptionCatalog.features(SubscriptionTier.Silver).size)
     }
 
     @Test
@@ -38,6 +39,8 @@ class FeatureGateTest {
                 "Billing Error Detection",
                 "Real Time Insurance News",
                 "CPT Tracker",
+                "Appointment Calendar",
+                "4 Smart Cards (CareTeam)",
                 "Smart Card Summaries",
                 "Y-T-D Expense Tracker",
                 "Tax Vault Filter",
@@ -45,7 +48,9 @@ class FeatureGateTest {
             ),
             SubscriptionCatalog.features(SubscriptionTier.Gold)
         )
-        assertEquals(10, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
+        assertEquals(12, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
+        assertEquals(3, SubscriptionCatalog.goldHighlightFeatures().size)
+        assertEquals(9, SubscriptionCatalog.goldStandardFeatures().size)
     }
 
     @Test
@@ -72,7 +77,7 @@ class FeatureGateTest {
     @Test
     fun silverTierCodedFeaturesMatchManageSubscriptionList() {
         val tier = SubscriptionTier.Silver
-        assertEquals(8, SubscriptionCatalog.features(tier).size)
+        assertEquals(9, SubscriptionCatalog.features(tier).size)
         assertEquals(FeatureAccess.Limited(4), EobmeFeatureGate.getEobScanLimit(tier))
         assertEquals(FeatureAccess.Limited(5), EobmeFeatureGate.getProviderStorageLimit(tier))
         assertEquals(FeatureAccess.Limited(2), EobmeFeatureGate.getAppealLetterLimit(tier))
@@ -89,7 +94,7 @@ class FeatureGateTest {
     @Test
     fun goldTierCodedFeaturesMatchManageSubscriptionList() {
         val tier = SubscriptionTier.Gold
-        assertEquals(10, SubscriptionCatalog.features(tier).size)
+        assertEquals(12, SubscriptionCatalog.features(tier).size)
         assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getEobScanLimit(tier))
         assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getProviderStorageLimit(tier))
         assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getAppealLetterLimit(tier))
