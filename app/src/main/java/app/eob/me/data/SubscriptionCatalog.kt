@@ -117,9 +117,9 @@ object SubscriptionCatalog {
     }
 
     private val goldHighlightFeatureNames = setOf(
-        "Y-T-D Expense Tracker",
         "Tax Vault Filter",
-        "Tax Vault Claim Packager"
+        "Tax Vault Claim Packager",
+        "Smart Card Summaries"
     )
 
     fun goldHighlightFeatures(): List<String> = features(SubscriptionTier.Gold).filter { it in goldHighlightFeatureNames }

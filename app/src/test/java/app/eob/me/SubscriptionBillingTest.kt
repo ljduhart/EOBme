@@ -538,6 +538,14 @@ class SubscriptionBillingTest {
         assertTrue(manageSource.contains("billingAlreadyPurchasedByUser"))
         assertTrue(manageSource.contains("billingDowngradeNextCycle"))
         assertTrue(manageSource.contains("billingGoldHighlightsTitle"))
+        assertEquals(
+            listOf(
+                "Smart Card Summaries",
+                "Tax Vault Filter",
+                "Tax Vault Claim Packager"
+            ),
+            SubscriptionCatalog.goldHighlightFeatures()
+        )
     }
 
     @Test

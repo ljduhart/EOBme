@@ -49,8 +49,63 @@ class FeatureGateTest {
             SubscriptionCatalog.features(SubscriptionTier.Gold)
         )
         assertEquals(12, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
+        assertEquals(
+            listOf(
+                "Smart Card Summaries",
+                "Tax Vault Filter",
+                "Tax Vault Claim Packager"
+            ),
+            SubscriptionCatalog.goldHighlightFeatures()
+        )
         assertEquals(3, SubscriptionCatalog.goldHighlightFeatures().size)
         assertEquals(9, SubscriptionCatalog.goldStandardFeatures().size)
+        assertTrue(SubscriptionCatalog.goldStandardFeatures().contains("Y-T-D Expense Tracker"))
+    }
+
+    @Test
+    fun goldHighlightFeaturesAreGoldGatedInFeatureGate() {
+        SubscriptionCatalog.goldHighlightFeatures().forEach { feature ->
+            when (feature) {
+                "Tax Vault Filter" -> {
+                    assertFalse(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Silver))
+                    assertTrue(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Gold))
+                }
+                "Tax Vault Claim Packager" -> {
+                    assertFalse(EobmeFeatureGate.hasTaxVaultClaimPackager(SubscriptionTier.Silver))
+                    assertTrue(EobmeFeatureGate.hasTaxVaultClaimPackager(SubscriptionTier.Gold))
+                }
+                "Smart Card Summaries" -> {
+                    assertFalse(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Silver))
+                    assertTrue(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Gold))
+                }
+                else -> throw AssertionError("Unexpected gold highlight feature: $feature")
+            }
+        }
+    }
+
+    @Test
+    fun silverCatalogLimitsMatchFeatureGateBarriers() {
+        val tier = SubscriptionTier.Silver
+        val features = SubscriptionCatalog.features(tier)
+        assertTrue(features.any { it.contains("4 EOB") })
+        assertTrue(features.any { it.contains("5 Providers") })
+        assertTrue(features.any { it.contains("2 Automated Appeal") })
+        assertTrue(features.any { it.contains("Billing Error Detection") })
+        assertTrue(features.any { it.contains("Real Time Insurance News") })
+        assertTrue(features.any { it.contains("Y-T-D Expense Tracker") })
+        assertFalse(features.any { it.contains("Tax Vault") })
+        assertFalse(features.any { it.contains("Smart Card Summaries") })
+    }
+
+    @Test
+    fun goldCatalogLimitsMatchFeatureGateBarriers() {
+        val features = SubscriptionCatalog.features(SubscriptionTier.Gold)
+        assertTrue(features.any { it.contains("Unlimited EOB") })
+        assertTrue(features.any { it.contains("Unlimited Providers") })
+        assertTrue(features.any { it.contains("Unlimited Appeal") })
+        assertTrue(features.any { it.contains("Tax Vault Filter") })
+        assertTrue(features.any { it.contains("Tax Vault Claim Packager") })
+        assertTrue(features.any { it.contains("Smart Card Summaries") })
     }
 
     @Test

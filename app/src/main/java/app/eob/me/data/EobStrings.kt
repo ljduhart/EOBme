@@ -624,7 +624,7 @@ object EobStrings {
         "billingManageSubscriptionHint" to "View plans, compare features, and manage billing through Google Play.",
         "billingManageSubscriptionPageTitle" to "Subscription tiers",
         "billingChangePlan" to "Change plan",
-        "billingGoldHighlightsTitle" to "Premium toolkit",
+        "billingGoldHighlightsTitle" to "Gold exclusives",
         "billingPaywallTitle" to "Upgrade EOBme",
         "billingPaywallClose" to "Close",
         "billingIntervalMonthly" to "Monthly",
