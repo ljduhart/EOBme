@@ -13,7 +13,6 @@ const {
   veryfiToEobDocument
 } = require("./lib/eobNormalizer");
 const {
-  VERYFI_ANY_DOCS_URL,
   BLUEPRINT_HEALTH_INSURANCE_EOB,
   DOCUMENT_TYPE_EOB,
   CATEGORIES_INSURANCE
@@ -23,6 +22,7 @@ const {
   storageUploadReconciliationPatch,
   hybridFirestoreDocId
 } = require("./lib/hybridReconciliation");
+const {extractWithVeryfi} = require("./lib/veryfiAnyDocClient");
 
 admin.initializeApp();
 
@@ -138,12 +138,28 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
   }
 
   const [fileBytes] = await file.download();
+  let fileUrl = "";
+  try {
+    const [signedUrl] = await file.getSignedUrl({
+      action: "read",
+      expires: Date.now() + 15 * 60 * 1000
+    });
+    fileUrl = signedUrl;
+  } catch (signedUrlError) {
+    console.warn("Veryfi storage trigger could not mint signed URL; using multipart bytes.", signedUrlError);
+  }
+
   const veryfiResponse = await extractWithVeryfi(fileBytes, {
     fileName,
     contentType: event.data.contentType || "application/octet-stream",
     blueprintName: BLUEPRINT_HEALTH_INSURANCE_EOB,
     documentType: DOCUMENT_TYPE_EOB,
-    categories: CATEGORIES_INSURANCE
+    categories: CATEGORIES_INSURANCE,
+    fileUrl
+  }, {
+    clientId: veryfiClientId.value(),
+    username: veryfiUsername.value(),
+    apiKey: veryfiApiKey.value()
   });
 
   const storageMetadata = event.data.metadata || {};
@@ -197,39 +213,16 @@ exports.extractVeryfiHybridStream = onCall({
     contentType: contentType || "application/octet-stream",
     blueprintName: blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB,
     documentType: documentType || DOCUMENT_TYPE_EOB,
-    categories: Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES_INSURANCE
+    categories: Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES_INSURANCE,
+    fileUrl: request.data?.fileUrl
+  }, {
+    clientId: veryfiClientId.value(),
+    username: veryfiUsername.value(),
+    apiKey: veryfiApiKey.value()
   });
 
   return { veryfi: veryfiResponse };
 });
-
-async function extractWithVeryfi(fileBytes, fileMetadata) {
-  const blueprintName = fileMetadata.blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB;
-  const documentType = fileMetadata.documentType || DOCUMENT_TYPE_EOB;
-  const categories = Array.isArray(fileMetadata.categories) && fileMetadata.categories.length > 0 ?
-    fileMetadata.categories :
-    CATEGORIES_INSURANCE;
-
-  const form = new FormData();
-  form.append("file", new Blob([fileBytes], { type: fileMetadata.contentType }), fileMetadata.fileName);
-  form.append("blueprint_name", blueprintName);
-  form.append("document_type", documentType);
-  form.append("categories", JSON.stringify(categories));
-
-  const response = await fetch(VERYFI_ANY_DOCS_URL, {
-    method: "POST",
-    headers: {
-      "Client-Id": veryfiClientId.value(),
-      "Authorization": `apikey ${veryfiUsername.value()}:${veryfiApiKey.value()}`
-    },
-    body: form
-  });
-
-  if (!response.ok) {
-    throw new Error(`Veryfi extraction failed with status ${response.status}: ${await response.text()}`);
-  }
-  return response.json();
-}
 
 // ----------------------------------------------------------------------
 // Vault Receipt Reconciliation
