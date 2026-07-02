@@ -95,6 +95,7 @@ object SubscriptionCatalog {
             "Billing Error Detection",
             "2 Automated Appeal Letters per month",
             "CPT Tracker",
+            "Appointment Calendar",
             "4 Smart Cards (CareTeam)",
             "Real Time Insurance News",
             "Y-T-D Expense Tracker"
@@ -106,12 +107,24 @@ object SubscriptionCatalog {
             "Billing Error Detection",
             "Real Time Insurance News",
             "CPT Tracker",
+            "Appointment Calendar",
+            "4 Smart Cards (CareTeam)",
             "Smart Card Summaries",
             "Y-T-D Expense Tracker",
             "Tax Vault Filter",
             "Tax Vault Claim Packager"
         )
     }
+
+    private val goldHighlightFeatureNames = setOf(
+        "Tax Vault Filter",
+        "Tax Vault Claim Packager",
+        "Smart Card Summaries"
+    )
+
+    fun goldHighlightFeatures(): List<String> = features(SubscriptionTier.Gold).filter { it in goldHighlightFeatureNames }
+
+    fun goldStandardFeatures(): List<String> = features(SubscriptionTier.Gold).filter { it !in goldHighlightFeatureNames }
 
     fun highestTier(first: SubscriptionTier, second: SubscriptionTier): SubscriptionTier {
         return if (first.rank() >= second.rank()) first else second

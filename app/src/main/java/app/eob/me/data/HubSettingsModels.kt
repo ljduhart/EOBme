@@ -75,6 +75,7 @@ data class HubSettingsState(
     val subscriptionTier: SubscriptionTier = SubscriptionTier.Free,
     val settingsAccountEditing: Boolean = false,
     val settingsNotice: String = "",
+    val manageSubscriptionNotice: String = "",
     val appLocked: Boolean = false,
     val selectedTab: SettingsTab = SettingsTab.Account
 )

@@ -74,12 +74,6 @@ fun SettingsScreen(
     onSaveAccountProfile: () -> Unit,
     onCancelAccountEditing: () -> Unit,
     onManageSubscription: () -> Unit,
-    onSubscribe: () -> Unit,
-    onCancelSubscription: () -> Unit,
-    onResubscribe: () -> Unit,
-    showSubscribeAction: Boolean,
-    showCancelSubscriptionAction: Boolean,
-    showResubscribeAction: Boolean,
     onLogout: () -> Unit,
     onDeleteAccountConfirmed: () -> Unit,
     onPinLockToggle: (Boolean) -> Unit,
@@ -145,12 +139,6 @@ fun SettingsScreen(
                     onSaveAccountProfile = onSaveAccountProfile,
                     onCancelAccountEditing = onCancelAccountEditing,
                     onManageSubscription = onManageSubscription,
-                    onSubscribe = onSubscribe,
-                    onCancelSubscription = onCancelSubscription,
-                    onResubscribe = onResubscribe,
-                    showSubscribeAction = showSubscribeAction,
-                    showCancelSubscriptionAction = showCancelSubscriptionAction,
-                    showResubscribeAction = showResubscribeAction,
                     onLogout = onLogout,
                     onDeleteAccount = { showDeleteDialog = true }
                 )
@@ -271,12 +259,6 @@ private fun AccountSettingsTab(
     onSaveAccountProfile: () -> Unit,
     onCancelAccountEditing: () -> Unit,
     onManageSubscription: () -> Unit,
-    onSubscribe: () -> Unit,
-    onCancelSubscription: () -> Unit,
-    onResubscribe: () -> Unit,
-    showSubscribeAction: Boolean,
-    showCancelSubscriptionAction: Boolean,
-    showResubscribeAction: Boolean,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
@@ -329,13 +311,7 @@ private fun AccountSettingsTab(
     HorizontalDivider()
     SubscriptionManagementSection(
         language = language,
-        showSubscribeAction = showSubscribeAction,
-        showCancelSubscriptionAction = showCancelSubscriptionAction,
-        showResubscribeAction = showResubscribeAction,
-        onViewPlans = onManageSubscription,
-        onSubscribe = onSubscribe,
-        onCancelSubscription = onCancelSubscription,
-        onResubscribe = onResubscribe
+        onViewPlans = onManageSubscription
     )
     OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
         Text(EobStrings.t(language, "logout"))
@@ -351,13 +327,7 @@ private fun AccountSettingsTab(
 @Composable
 private fun SubscriptionManagementSection(
     language: AppLanguage,
-    showSubscribeAction: Boolean,
-    showCancelSubscriptionAction: Boolean,
-    showResubscribeAction: Boolean,
-    onViewPlans: () -> Unit,
-    onSubscribe: () -> Unit,
-    onCancelSubscription: () -> Unit,
-    onResubscribe: () -> Unit
+    onViewPlans: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -375,29 +345,6 @@ private fun SubscriptionManagementSection(
         )
         OutlinedButton(onClick = onViewPlans, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "settingsManageSubscription"))
-        }
-        if (showSubscribeAction) {
-            Button(onClick = onSubscribe, modifier = Modifier.fillMaxWidth()) {
-                Text(EobStrings.t(language, "billingSubscribe"))
-            }
-        }
-        if (showResubscribeAction) {
-            Button(onClick = onResubscribe, modifier = Modifier.fillMaxWidth()) {
-                Text(EobStrings.t(language, "billingResubscribe"))
-            }
-        }
-        if (showCancelSubscriptionAction) {
-            OutlinedButton(onClick = onCancelSubscription, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = EobStrings.t(language, "billingCancelSubscription"),
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            Text(
-                text = EobStrings.t(language, "billingCancelSubscriptionHint"),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

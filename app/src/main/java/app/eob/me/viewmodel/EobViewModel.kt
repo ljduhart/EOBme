@@ -141,6 +141,7 @@ data class HubUiState(
     val paywallVisible: Boolean = false,
     val paywallMessage: String = "",
     val paywallPurchasePending: Boolean = false,
+    val manageSubscriptionPurchasePending: Boolean = false,
     val cameraScanDocumentType: CameraScanDocumentType = CameraScanDocumentType.Eob,
     val vaultReceiptScanPending: Boolean = false,
     val isVaultReceiptProcessing: Boolean = false,
@@ -473,15 +474,18 @@ class EobViewModel : ViewModel() {
             SubscriptionState.Gold -> {
                 setSubscriptionTier(SubscriptionTier.Gold)
                 dismissPaywall()
+                clearManageSubscriptionNotice()
             }
             SubscriptionState.Silver -> {
                 setSubscriptionTier(SubscriptionTier.Silver)
                 reconcileTierExclusiveFeatures(SubscriptionTier.Silver)
                 dismissPaywall()
+                clearManageSubscriptionNotice()
             }
             SubscriptionState.Free -> {
                 setSubscriptionTier(SubscriptionTier.Free)
                 reconcileTierExclusiveFeatures(SubscriptionTier.Free)
+                clearManageSubscriptionNotice()
             }
             SubscriptionState.Loading, is SubscriptionState.Error -> Unit
         }
@@ -515,15 +519,47 @@ class EobViewModel : ViewModel() {
 
     fun dismissPaywall() {
         _uiState.update {
-            it.copy(paywallVisible = false, paywallMessage = "", paywallPurchasePending = false)
+            it.copy(
+                paywallVisible = false,
+                paywallMessage = "",
+                paywallPurchasePending = false,
+                manageSubscriptionPurchasePending = false
+            )
         }
     }
 
     /** Hides paywall so Google Play billing can present; errors re-open paywall via [handleBillingNoticeForPaywall]. */
     fun beginPaywallPurchase() {
         _uiState.update {
-            it.copy(paywallPurchasePending = true, paywallVisible = false, paywallMessage = "")
+            it.copy(
+                paywallPurchasePending = true,
+                paywallVisible = false,
+                paywallMessage = "",
+                manageSubscriptionPurchasePending = false
+            )
         }
+    }
+
+    /** Hides manage subscription UI feedback while Google Play billing presents from the tier page. */
+    fun beginManageSubscriptionPurchase() {
+        _uiState.update {
+            it.copy(
+                manageSubscriptionPurchasePending = true,
+                paywallPurchasePending = false,
+                paywallVisible = false,
+                paywallMessage = ""
+            )
+        }
+    }
+
+    fun updateManageSubscriptionNotice(message: String) {
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(manageSubscriptionNotice = message))
+        }
+    }
+
+    fun clearManageSubscriptionNotice() {
+        updateManageSubscriptionNotice("")
     }
 
     fun billingNoticeForPaywall(language: AppLanguage): String {
@@ -581,6 +617,11 @@ class EobViewModel : ViewModel() {
         val message = localizedBillingNotice(language, noticeKey)
         _uiState.update { state ->
             when {
+                state.manageSubscriptionPurchasePending -> state.copy(
+                    manageSubscriptionPurchasePending = false,
+                    hubSettings = state.hubSettings.copy(manageSubscriptionNotice = message)
+                )
+
                 state.paywallPurchasePending -> state.copy(
                     paywallPurchasePending = false,
                     paywallVisible = true,
@@ -790,9 +831,22 @@ class EobViewModel : ViewModel() {
         }
     }
 
+    fun isSubscriptionTierAlreadyOwned(targetTier: SubscriptionTier): Boolean {
+        return _uiState.value.hubSettings.subscriptionTier == targetTier
+    }
+
+    fun isSubscriptionTierDowngrade(targetTier: SubscriptionTier): Boolean {
+        val currentTier = _uiState.value.hubSettings.subscriptionTier
+        return currentTier.rank() > targetTier.rank()
+    }
+
     fun canPurchaseSubscriptionTier(targetTier: SubscriptionTier): Boolean {
         if (targetTier == SubscriptionTier.Free) return false
-        return _uiState.value.hubSettings.subscriptionTier.rank() < targetTier.rank()
+        return !isSubscriptionTierAlreadyOwned(targetTier)
+    }
+
+    fun canSelectSubscriptionTier(targetTier: SubscriptionTier): Boolean {
+        return targetTier != SubscriptionTier.Free
     }
 
     /** True when the user can open the paywall to start a new paid plan or upgrade (Free or Silver). */
@@ -822,6 +876,14 @@ class EobViewModel : ViewModel() {
         return EobStrings.t(language, "billingAlreadySubscribed")
     }
 
+    fun alreadyPurchasedByUserMessage(language: AppLanguage): String {
+        return EobStrings.t(language, "billingAlreadyPurchasedByUser")
+    }
+
+    fun downgradeNextCycleMessage(language: AppLanguage): String {
+        return EobStrings.t(language, "billingDowngradeNextCycle")
+    }
+
     private fun recordEobScanUsage() {
         subscriptionUsageStore?.incrementMonthlyEobScanCount(hubTimeKey())
     }
@@ -848,6 +910,7 @@ class EobViewModel : ViewModel() {
         val preservedSettings = _uiState.value.hubSettings.copy(
             settingsAccountEditing = false,
             settingsNotice = "",
+            manageSubscriptionNotice = "",
             appLocked = false,
             subscriptionTier = SubscriptionTier.Free
         )

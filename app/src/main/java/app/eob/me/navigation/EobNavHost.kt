@@ -90,6 +90,7 @@ import app.eob.me.ui.screens.NewsScreen
 import app.eob.me.data.AppealTarget
 import app.eob.me.data.BillingInterval
 import app.eob.me.data.SubscriptionTier
+import app.eob.me.ui.screens.ManageSubscriptionScreen
 import app.eob.me.ui.screens.PaywallDialog
 import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
@@ -329,12 +330,31 @@ private fun MainHubNavHost(
     val paywallPricing by subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle()
 
     fun launchManageSubscriptionFlow() {
-        eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+        eobViewModel.clearManageSubscriptionNotice()
+        navController.navigate(EobRoute.ManageSubscription.route) { launchSingleTop = true }
         onActivity()
     }
 
-    fun launchSubscribeFlow() {
-        eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+    fun isOnManageSubscriptionRoute(): Boolean {
+        return navController.currentBackStackEntry?.destination?.route == EobRoute.ManageSubscription.route
+    }
+
+    fun handleManageSubscriptionTierSelection(tier: SubscriptionTier, interval: BillingInterval) {
+        when {
+            eobViewModel.isSubscriptionTierAlreadyOwned(tier) -> {
+                eobViewModel.updateManageSubscriptionNotice(
+                    eobViewModel.alreadyPurchasedByUserMessage(language)
+                )
+            }
+            eobViewModel.isSubscriptionTierDowngrade(tier) -> {
+                eobViewModel.updateManageSubscriptionNotice(
+                    eobViewModel.downgradeNextCycleMessage(language)
+                )
+            }
+            else -> {
+                eobViewModel.clearManageSubscriptionNotice()
+            }
+        }
         onActivity()
     }
 
@@ -344,7 +364,12 @@ private fun MainHubNavHost(
         runCatching {
             context.startActivity(intent)
         }.onFailure {
-            eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingFlowFailed"))
+            val message = EobStrings.t(language, "billingFlowFailed")
+            if (isOnManageSubscriptionRoute()) {
+                eobViewModel.updateManageSubscriptionNotice(message)
+            } else {
+                eobViewModel.updateSettingsNotice(message)
+            }
         }
         onActivity()
     }
@@ -354,24 +379,48 @@ private fun MainHubNavHost(
             onSuccess = { hasActiveSubscription ->
                 if (hasActiveSubscription) {
                     eobViewModel.dismissPaywall()
-                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreSuccess"))
+                    val message = EobStrings.t(language, "billingRestoreSuccess")
+                    if (isOnManageSubscriptionRoute()) {
+                        eobViewModel.updateManageSubscriptionNotice(message)
+                    } else {
+                        eobViewModel.updateSettingsNotice(message)
+                    }
                 } else {
-                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreNone"))
-                    eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
+                    val noneMessage = EobStrings.t(language, "billingRestoreNone")
+                    if (isOnManageSubscriptionRoute()) {
+                        eobViewModel.updateManageSubscriptionNotice(noneMessage)
+                    } else {
+                        eobViewModel.updateSettingsNotice(noneMessage)
+                        eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
+                    }
                 }
                 onActivity()
             },
             onFailure = {
-                eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreFailed"))
-                eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
+                val failedMessage = EobStrings.t(language, "billingRestoreFailed")
+                if (isOnManageSubscriptionRoute()) {
+                    eobViewModel.updateManageSubscriptionNotice(failedMessage)
+                } else {
+                    eobViewModel.updateSettingsNotice(failedMessage)
+                    eobViewModel.showPaywall(eobViewModel.resubscribePaywallMessage(language))
+                }
                 onActivity()
             }
         )
     }
 
     fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
+        if (eobViewModel.isSubscriptionTierAlreadyOwned(tier)) {
+            val message = eobViewModel.alreadyPurchasedByUserMessage(language)
+            if (isOnManageSubscriptionRoute()) {
+                eobViewModel.updateManageSubscriptionNotice(message)
+            } else {
+                eobViewModel.updateSettingsNotice(message)
+            }
+            onActivity()
+            return
+        }
         if (!eobViewModel.canPurchaseSubscriptionTier(tier)) {
-            eobViewModel.showPaywall(eobViewModel.alreadySubscribedMessage(language))
             onActivity()
             return
         }
@@ -381,7 +430,11 @@ private fun MainHubNavHost(
             onActivity()
             return
         }
-        eobViewModel.beginPaywallPurchase()
+        if (isOnManageSubscriptionRoute()) {
+            eobViewModel.beginManageSubscriptionPurchase()
+        } else {
+            eobViewModel.beginPaywallPurchase()
+        }
         subscriptionViewModel.launchPurchaseFlow(host, tier, interval)
         onActivity()
     }
@@ -1213,12 +1266,6 @@ private fun MainHubNavHost(
                             eobViewModel.disableSettingsAccountEditing()
                         },
                         onManageSubscription = ::launchManageSubscriptionFlow,
-                        onSubscribe = ::launchSubscribeFlow,
-                        onCancelSubscription = ::launchCancelSubscriptionFlow,
-                        onResubscribe = ::launchResubscribeFlow,
-                        showSubscribeAction = eobViewModel.shouldShowSubscribeAction(),
-                        showCancelSubscriptionAction = eobViewModel.shouldShowCancelSubscriptionAction(),
-                        showResubscribeAction = eobViewModel.shouldShowResubscribeAction(),
                         onLogout = {
                             eobViewModel.resetHubState()
                             profileSaveMessage = ""
@@ -1289,6 +1336,22 @@ private fun MainHubNavHost(
                             eobViewModel.setSettingsTab(it)
                             onActivity()
                         },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                composable(EobRoute.ManageSubscription.route) {
+                    ManageSubscriptionScreen(
+                        language = language,
+                        currentSubscriptionTier = uiState.hubSettings.subscriptionTier,
+                        paywallPricing = paywallPricing,
+                        tierNotice = uiState.hubSettings.manageSubscriptionNotice,
+                        showSubscribeAction = eobViewModel.shouldShowSubscribeAction(),
+                        showCancelSubscriptionAction = eobViewModel.shouldShowCancelSubscriptionAction(),
+                        showResubscribeAction = eobViewModel.shouldShowResubscribeAction(),
+                        onTierSelected = ::handleManageSubscriptionTierSelection,
+                        onSubscribeSelectedTier = ::launchTierPurchaseFlow,
+                        onCancelSubscription = ::launchCancelSubscriptionFlow,
+                        onResubscribe = ::launchResubscribeFlow,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -1377,6 +1440,7 @@ private fun MainHubNavHost(
             }
             if (uiState.paywallVisible) {
                 PaywallDialog(
+                    language = language,
                     message = uiState.paywallMessage,
                     currentSubscriptionTier = uiState.hubSettings.subscriptionTier,
                     paywallPricing = paywallPricing,

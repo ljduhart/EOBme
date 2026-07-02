@@ -159,6 +159,7 @@ class EobFlowArchitectureTest {
             "EobRoute.Appeal.route" to "AppealScreen.kt",
             "EobRoute.Profile.route" to "ProfileScreen.kt",
             "EobRoute.Settings.route" to "SettingsScreen.kt",
+            "EobRoute.ManageSubscription.route" to "ManageSubscriptionScreen.kt",
             "EobRoute.CameraCapture.route" to "CameraCaptureScreen.kt",
             "EobRoute.ProviderDirectory.route" to "ProviderDirectoryScreen.kt"
         )
@@ -652,6 +653,7 @@ class EobFlowArchitectureTest {
             "subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle",
             "eobViewModel.applySubscriptionState",
             "launchManageSubscriptionFlow",
+            "ManageSubscriptionScreen",
             "PaywallDialog",
             "launchTierPurchaseFlow",
             "onRestorePurchasesClicked",

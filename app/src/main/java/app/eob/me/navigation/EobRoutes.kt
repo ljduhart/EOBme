@@ -10,6 +10,7 @@ sealed class EobRoute(val route: String) {
     data object Appeal : EobRoute("appeal")
     data object Profile : EobRoute("profile")
     data object Settings : EobRoute("settings")
+    data object ManageSubscription : EobRoute("manage_subscription")
     data object CameraCapture : EobRoute("camera_capture")
     data object TaxVault : EobRoute("tax_vault")
     data object ProviderDirectory : EobRoute("provider_directory")
@@ -31,6 +32,7 @@ val hubBackRoutes = hubFeatureRoutes + setOf(
     EobRoute.Dashboard.route,
     EobRoute.Profile.route,
     EobRoute.Settings.route,
+    EobRoute.ManageSubscription.route,
     EobRoute.TaxVault.route
 )
 
