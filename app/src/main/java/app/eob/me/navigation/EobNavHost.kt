@@ -113,6 +113,7 @@ fun EobNavHost(
     val isSignUp by viewModel.isSignUp.collectAsStateWithLifecycle()
     val awaitingEmailVerification by viewModel.awaitingEmailVerification.collectAsStateWithLifecycle()
     val authMessage by viewModel.authMessage.collectAsStateWithLifecycle()
+    val authMessageIsError by viewModel.authMessageIsError.collectAsStateWithLifecycle()
     val registrationCredentials by viewModel.registrationCredentials.collectAsStateWithLifecycle()
     val signupTermsAccepted by viewModel.signupTermsAccepted.collectAsStateWithLifecycle()
     val authRecoveryFlow by viewModel.authRecoveryFlow.collectAsStateWithLifecycle()
@@ -184,6 +185,7 @@ fun EobNavHost(
                 passwordResetDraft = passwordResetDraft,
                 awaitingEmailVerification = awaitingEmailVerification,
                 authMessage = authMessage,
+                authMessageIsError = authMessageIsError,
                 modifier = Modifier.fillMaxSize(),
                 onProfileChanged = viewModel::onProfileChanged,
                 onCredentialsChanged = viewModel::onCredentialsChanged,
@@ -193,6 +195,7 @@ fun EobNavHost(
                 onForgotPassword = viewModel::onForgotPassword,
                 onForgotUsername = viewModel::onForgotUsername,
                 onCancelAuthRecovery = viewModel::onCancelAuthRecovery,
+                onBackFromPasswordVerify = viewModel::onBackFromPasswordVerify,
                 onSendForgotUsername = viewModel::onSendForgotUsername,
                 onPasswordResetEmailChanged = viewModel::onPasswordResetEmailChanged,
                 onRequestPasswordResetCode = viewModel::onRequestPasswordResetCode,

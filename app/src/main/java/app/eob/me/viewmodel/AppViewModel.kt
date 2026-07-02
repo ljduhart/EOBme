@@ -75,6 +75,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     )
     val authMessage: StateFlow<String> = _authMessage.asStateFlow()
 
+    private val _authMessageIsError = MutableStateFlow(!firebaseConfigured)
+    val authMessageIsError: StateFlow<Boolean> = _authMessageIsError.asStateFlow()
+
     private val _signupTermsAccepted = MutableStateFlow(false)
     val signupTermsAccepted: StateFlow<Boolean> = _signupTermsAccepted.asStateFlow()
 
@@ -174,31 +177,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onCreateAccountSelected() {
         _isSignUp.value = true
         _signupTermsAccepted.value = false
-        _authMessage.value = ""
-        _authRecoveryFlow.value = AuthRecoveryFlow.None
+        clearAuthMessage()
+        clearAuthRecoveryTransientState()
         _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
     }
 
     fun onSignInSelected() {
         _isSignUp.value = false
         _signupTermsAccepted.value = false
-        _authMessage.value = ""
-        _authRecoveryFlow.value = AuthRecoveryFlow.None
+        clearAuthMessage()
+        clearAuthRecoveryTransientState()
         _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
     }
 
     fun onAuthToggleMode() {
         _isSignUp.value = null
         _signupTermsAccepted.value = false
-        _authMessage.value = ""
-        _authRecoveryFlow.value = AuthRecoveryFlow.None
+        clearAuthMessage()
+        clearAuthRecoveryState()
         _registrationCredentials.value = RegistrationCredentials()
     }
 
     fun onSignupTermsAcceptedChanged(accepted: Boolean) {
         _signupTermsAccepted.value = accepted
         if (accepted) {
-            _authMessage.value = ""
+            clearAuthMessage()
         }
     }
 
@@ -238,7 +241,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val language = _language.value ?: AppLanguage.English
 
         if (isSignUp && !_signupTermsAccepted.value) {
-            _authMessage.value = EobStrings.t(language, "signupTermsRequired")
+            setAuthMessage(EobStrings.t(language, "signupTermsRequired"), isError = true)
             return
         }
 
@@ -312,20 +315,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _passwordResetEmail.value = _registrationCredentials.value.email.ifBlank { _profile.value.email }
         _passwordResetCode.value = ""
         _passwordResetDraft.value = ""
-        _authMessage.value = ""
+        clearAuthMessage()
     }
 
     fun onForgotUsername() {
         _authRecoveryFlow.value = AuthRecoveryFlow.ForgotUsername
         _passwordResetEmail.value = _registrationCredentials.value.email.ifBlank { _profile.value.email }
-        _authMessage.value = ""
+        _passwordResetCode.value = ""
+        _passwordResetDraft.value = ""
+        clearAuthMessage()
     }
 
     fun onCancelAuthRecovery() {
-        _authRecoveryFlow.value = AuthRecoveryFlow.None
+        clearAuthRecoveryState()
+    }
+
+    fun onBackFromPasswordVerify() {
+        if (_authRecoveryFlow.value != AuthRecoveryFlow.ForgotPasswordVerify) return
+        _authRecoveryFlow.value = AuthRecoveryFlow.ForgotPasswordEmail
         _passwordResetCode.value = ""
         _passwordResetDraft.value = ""
-        _authMessage.value = ""
+        clearAuthMessage()
     }
 
     fun onPasswordResetEmailChanged(email: String) {
@@ -347,27 +357,34 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onSendForgotUsername(email: String) {
         val language = _language.value ?: AppLanguage.English
         if (email.isBlank()) {
-            _authMessage.value = EobStrings.t(language, "forgotUsernameEmailRequired")
+            setAuthMessage(EobStrings.t(language, "forgotUsernameEmailRequired"), isError = true)
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
             if (!firebaseConfigured) {
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = EobStrings.firebaseConfigMessage(language)
+                    if (_authRecoveryFlow.value == AuthRecoveryFlow.ForgotUsername) {
+                        setAuthMessage(EobStrings.firebaseConfigMessage(language), isError = true)
+                    }
                 }
                 return@launch
             }
             try {
                 val message = authRecoveryClient.sendForgotUsernameReminder(email)
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = message.ifBlank {
-                        EobStrings.t(language, "forgotUsernameEmailSent")
-                    }
+                    if (_authRecoveryFlow.value != AuthRecoveryFlow.ForgotUsername) return@withContext
+                    setAuthMessage(
+                        message.ifBlank { EobStrings.t(language, "forgotUsernameEmailSent") },
+                        isError = false
+                    )
                 }
             } catch (error: Exception) {
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = error.localizedMessage
-                        ?: EobStrings.t(language, "authErrorGeneric")
+                    if (_authRecoveryFlow.value != AuthRecoveryFlow.ForgotUsername) return@withContext
+                    setAuthMessage(
+                        error.localizedMessage ?: EobStrings.t(language, "authErrorGeneric"),
+                        isError = true
+                    )
                 }
             }
         }
@@ -377,30 +394,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val language = _language.value ?: AppLanguage.English
         val email = _passwordResetEmail.value.trim()
         if (email.isBlank()) {
-            _authMessage.value = EobStrings.t(language, "forgotPasswordEmailRequired")
+            setAuthMessage(EobStrings.t(language, "forgotPasswordEmailRequired"), isError = true)
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
             if (!firebaseConfigured) {
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = EobStrings.firebaseConfigMessage(language)
+                    if (isPasswordResetCodeRequestActive()) {
+                        setAuthMessage(EobStrings.firebaseConfigMessage(language), isError = true)
+                    }
                 }
                 return@launch
             }
+            val advanceToVerify = _authRecoveryFlow.value == AuthRecoveryFlow.ForgotPasswordEmail
             try {
                 val message = authRecoveryClient.requestPasswordResetCode(email)
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = message.ifBlank {
-                        EobStrings.t(language, "passwordResetCodeSent")
+                    if (!isPasswordResetCodeRequestActive()) return@withContext
+                    setAuthMessage(
+                        message.ifBlank { EobStrings.t(language, "passwordResetCodeSent") },
+                        isError = false
+                    )
+                    if (advanceToVerify) {
+                        _authRecoveryFlow.value = AuthRecoveryFlow.ForgotPasswordVerify
                     }
-                    _authRecoveryFlow.value = AuthRecoveryFlow.ForgotPasswordVerify
                     _passwordResetCode.value = ""
                     _passwordResetDraft.value = ""
                 }
             } catch (error: Exception) {
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = error.localizedMessage
-                        ?: EobStrings.t(language, "authErrorGeneric")
+                    if (!isPasswordResetCodeRequestActive()) return@withContext
+                    setAuthMessage(
+                        error.localizedMessage ?: EobStrings.t(language, "authErrorGeneric"),
+                        isError = true
+                    )
                 }
             }
         }
@@ -412,39 +439,44 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val code = _passwordResetCode.value.trim()
         val newPassword = _passwordResetDraft.value
         if (email.isBlank()) {
-            _authMessage.value = EobStrings.t(language, "forgotPasswordEmailRequired")
+            setAuthMessage(EobStrings.t(language, "forgotPasswordEmailRequired"), isError = true)
             return
         }
         if (code.length != 5) {
-            _authMessage.value = EobStrings.t(language, "passwordResetCodeInvalid")
+            setAuthMessage(EobStrings.t(language, "passwordResetCodeInvalid"), isError = true)
             return
         }
         if (!RegistrationCredentials(email = email, password = newPassword).isPasswordValid) {
-            _authMessage.value = EobStrings.t(language, "passwordRule")
+            setAuthMessage(EobStrings.t(language, "passwordRule"), isError = true)
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
             if (!firebaseConfigured) {
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = EobStrings.firebaseConfigMessage(language)
+                    if (_authRecoveryFlow.value == AuthRecoveryFlow.ForgotPasswordVerify) {
+                        setAuthMessage(EobStrings.firebaseConfigMessage(language), isError = true)
+                    }
                 }
                 return@launch
             }
             try {
                 val message = authRecoveryClient.confirmPasswordResetCode(email, code, newPassword)
                 withContext(Dispatchers.Main) {
-                    _authRecoveryFlow.value = AuthRecoveryFlow.None
-                    _passwordResetCode.value = ""
-                    _passwordResetDraft.value = ""
+                    if (_authRecoveryFlow.value != AuthRecoveryFlow.ForgotPasswordVerify) return@withContext
+                    clearAuthRecoveryTransientState()
                     _registrationCredentials.value = RegistrationCredentials(email = email)
-                    _authMessage.value = message.ifBlank {
-                        EobStrings.t(language, "passwordResetSuccess")
-                    }
+                    setAuthMessage(
+                        message.ifBlank { EobStrings.t(language, "passwordResetSuccess") },
+                        isError = false
+                    )
                 }
             } catch (error: Exception) {
                 withContext(Dispatchers.Main) {
-                    _authMessage.value = error.localizedMessage
-                        ?: EobStrings.t(language, "authErrorGeneric")
+                    if (_authRecoveryFlow.value != AuthRecoveryFlow.ForgotPasswordVerify) return@withContext
+                    setAuthMessage(
+                        error.localizedMessage ?: EobStrings.t(language, "authErrorGeneric"),
+                        isError = true
+                    )
                 }
             }
         }
@@ -569,7 +601,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _introStep.value = 0
         _isSignUp.value = null
         _signupTermsAccepted.value = false
-        _authRecoveryFlow.value = AuthRecoveryFlow.None
+        clearAuthRecoveryState()
         _awaitingEmailVerification.value = false
         _registrationCredentials.value = RegistrationCredentials()
         updateActivityTime()
@@ -587,9 +619,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _introStep.value = INTRO_SLIDE_COUNT
         _isSignUp.value = false
         _signupTermsAccepted.value = false
-        _authRecoveryFlow.value = AuthRecoveryFlow.None
+        clearAuthRecoveryState()
         _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
         updateActivityTime()
+    }
+
+    private fun setAuthMessage(message: String, isError: Boolean) {
+        _authMessage.value = message
+        _authMessageIsError.value = isError
+    }
+
+    private fun clearAuthMessage() {
+        _authMessage.value = ""
+        _authMessageIsError.value = false
+    }
+
+    private fun clearAuthRecoveryTransientState() {
+        _authRecoveryFlow.value = AuthRecoveryFlow.None
+        _passwordResetCode.value = ""
+        _passwordResetDraft.value = ""
+    }
+
+    private fun clearAuthRecoveryState() {
+        clearAuthRecoveryTransientState()
+        _passwordResetEmail.value = ""
+        clearAuthMessage()
+    }
+
+    private fun isPasswordResetCodeRequestActive(): Boolean {
+        return _authRecoveryFlow.value == AuthRecoveryFlow.ForgotPasswordEmail ||
+            _authRecoveryFlow.value == AuthRecoveryFlow.ForgotPasswordVerify
     }
 
     private fun resetInactivityTimer() {

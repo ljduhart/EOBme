@@ -2,6 +2,7 @@ package app.eob.me.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -127,6 +129,7 @@ fun AuthScreen(
     passwordResetDraft: String,
     awaitingEmailVerification: Boolean = false,
     authMessage: String,
+    authMessageIsError: Boolean = true,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
     onCredentialsChanged: (RegistrationCredentials) -> Unit,
@@ -136,6 +139,7 @@ fun AuthScreen(
     onForgotPassword: () -> Unit = {},
     onForgotUsername: () -> Unit = {},
     onCancelAuthRecovery: () -> Unit = {},
+    onBackFromPasswordVerify: () -> Unit = {},
     onSendForgotUsername: (String) -> Unit = {},
     onPasswordResetEmailChanged: (String) -> Unit = {},
     onRequestPasswordResetCode: () -> Unit = {},
@@ -149,17 +153,31 @@ fun AuthScreen(
         EmailVerificationScreen(
             language = language,
             authMessage = authMessage,
+            authMessageIsError = authMessageIsError,
             modifier = modifier,
             onResendVerification = onResendVerification,
             onRefreshVerification = onRefreshVerification
         )
         return
     }
+    BackHandler(enabled = authRecoveryFlow == AuthRecoveryFlow.ForgotPasswordVerify) {
+        onBackFromPasswordVerify()
+    }
+    BackHandler(
+        enabled = authRecoveryFlow == AuthRecoveryFlow.ForgotUsername ||
+            authRecoveryFlow == AuthRecoveryFlow.ForgotPasswordEmail
+    ) {
+        onCancelAuthRecovery()
+    }
+    BackHandler(enabled = authRecoveryFlow == AuthRecoveryFlow.None) {
+        onToggleMode()
+    }
     when (authRecoveryFlow) {
         AuthRecoveryFlow.ForgotUsername -> ForgotUsernameScreen(
             language = language,
             email = passwordResetEmail.ifBlank { credentials.email },
             authMessage = authMessage,
+            authMessageIsError = authMessageIsError,
             modifier = modifier,
             onEmailChanged = onPasswordResetEmailChanged,
             onSendUsername = onSendForgotUsername,
@@ -169,6 +187,7 @@ fun AuthScreen(
             language = language,
             email = passwordResetEmail,
             authMessage = authMessage,
+            authMessageIsError = authMessageIsError,
             modifier = modifier,
             onEmailChanged = onPasswordResetEmailChanged,
             onSendResetCode = onRequestPasswordResetCode,
@@ -180,11 +199,14 @@ fun AuthScreen(
             resetCode = passwordResetCode,
             newPassword = passwordResetDraft,
             authMessage = authMessage,
+            authMessageIsError = authMessageIsError,
             modifier = modifier,
             onResetCodeChanged = onPasswordResetCodeChanged,
             onNewPasswordChanged = onPasswordResetDraftChanged,
             onUpdatePassword = onConfirmPasswordReset,
-            onBack = onCancelAuthRecovery
+            onResendResetCode = onRequestPasswordResetCode,
+            onBack = onBackFromPasswordVerify,
+            onCancel = onCancelAuthRecovery
         )
         AuthRecoveryFlow.None -> RegistrationScreen(
             language = language,
@@ -193,6 +215,7 @@ fun AuthScreen(
             isSignUp = isSignUp,
             signupTermsAccepted = signupTermsAccepted,
             authMessage = authMessage,
+            authMessageIsError = authMessageIsError,
             modifier = modifier,
             onProfileChanged = onProfileChanged,
             onCredentialsChanged = onCredentialsChanged,
@@ -209,6 +232,7 @@ fun AuthScreen(
 private fun EmailVerificationScreen(
     language: AppLanguage,
     authMessage: String,
+    authMessageIsError: Boolean,
     modifier: Modifier = Modifier,
     onResendVerification: () -> Unit,
     onRefreshVerification: () -> Unit
@@ -222,7 +246,14 @@ private fun EmailVerificationScreen(
         Text(EobStrings.t(language, "verifyEmailTitle"), style = MaterialTheme.typography.headlineSmall)
         Text(EobStrings.t(language, "verifyEmailHelp"))
         if (authMessage.isNotBlank()) {
-            Text(authMessage, color = MaterialTheme.colorScheme.error)
+            Text(
+                authMessage,
+                color = if (authMessageIsError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
         }
         Button(onClick = onResendVerification, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "resendVerification"))
@@ -241,6 +272,7 @@ fun RegistrationScreen(
     isSignUp: Boolean,
     signupTermsAccepted: Boolean,
     authMessage: String,
+    authMessageIsError: Boolean,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
     onCredentialsChanged: (RegistrationCredentials) -> Unit,
@@ -307,7 +339,14 @@ fun RegistrationScreen(
             Text(EobStrings.t(language, "passwordRule"), color = MaterialTheme.colorScheme.error)
         }
         if (authMessage.isNotBlank()) {
-            Text(authMessage, color = MaterialTheme.colorScheme.error)
+            Text(
+                authMessage,
+                color = if (authMessageIsError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
         }
         Button(
             onClick = onSubmit,
@@ -371,6 +410,7 @@ private fun ForgotUsernameScreen(
     language: AppLanguage,
     email: String,
     authMessage: String,
+    authMessageIsError: Boolean,
     modifier: Modifier = Modifier,
     onEmailChanged: (String) -> Unit,
     onSendUsername: (String) -> Unit,
@@ -394,7 +434,14 @@ private fun ForgotUsernameScreen(
             singleLine = true
         )
         if (authMessage.isNotBlank()) {
-            Text(authMessage, color = MaterialTheme.colorScheme.primary)
+            Text(
+                authMessage,
+                color = if (authMessageIsError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
         }
         Button(
             onClick = { onSendUsername(email) },
@@ -414,6 +461,7 @@ private fun ForgotPasswordEmailScreen(
     language: AppLanguage,
     email: String,
     authMessage: String,
+    authMessageIsError: Boolean,
     modifier: Modifier = Modifier,
     onEmailChanged: (String) -> Unit,
     onSendResetCode: () -> Unit,
@@ -437,7 +485,14 @@ private fun ForgotPasswordEmailScreen(
             singleLine = true
         )
         if (authMessage.isNotBlank()) {
-            Text(authMessage, color = MaterialTheme.colorScheme.primary)
+            Text(
+                authMessage,
+                color = if (authMessageIsError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
         }
         Button(
             onClick = onSendResetCode,
@@ -459,11 +514,14 @@ private fun ForgotPasswordVerifyScreen(
     resetCode: String,
     newPassword: String,
     authMessage: String,
+    authMessageIsError: Boolean,
     modifier: Modifier = Modifier,
     onResetCodeChanged: (String) -> Unit,
     onNewPasswordChanged: (String) -> Unit,
     onUpdatePassword: () -> Unit,
-    onBack: () -> Unit
+    onResendResetCode: () -> Unit,
+    onBack: () -> Unit,
+    onCancel: () -> Unit
 ) {
     val passwordValid = RegistrationCredentials(email = email, password = newPassword).isPasswordValid
     Column(
@@ -475,6 +533,11 @@ private fun ForgotPasswordVerifyScreen(
     ) {
         Text(EobStrings.t(language, "forgotPasswordTitle"), style = MaterialTheme.typography.headlineSmall)
         Text(EobStrings.t(language, "forgotPasswordHelp"))
+        Text(
+            text = email,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         OutlinedTextField(
             value = resetCode,
             onValueChange = onResetCodeChanged,
@@ -493,7 +556,14 @@ private fun ForgotPasswordVerifyScreen(
             Text(EobStrings.t(language, "passwordRule"), color = MaterialTheme.colorScheme.error)
         }
         if (authMessage.isNotBlank()) {
-            Text(authMessage, color = MaterialTheme.colorScheme.error)
+            Text(
+                authMessage,
+                color = if (authMessageIsError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
         }
         Button(
             onClick = onUpdatePassword,
@@ -502,7 +572,17 @@ private fun ForgotPasswordVerifyScreen(
         ) {
             Text(EobStrings.t(language, "updatePassword"))
         }
+        TextButton(
+            onClick = onResendResetCode,
+            enabled = email.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(EobStrings.t(language, "resendResetCode"))
+        }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "backToResetEmail"))
+        }
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "backToSignIn"))
         }
     }
