@@ -7,7 +7,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "check": "node --check index.js && node --check lib/eobNormalizer.js && node --check lib/veryfiOcrFieldExtractor.js && node --check lib/hybridReconciliation.js && node --check test/eobNormalizer.test.js && node --check test/veryfiOcrFieldExtractor.test.js",
+    "check": "node --check index.js && node --check lib/eobNormalizer.js && node --check lib/veryfiOcrFieldExtractor.js && node --check lib/hybridReconciliation.js && node --check lib/veryfiAnyDocClient.js && node --check lib/veryfiInsuranceEobNormalizer.js && node --check lib/veryfiCurrencyParser.js && node --check lib/veryfiDateNormalizer.js && node --check test/eobNormalizer.test.js && node --check test/veryfiOcrFieldExtractor.test.js && node --check test/veryfiInsuranceEobNormalizer.test.js",
     "test": "node --test"
   },
   "dependencies": {

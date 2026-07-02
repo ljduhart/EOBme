@@ -1552,13 +1552,14 @@ class EobFlowArchitectureTest {
         val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
         val anyDocConstantsSource = readSource("network/VeryfiAnyDocConstants.kt")
         val functionsIndex = readFunctionsSource("index.js")
+        val functionsAnyDocClient = readFunctionsSource("lib/veryfiAnyDocClient.js")
         val navHostSource = readSource("navigation/EobNavHost.kt")
 
         assertTrue(
             "PR#115: Veryfi AnyDocs endpoint must use partner/any-documents/",
             readFunctionsSource("lib/veryfiAnyDocConstants.js").contains("partner/any-documents/") &&
                 anyDocConstantsSource.contains("partner/any-documents/") &&
-                functionsIndex.contains("VERYFI_ANY_DOCS_URL")
+                (functionsIndex.contains("VERYFI_ANY_DOCS_URL") || functionsAnyDocClient.contains("VERYFI_ANY_DOCS_URL"))
         )
         assertFalse(
             "PR#115: legacy partner/documents endpoint must not remain",
@@ -1595,7 +1596,8 @@ class EobFlowArchitectureTest {
                 "PR#114 final: AnyDocs documents endpoint barrier missing $snippet",
                 anyDocConstantsSource.contains(snippet) ||
                     veryfiClientSource.contains(snippet) ||
-                    functionsIndex.contains(snippet)
+                    functionsIndex.contains(snippet) ||
+                    functionsAnyDocClient.contains(snippet)
             )
         }
         assertTrue(navHostSource.contains("processScannedDocument"))
@@ -1615,14 +1617,19 @@ class EobFlowArchitectureTest {
         val constantsSource = readSource("network/VeryfiAnyDocConstants.kt")
         val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
         val functionsIndex = readFunctionsSource("index.js")
+        val functionsAnyDocClient = readFunctionsSource("lib/veryfiAnyDocClient.js")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
 
         assertEquals("partner/any-documents/", VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH)
         assertTrue(functionsConstants.contains("partner/any-documents/"))
-        assertTrue(functionsIndex.contains("blueprint_name"))
+        assertTrue(
+            functionsIndex.contains("blueprint_name") ||
+                functionsAnyDocClient.contains("blueprint_name")
+        )
         assertTrue(
             functionsConstants.contains("health_insurance_eob") ||
-                functionsIndex.contains("BLUEPRINT_HEALTH_INSURANCE_EOB")
+                functionsIndex.contains("BLUEPRINT_HEALTH_INSURANCE_EOB") ||
+                functionsAnyDocClient.contains("BLUEPRINT_HEALTH_INSURANCE_EOB")
         )
         listOf(
             "fun historyListKey()",

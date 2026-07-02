@@ -95,6 +95,10 @@ function normalizeEobDocument(data = {}, documentId = "") {
 
 function veryfiToEobDocument(veryfi = {}, metadata = {}) {
   const enriched = enrichPayload(veryfi);
+  const {isNestedClaimsPayload, nestedClaimsToEobDocument} = require("./veryfiInsuranceEobNormalizer");
+  if (isNestedClaimsPayload(enriched)) {
+    return nestedClaimsToEobDocument(enriched, metadata);
+  }
   const ocrText = extractOcrText(enriched);
   const rawText = ocrText || JSON.stringify(enriched);
   const providerName = stringValue(enriched, [

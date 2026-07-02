@@ -1,5 +1,6 @@
 package app.eob.me
 
+import app.eob.me.data.HybridDocumentRef
 import app.eob.me.data.InsuranceEobRecordBridge
 import app.eob.me.network.VeryfiCurrencyParser
 import app.eob.me.network.VeryfiDateNormalizer
@@ -143,15 +144,19 @@ class VeryfiInsuranceEobMapperTest {
     @Test
     fun firestoreRoundTripRehydratesNestedClaimsFromVeryfiClientStream() {
         val payload = twoDateSevenCptPayload()
+        val fileName = "eob_1718932011000.jpg"
+        val firestoreDocId = HybridDocumentRef.stableDocumentId(HybridDocumentRef.documentRefId(fileName))
         val firestoreRow = mapOf(
             "sourceName" to "Camera",
+            "sourceFilePath" to "users/u1/eobs/$fileName",
             "veryfiClientStream" to payload,
             "providerName" to "",
             "billed_amount" to 0.0
         )
 
-        val record = app.eob.me.data.FirebaseEobMapper.eobFromMap(firestoreRow, documentId = "doc_42")
+        val record = app.eob.me.data.FirebaseEobMapper.eobFromMap(firestoreRow, documentId = firestoreDocId)
 
+        assertEquals(firestoreDocId, record.firestoreId)
         assertEquals(7, record.charges.size)
         assertEquals(setOf("03/21/2026", "04/11/2026"), record.charges.map { it.serviceDate }.toSet())
         assertTrue(record.totalBilledAmount > 0.0)
