@@ -12,11 +12,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
@@ -29,6 +31,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.AuthRecoveryFlow
 import app.eob.me.data.EobLegalUrls
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
@@ -117,15 +120,28 @@ fun AuthScreen(
     profile: UserProfile,
     credentials: RegistrationCredentials,
     isSignUp: Boolean,
+    signupTermsAccepted: Boolean,
+    authRecoveryFlow: AuthRecoveryFlow,
+    passwordResetEmail: String,
+    passwordResetCode: String,
+    passwordResetDraft: String,
     awaitingEmailVerification: Boolean = false,
     authMessage: String,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
     onCredentialsChanged: (RegistrationCredentials) -> Unit,
+    onSignupTermsAcceptedChanged: (Boolean) -> Unit,
     onToggleMode: () -> Unit,
     onSubmit: () -> Unit,
     onForgotPassword: () -> Unit = {},
     onForgotUsername: () -> Unit = {},
+    onCancelAuthRecovery: () -> Unit = {},
+    onSendForgotUsername: (String) -> Unit = {},
+    onPasswordResetEmailChanged: (String) -> Unit = {},
+    onRequestPasswordResetCode: () -> Unit = {},
+    onPasswordResetCodeChanged: (String) -> Unit = {},
+    onPasswordResetDraftChanged: (String) -> Unit = {},
+    onConfirmPasswordReset: () -> Unit = {},
     onResendVerification: () -> Unit = {},
     onRefreshVerification: () -> Unit = {}
 ) {
@@ -139,20 +155,54 @@ fun AuthScreen(
         )
         return
     }
-    RegistrationScreen(
-        language = language,
-        profile = profile,
-        credentials = credentials,
-        isSignUp = isSignUp,
-        authMessage = authMessage,
-        modifier = modifier,
-        onProfileChanged = onProfileChanged,
-        onCredentialsChanged = onCredentialsChanged,
-        onToggleMode = onToggleMode,
-        onSubmit = onSubmit,
-        onForgotPassword = onForgotPassword,
-        onForgotUsername = onForgotUsername
-    )
+    when (authRecoveryFlow) {
+        AuthRecoveryFlow.ForgotUsername -> ForgotUsernameScreen(
+            language = language,
+            email = passwordResetEmail.ifBlank { credentials.email },
+            authMessage = authMessage,
+            modifier = modifier,
+            onEmailChanged = onPasswordResetEmailChanged,
+            onSendUsername = onSendForgotUsername,
+            onBack = onCancelAuthRecovery
+        )
+        AuthRecoveryFlow.ForgotPasswordEmail -> ForgotPasswordEmailScreen(
+            language = language,
+            email = passwordResetEmail,
+            authMessage = authMessage,
+            modifier = modifier,
+            onEmailChanged = onPasswordResetEmailChanged,
+            onSendResetCode = onRequestPasswordResetCode,
+            onBack = onCancelAuthRecovery
+        )
+        AuthRecoveryFlow.ForgotPasswordVerify -> ForgotPasswordVerifyScreen(
+            language = language,
+            email = passwordResetEmail,
+            resetCode = passwordResetCode,
+            newPassword = passwordResetDraft,
+            authMessage = authMessage,
+            modifier = modifier,
+            onResetCodeChanged = onPasswordResetCodeChanged,
+            onNewPasswordChanged = onPasswordResetDraftChanged,
+            onUpdatePassword = onConfirmPasswordReset,
+            onBack = onCancelAuthRecovery
+        )
+        AuthRecoveryFlow.None -> RegistrationScreen(
+            language = language,
+            profile = profile,
+            credentials = credentials,
+            isSignUp = isSignUp,
+            signupTermsAccepted = signupTermsAccepted,
+            authMessage = authMessage,
+            modifier = modifier,
+            onProfileChanged = onProfileChanged,
+            onCredentialsChanged = onCredentialsChanged,
+            onSignupTermsAcceptedChanged = onSignupTermsAcceptedChanged,
+            onToggleMode = onToggleMode,
+            onSubmit = onSubmit,
+            onForgotPassword = onForgotPassword,
+            onForgotUsername = onForgotUsername
+        )
+    }
 }
 
 @Composable
@@ -189,15 +239,18 @@ fun RegistrationScreen(
     profile: UserProfile,
     credentials: RegistrationCredentials,
     isSignUp: Boolean,
+    signupTermsAccepted: Boolean,
     authMessage: String,
     modifier: Modifier = Modifier,
     onProfileChanged: (UserProfile) -> Unit,
     onCredentialsChanged: (RegistrationCredentials) -> Unit,
+    onSignupTermsAcceptedChanged: (Boolean) -> Unit,
     onToggleMode: () -> Unit,
     onSubmit: () -> Unit,
     onForgotPassword: () -> Unit = {},
     onForgotUsername: () -> Unit = {}
 ) {
+    val signupFieldsEnabled = !isSignUp || signupTermsAccepted
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -209,13 +262,34 @@ fun RegistrationScreen(
             if (isSignUp) EobStrings.t(language, "profileRequired") else EobStrings.t(language, "login"),
             style = MaterialTheme.typography.headlineSmall
         )
-        Text(EobStrings.t(language, "profileRequiredHelp"))
+        Text(
+            if (isSignUp) {
+                EobStrings.t(language, "signupTermsGateHelp")
+            } else {
+                EobStrings.t(language, "profileRequiredHelp")
+            }
+        )
         if (isSignUp) {
-            ProfileFields(language, profile, onProfileChanged)
+            SignupTermsGate(
+                language = language,
+                accepted = signupTermsAccepted,
+                onAcceptedChanged = onSignupTermsAcceptedChanged
+            )
+        }
+        if (isSignUp) {
+            ProfileFields(
+                language = language,
+                profile = profile,
+                onProfileChanged = onProfileChanged,
+                fieldsEnabled = signupFieldsEnabled
+            )
             PasswordField(
                 language = language,
                 password = credentials.password,
-                onPasswordChanged = { onCredentialsChanged(credentials.copy(email = profile.email, password = it)) }
+                enabled = signupFieldsEnabled,
+                onPasswordChanged = {
+                    onCredentialsChanged(credentials.copy(email = profile.email, password = it))
+                }
             )
         } else {
             CredentialFields(
@@ -238,19 +312,13 @@ fun RegistrationScreen(
         Button(
             onClick = onSubmit,
             enabled = if (isSignUp) {
-                credentials.isReadyForSignUp(profile)
+                signupTermsAccepted && credentials.isReadyForSignUp(profile)
             } else {
                 credentials.isReadyForSignIn()
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (isSignUp) EobStrings.t(language, "createAccount") else EobStrings.t(language, "login"))
-        }
-        if (isSignUp) {
-            LegalAcceptanceText(
-                language = language,
-                modifier = Modifier.padding(top = 16.dp)
-            )
         }
         OutlinedButton(onClick = onToggleMode, modifier = Modifier.fillMaxWidth()) {
             Text(if (isSignUp) EobStrings.t(language, "login") else EobStrings.t(language, "createAccount"))
@@ -262,6 +330,180 @@ fun RegistrationScreen(
             OutlinedButton(onClick = onForgotUsername, modifier = Modifier.fillMaxWidth()) {
                 Text(EobStrings.t(language, "forgotUsername"))
             }
+        }
+    }
+}
+
+@Composable
+private fun SignupTermsGate(
+    language: AppLanguage,
+    accepted: Boolean,
+    onAcceptedChanged: (Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = EobStrings.t(language, "signupTermsGateTitle"),
+            style = MaterialTheme.typography.titleMedium
+        )
+        LegalAcceptanceText(language = language)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = accepted,
+                onCheckedChange = onAcceptedChanged
+            )
+            Text(
+                text = EobStrings.t(language, "signupTermsAcceptLabel"),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ForgotUsernameScreen(
+    language: AppLanguage,
+    email: String,
+    authMessage: String,
+    modifier: Modifier = Modifier,
+    onEmailChanged: (String) -> Unit,
+    onSendUsername: (String) -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(EobStrings.t(language, "forgotUsernameTitle"), style = MaterialTheme.typography.headlineSmall)
+        Text(EobStrings.t(language, "forgotUsernameHelp"))
+        OutlinedTextField(
+            value = email,
+            onValueChange = onEmailChanged,
+            label = { Text(EobStrings.t(language, "email")) },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            singleLine = true
+        )
+        if (authMessage.isNotBlank()) {
+            Text(authMessage, color = MaterialTheme.colorScheme.primary)
+        }
+        Button(
+            onClick = { onSendUsername(email) },
+            enabled = email.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(EobStrings.t(language, "sendUsername"))
+        }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "backToSignIn"))
+        }
+    }
+}
+
+@Composable
+private fun ForgotPasswordEmailScreen(
+    language: AppLanguage,
+    email: String,
+    authMessage: String,
+    modifier: Modifier = Modifier,
+    onEmailChanged: (String) -> Unit,
+    onSendResetCode: () -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(EobStrings.t(language, "forgotPasswordTitle"), style = MaterialTheme.typography.headlineSmall)
+        Text(EobStrings.t(language, "forgotPasswordHelp"))
+        OutlinedTextField(
+            value = email,
+            onValueChange = onEmailChanged,
+            label = { Text(EobStrings.t(language, "email")) },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            singleLine = true
+        )
+        if (authMessage.isNotBlank()) {
+            Text(authMessage, color = MaterialTheme.colorScheme.primary)
+        }
+        Button(
+            onClick = onSendResetCode,
+            enabled = email.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(EobStrings.t(language, "sendResetCode"))
+        }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "backToSignIn"))
+        }
+    }
+}
+
+@Composable
+private fun ForgotPasswordVerifyScreen(
+    language: AppLanguage,
+    email: String,
+    resetCode: String,
+    newPassword: String,
+    authMessage: String,
+    modifier: Modifier = Modifier,
+    onResetCodeChanged: (String) -> Unit,
+    onNewPasswordChanged: (String) -> Unit,
+    onUpdatePassword: () -> Unit,
+    onBack: () -> Unit
+) {
+    val passwordValid = RegistrationCredentials(email = email, password = newPassword).isPasswordValid
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(EobStrings.t(language, "forgotPasswordTitle"), style = MaterialTheme.typography.headlineSmall)
+        Text(EobStrings.t(language, "forgotPasswordHelp"))
+        OutlinedTextField(
+            value = resetCode,
+            onValueChange = onResetCodeChanged,
+            label = { Text(EobStrings.t(language, "passwordResetCodeLabel")) },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            singleLine = true
+        )
+        PasswordField(
+            language = language,
+            password = newPassword,
+            labelKey = "password",
+            onPasswordChanged = onNewPasswordChanged
+        )
+        if (newPassword.isNotBlank() && !passwordValid) {
+            Text(EobStrings.t(language, "passwordRule"), color = MaterialTheme.colorScheme.error)
+        }
+        if (authMessage.isNotBlank()) {
+            Text(authMessage, color = MaterialTheme.colorScheme.error)
+        }
+        Button(
+            onClick = onUpdatePassword,
+            enabled = resetCode.length == 5 && passwordValid,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(EobStrings.t(language, "updatePassword"))
+        }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "backToSignIn"))
         }
     }
 }
@@ -439,12 +681,16 @@ private fun CredentialFields(
 private fun PasswordField(
     language: AppLanguage,
     password: String,
+    labelKey: String = "password",
+    enabled: Boolean = true,
     onPasswordChanged: (String) -> Unit
 ) {
     OutlinedTextField(
         value = password,
         onValueChange = onPasswordChanged,
-        label = { Text(EobStrings.t(language, "password")) },
-        modifier = Modifier.fillMaxWidth()
+        label = { Text(EobStrings.t(language, labelKey)) },
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = !enabled,
+        enabled = enabled
     )
 }

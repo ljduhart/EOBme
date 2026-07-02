@@ -114,6 +114,11 @@ fun EobNavHost(
     val awaitingEmailVerification by viewModel.awaitingEmailVerification.collectAsStateWithLifecycle()
     val authMessage by viewModel.authMessage.collectAsStateWithLifecycle()
     val registrationCredentials by viewModel.registrationCredentials.collectAsStateWithLifecycle()
+    val signupTermsAccepted by viewModel.signupTermsAccepted.collectAsStateWithLifecycle()
+    val authRecoveryFlow by viewModel.authRecoveryFlow.collectAsStateWithLifecycle()
+    val passwordResetEmail by viewModel.passwordResetEmail.collectAsStateWithLifecycle()
+    val passwordResetCode by viewModel.passwordResetCode.collectAsStateWithLifecycle()
+    val passwordResetDraft by viewModel.passwordResetDraft.collectAsStateWithLifecycle()
 
     LaunchedEffect(currentScreen) {
         if (currentScreen != Screen.MainHub) {
@@ -172,15 +177,28 @@ fun EobNavHost(
                 profile = profile,
                 credentials = registrationCredentials,
                 isSignUp = isSignUp == true,
+                signupTermsAccepted = signupTermsAccepted,
+                authRecoveryFlow = authRecoveryFlow,
+                passwordResetEmail = passwordResetEmail,
+                passwordResetCode = passwordResetCode,
+                passwordResetDraft = passwordResetDraft,
                 awaitingEmailVerification = awaitingEmailVerification,
                 authMessage = authMessage,
                 modifier = Modifier.fillMaxSize(),
                 onProfileChanged = viewModel::onProfileChanged,
                 onCredentialsChanged = viewModel::onCredentialsChanged,
+                onSignupTermsAcceptedChanged = viewModel::onSignupTermsAcceptedChanged,
                 onToggleMode = viewModel::onAuthToggleMode,
                 onSubmit = viewModel::onAuthSubmit,
                 onForgotPassword = viewModel::onForgotPassword,
                 onForgotUsername = viewModel::onForgotUsername,
+                onCancelAuthRecovery = viewModel::onCancelAuthRecovery,
+                onSendForgotUsername = viewModel::onSendForgotUsername,
+                onPasswordResetEmailChanged = viewModel::onPasswordResetEmailChanged,
+                onRequestPasswordResetCode = viewModel::onRequestPasswordResetCode,
+                onPasswordResetCodeChanged = viewModel::onPasswordResetCodeChanged,
+                onPasswordResetDraftChanged = viewModel::onPasswordResetDraftChanged,
+                onConfirmPasswordReset = viewModel::onConfirmPasswordReset,
                 onResendVerification = viewModel::onResendVerification,
                 onRefreshVerification = viewModel::onRefreshVerification
             )

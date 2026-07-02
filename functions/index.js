@@ -5,6 +5,12 @@ const {onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onObjectFinalized} = require("firebase-functions/v2/storage");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
+const nodemailer = require("nodemailer");
+const {
+  sendForgotUsernameEmail,
+  requestPasswordResetCode,
+  confirmPasswordResetCode
+} = require("./lib/authRecovery");
 const {
   comparableEobData,
   normalizeEobDocument,
@@ -28,6 +34,61 @@ const db = admin.firestore();
 const veryfiClientId = defineSecret("VERYFI_CLIENT_ID");
 const veryfiUsername = defineSecret("VERYFI_USERNAME");
 const veryfiApiKey = defineSecret("VERYFI_API_KEY");
+const authSmtpHost = defineSecret("AUTH_SMTP_HOST");
+const authSmtpUser = defineSecret("AUTH_SMTP_USER");
+const authSmtpPass = defineSecret("AUTH_SMTP_PASS");
+const authSmtpFrom = defineSecret("AUTH_SMTP_FROM");
+
+function buildAuthMailTransporter() {
+  if (!authSmtpHost.value() || !authSmtpUser.value() || !authSmtpPass.value()) {
+    return null;
+  }
+  return nodemailer.createTransport({
+    host: authSmtpHost.value(),
+    port: 587,
+    secure: false,
+    auth: {
+      user: authSmtpUser.value(),
+      pass: authSmtpPass.value()
+    }
+  });
+}
+
+function authMailFromAddress() {
+  return authSmtpFrom.value() || authSmtpUser.value();
+}
+
+exports.sendForgotUsernameReminder = onCall({
+  secrets: [authSmtpHost, authSmtpUser, authSmtpPass, authSmtpFrom]
+}, async (request) => {
+  const email = request.data?.email;
+  return sendForgotUsernameEmail(
+    admin.auth(),
+    buildAuthMailTransporter(),
+    authMailFromAddress(),
+    email
+  );
+});
+
+exports.requestPasswordResetCode = onCall({
+  secrets: [authSmtpHost, authSmtpUser, authSmtpPass, authSmtpFrom]
+}, async (request) => {
+  const email = request.data?.email;
+  return requestPasswordResetCode(
+    db,
+    admin.auth(),
+    buildAuthMailTransporter(),
+    authMailFromAddress(),
+    email
+  );
+});
+
+exports.confirmPasswordResetCode = onCall(async (request) => {
+  const email = request.data?.email;
+  const code = request.data?.code;
+  const newPassword = request.data?.newPassword;
+  return confirmPasswordResetCode(db, admin.auth(), email, code, newPassword);
+});
 
 exports.mirrorEobToLegacyRecord = onDocumentWritten("users/{userId}/eobs/{eobId}", async (event) => {
   return mirrorEobWrite(event, "eobs", "eob_records");

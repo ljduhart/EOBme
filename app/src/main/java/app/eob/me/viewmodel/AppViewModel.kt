@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.AuthRecoveryFlow
 import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.remote.FirebaseEobRemoteDataSource
@@ -11,6 +12,7 @@ import app.eob.me.data.repository.EobRepository
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.Screen
+import app.eob.me.network.AuthRecoveryClient
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -32,6 +34,7 @@ import kotlin.coroutines.resume
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val firebaseRepository = FirebaseEobRepository(application.applicationContext)
+    private val authRecoveryClient = AuthRecoveryClient()
     val eobRepository: EobRepository = FirebaseEobRemoteDataSource(firebaseRepository)
 
     private val firebaseConfigured: Boolean = runCatching {
@@ -71,6 +74,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (firebaseConfigured) "" else EobStrings.firebaseConfigMessage(AppLanguage.English)
     )
     val authMessage: StateFlow<String> = _authMessage.asStateFlow()
+
+    private val _signupTermsAccepted = MutableStateFlow(false)
+    val signupTermsAccepted: StateFlow<Boolean> = _signupTermsAccepted.asStateFlow()
+
+    private val _authRecoveryFlow = MutableStateFlow(AuthRecoveryFlow.None)
+    val authRecoveryFlow: StateFlow<AuthRecoveryFlow> = _authRecoveryFlow.asStateFlow()
+
+    private val _passwordResetEmail = MutableStateFlow("")
+    val passwordResetEmail: StateFlow<String> = _passwordResetEmail.asStateFlow()
+
+    private val _passwordResetCode = MutableStateFlow("")
+    val passwordResetCode: StateFlow<String> = _passwordResetCode.asStateFlow()
+
+    private val _passwordResetDraft = MutableStateFlow("")
+    val passwordResetDraft: StateFlow<String> = _passwordResetDraft.asStateFlow()
 
     private val _splashComplete = MutableStateFlow(false)
     val splashComplete: StateFlow<Boolean> = _splashComplete.asStateFlow()
@@ -155,20 +173,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onCreateAccountSelected() {
         _isSignUp.value = true
+        _signupTermsAccepted.value = false
         _authMessage.value = ""
+        _authRecoveryFlow.value = AuthRecoveryFlow.None
         _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
     }
 
     fun onSignInSelected() {
         _isSignUp.value = false
+        _signupTermsAccepted.value = false
         _authMessage.value = ""
+        _authRecoveryFlow.value = AuthRecoveryFlow.None
         _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
     }
 
     fun onAuthToggleMode() {
         _isSignUp.value = null
+        _signupTermsAccepted.value = false
         _authMessage.value = ""
+        _authRecoveryFlow.value = AuthRecoveryFlow.None
         _registrationCredentials.value = RegistrationCredentials()
+    }
+
+    fun onSignupTermsAcceptedChanged(accepted: Boolean) {
+        _signupTermsAccepted.value = accepted
+        if (accepted) {
+            _authMessage.value = ""
+        }
     }
 
     fun setProfileEditing(editing: Boolean) {
@@ -205,6 +236,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val credentials = _registrationCredentials.value
         val isSignUp = _isSignUp.value == true
         val language = _language.value ?: AppLanguage.English
+
+        if (isSignUp && !_signupTermsAccepted.value) {
+            _authMessage.value = EobStrings.t(language, "signupTermsRequired")
+            return
+        }
 
         viewModelScope.launch(Dispatchers.IO) {
             if (!firebaseConfigured) {
@@ -272,22 +308,146 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onForgotPassword() {
+        _authRecoveryFlow.value = AuthRecoveryFlow.ForgotPasswordEmail
+        _passwordResetEmail.value = _registrationCredentials.value.email.ifBlank { _profile.value.email }
+        _passwordResetCode.value = ""
+        _passwordResetDraft.value = ""
+        _authMessage.value = ""
+    }
+
+    fun onForgotUsername() {
+        _authRecoveryFlow.value = AuthRecoveryFlow.ForgotUsername
+        _passwordResetEmail.value = _registrationCredentials.value.email.ifBlank { _profile.value.email }
+        _authMessage.value = ""
+    }
+
+    fun onCancelAuthRecovery() {
+        _authRecoveryFlow.value = AuthRecoveryFlow.None
+        _passwordResetCode.value = ""
+        _passwordResetDraft.value = ""
+        _authMessage.value = ""
+    }
+
+    fun onPasswordResetEmailChanged(email: String) {
+        _passwordResetEmail.value = email
+        if (email != _profile.value.email) {
+            _profile.update { it.copy(email = email) }
+        }
+        _registrationCredentials.update { it.copy(email = email) }
+    }
+
+    fun onPasswordResetCodeChanged(code: String) {
+        _passwordResetCode.value = code.filter { it.isDigit() }.take(5)
+    }
+
+    fun onPasswordResetDraftChanged(password: String) {
+        _passwordResetDraft.value = password
+    }
+
+    fun onSendForgotUsername(email: String) {
         val language = _language.value ?: AppLanguage.English
-        val email = _registrationCredentials.value.email.ifBlank { _profile.value.email }
-        firebaseRepository.sendPasswordReset(email) { message ->
-            viewModelScope.launch {
+        if (email.isBlank()) {
+            _authMessage.value = EobStrings.t(language, "forgotUsernameEmailRequired")
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!firebaseConfigured) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = EobStrings.firebaseConfigMessage(language)
+                }
+                return@launch
+            }
+            try {
+                val message = authRecoveryClient.sendForgotUsernameReminder(email)
                 withContext(Dispatchers.Main) {
                     _authMessage.value = message.ifBlank {
-                        EobStrings.t(language, "passwordResetSent")
+                        EobStrings.t(language, "forgotUsernameEmailSent")
                     }
+                }
+            } catch (error: Exception) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = error.localizedMessage
+                        ?: EobStrings.t(language, "authErrorGeneric")
                 }
             }
         }
     }
 
-    fun onForgotUsername() {
+    fun onRequestPasswordResetCode() {
         val language = _language.value ?: AppLanguage.English
-        _authMessage.value = EobStrings.t(language, "forgotUsernameHelp")
+        val email = _passwordResetEmail.value.trim()
+        if (email.isBlank()) {
+            _authMessage.value = EobStrings.t(language, "forgotPasswordEmailRequired")
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!firebaseConfigured) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = EobStrings.firebaseConfigMessage(language)
+                }
+                return@launch
+            }
+            try {
+                val message = authRecoveryClient.requestPasswordResetCode(email)
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = message.ifBlank {
+                        EobStrings.t(language, "passwordResetCodeSent")
+                    }
+                    _authRecoveryFlow.value = AuthRecoveryFlow.ForgotPasswordVerify
+                    _passwordResetCode.value = ""
+                    _passwordResetDraft.value = ""
+                }
+            } catch (error: Exception) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = error.localizedMessage
+                        ?: EobStrings.t(language, "authErrorGeneric")
+                }
+            }
+        }
+    }
+
+    fun onConfirmPasswordReset() {
+        val language = _language.value ?: AppLanguage.English
+        val email = _passwordResetEmail.value.trim()
+        val code = _passwordResetCode.value.trim()
+        val newPassword = _passwordResetDraft.value
+        if (email.isBlank()) {
+            _authMessage.value = EobStrings.t(language, "forgotPasswordEmailRequired")
+            return
+        }
+        if (code.length != 5) {
+            _authMessage.value = EobStrings.t(language, "passwordResetCodeInvalid")
+            return
+        }
+        if (!RegistrationCredentials(email = email, password = newPassword).isPasswordValid) {
+            _authMessage.value = EobStrings.t(language, "passwordRule")
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!firebaseConfigured) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = EobStrings.firebaseConfigMessage(language)
+                }
+                return@launch
+            }
+            try {
+                val message = authRecoveryClient.confirmPasswordResetCode(email, code, newPassword)
+                withContext(Dispatchers.Main) {
+                    _authRecoveryFlow.value = AuthRecoveryFlow.None
+                    _passwordResetCode.value = ""
+                    _passwordResetDraft.value = ""
+                    _registrationCredentials.value = RegistrationCredentials(email = email)
+                    _authMessage.value = message.ifBlank {
+                        EobStrings.t(language, "passwordResetSuccess")
+                    }
+                }
+            } catch (error: Exception) {
+                withContext(Dispatchers.Main) {
+                    _authMessage.value = error.localizedMessage
+                        ?: EobStrings.t(language, "authErrorGeneric")
+                }
+            }
+        }
     }
 
     fun onResendVerification() {
@@ -408,6 +568,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         firebaseRepository.signOut()
         _introStep.value = 0
         _isSignUp.value = null
+        _signupTermsAccepted.value = false
+        _authRecoveryFlow.value = AuthRecoveryFlow.None
         _awaitingEmailVerification.value = false
         _registrationCredentials.value = RegistrationCredentials()
         updateActivityTime()
@@ -424,6 +586,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _splashComplete.value = false
         _introStep.value = INTRO_SLIDE_COUNT
         _isSignUp.value = false
+        _signupTermsAccepted.value = false
+        _authRecoveryFlow.value = AuthRecoveryFlow.None
         _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
         updateActivityTime()
     }

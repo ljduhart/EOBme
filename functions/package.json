@@ -7,11 +7,12 @@
   },
   "main": "index.js",
   "scripts": {
-    "check": "node --check index.js && node --check lib/eobNormalizer.js && node --check lib/veryfiOcrFieldExtractor.js && node --check lib/hybridReconciliation.js && node --check test/eobNormalizer.test.js && node --check test/veryfiOcrFieldExtractor.test.js",
+    "check": "node --check index.js && node --check lib/eobNormalizer.js && node --check lib/veryfiOcrFieldExtractor.js && node --check lib/hybridReconciliation.js && node --check lib/authRecovery.js && node --check test/eobNormalizer.test.js && node --check test/veryfiOcrFieldExtractor.test.js && node --check test/authRecovery.test.js",
     "test": "node --test"
   },
   "dependencies": {
     "firebase-admin": "^13.10.0",
-    "firebase-functions": "^7.2.5"
+    "firebase-functions": "^7.2.5",
+    "nodemailer": "^7.0.5"
   }
 }
