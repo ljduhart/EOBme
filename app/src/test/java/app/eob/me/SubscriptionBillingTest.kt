@@ -350,6 +350,7 @@ class SubscriptionBillingTest {
         assertTrue(revenueCatBillingSource.contains("RevenueCatEntitlementMapper"))
         assertFalse("ViewModel must not call RevenueCat directly", subscriptionSource.contains("com.revenuecat"))
         assertTrue(subscriptionSource.contains("restoreUserPurchases"))
+        assertTrue(subscriptionSource.contains("refreshOfferings()"))
         val applicationSource = readSource("EobApplication.kt")
         assertTrue(applicationSource.contains("RevenueCatConfig.PUBLIC_API_KEY"))
         assertTrue(applicationSource.contains("entitlementVerificationMode"))

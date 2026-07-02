@@ -156,6 +156,7 @@ class SubscriptionViewModel(application: Application) : AndroidViewModel(applica
                 is RestorePurchasesOutcome.Success -> {
                     billingRepository.startConnection()
                     revenueCatBillingRepository.refreshCustomerInfo()
+                    revenueCatBillingRepository.refreshOfferings()
                     onSuccess(outcome.hasActiveSubscription)
                 }
 
