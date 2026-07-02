@@ -74,6 +74,12 @@ fun SettingsScreen(
     onSaveAccountProfile: () -> Unit,
     onCancelAccountEditing: () -> Unit,
     onManageSubscription: () -> Unit,
+    onSubscribe: () -> Unit,
+    onCancelSubscription: () -> Unit,
+    onResubscribe: () -> Unit,
+    showSubscribeAction: Boolean,
+    showCancelSubscriptionAction: Boolean,
+    showResubscribeAction: Boolean,
     onLogout: () -> Unit,
     onDeleteAccountConfirmed: () -> Unit,
     onPinLockToggle: (Boolean) -> Unit,
@@ -139,6 +145,12 @@ fun SettingsScreen(
                     onSaveAccountProfile = onSaveAccountProfile,
                     onCancelAccountEditing = onCancelAccountEditing,
                     onManageSubscription = onManageSubscription,
+                    onSubscribe = onSubscribe,
+                    onCancelSubscription = onCancelSubscription,
+                    onResubscribe = onResubscribe,
+                    showSubscribeAction = showSubscribeAction,
+                    showCancelSubscriptionAction = showCancelSubscriptionAction,
+                    showResubscribeAction = showResubscribeAction,
                     onLogout = onLogout,
                     onDeleteAccount = { showDeleteDialog = true }
                 )
@@ -259,6 +271,12 @@ private fun AccountSettingsTab(
     onSaveAccountProfile: () -> Unit,
     onCancelAccountEditing: () -> Unit,
     onManageSubscription: () -> Unit,
+    onSubscribe: () -> Unit,
+    onCancelSubscription: () -> Unit,
+    onResubscribe: () -> Unit,
+    showSubscribeAction: Boolean,
+    showCancelSubscriptionAction: Boolean,
+    showResubscribeAction: Boolean,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
@@ -309,9 +327,16 @@ private fun AccountSettingsTab(
         }
     }
     HorizontalDivider()
-    Button(onClick = onManageSubscription, modifier = Modifier.fillMaxWidth()) {
-        Text(EobStrings.t(language, "settingsManageSubscription"))
-    }
+    SubscriptionManagementSection(
+        language = language,
+        showSubscribeAction = showSubscribeAction,
+        showCancelSubscriptionAction = showCancelSubscriptionAction,
+        showResubscribeAction = showResubscribeAction,
+        onViewPlans = onManageSubscription,
+        onSubscribe = onSubscribe,
+        onCancelSubscription = onCancelSubscription,
+        onResubscribe = onResubscribe
+    )
     OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
         Text(EobStrings.t(language, "logout"))
     }
@@ -320,6 +345,60 @@ private fun AccountSettingsTab(
             EobStrings.t(language, "settingsDeleteAccount"),
             color = MaterialTheme.colorScheme.error
         )
+    }
+}
+
+@Composable
+private fun SubscriptionManagementSection(
+    language: AppLanguage,
+    showSubscribeAction: Boolean,
+    showCancelSubscriptionAction: Boolean,
+    showResubscribeAction: Boolean,
+    onViewPlans: () -> Unit,
+    onSubscribe: () -> Unit,
+    onCancelSubscription: () -> Unit,
+    onResubscribe: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = EobStrings.t(language, "billingManageSubscriptionTitle"),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = EobStrings.t(language, "billingManageSubscriptionHint"),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedButton(onClick = onViewPlans, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "settingsManageSubscription"))
+        }
+        if (showSubscribeAction) {
+            Button(onClick = onSubscribe, modifier = Modifier.fillMaxWidth()) {
+                Text(EobStrings.t(language, "billingSubscribe"))
+            }
+        }
+        if (showResubscribeAction) {
+            Button(onClick = onResubscribe, modifier = Modifier.fillMaxWidth()) {
+                Text(EobStrings.t(language, "billingResubscribe"))
+            }
+        }
+        if (showCancelSubscriptionAction) {
+            OutlinedButton(onClick = onCancelSubscription, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = EobStrings.t(language, "billingCancelSubscription"),
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            Text(
+                text = EobStrings.t(language, "billingCancelSubscriptionHint"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

@@ -72,6 +72,7 @@ import app.eob.me.work.FsaDoomsdayScheduler
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.SettingsTab
+import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.SubscriptionUsageStore
 import app.eob.me.data.asCurrency
@@ -792,6 +793,25 @@ class EobViewModel : ViewModel() {
     fun canPurchaseSubscriptionTier(targetTier: SubscriptionTier): Boolean {
         if (targetTier == SubscriptionTier.Free) return false
         return _uiState.value.hubSettings.subscriptionTier.rank() < targetTier.rank()
+    }
+
+    /** True when the user can open the paywall to start a new paid plan or upgrade (Free or Silver). */
+    fun shouldShowSubscribeAction(): Boolean {
+        return _uiState.value.hubSettings.subscriptionTier != SubscriptionTier.Gold
+    }
+
+    /** True when the user has an active paid plan and can cancel via Google Play management. */
+    fun shouldShowCancelSubscriptionAction(): Boolean {
+        return _uiState.value.hubSettings.subscriptionTier != SubscriptionTier.Free
+    }
+
+    /** True when the user is on Free and may restore or purchase again after a lapse. */
+    fun shouldShowResubscribeAction(): Boolean {
+        return _uiState.value.hubSettings.subscriptionTier == SubscriptionTier.Free
+    }
+
+    fun subscriptionManagementProductId(): String? {
+        return SubscriptionCatalog.subscriptionProductId(_uiState.value.hubSettings.subscriptionTier)
     }
 
     fun alreadySubscribedMessage(language: AppLanguage): String {

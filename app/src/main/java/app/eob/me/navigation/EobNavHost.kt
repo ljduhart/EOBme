@@ -45,6 +45,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.eob.me.billing.PlaySubscriptionManagement
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.viewmodel.SubscriptionViewModel
 import app.eob.me.ui.components.HubSettingsGearIcon
@@ -330,6 +331,40 @@ private fun MainHubNavHost(
     fun launchManageSubscriptionFlow() {
         eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
         onActivity()
+    }
+
+    fun launchSubscribeFlow() {
+        eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+        onActivity()
+    }
+
+    fun launchCancelSubscriptionFlow() {
+        val productId = eobViewModel.subscriptionManagementProductId()
+        val intent = PlaySubscriptionManagement.buildManagementIntent(context.packageName, productId)
+        runCatching {
+            context.startActivity(intent)
+        }.onFailure {
+            eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingFlowFailed"))
+        }
+        onActivity()
+    }
+
+    fun launchResubscribeFlow() {
+        subscriptionViewModel.restoreUserPurchases(
+            onSuccess = { hasActiveSubscription ->
+                if (hasActiveSubscription) {
+                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "billingRestoreSuccess"))
+                } else {
+                    eobViewModel.showPaywall(EobStrings.t(language, "billingResubscribePrompt"))
+                }
+                onActivity()
+            },
+            onFailure = {
+                eobViewModel.handleBillingNoticeForPaywall(language, "billing_restore_failed")
+                eobViewModel.showPaywall(EobStrings.t(language, "billingResubscribePrompt"))
+                onActivity()
+            }
+        )
     }
 
     fun launchTierPurchaseFlow(tier: SubscriptionTier, interval: BillingInterval) {
@@ -1176,6 +1211,12 @@ private fun MainHubNavHost(
                             eobViewModel.disableSettingsAccountEditing()
                         },
                         onManageSubscription = ::launchManageSubscriptionFlow,
+                        onSubscribe = ::launchSubscribeFlow,
+                        onCancelSubscription = ::launchCancelSubscriptionFlow,
+                        onResubscribe = ::launchResubscribeFlow,
+                        showSubscribeAction = eobViewModel.shouldShowSubscribeAction(),
+                        showCancelSubscriptionAction = eobViewModel.shouldShowCancelSubscriptionAction(),
+                        showResubscribeAction = eobViewModel.shouldShowResubscribeAction(),
                         onLogout = {
                             eobViewModel.resetHubState()
                             profileSaveMessage = ""

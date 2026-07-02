@@ -437,11 +437,51 @@ class SubscriptionBillingTest {
     @Test
     fun settingsManageSubscriptionIsNotTierGated() {
         val settingsSource = readSource("ui/screens/SettingsScreen.kt")
-        assertTrue(settingsSource.contains("onManageSubscription"))
+        assertTrue(settingsSource.contains("SubscriptionManagementSection"))
+        assertTrue(settingsSource.contains("onSubscribe"))
+        assertTrue(settingsSource.contains("onCancelSubscription"))
+        assertTrue(settingsSource.contains("onResubscribe"))
+        assertTrue(settingsSource.contains("showSubscribeAction"))
+        assertTrue(settingsSource.contains("showCancelSubscriptionAction"))
+        assertTrue(settingsSource.contains("showResubscribeAction"))
         assertFalse(
-            "Manage subscription must remain available for Free, Silver, and Gold",
+            "Manage subscription actions must remain available for Free, Silver, and Gold",
             settingsSource.contains("if (subscriptionTier") && settingsSource.contains("onManageSubscription")
         )
+    }
+
+    @Test
+    fun eobViewModelSubscriptionManagementActionsMatchTier() {
+        val viewModel = EobViewModel()
+        viewModel.setSubscriptionTier(SubscriptionTier.Free)
+        assertTrue(viewModel.shouldShowSubscribeAction())
+        assertTrue(viewModel.shouldShowResubscribeAction())
+        assertFalse(viewModel.shouldShowCancelSubscriptionAction())
+        assertEquals(null, viewModel.subscriptionManagementProductId())
+
+        viewModel.setSubscriptionTier(SubscriptionTier.Silver)
+        assertTrue(viewModel.shouldShowSubscribeAction())
+        assertFalse(viewModel.shouldShowResubscribeAction())
+        assertTrue(viewModel.shouldShowCancelSubscriptionAction())
+        assertEquals(SubscriptionCatalog.SILVER_SUBSCRIPTION_ID, viewModel.subscriptionManagementProductId())
+
+        viewModel.setSubscriptionTier(SubscriptionTier.Gold)
+        assertFalse(viewModel.shouldShowSubscribeAction())
+        assertFalse(viewModel.shouldShowResubscribeAction())
+        assertTrue(viewModel.shouldShowCancelSubscriptionAction())
+        assertEquals(SubscriptionCatalog.GOLD_SUBSCRIPTION_ID, viewModel.subscriptionManagementProductId())
+    }
+
+    @Test
+    fun navHostWiresSubscribeCancelAndResubscribeFlows() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("launchSubscribeFlow"))
+        assertTrue(navSource.contains("launchCancelSubscriptionFlow"))
+        assertTrue(navSource.contains("launchResubscribeFlow"))
+        assertTrue(navSource.contains("PlaySubscriptionManagement.buildManagementIntent"))
+        assertTrue(navSource.contains("shouldShowSubscribeAction()"))
+        assertTrue(navSource.contains("shouldShowCancelSubscriptionAction()"))
+        assertTrue(navSource.contains("shouldShowResubscribeAction()"))
     }
 
     @Test
