@@ -43,4 +43,21 @@ describe("hybridReconciliation", () => {
     assert.match(docId, /^\d+$/);
     assert.equal(docId, hybridFirestoreDocId("eob_1718932011000.jpg"));
   });
+
+  it("matches veryfiToEobDocument id for hybrid upload file names", () => {
+    const {veryfiToEobDocument} = require("../lib/eobNormalizer");
+    const fileName = "eob_1718932011000.jpg";
+    const documentRefId = fileName.replace(/[^A-Za-z0-9_-]/g, "_");
+    const normalized = veryfiToEobDocument({
+      provider_name: "Clinic",
+      insurance_company_name: "Aetna",
+      date_of_service: "2026-01-15",
+      billed_amount: 100
+    }, {
+      documentId: documentRefId,
+      sourceName: "Camera",
+      sourceFilePath: `users/u1/eobs/${fileName}`
+    });
+    assert.equal(String(normalized.id), hybridFirestoreDocId(fileName));
+  });
 });

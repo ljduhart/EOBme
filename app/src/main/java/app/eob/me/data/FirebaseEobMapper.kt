@@ -92,12 +92,21 @@ object FirebaseEobMapper {
         val enrichedData = enrichFromVeryfiClientStream(data)
         resolveNestedInsuranceEobPayload(enrichedData)?.let { nestedPayload ->
             nestedPayload.toNormalizedInsuranceEob().getOrNull()?.let { normalized ->
-                return InsuranceEobRecordBridge.toEobRecord(
+                val documentRefId = hybridDocumentRefId(enrichedData, documentId)
+                val record = InsuranceEobRecordBridge.toEobRecord(
                     document = normalized.document,
-                    documentRefId = documentId.ifBlank { enrichedData.stringValue("id") },
+                    documentRefId = documentRefId,
                     sourceName = enrichedData.stringValue("sourceName", "source_name").ifBlank { "Firebase" },
                     rawText = enrichedData.stringValue("rawText", "raw_text", "ocr_text", "ocrText")
                 )
+                return if (documentId.isBlank()) {
+                    record
+                } else {
+                    record.copy(
+                        firestoreId = documentId,
+                        id = documentId.toIntOrNull() ?: record.id
+                    )
+                }
             }
         }
         val serviceDate = enrichedData.dateValue("serviceDate", "dateOfService", "date_of_service")
@@ -452,6 +461,21 @@ object FirebaseEobMapper {
                 data.cptCodes().joinToString(",")
             ).joinToString("|")
         }.hashCode() and Int.MAX_VALUE).takeUnless { it == 0 } ?: 1
+    }
+
+    /**
+     * Resolves the hybrid upload reference id from [sourceFilePath] so nested-claims rehydration
+     * uses the same stable id inputs as the client stream write path.
+     */
+    internal fun hybridDocumentRefId(data: Map<String, Any?>, firestoreDocumentId: String): String {
+        val sourcePath = data.stringValue("sourceFilePath", "source_file_path")
+        if (sourcePath.isNotBlank()) {
+            val fileName = sourcePath.substringAfterLast('/').trim()
+            if (fileName.isNotBlank()) {
+                return HybridDocumentRef.documentRefId(fileName)
+            }
+        }
+        return firestoreDocumentId.ifBlank { data.stringValue("id") }
     }
 
     private fun normalizeDateString(rawDate: String): String {

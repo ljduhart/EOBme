@@ -162,17 +162,32 @@ exports.processUploadedEobWithVeryfi = onObjectFinalized({
     apiKey: veryfiApiKey.value()
   });
 
+  const postExtractionSnapshot = await eobRef.get();
+  if (shouldSkipStorageVeryfiExtraction(postExtractionSnapshot.data())) {
+    const reconcilePatch = {
+      ...storageUploadReconciliationPatch(objectName),
+      storageUploadConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    await Promise.all([
+      eobRef.set(reconcilePatch, { merge: true }),
+      userRef.collection("eob_records").doc(stableDocId).set(reconcilePatch, { merge: true })
+    ]);
+    return null;
+  }
+
   const storageMetadata = event.data.metadata || {};
   const customMetadata = storageMetadata.metadata || storageMetadata.customMetadata || {};
   const uploadSourceName = customMetadata.sourceName || storageMetadata.sourceName || "Veryfi";
+  const documentRefId = fileName.replace(/[^A-Za-z0-9_-]/g, "_");
 
   const normalized = veryfiToEobDocument(veryfiResponse, {
-    documentId: fileName.replace(/[^A-Za-z0-9_-]/g, "_"),
+    documentId: documentRefId,
     sourceName: uploadSourceName,
     sourceFilePath: objectName
   });
 
-  const docId = String(normalized.id);
+  const docId = stableDocId;
   const payload = {
     ...normalized,
     sourceFilePath: objectName,
