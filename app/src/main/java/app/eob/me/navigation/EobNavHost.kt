@@ -350,11 +350,6 @@ private fun MainHubNavHost(
         onActivity()
     }
 
-    fun launchSubscribeFlow() {
-        eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
-        onActivity()
-    }
-
     fun launchCancelSubscriptionFlow() {
         val productId = eobViewModel.subscriptionManagementProductId()
         val intent = PlaySubscriptionManagement.buildManagementIntent(context.packageName, productId)
