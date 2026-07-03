@@ -2795,6 +2795,34 @@ class EobFlowArchitectureTest {
         )
     }
 
+    @Test
+    fun pr153HybridPipelineLockdownManifestAudit() {
+        val manifestFile = File(resolveRepoRoot(), "hybrid-pipeline/HYBRID_PIPELINE_MANIFEST.json")
+        val charterFile = File(resolveRepoRoot(), "hybrid-pipeline/HYBRID_PIPELINE_CHARTER.md")
+        val skillFile = File(resolveRepoRoot(), ".agents/skills/eobme-hybrid-pipeline-lockdown/SKILL.md")
+        val functionsLockdownTest = File(resolveRepoRoot(), "functions/test/hybridPipelineLockdown.test.js")
+
+        assertTrue("PR#153: hybrid pipeline manifest missing", manifestFile.isFile)
+        assertTrue("PR#153: hybrid pipeline charter missing", charterFile.isFile)
+        assertTrue("PR#153: hybrid pipeline agent skill missing", skillFile.isFile)
+        assertTrue("PR#153: Cloud Functions lockdown test missing", functionsLockdownTest.isFile)
+        assertTrue(manifestFile.readText().contains("authorizationRequired"))
+        assertTrue(charterFile.readText().contains("Zero Client-Side Credentials"))
+        assertTrue(charterFile.readText().contains("Base64 Payload Contract"))
+        assertTrue(skillFile.readText().contains("Immutable Laws"))
+    }
+
+    private fun resolveRepoRoot(): File {
+        var current = File(System.getProperty("user.dir") ?: "/workspace")
+        repeat(6) {
+            if (File(current, "hybrid-pipeline/HYBRID_PIPELINE_MANIFEST.json").isFile) {
+                return current
+            }
+            current = current.parentFile ?: return current
+        }
+        return current
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }
