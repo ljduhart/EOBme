@@ -288,7 +288,8 @@ data class CptCodeEntry(
     val category: String,
     val shortName: String,
     val definition: String,
-    val totalBilled: String
+    val totalBilled: String,
+    val serviceDates: String = ""
 )
 
 enum class PriceTrendDirection {

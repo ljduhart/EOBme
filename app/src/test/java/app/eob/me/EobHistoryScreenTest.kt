@@ -249,6 +249,19 @@ class EobHistoryScreenTest {
         assertTrue(source.contains("historyDoctorAppealOptionsTitle"))
     }
 
+    @Test
+    fun historySwipeDeleteRequiresConfirmationBeforeDeleting() {
+        val source = readSource("ui/screens/EobHistoryScreen.kt")
+        assertTrue(source.contains("showDeleteConfirmation"))
+        assertTrue(source.contains("historyDeleteEobConfirmTitle"))
+        assertTrue(source.contains("historyDeleteEobConfirmMessage"))
+        assertTrue(source.contains("AlertDialog"))
+        assertTrue(source.contains("dismissState.reset()"))
+        val swipeEffectIndex = source.indexOf("LaunchedEffect(dismissState.currentValue")
+        val swipeBlock = source.substring(swipeEffectIndex, swipeEffectIndex + 220)
+        assertFalse(swipeBlock.contains("onDeleteEob()"))
+    }
+
     private fun sampleRecord(id: Int, rawText: String): EobRecord {
         return EobAnalyzer.analyze(
             rawText = "Provider: Clinic $id\nAetna\n$rawText",

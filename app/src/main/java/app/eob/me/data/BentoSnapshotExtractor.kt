@@ -91,6 +91,12 @@ object BentoSnapshotExtractor {
                     definition = definition
                 )
                 val totalBilled = charges.sumOf { it.billedAmount }
+                val serviceDates = charges
+                    .map { it.serviceDate.trim() }
+                    .filter { it.isNotBlank() && !it.equals("Date not recognized", ignoreCase = true) }
+                    .distinct()
+                    .sorted()
+                    .joinToString(", ")
                 CptCodeEntry(
                     code = code,
                     category = EobStrings.cptCategoryLabel(language, category),
@@ -98,7 +104,8 @@ object BentoSnapshotExtractor {
                     definition = definition,
                     totalBilled = java.util.Locale.US.let { locale ->
                         String.format(locale, "$%.2f", totalBilled)
-                    }
+                    },
+                    serviceDates = serviceDates
                 )
             }
             .sortedBy { it.code }

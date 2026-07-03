@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -41,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.contentDescription
@@ -71,6 +74,7 @@ import app.eob.me.data.HistoryTimelineSection
 import app.eob.me.data.HistoryTimelineRow
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.asCurrency
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -417,13 +421,52 @@ private fun HistoryTimelineItemRowContent(
     onDeleteEob: () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState()
+    val coroutineScope = rememberCoroutineScope()
     var deleteTriggered by remember(row.record.historyListKey()) { mutableStateOf(false) }
+    var showDeleteConfirmation by remember(row.record.historyListKey()) { mutableStateOf(false) }
 
     LaunchedEffect(dismissState.currentValue, row.record.historyListKey()) {
         if (!deleteTriggered && dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
             deleteTriggered = true
-            onDeleteEob()
+            showDeleteConfirmation = true
         }
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteConfirmation = false
+                deleteTriggered = false
+                coroutineScope.launch { dismissState.reset() }
+            },
+            title = {
+                Text(text = EobStrings.t(language, "historyDeleteEobConfirmTitle"))
+            },
+            text = {
+                Text(text = EobStrings.t(language, "historyDeleteEobConfirmMessage"))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        onDeleteEob()
+                    }
+                ) {
+                    Text(text = EobStrings.t(language, "deleteEob"))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        deleteTriggered = false
+                        coroutineScope.launch { dismissState.reset() }
+                    }
+                ) {
+                    Text(text = EobStrings.t(language, "cancel"))
+                }
+            }
+        )
     }
 
     Row(

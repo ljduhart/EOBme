@@ -34,6 +34,7 @@ class CptTrackerScreenTest {
         assertEquals(1, entries.size)
         assertEquals("99213", entries.first().code)
         assertEquals("$350.00", entries.first().totalBilled)
+        assertEquals("01/15/2026", entries.first().serviceDates)
         assertTrue(entries.first().shortName.isNotBlank())
         assertTrue(entries.first().definition.isNotBlank())
     }
@@ -191,6 +192,18 @@ class CptTrackerScreenTest {
         assertEquals("99213", officeEntries.first().code)
         assertEquals("$120.00", officeEntries.first().totalBilled)
         assertTrue(labEntries.isEmpty())
+    }
+
+    @Test
+    fun cptFlashcardBackShowsServiceDateOnBottomLeft() {
+        val source = readSource("ui/screens/CptTrackerScreen.kt")
+        assertTrue(source.contains("cptFlashcardServiceDateLabel"))
+        assertTrue(source.contains("entry.serviceDates"))
+        val backIndex = source.indexOf("private fun FlashcardBack")
+        val backEnd = source.indexOf("internal fun categoryThemeColor", backIndex)
+        val backBlock = source.substring(backIndex, backEnd)
+        assertTrue(backBlock.contains("textAlign = TextAlign.Start"))
+        assertTrue(backBlock.indexOf("cptFlashcardServiceDateLabel") < backBlock.indexOf("cptFlashcardBilledLabel"))
     }
 
     @Test

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -350,14 +351,33 @@ private fun FlashcardBack(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Text(
-                text = EobStrings.tf(language, "cptFlashcardBilledLabel", entry.totalBilled),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = CptFlashcardBackText,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.End
-            )
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = if (entry.serviceDates.isNotBlank()) {
+                        EobStrings.tf(language, "cptFlashcardServiceDateLabel", entry.serviceDates)
+                    } else {
+                        ""
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = CptFlashcardBackText.copy(alpha = 0.82f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Start
+                )
+                Text(
+                    text = EobStrings.tf(language, "cptFlashcardBilledLabel", entry.totalBilled),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = CptFlashcardBackText,
+                    textAlign = TextAlign.End
+                )
+            }
         }
     }
 }
