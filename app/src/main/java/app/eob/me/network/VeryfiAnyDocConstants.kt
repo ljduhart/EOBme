@@ -5,7 +5,9 @@ object VeryfiAnyDocConstants {
     /** AnyDocs endpoint; blueprint_name routes to health_insurance_eob. */
     const val ANY_DOCUMENTS_PATH = "partner/any-documents/"
     const val BLUEPRINT_HEALTH_INSURANCE_EOB = "health_insurance_eob"
+    /** Legacy app metadata; not sent to AnyDocs (blueprint_name selects extraction). */
     const val DOCUMENT_TYPE_EOB = "eob"
+    /** Legacy app metadata; not sent to AnyDocs (blueprint_name selects extraction). */
     const val CATEGORY_INSURANCE = "insurance"
     val CATEGORIES_INSURANCE: List<String> = listOf(CATEGORY_INSURANCE)
     const val EXTRACT_VERYFI_HYBRID_STREAM = "extractVeryfiHybridStream"

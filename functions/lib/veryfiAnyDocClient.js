@@ -2,20 +2,25 @@
 
 const {
   VERYFI_ANY_DOCS_URL,
-  BLUEPRINT_HEALTH_INSURANCE_EOB,
-  DOCUMENT_TYPE_EOB,
-  CATEGORIES_INSURANCE
+  BLUEPRINT_HEALTH_INSURANCE_EOB
 } = require("./veryfiAnyDocConstants");
 
 async function extractWithVeryfiJson({
   fileUrl,
+  fileName,
   blueprintName,
-  documentType,
-  categories,
   clientId,
   username,
   apiKey
 }) {
+  const body = {
+    file_url: fileUrl,
+    blueprint_name: blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB
+  };
+  if (fileName) {
+    body.file_name = fileName;
+  }
+
   const response = await fetch(VERYFI_ANY_DOCS_URL, {
     method: "POST",
     headers: {
@@ -23,12 +28,7 @@ async function extractWithVeryfiJson({
       "CLIENT-ID": clientId,
       "Authorization": `apikey ${username}:${apiKey}`
     },
-    body: JSON.stringify({
-      file_url: fileUrl,
-      blueprint_name: blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB,
-      document_type: documentType || DOCUMENT_TYPE_EOB,
-      categories: categories || CATEGORIES_INSURANCE
-    })
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
@@ -42,8 +42,6 @@ async function extractWithVeryfiMultipart({
   fileName,
   contentType,
   blueprintName,
-  documentType,
-  categories,
   clientId,
   username,
   apiKey
@@ -55,8 +53,6 @@ async function extractWithVeryfiMultipart({
     fileName || "document.jpg"
   );
   form.append("blueprint_name", blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB);
-  form.append("document_type", documentType || DOCUMENT_TYPE_EOB);
-  form.append("categories", JSON.stringify(categories || CATEGORIES_INSURANCE));
 
   const response = await fetch(VERYFI_ANY_DOCS_URL, {
     method: "POST",
@@ -75,15 +71,14 @@ async function extractWithVeryfiMultipart({
 
 /**
  * Veryfi AnyDocs transport:
- * - JSON + file_url when a publicly accessible URL is available (portal contract).
+ * - JSON + file_url when a publicly accessible URL is available.
  * - multipart file upload for hybrid stream bytes and storage-trigger fallbacks.
+ *
+ * The partner/any-documents contract routes extraction via blueprint_name only.
+ * document_type and categories are not accepted by AnyDocs and must not be sent.
  */
 async function extractWithVeryfi(fileBytes, fileMetadata, credentials) {
   const blueprintName = fileMetadata.blueprintName || BLUEPRINT_HEALTH_INSURANCE_EOB;
-  const documentType = fileMetadata.documentType || DOCUMENT_TYPE_EOB;
-  const categories = Array.isArray(fileMetadata.categories) && fileMetadata.categories.length > 0 ?
-    fileMetadata.categories :
-    CATEGORIES_INSURANCE;
   const fileUrl = String(fileMetadata.fileUrl || "").trim();
   const hasBytes = fileBytes && fileBytes.length > 0;
 
@@ -91,9 +86,8 @@ async function extractWithVeryfi(fileBytes, fileMetadata, credentials) {
     try {
       return await extractWithVeryfiJson({
         fileUrl,
+        fileName: fileMetadata.fileName,
         blueprintName,
-        documentType,
-        categories,
         clientId: credentials.clientId,
         username: credentials.username,
         apiKey: credentials.apiKey
@@ -114,8 +108,6 @@ async function extractWithVeryfi(fileBytes, fileMetadata, credentials) {
     fileName: fileMetadata.fileName,
     contentType: fileMetadata.contentType,
     blueprintName,
-    documentType,
-    categories,
     clientId: credentials.clientId,
     username: credentials.username,
     apiKey: credentials.apiKey
