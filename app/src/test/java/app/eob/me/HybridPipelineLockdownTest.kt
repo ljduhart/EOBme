@@ -150,14 +150,14 @@ class HybridPipelineLockdownTest {
     }
 
     private fun resolveRepoRoot(): File {
-        var current = File(System.getProperty("user.dir"))
+        var current = File(System.getProperty("user.dir") ?: "/workspace")
         repeat(6) {
             if (File(current, "hybrid-pipeline/HYBRID_PIPELINE_MANIFEST.json").isFile) {
                 return current
             }
             current = current.parentFile ?: return current
         }
-        return File(System.getProperty("user.dir"))
+        return current
     }
 
     private fun resolveRepoFile(relativePath: String): File {
