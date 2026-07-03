@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 enum class NetworkStatus(
@@ -263,17 +264,17 @@ fun ExpandableProviderCard(
                     ) {
                         FinancialStatBlock(
                             label = "Billed",
-                            amount = "$${String.format("%.2f", provider.totalBilled)}",
+                            amount = "$${String.format(Locale.US, "%.2f", provider.totalBilled)}",
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         FinancialStatBlock(
                             label = "Paid",
-                            amount = "$${String.format("%.2f", provider.totalPaid)}",
+                            amount = "$${String.format(Locale.US, "%.2f", provider.totalPaid)}",
                             color = Color(0xFF4CAF50)
                         )
                         FinancialStatBlock(
                             label = "Responsibility",
-                            amount = "$${String.format("%.2f", provider.totalResponsibility)}",
+                            amount = "$${String.format(Locale.US, "%.2f", provider.totalResponsibility)}",
                             color = if (provider.totalResponsibility > 0) {
                                 Color(0xFFE53935)
                             } else {

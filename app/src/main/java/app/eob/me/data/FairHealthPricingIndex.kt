@@ -1,5 +1,7 @@
 package app.eob.me.data
 
+import java.util.Locale
+
 /**
  * Reference fair-health style pricing used for CPT bento trend gauges (not a live API).
  */
@@ -22,7 +24,7 @@ object FairHealthPricingIndex {
     )
 
     fun fairPriceFor(code: String): Double {
-        val normalized = code.uppercase()
+        val normalized = code.uppercase(Locale.ROOT)
         return fairPrices[normalized] ?: estimateFromCategory(normalized)
     }
 

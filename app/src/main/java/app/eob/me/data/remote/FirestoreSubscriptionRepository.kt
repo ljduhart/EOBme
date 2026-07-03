@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import java.util.Locale
 
 /**
  * Listens to `users/{userId}` and maps `subscriptionTier`, with legacy `isPremium` fallback.
@@ -57,7 +58,7 @@ class FirestoreSubscriptionRepository(
     }
 
     private fun resolveTier(rawTier: String?, legacyPremium: Boolean?): SubscriptionTier {
-        val normalized = rawTier?.trim()?.lowercase().orEmpty()
+        val normalized = rawTier?.trim()?.lowercase(Locale.ROOT).orEmpty()
         return when (normalized) {
             "gold" -> SubscriptionTier.Gold
             "silver" -> SubscriptionTier.Silver
