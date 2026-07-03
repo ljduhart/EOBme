@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "authorizationRequired": true,
+  "updatedAt": "2026-07-03",
+  "directive": "Protected files are READ-ONLY. Any change requires explicit owner authorization and updated sha256 entries in this manifest.",
+  "immutableLaws": [
+    "zero_client_side_veryfi_credentials",
+    "base64_hybrid_stream_contract",
+    "cloud_multipart_blueprint_only",
+    "firebase_auth_callable_gate",
+    "sanitize_for_firestore_payload_barrier",
+    "veryfi_number_field_defaults_to_zero",
+    "hybrid_dual_track_reconciliation",
+    "ocr_pre_check_read_only"
+  ],
+  "protectedFiles": [
+    {
+      "path": "app/src/main/java/app/eob/me/data/DocumentScanPipelineRepository.kt",
+      "sha256": "d88c499fc5bca9dc21974ee1a4ec8280653fbc549718fed979abb0028115e610",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "app/src/main/java/app/eob/me/network/VeryfiDocumentClient.kt",
+      "sha256": "98e4cefb390c6a1db9c90b61245148812f473c6a7e00e80939ded3d9eb285d74",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "app/src/main/java/app/eob/me/data/VeryfiAnyDocRepository.kt",
+      "sha256": "14e053a6b603d9e1f146c64910e58d6261e750e0e14da3f05c4ee043025f71a9",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "app/src/main/java/app/eob/me/data/FirebaseEobMapper.kt",
+      "sha256": "f6ec2eda99795d4bb5b3c06b8b42cdbcbcbfe0e8e325c9203e0376891587dbfa",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "app/src/main/java/app/eob/me/data/HybridDocumentRef.kt",
+      "sha256": "6bc50365d616bd8cb4b439c3cdad10ca5a37b325aedca48420eeb878340539bf",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "app/src/main/java/app/eob/me/network/VeryfiAnyDocConstants.kt",
+      "sha256": "e56d90fa8604145d0bcda56fdbd9d545153cb1a04223ff83865ab0be8f063446",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "app/src/main/java/app/eob/me/util/OcrProcessor.kt",
+      "sha256": "8fde121cf2608222b2972474fb6948a526e64b43ef372693243c435d0efb0102",
+      "tier": "ocr"
+    },
+    {
+      "path": "app/src/main/java/app/eob/me/util/EobDocumentOcrPreCheck.kt",
+      "sha256": "e6ac8f63cfb299bdf0e8a907f371cb4b67d00059bb9bbabab8a7e757cf87b0cf",
+      "tier": "ocr"
+    },
+    {
+      "path": "functions/index.js",
+      "sha256": "1289a1cf07cebfac447377231bd6010a82dce431cd9a251f91167286ae77d380",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "functions/lib/veryfiAnyDocClient.js",
+      "sha256": "65ccb8ec8f714e2cd98905afef93c93035cd92f23580c03f805b24adb6f57340",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "functions/lib/hybridReconciliation.js",
+      "sha256": "5d083a5a43f4b9cd4a498e9bfd733362617e7be35874b1863e1b9ce19aebf736",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "functions/lib/veryfiAnyDocConstants.js",
+      "sha256": "04a095ae6bbd719aafdcf7895a9f35af67fe276864f37a550892d9f9ef9fc176",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "functions/lib/veryfiInsuranceEobNormalizer.js",
+      "sha256": "6527440230b10fceade42ec42ff1319c60155eea6e0c6dff8b80e99ba0a33397",
+      "tier": "hybrid-pipeline"
+    },
+    {
+      "path": "functions/lib/eobNormalizer.js",
+      "sha256": "8b5d4b8f5792f5cae7701427f921cb7ba227a78d389cc25e22ed2b9ec4bf2c64",
+      "tier": "hybrid-pipeline"
+    }
+  ]
+}
