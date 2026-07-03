@@ -2759,6 +2759,42 @@ class EobFlowArchitectureTest {
         }
     }
 
+    @Test
+    fun pr152AnyDocsMultipartContractAudit() {
+        val anyDocApiSource = readSource("network/VeryfiAnyDocApiService.kt")
+        val anyDocConstantsSource = readSource("network/VeryfiAnyDocConstants.kt")
+        val veryfiClientSource = readSource("network/VeryfiDocumentClient.kt")
+        val functionsAnyDocClient = readFunctionsSource("lib/veryfiAnyDocClient.js")
+        val functionsConstants = readFunctionsSource("lib/veryfiAnyDocConstants.js")
+
+        assertEquals("health_insurance_eob", VeryfiAnyDocConstants.BLUEPRINT_HEALTH_INSURANCE_EOB)
+        assertTrue(functionsConstants.contains("health_insurance_eob"))
+        assertTrue(anyDocConstantsSource.contains("partner/any-documents/"))
+        assertTrue(functionsConstants.contains("partner/any-documents/"))
+        assertTrue(veryfiClientSource.contains("BLUEPRINT_HEALTH_INSURANCE_EOB"))
+        assertTrue(functionsAnyDocClient.contains("form.append(\"blueprint_name\""))
+        assertFalse(
+            "PR#152: AnyDocs multipart must not send forbidden document_type",
+            functionsAnyDocClient.contains("form.append(\"document_type\"")
+        )
+        assertFalse(
+            "PR#152: AnyDocs multipart must not send forbidden categories",
+            functionsAnyDocClient.contains("form.append(\"categories\"")
+        )
+        assertFalse(
+            "PR#152: Retrofit AnyDocs contract must not send document_type",
+            anyDocApiSource.contains("\"document_type\"")
+        )
+        assertFalse(
+            "PR#152: Retrofit AnyDocs contract must not send categories",
+            anyDocApiSource.contains("\"categories\"")
+        )
+        assertTrue(
+            "PR#152: JSON AnyDocs transport must document blueprint-only routing",
+            functionsAnyDocClient.contains("document_type and categories are not accepted")
+        )
+    }
+
     private fun readSource(relativePath: String): String {
         val file = File(appModuleRoot, relativePath)
         require(file.isFile) { "Missing ${file.absolutePath}" }
