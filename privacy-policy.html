@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - EOBme</title>
+    <title>Privacy Policy & HIPAA Notice of Privacy Practices - EOBme</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -15,52 +15,77 @@
         }
         h1 { color: #2196F3; }
         h2 { color: #1976D2; margin-top: 30px; }
+        h3 { color: #0D47A1; margin-top: 20px; }
         .effective-date { font-style: italic; color: #666; margin-bottom: 30px; }
+        .legal-header { 
+            background-color: #E3F2FD; 
+            border-left: 4px solid #2196F3; 
+            padding: 15px; 
+            font-weight: bold; 
+            margin-bottom: 30px; 
+            color: #0D47A1;
+        }
     </style>
 </head>
 <body>
-<h1>Privacy Policy for EOBme</h1>
-<p class="effective-date">Effective Date: June 9, 2026</p>
+<h1>Privacy Policy & HIPAA Notice of Privacy Practices for EOBme</h1>
+<p class="effective-date">Effective Date: July 5, 2026</p>
 
-<p>EOBme LLC ("we," "us," or "our"), founded by Lester Duhart, operates the EOBme mobile application (the "Service"). This page informs you of our policies regarding the collection, use, processing, and disclosure of personal data when you use our Service and the choices you have associated with that data.</p>
+<div class="legal-header">
+    THIS NOTICE DESCRIBES HOW MEDICAL INFORMATION ABOUT YOU MAY BE USED AND DISCLOSED AND HOW YOU CAN GET ACCESS TO THIS INFORMATION. PLEASE REVIEW IT CAREFULLY.
+</div>
+
+<p>EOBme LLC ("we," "us," or "our"), founded by LJ Duhart, operates the EOBme mobile application (the "Service"). This combined page informs you of our policies regarding the collection, use, processing, and disclosure of personal data and electronic Protected Health Information (ePHI) when you use our Service, your legal rights under the Health Insurance Portability and Accountability Act (HIPAA), and the choices you have associated with that data.</p>
 
 <h2>1. Information Collection and Use</h2>
 <p>We collect several different types of information for various purposes to provide and improve our Service to you.</p>
 
 <h3>Camera Permission and Document Scanning</h3>
-<p>The app requires access to your device's camera or photo library to allow you to scan and upload your Explanation of Benefits (EOB) documents. We use this capability solely to process and analyze your insurance billing documents.</p>
+<p>The app requires access to your device's camera or photo library to allow you to scan and upload your Explanation of Benefits (EOB) documents. We use this capability solely to process, analyze, and securely store your insurance billing documents.</p>
 
-<h3>Personal and Financial Data</h3>
-<p>While using our Service, the app extracts data from your uploaded EOBs, such as provider names, deductible amounts, copays, coinsurance, and service dates. This data is used to provide you with a breakdown of your patient responsibility, track your out-of-pocket maximums, and generate appeal letters.</p>
+<h3>Personal, Financial, and Protected Health Information (PHI)</h3>
+<p>While using our Service, the app extracts sensitive data from your uploaded EOBs, such as patient names, member identifiers, provider names, deductible amounts, copays, coinsurance, billing/diagnosis codes, and service dates. This data constitutes Protected Health Information (PHI) under federal law and is utilized to provide you with an automated breakdown of your patient responsibility, track your out-of-pocket maximums, and generate appeal letters.</p>
 
 <h3>Biometric Data</h3>
-<p>The app may use biometric authentication (e.g., fingerprint or face recognition) provided by your device's operating system to secure access to the app. We do not collect, transmit, or have access to your actual biometric data; we only receive a confirmation of successful authentication from your device.</p>
+<p>The app may use biometric authentication (e.g., fingerprint or face recognition) provided by your device's operating system to secure access to the application locally. We do not collect, transmit, or have access to your actual biometric data; our system only receives a secure cryptographic confirmation of successful authentication from your device's native operating system.</p>
 
-<h2>2. Data Processing and Cloud Storage</h2>
-<p>To provide advanced document analysis and secure cross-device syncing, we utilize industry-leading, highly secure third-party services:</p>
+<h2>2. Data Processing, Cloud Storage, and Business Associates</h2>
+<p>To provide advanced document analysis, secure infrastructure, and cross-device syncing, we utilize highly secure third-party services. Under HIPAA compliance guidelines, these providers operate as our <strong>Business Associates</strong> and are bound by legally executed <strong>Business Associate Agreements (BAAs)</strong> that mandate absolute data isolation, robust encryption safeguards, and zero-data-retention parameters for AI model training:</p>
 <ul>
-    <li><strong>Veryfi:</strong> When you upload an EOB document, the image is securely transmitted to Veryfi, a SOC2 Type 2 compliant service, for Optical Character Recognition (OCR) and data extraction. Your documents and extracted data are managed within Veryfi's secure vault architecture.</li>
-    <li><strong>Google Firebase:</strong> Your user profile, extracted billing information, and app preferences are stored in Google Firebase (Firestore). We use Firebase Authentication to securely manage your login credentials. This allows you to securely access your EOBme data across multiple devices.</li>
+    <li><strong>Veryfi:</strong> When you upload an EOB document, the image is securely transmitted to Veryfi, a SOC2 Type 2 compliant service, for automated Optical Character Recognition (OCR) and document data extraction. Your documents and extracted data are managed via ephemeral, zero-data-retention pipelines within Veryfi's secure vault architecture.</li>
+    <li><strong>Google Firebase & Google Cloud Platform:</strong> Your user profile, extracted billing information, and app preferences are stored securely in Google Firebase (Firestore and Cloud Storage). We use Firebase Authentication to securely manage your login credentials. All architecture layers enforce enterprise-grade encryption at rest (AES-256) and in transit (TLS 1.2+).</li>
 </ul>
 
-<h2>3. Data Sharing and Disclosure</h2>
-<p><strong>We do not sell your personal or medical information to any third parties.</strong></p>
-<p>Your data is only shared with the trusted infrastructure partners mentioned above (Veryfi and Google Firebase) strictly for the purpose of operating the Service, processing your documents, and storing your data securely. These providers are bound by strict data protection agreements.</p>
+<h2>3. Data Sharing, Disclosure, and Prohibitions</h2>
+<p><strong>We do not sell your personal, financial, or medical information to any third parties under any circumstances.</strong></p>
+<p>Your Protected Health Information will never be utilized or disclosed for marketing, advertising, or commercial monetization tracking without your explicit prior written consent. Your data is only shared with the trusted infrastructure partners mentioned above (Veryfi and Google Firebase) strictly for the automated purpose of operating the Service, processing your documents, and storing your data securely. We may disclose your PHI without your authorization only when explicitly required to do so by federal or state law, or in response to a legally enforceable court order or subpoena.</p>
 
-<h2>4. Security</h2>
-<p>The security of your data is paramount to us. We utilize secure, encrypted connections (HTTPS) when transmitting your data to our infrastructure partners (Veryfi and Firebase). While we strive to use commercially acceptable means to protect your Personal Data, please remember that no method of transmission over the Internet, or method of electronic storage, is 100% secure.</p>
+<h2>4. Technical and Security Safeguards</h2>
+<p>The security of your health data is paramount to us. In compliance with the HIPAA Security Rule, we maintain strict administrative, physical, and technical safeguards. We utilize secure, encrypted connections (HTTPS/TLS) when transmitting your data to our infrastructure partners and enforce rigid role-based token policies to ensure your data remains accessible only to your authenticated user profile. While we strive to use enterprise-grade means to protect your Personal Data, please remember that no method of transmission over the Internet, or method of electronic storage, is 100% secure.</p>
 
-<h2>5. User Data Rights and Account Deletion</h2>
-<p>You have the right to access, update, or delete the information we have on you. You can manage your profile information directly within the EOBme app's Settings menu.</p>
-<p><strong>Account Deletion:</strong> You may request the complete deletion of your account and all associated data (including all EOB records stored in Firebase and Veryfi) at any time. You can initiate this process directly through the "Delete Account" option within the app's Settings menu, or by contacting us directly at the email provided below.</p>
-
-<h2>6. Changes to This Privacy Policy</h2>
-<p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Effective Date" at the top of this policy.</p>
-
-<h2>7. Contact Us</h2>
-<p>If you have any questions about this Privacy Policy, or if you wish to exercise your data rights, please contact us:</p>
+<h2>5. Your Legal Rights Under HIPAA</h2>
+<p>As the absolute owner of your healthcare data, you hold specific data privacy rights under federal regulations:</p>
 <ul>
-    <li>By email: lesterduhart@yahoo.com</li>
+    <li><strong>Right to Inspect and Copy:</strong> You can access, review, and export your entire structural history of uploaded EOB records and extracted statistics at any time directly through your account dashboard.</li>
+    <li><strong>Right to Amend:</strong> If an automated OCR extraction misreads an insurance line item or provider field, you retain the right to amend or manually correct the record directly within the EOBme app's interface.</li>
+    <li><strong>Right to Account Deletion & Permanent Purge:</strong> You may request the complete deletion of your account and all associated data at any time. Initiating the <strong>"Delete Account"</strong> process within the app's Settings menu will instantly and permanently delete all user profiles, transactional data tables, and scanned document binaries from both Google Firebase and Veryfi backend architectures.</li>
+</ul>
+
+<h2>6. How to File a Privacy Complaint</h2>
+<p>If you believe your privacy rights have been violated, or if you have concerns regarding the data handling practices of the app, you hold an absolute legal right to file a formal complaint without fear of retaliation:</p>
+<ol>
+    <li>You may contact our designated internal HIPAA Privacy & Security Officer directly at the compliance email listed below.</li>
+    <li>You may file an official complaint with the Secretary of the U.S. Department of Health and Human Services (HHS) Office for Civil Rights through their online compliance web portal.</li>
+</ol>
+
+<h2>7. Changes to This Privacy Policy</h2>
+<p>We may update our Privacy Policy and Notice of Privacy Practices from time to time to maintain alignment with evolving federal rules or backend API changes. We will notify you of any changes by posting the new Privacy Policy text on this page, updating the "Effective Date" at the top of this policy, and deploying a clear in-app notice if core data permissions are altered.</p>
+
+<h2>8. Contact Our Privacy Office</h2>
+<p>If you have any questions about this combined Privacy Policy and HIPAA Notice, wish to exercise your legal data rights, or need to contact our compliance department, please reach out to our designated HIPAA officer:</p>
+<ul>
+    <li><strong>By email:</strong> eobme.app@gmail.com</li>
+    <li><strong>Attn:</strong> HIPAA Privacy & Security Officer (LJ Duhart)</li>
 </ul>
 </body>
 </html>
