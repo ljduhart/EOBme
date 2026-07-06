@@ -173,6 +173,7 @@ class EobViewModel : ViewModel() {
     private var appContext: Context? = null
     private var profileListener: ListenerRegistration? = null
     private var insuranceCardMetadataListener: ListenerRegistration? = null
+    private var insuranceNotesPersistJob: Job? = null
     private var lastBackgroundAt: Long = System.currentTimeMillis()
     private var hasBeenBackgrounded: Boolean = false
 
@@ -908,6 +909,8 @@ class EobViewModel : ViewModel() {
         profileListener = null
         insuranceCardMetadataListener?.remove()
         insuranceCardMetadataListener = null
+        insuranceNotesPersistJob?.cancel()
+        insuranceNotesPersistJob = null
         _eobRecords.value = emptyList()
         _vaultReceipts.value = emptyList()
         val preservedSettings = _uiState.value.hubSettings.copy(
@@ -952,7 +955,11 @@ class EobViewModel : ViewModel() {
     ) {
         insuranceCardMetadataListener?.remove()
         insuranceCardMetadataListener = repo.observeInsuranceCardMetadata(userId) { prescriptions, quickNotes ->
-            val merged = _syncProfile.value.copy(
+            val current = _syncProfile.value
+            if (current.currentPrescriptions == prescriptions && current.doctorQuickNotes == quickNotes) {
+                return@observeInsuranceCardMetadata
+            }
+            val merged = current.copy(
                 currentPrescriptions = prescriptions,
                 doctorQuickNotes = quickNotes
             )
@@ -966,8 +973,12 @@ class EobViewModel : ViewModel() {
         profileListener = repo.observeProfile(
             userId = userId,
             onProfile = { remoteProfile ->
-                updateSyncProfile(remoteProfile)
-                onProfileChanged(remoteProfile)
+                val merged = remoteProfile.copy(
+                    currentPrescriptions = _syncProfile.value.currentPrescriptions,
+                    doctorQuickNotes = _syncProfile.value.doctorQuickNotes
+                )
+                updateSyncProfile(merged)
+                onProfileChanged(merged)
             },
             onError = { message -> updateUploadNotice(message) }
         )
@@ -1864,10 +1875,40 @@ class EobViewModel : ViewModel() {
         )
     }
 
+    fun updateInsuranceCardPrescriptions(
+        userId: String,
+        prescriptions: String,
+        onProfileChanged: (UserProfile) -> Unit
+    ) {
+        val updated = _syncProfile.value.copy(currentPrescriptions = prescriptions)
+        updateSyncProfile(updated)
+        onProfileChanged(updated)
+        scheduleInsuranceCardNotesPersist(userId, updated)
+    }
+
+    fun updateInsuranceCardDoctorNotes(
+        userId: String,
+        doctorQuickNotes: String,
+        onProfileChanged: (UserProfile) -> Unit
+    ) {
+        val updated = _syncProfile.value.copy(doctorQuickNotes = doctorQuickNotes)
+        updateSyncProfile(updated)
+        onProfileChanged(updated)
+        scheduleInsuranceCardNotesPersist(userId, updated)
+    }
+
     fun persistInsuranceCardNotes(userId: String, profile: UserProfile) {
         val repo = repository ?: return
         if (userId.isBlank()) return
         repo.saveInsuranceCardMetadata(userId, profile) {}
+    }
+
+    private fun scheduleInsuranceCardNotesPersist(userId: String, profile: UserProfile) {
+        insuranceNotesPersistJob?.cancel()
+        insuranceNotesPersistJob = viewModelScope.launch {
+            delay(INSURANCE_CARD_NOTES_PERSIST_DEBOUNCE_MS)
+            persistInsuranceCardNotes(userId, profile)
+        }
     }
 
     fun careTeamCardStates(language: AppLanguage): List<CareTeamCardDisplayState> {
@@ -2338,9 +2379,12 @@ class EobViewModel : ViewModel() {
         vaultReceiptListener?.remove()
         profileListener?.remove()
         insuranceCardMetadataListener?.remove()
+        insuranceNotesPersistJob?.cancel()
         super.onCleared()
     }
 }
+
+private const val INSURANCE_CARD_NOTES_PERSIST_DEBOUNCE_MS = 400L
 
 private fun NewsRelease.key(): String = "$company|$headline|$date"
 

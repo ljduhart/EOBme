@@ -900,25 +900,19 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onInsurancePrescriptionsChange = { prescriptions ->
-                            val updated = eobViewModel.applyInsuranceCardNotes(
-                                profile = profile,
-                                currentPrescriptions = prescriptions,
-                                doctorQuickNotes = profile.doctorQuickNotes
+                            eobViewModel.updateInsuranceCardPrescriptions(
+                                userId = userId,
+                                prescriptions = prescriptions,
+                                onProfileChanged = appViewModel::applyRemoteProfile
                             )
-                            appViewModel.applyRemoteProfile(updated)
-                            eobViewModel.updateSyncProfile(updated)
-                            eobViewModel.persistInsuranceCardNotes(userId, updated)
                             onActivity()
                         },
                         onInsuranceDoctorNotesChange = { notes ->
-                            val updated = eobViewModel.applyInsuranceCardNotes(
-                                profile = profile,
-                                currentPrescriptions = profile.currentPrescriptions,
-                                doctorQuickNotes = notes
+                            eobViewModel.updateInsuranceCardDoctorNotes(
+                                userId = userId,
+                                doctorQuickNotes = notes,
+                                onProfileChanged = appViewModel::applyRemoteProfile
                             )
-                            appViewModel.applyRemoteProfile(updated)
-                            eobViewModel.updateSyncProfile(updated)
-                            eobViewModel.persistInsuranceCardNotes(userId, updated)
                             onActivity()
                         },
                         modifier = Modifier.fillMaxSize()

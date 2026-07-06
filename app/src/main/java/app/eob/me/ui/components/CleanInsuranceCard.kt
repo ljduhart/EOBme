@@ -1,5 +1,6 @@
 package app.eob.me.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -90,6 +91,10 @@ fun CleanInsuranceCard(
         label = "insurance_card_rotation"
     )
     val density = LocalDensity.current
+
+    BackHandler(enabled = flipped) {
+        flipped = false
+    }
 
     ElevatedCard(
         modifier = modifier

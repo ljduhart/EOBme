@@ -1103,6 +1103,8 @@ class EobFlowArchitectureTest {
         listOf(
             "fun applyInsuranceCardNotes",
             "fun persistInsuranceCardNotes",
+            "fun updateInsuranceCardPrescriptions",
+            "fun updateInsuranceCardDoctorNotes",
             "observeInsuranceCardMetadata"
         ).forEach { snippet ->
             assertTrue("EobViewModel missing insurance card notes API: $snippet", viewModelSource.contains(snippet))

@@ -35,9 +35,25 @@ class InsuranceCardFlipTest {
         assertTrue(homeSource.contains("onInsuranceDoctorNotesChange"))
         assertTrue(homeSource.contains("profile.currentPrescriptions"))
         assertTrue(homeSource.contains("profile.doctorQuickNotes"))
-        assertTrue(navSource.contains("applyInsuranceCardNotes"))
-        assertTrue(navSource.contains("persistInsuranceCardNotes"))
+        assertTrue(navSource.contains("updateInsuranceCardPrescriptions"))
+        assertTrue(navSource.contains("updateInsuranceCardDoctorNotes"))
         assertTrue(viewModelSource.contains("observeInsuranceCardMetadata"))
+        assertTrue(viewModelSource.contains("scheduleInsuranceCardNotesPersist"))
+    }
+
+    @Test
+    fun cleanInsuranceCardBackHandlerFlipsToFrontBeforeHubExit() {
+        val source = readSource("ui/components/CleanInsuranceCard.kt")
+        assertTrue(source.contains("BackHandler(enabled = flipped)"))
+    }
+
+    @Test
+    fun observeProfilePreservesInsuranceCardNotesInViewModel() {
+        val source = readSource("viewmodel/EobViewModel.kt")
+        val observeBlock = source.substringAfter("private fun observeProfile")
+            .substringBefore("fun fetchHistoryFromFirestore")
+        assertTrue(observeBlock.contains("currentPrescriptions = _syncProfile.value.currentPrescriptions"))
+        assertTrue(observeBlock.contains("doctorQuickNotes = _syncProfile.value.doctorQuickNotes"))
     }
 
     @Test
