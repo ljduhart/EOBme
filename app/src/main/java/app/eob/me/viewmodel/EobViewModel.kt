@@ -172,6 +172,7 @@ class EobViewModel : ViewModel() {
     private var subscriptionUsageStore: SubscriptionUsageStore? = null
     private var appContext: Context? = null
     private var profileListener: ListenerRegistration? = null
+    private var insuranceCardMetadataListener: ListenerRegistration? = null
     private var lastBackgroundAt: Long = System.currentTimeMillis()
     private var hasBeenBackgrounded: Boolean = false
 
@@ -905,6 +906,8 @@ class EobViewModel : ViewModel() {
         vaultReceiptListener = null
         profileListener?.remove()
         profileListener = null
+        insuranceCardMetadataListener?.remove()
+        insuranceCardMetadataListener = null
         _eobRecords.value = emptyList()
         _vaultReceipts.value = emptyList()
         val preservedSettings = _uiState.value.hubSettings.copy(
@@ -939,6 +942,23 @@ class EobViewModel : ViewModel() {
         refreshFirebaseStatus()
         fetchHistoryFromFirestore(repo, userId)
         observeProfile(repo, userId, onProfileChanged)
+        observeInsuranceCardMetadata(repo, userId, onProfileChanged)
+    }
+
+    private fun observeInsuranceCardMetadata(
+        repo: EobRepository,
+        userId: String,
+        onProfileChanged: (UserProfile) -> Unit
+    ) {
+        insuranceCardMetadataListener?.remove()
+        insuranceCardMetadataListener = repo.observeInsuranceCardMetadata(userId) { prescriptions, quickNotes ->
+            val merged = _syncProfile.value.copy(
+                currentPrescriptions = prescriptions,
+                doctorQuickNotes = quickNotes
+            )
+            updateSyncProfile(merged)
+            onProfileChanged(merged)
+        }
     }
 
     private fun observeProfile(repo: EobRepository, userId: String, onProfileChanged: (UserProfile) -> Unit) {
@@ -1833,6 +1853,23 @@ class EobViewModel : ViewModel() {
         ).sanitizedPlanLimits()
     }
 
+    fun applyInsuranceCardNotes(
+        profile: UserProfile,
+        currentPrescriptions: String,
+        doctorQuickNotes: String
+    ): UserProfile {
+        return profile.copy(
+            currentPrescriptions = currentPrescriptions,
+            doctorQuickNotes = doctorQuickNotes
+        )
+    }
+
+    fun persistInsuranceCardNotes(userId: String, profile: UserProfile) {
+        val repo = repository ?: return
+        if (userId.isBlank()) return
+        repo.saveInsuranceCardMetadata(userId, profile) {}
+    }
+
     fun careTeamCardStates(language: AppLanguage): List<CareTeamCardDisplayState> {
         val state = _uiState.value
         return CareTeamStateExtractor.buildCareTeamCards(
@@ -2300,6 +2337,7 @@ class EobViewModel : ViewModel() {
         eobListener?.remove()
         vaultReceiptListener?.remove()
         profileListener?.remove()
+        insuranceCardMetadataListener?.remove()
         super.onCleared()
     }
 }

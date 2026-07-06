@@ -1092,9 +1092,21 @@ class EobFlowArchitectureTest {
         }
         assertTrue(cardSource.contains("ElevatedCard"))
         assertTrue(cardSource.contains("InsuranceCardDisplay"))
-        assertFalse("CleanInsuranceCard must be read-only on Home", cardSource.contains("BasicTextField"))
-        assertFalse("CleanInsuranceCard must not be tappable for edit", cardSource.contains("clickable"))
-        assertFalse("CleanInsuranceCard must stay stateless", cardSource.contains("mutableStateOf"))
+        assertTrue(cardSource.contains("graphicsLayer"))
+        assertTrue(cardSource.contains("rotationY"))
+        assertTrue(cardSource.contains("insuranceCardPrescriptionsLabel"))
+        assertTrue(cardSource.contains("insuranceCardDoctorNotesLabel"))
+        assertFalse(
+            "Insurance card front must not edit credential fields",
+            cardSource.contains("onInsuranceNameChange")
+        )
+        listOf(
+            "fun applyInsuranceCardNotes",
+            "fun persistInsuranceCardNotes",
+            "observeInsuranceCardMetadata"
+        ).forEach { snippet ->
+            assertTrue("EobViewModel missing insurance card notes API: $snippet", viewModelSource.contains(snippet))
+        }
     }
 
     @Test

@@ -161,10 +161,10 @@ private fun PaywallScreen(
                 title = "Free Tier",
                 price = SubscriptionCatalog.displayPrice(SubscriptionTier.Free, billingInterval),
                 features = SubscriptionCatalog.features(SubscriptionTier.Free),
-                isSelected = false,
+                isSelected = selectedTier == SubscriptionTier.Free,
                 isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Free,
-                enabled = false,
-                onClick = {}
+                enabled = true,
+                onClick = { selectedTier = SubscriptionTier.Free }
             )
 
             Spacer(modifier = Modifier.height(12.dp))

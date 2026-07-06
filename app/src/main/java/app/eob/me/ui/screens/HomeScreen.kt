@@ -135,6 +135,8 @@ fun HomeScreen(
     onTaxVaultFilterSelected: (TaxVaultFilterState) -> Unit,
     onTaxVaultVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
     onVaultDoorUnlocked: () -> Unit,
+    onInsurancePrescriptionsChange: (String) -> Unit,
+    onInsuranceDoctorNotesChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var appointmentPrefillDate by remember { mutableStateOf("") }
@@ -194,6 +196,10 @@ fun HomeScreen(
                     CleanInsuranceCard(
                         language = language,
                         display = insuranceCardDisplay,
+                        currentPrescriptions = profile.currentPrescriptions,
+                        doctorQuickNotes = profile.doctorQuickNotes,
+                        onCurrentPrescriptionsChange = onInsurancePrescriptionsChange,
+                        onDoctorQuickNotesChange = onInsuranceDoctorNotesChange,
                         modifier = Modifier.fillMaxWidth(0.92f)
                     )
                 }

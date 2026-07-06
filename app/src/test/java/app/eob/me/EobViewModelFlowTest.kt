@@ -71,6 +71,18 @@ class EobViewModelFlowTest {
     }
 
     @Test
+    fun applyInsuranceCardNotesUpdatesNotepadFields() {
+        val viewModel = EobViewModel()
+        val updated = viewModel.applyInsuranceCardNotes(
+            profile = profile,
+            currentPrescriptions = "Lisinopril 10mg",
+            doctorQuickNotes = "Ask about knee pain."
+        )
+        assertEquals("Lisinopril 10mg", updated.currentPrescriptions)
+        assertEquals("Ask about knee pain.", updated.doctorQuickNotes)
+    }
+
+    @Test
     fun setHistoryBentoFilterBlocksFlaggedOnFreeTier() {
         val viewModel = EobViewModel()
         viewModel.setHistoryBentoFilter(HistoryBentoFilter.Flagged)

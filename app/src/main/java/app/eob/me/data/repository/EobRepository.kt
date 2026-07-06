@@ -48,6 +48,11 @@ interface EobRepository {
 
     fun saveInsuranceCardMetadata(userId: String, profile: UserProfile, onComplete: (String) -> Unit)
 
+    fun observeInsuranceCardMetadata(
+        userId: String,
+        onMetadata: (currentPrescriptions: String, doctorQuickNotes: String) -> Unit
+    ): ListenerRegistration?
+
     fun saveEob(userId: String, record: EobRecord, onComplete: (String) -> Unit)
 
     fun deleteEob(userId: String, record: EobRecord, onComplete: (String) -> Unit)

@@ -57,6 +57,11 @@ class FirebaseEobRemoteDataSource(
         firebase.saveInsuranceCardMetadata(userId, profile, onComplete)
     }
 
+    override fun observeInsuranceCardMetadata(
+        userId: String,
+        onMetadata: (currentPrescriptions: String, doctorQuickNotes: String) -> Unit
+    ): ListenerRegistration? = firebase.observeInsuranceCardMetadata(userId, onMetadata)
+
     override fun saveEob(userId: String, record: EobRecord, onComplete: (String) -> Unit) {
         firebase.saveEob(userId, record, onComplete)
     }

@@ -899,6 +899,28 @@ private fun MainHubNavHost(
                             navController.navigate(EobRoute.TaxVault.route) { launchSingleTop = true }
                             onActivity()
                         },
+                        onInsurancePrescriptionsChange = { prescriptions ->
+                            val updated = eobViewModel.applyInsuranceCardNotes(
+                                profile = profile,
+                                currentPrescriptions = prescriptions,
+                                doctorQuickNotes = profile.doctorQuickNotes
+                            )
+                            appViewModel.applyRemoteProfile(updated)
+                            eobViewModel.updateSyncProfile(updated)
+                            eobViewModel.persistInsuranceCardNotes(userId, updated)
+                            onActivity()
+                        },
+                        onInsuranceDoctorNotesChange = { notes ->
+                            val updated = eobViewModel.applyInsuranceCardNotes(
+                                profile = profile,
+                                currentPrescriptions = profile.currentPrescriptions,
+                                doctorQuickNotes = notes
+                            )
+                            appViewModel.applyRemoteProfile(updated)
+                            eobViewModel.updateSyncProfile(updated)
+                            eobViewModel.persistInsuranceCardNotes(userId, updated)
+                            onActivity()
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

@@ -40,7 +40,9 @@ data class UserProfile(
     val hsaAllocation: Double = 0.0,
     val fsaAllocation: Double = 0.0,
     val pcpCopay: String = "",
-    val specialistCopay: String = ""
+    val specialistCopay: String = "",
+    val currentPrescriptions: String = "",
+    val doctorQuickNotes: String = ""
 ) {
     val insuranceCompany: String get() = insuranceName
     val memberId: String get() = insuranceId

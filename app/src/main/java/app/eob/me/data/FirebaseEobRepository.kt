@@ -292,6 +292,29 @@ class FirebaseEobRepository(private val context: Context) {
             .addOnFailureListener { onComplete("Profile save failed: ${it.localizedMessage}") }
     }
 
+    fun observeInsuranceCardMetadata(
+        userId: String,
+        onMetadata: (currentPrescriptions: String, doctorQuickNotes: String) -> Unit
+    ): ListenerRegistration? {
+        if (!configured || userId.isBlank()) return null
+        return firestore().collection(USERS).document(userId).collection("insurance-cards")
+            .document("current")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val data = snapshot?.data ?: return@addSnapshotListener
+                onMetadata(
+                    insuranceCardStringValue(data, "currentPrescriptions", "current_prescriptions"),
+                    insuranceCardStringValue(
+                        data,
+                        "doctorQuickNotes",
+                        "doctor_quick_notes",
+                        "quickNotes",
+                        "quick_notes"
+                    )
+                )
+            }
+    }
+
     fun saveInsuranceCardMetadata(userId: String, profile: UserProfile, onComplete: (String) -> Unit) {
         if (!configured || userId.isBlank()) {
             onComplete("")
@@ -305,11 +328,21 @@ class FirebaseEobRepository(private val context: Context) {
                     "insuranceId" to profile.insuranceId,
                     "groupName" to profile.groupName,
                     "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
+                    "currentPrescriptions" to profile.currentPrescriptions,
+                    "doctorQuickNotes" to profile.doctorQuickNotes,
                     "updatedAt" to System.currentTimeMillis()
                 )
             )
             .addOnSuccessListener { onComplete("Insurance card metadata saved.") }
             .addOnFailureListener { onComplete("Insurance card metadata save failed: ${it.localizedMessage}") }
+    }
+
+    private fun insuranceCardStringValue(data: Map<String, Any?>, vararg keys: String): String {
+        keys.forEach { key ->
+            val value = data[key]?.toString()?.trim().orEmpty()
+            if (value.isNotBlank()) return value
+        }
+        return ""
     }
 
     fun saveEob(userId: String, record: EobRecord, onComplete: (String) -> Unit) {
