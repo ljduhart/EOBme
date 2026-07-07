@@ -8,6 +8,14 @@ import org.junit.Test
 
 class InsuranceCardFlipTest {
     @Test
+    fun insuranceCardNotesFieldsHaveNoPlaceholderPrefill() {
+        val source = readSource("ui/components/CleanInsuranceCard.kt")
+        assertFalse(source.contains("insuranceCardPrescriptionsPlaceholder"))
+        assertFalse(source.contains("insuranceCardDoctorNotesPlaceholder"))
+        assertFalse(source.contains("placeholder = {"))
+    }
+
+    @Test
     fun cleanInsuranceCardUsesRotationFlipAnimation() {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
         assertTrue(source.contains("graphicsLayer"))

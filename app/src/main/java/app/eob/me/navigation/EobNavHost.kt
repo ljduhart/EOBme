@@ -734,7 +734,6 @@ private fun MainHubNavHost(
                     val hubTimeKey = eobViewModel.hubTimeKey()
                     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
                     val taxVaultVisibilityMode by eobViewModel.taxVaultVisibilityMode.collectAsStateWithLifecycle()
-                    val vaultReceipts by eobViewModel.vaultReceipts.collectAsStateWithLifecycle()
                     val historySnapshot = remember(
                         sortedEobRecords,
                         hubTimeKey,
@@ -805,13 +804,6 @@ private fun MainHubNavHost(
                     }
                     val insuranceCardDisplay = remember(profile, language) {
                         eobViewModel.insuranceCardDisplay(profile, language)
-                    }
-                    val evidenceThumbnails = remember(
-                        sortedEobRecords,
-                        vaultReceipts,
-                        taxVaultFilterState
-                    ) {
-                        eobViewModel.taxVaultEvidenceThumbnails()
                     }
                     HomeScreen(
                         language = language,
@@ -906,17 +898,6 @@ private fun MainHubNavHost(
                             eobViewModel.requestTaxVaultDoorUnlock()
                             navController.navigate(EobRoute.TaxVault.route) { launchSingleTop = true }
                             onActivity()
-                        },
-                        evidenceThumbnails = evidenceThumbnails,
-                        onTaxVaultEvidenceSelected = { evidenceId ->
-                            if (!uiState.hubSettings.subscriptionTier.isGold()) {
-                                eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
-                                onActivity()
-                            } else {
-                                eobViewModel.selectTaxVaultEvidencePreview(evidenceId)
-                                navController.navigate(EobRoute.TaxVault.route) { launchSingleTop = true }
-                                onActivity()
-                            }
                         },
                         onInsurancePrescriptionsChange = { prescriptions ->
                             eobViewModel.updateInsuranceCardPrescriptions(

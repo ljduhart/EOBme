@@ -4,10 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -26,7 +23,6 @@ import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.VaultEvidenceChargePreview
 import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
-import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
 import app.eob.me.ui.theme.EOBmeTheme
 import org.junit.Rule
 import org.junit.Test
@@ -86,67 +82,52 @@ class TaxVaultLayoutScreenshotTest {
 
     @Test
     @Config(qualifiers = "w360dp-h900dp")
-    fun narrowPhoneTaxVaultSectionRendersEvidenceAndFullFilter() {
-        renderTaxVaultHomeSection(darkModeEnabled = true)
+    fun narrowPhoneTaxVaultDashboardRendersEmbeddedEvidence() {
+        renderTaxVaultDashboardSection(darkModeEnabled = true)
         assertTaxVaultControlsVisible()
-        saveScreenshot("narrow_phone_tax_vault.png")
+        saveScreenshot("narrow_phone_tax_vault_dashboard.png")
     }
 
     @Test
     @Config(qualifiers = "w840dp-h900dp")
-    fun wideTabletTaxVaultSectionRendersEvidenceAndFullFilter() {
-        renderTaxVaultHomeSection(darkModeEnabled = true)
+    fun wideTabletTaxVaultDashboardRendersEmbeddedEvidence() {
+        renderTaxVaultDashboardSection(darkModeEnabled = true)
         assertTaxVaultControlsVisible()
-        saveScreenshot("wide_tablet_tax_vault.png")
+        saveScreenshot("wide_tablet_tax_vault_dashboard.png")
     }
 
-    private fun renderTaxVaultHomeSection(darkModeEnabled: Boolean) {
+    private fun renderTaxVaultDashboardSection(darkModeEnabled: Boolean) {
         val language = AppLanguage.English
-        val homePrimaryText = if (darkModeEnabled) {
-            Color(0xFFE8F4FF)
-        } else {
-            Color(0xFF0B1F45)
-        }
         composeRule.setContent {
             EOBmeTheme(darkTheme = darkModeEnabled) {
                 Surface(color = if (darkModeEnabled) Color(0xFF0A1628) else Color(0xFFF5F7FA)) {
-                    BoxWithConstraints(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp)
                     ) {
-                        val miniatureCardWidth = (maxWidth / 3.2f).coerceIn(88.dp, 108.dp)
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            VaultEvidenceCarousel(
-                                language = language,
-                                thumbnails = sampleThumbnails,
-                                onEvidenceSelected = {},
-                                titleColor = homePrimaryText,
-                                miniatureCardWidth = miniatureCardWidth,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            TaxVaultVerticalFilterCard(
-                                language = language,
-                                darkModeEnabled = darkModeEnabled,
-                                isGoldTier = true,
-                                filterState = TaxVaultFilterState.HSA,
-                                visibilityMode = TaxVaultVisibilityMode.GATED,
-                                budgetSummary = TaxVaultBudgetSummary(
-                                    eligibleAmount = 1250.0,
-                                    allocationLimit = 3000.0
-                                ),
-                                onFilterSelected = {},
-                                onVisibilityModeSelected = {},
-                                onVaultDoorUnlocked = {},
-                                enableShimmerOverlay = false,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .wrapContentHeight()
-                            )
-                        }
+                        TaxVaultVerticalFilterCard(
+                            language = language,
+                            darkModeEnabled = darkModeEnabled,
+                            isGoldTier = true,
+                            filterState = TaxVaultFilterState.HSA,
+                            visibilityMode = TaxVaultVisibilityMode.GATED,
+                            budgetSummary = TaxVaultBudgetSummary(
+                                eligibleAmount = 1250.0,
+                                allocationLimit = 3000.0
+                            ),
+                            onFilterSelected = {},
+                            onVisibilityModeSelected = {},
+                            onVaultDoorUnlocked = {},
+                            showTitaniumDoor = false,
+                            showMiniatureEvidence = true,
+                            evidenceThumbnails = sampleThumbnails,
+                            onEvidenceSelected = {},
+                            enableShimmerOverlay = false,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                        )
                     }
                 }
             }
