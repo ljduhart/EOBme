@@ -99,6 +99,7 @@ fun TaxVaultVerticalFilterCard(
     onVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
     onVaultDoorUnlocked: () -> Unit = {},
     showTitaniumDoor: Boolean = true,
+    enableShimmerOverlay: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     var uiPhase by remember { mutableStateOf(VaultUiPhase.OFF) }
@@ -352,7 +353,9 @@ fun TaxVaultVerticalFilterCard(
         }
         }
 
-        TaxVaultShimmerOverlay(modifier = Modifier.matchParentSize())
+        if (enableShimmerOverlay) {
+            TaxVaultShimmerOverlay(modifier = Modifier.matchParentSize())
+        }
     }
 
     LaunchedEffect(uiPhase) {
