@@ -302,12 +302,6 @@ private fun InsuranceCardNotesBackFace(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 88.dp, max = 132.dp),
-            placeholder = {
-                Text(
-                    text = EobStrings.t(language, "insuranceCardPrescriptionsPlaceholder"),
-                    color = NotesSecondaryText
-                )
-            },
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = NotesPrimaryText),
             shape = RoundedCornerShape(12.dp),
             colors = notesTextFieldColors(),
@@ -326,12 +320,6 @@ private fun InsuranceCardNotesBackFace(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 88.dp, max = 132.dp),
-            placeholder = {
-                Text(
-                    text = EobStrings.t(language, "insuranceCardDoctorNotesPlaceholder"),
-                    color = NotesSecondaryText
-                )
-            },
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = NotesPrimaryText),
             shape = RoundedCornerShape(12.dp),
             colors = notesTextFieldColors(),

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -58,12 +59,14 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.TaxVaultBudgetSummary
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
+import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.ui.theme.EobBrandGlow
 import app.eob.me.ui.theme.EobInsuranceGradientEnd
 import app.eob.me.ui.theme.EobInsuranceGradientMid
 import app.eob.me.ui.theme.EobInsuranceGradientStart
+import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
 import kotlinx.coroutines.delay
 
 private enum class VaultUiPhase {
@@ -100,6 +103,9 @@ fun TaxVaultVerticalFilterCard(
     onVaultDoorUnlocked: () -> Unit = {},
     showTitaniumDoor: Boolean = true,
     enableShimmerOverlay: Boolean = true,
+    showMiniatureEvidence: Boolean = false,
+    evidenceThumbnails: List<VaultEvidenceThumbnail> = emptyList(),
+    onEvidenceSelected: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var uiPhase by remember { mutableStateOf(VaultUiPhase.OFF) }
@@ -308,6 +314,20 @@ fun TaxVaultVerticalFilterCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+            }
+        }
+
+        if (showMiniatureEvidence && evidenceThumbnails.isNotEmpty()) {
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val miniatureCardWidth = (maxWidth / 3.2f).coerceIn(88.dp, 108.dp)
+                VaultEvidenceCarousel(
+                    language = language,
+                    thumbnails = evidenceThumbnails,
+                    onEvidenceSelected = onEvidenceSelected,
+                    titleColor = VaultNeonText,
+                    miniatureCardWidth = miniatureCardWidth,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 

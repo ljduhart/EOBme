@@ -70,7 +70,6 @@ import app.eob.me.data.VaultSubstantiationStatus
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
 import app.eob.me.ui.components.taxvault.VaultAddReceiptButton
-import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
 import coil.compose.AsyncImage
 
 private val VaultInteriorBackground = Brush.verticalGradient(
@@ -251,11 +250,6 @@ private fun TaxVaultDashboard(
                 color = Color.White
             )
             FsaDoomsdayMonitorCard(language = language, snapshot = fsaSnapshot)
-            VaultEvidenceCarousel(
-                language = language,
-                thumbnails = evidenceThumbnails,
-                onEvidenceSelected = onEvidenceSelected
-            )
             TaxVaultVerticalFilterCard(
                 language = language,
                 darkModeEnabled = darkModeEnabled,
@@ -267,6 +261,9 @@ private fun TaxVaultDashboard(
                 onVisibilityModeSelected = onVisibilityModeSelected,
                 onVaultDoorUnlocked = {},
                 showTitaniumDoor = false,
+                showMiniatureEvidence = true,
+                evidenceThumbnails = evidenceThumbnails,
+                onEvidenceSelected = onEvidenceSelected,
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()

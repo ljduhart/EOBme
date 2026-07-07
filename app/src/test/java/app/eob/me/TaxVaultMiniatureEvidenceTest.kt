@@ -54,17 +54,19 @@ class TaxVaultMiniatureEvidenceTest {
         val navSource = readSource("navigation/EobNavHost.kt")
 
         assertTrue(uiSource.contains("MiniaturePolaroidEvidenceCard"))
+        assertTrue(screenSource.contains("showMiniatureEvidence = true"))
         assertTrue(screenSource.contains("VaultAddReceiptButton"))
-        assertTrue(screenSource.contains("VaultEvidenceCarousel"))
         assertEquals(1, screenSource.split("VaultAddReceiptButton(").size - 1)
-        val carouselBlock = uiSource
-            .substringAfter("fun VaultEvidenceCarousel")
-            .substringBefore("fun VaultAddReceiptButton")
+        val filterSource = readSource("ui/components/home/TaxVaultVerticalFilterCard.kt")
+        val carouselBlock = filterSource
+            .substringAfter("showMiniatureEvidence && evidenceThumbnails.isNotEmpty()")
+            .substringBefore("Row(")
         val exportBlock = screenSource
             .substringAfter("private fun VaultExportSection")
             .substringBefore("@Composable\nprivate fun VaultEvidencePreviewOverlay")
         assertFalse(carouselBlock.contains("VaultAddReceiptButton"))
         assertFalse(carouselBlock.contains("onAddReceipt"))
+        assertFalse(screenSource.contains("VaultEvidenceCarousel("))
         assertTrue(exportBlock.contains("VaultAddReceiptButton"))
         assertTrue(exportBlock.contains("Arrangement.End"))
         assertFalse(screenSource.contains("floatingActionButton"))

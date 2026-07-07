@@ -53,7 +53,6 @@ import app.eob.me.data.TaxVaultBudgetSummary
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.UserProfile
-import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.navigation.HubBentoDestination
@@ -64,7 +63,6 @@ import app.eob.me.ui.components.home.HomeCareTeamCards
 import app.eob.me.ui.components.home.HomeWeekCalendar
 import androidx.compose.foundation.layout.BoxWithConstraints
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
-import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.text.style.TextOverflow
 
@@ -134,8 +132,6 @@ fun HomeScreen(
     onTaxVaultFilterSelected: (TaxVaultFilterState) -> Unit,
     onTaxVaultVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
     onVaultDoorUnlocked: () -> Unit,
-    evidenceThumbnails: List<VaultEvidenceThumbnail> = emptyList(),
-    onTaxVaultEvidenceSelected: (String) -> Unit = {},
     onInsurancePrescriptionsChange: (String) -> Unit,
     onInsuranceDoctorNotesChange: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -248,37 +244,40 @@ fun HomeScreen(
 
             HubBentoDestination.gridRows.forEach { row ->
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(28.dp)
-                    ) {
-                        row.forEach { destination ->
-                            BentoGridCell(
-                                language = language,
-                                destination = destination,
-                                historySnapshot = historySnapshot,
-                                taxVaultActive = taxVaultFilterState != TaxVaultFilterState.OFF,
-                                taxVaultBudgetSummary = taxVaultBudgetSummary,
-                                taxVaultFilterState = taxVaultFilterState,
-                                processingPhase = processingPhase,
-                                isLoadingInvoice = isLoadingInvoice,
-                                historyFilter = historyFilter,
-                                providerAvatars = providerAvatars,
-                                providerDirectoryAssurance = providerDirectoryAssurance,
-                                cptBentoSnapshot = cptBentoSnapshot,
-                                insuranceNewsBentoSnapshot = insuranceNewsBentoSnapshot,
-                                ytdBentoSnapshot = ytdBentoSnapshot,
-                                ytdBentoViewMode = ytdBentoViewMode,
-                                onYtdViewModeSelected = onYtdBentoViewModeSelected,
-                                appealGeneratorBentoProcessing = appealGeneratorBentoProcessing,
-                                subscriptionTier = subscriptionTier,
-                                onLockedClick = onPremiumFeatureLocked,
-                                onClick = { onBentoSelected(destination) },
-                                onHistoryFilterSelected = onHistoryFilterSelected,
-                                onInvoiceFileDropFinished = onInvoiceFileDropFinished,
-                                onAppealGeneratorProcessingFinished = onAppealGeneratorProcessingFinished,
-                                modifier = Modifier.weight(1f)
-                            )
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val bentoSpacing = (maxWidth * 0.065f).coerceIn(14.dp, 28.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(bentoSpacing)
+                        ) {
+                            row.forEach { destination ->
+                                BentoGridCell(
+                                    language = language,
+                                    destination = destination,
+                                    historySnapshot = historySnapshot,
+                                    taxVaultActive = taxVaultFilterState != TaxVaultFilterState.OFF,
+                                    taxVaultBudgetSummary = taxVaultBudgetSummary,
+                                    taxVaultFilterState = taxVaultFilterState,
+                                    processingPhase = processingPhase,
+                                    isLoadingInvoice = isLoadingInvoice,
+                                    historyFilter = historyFilter,
+                                    providerAvatars = providerAvatars,
+                                    providerDirectoryAssurance = providerDirectoryAssurance,
+                                    cptBentoSnapshot = cptBentoSnapshot,
+                                    insuranceNewsBentoSnapshot = insuranceNewsBentoSnapshot,
+                                    ytdBentoSnapshot = ytdBentoSnapshot,
+                                    ytdBentoViewMode = ytdBentoViewMode,
+                                    onYtdViewModeSelected = onYtdBentoViewModeSelected,
+                                    appealGeneratorBentoProcessing = appealGeneratorBentoProcessing,
+                                    subscriptionTier = subscriptionTier,
+                                    onLockedClick = onPremiumFeatureLocked,
+                                    onClick = { onBentoSelected(destination) },
+                                    onHistoryFilterSelected = onHistoryFilterSelected,
+                                    onInvoiceFileDropFinished = onInvoiceFileDropFinished,
+                                    onAppealGeneratorProcessingFinished = onAppealGeneratorProcessingFinished,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                     }
                 }
@@ -299,38 +298,20 @@ fun HomeScreen(
             }
 
             item {
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val miniatureCardWidth = (maxWidth / 3.2f).coerceIn(88.dp, 108.dp)
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        if (evidenceThumbnails.isNotEmpty()) {
-                            VaultEvidenceCarousel(
-                                language = language,
-                                thumbnails = evidenceThumbnails,
-                                onEvidenceSelected = onTaxVaultEvidenceSelected,
-                                titleColor = homePrimaryText,
-                                miniatureCardWidth = miniatureCardWidth,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        TaxVaultVerticalFilterCard(
-                            language = language,
-                            darkModeEnabled = darkModeEnabled,
-                            isGoldTier = subscriptionTier.isGold(),
-                            filterState = taxVaultFilterState,
-                            visibilityMode = taxVaultVisibilityMode,
-                            budgetSummary = taxVaultBudgetSummary,
-                            onFilterSelected = onTaxVaultFilterSelected,
-                            onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
-                            onVaultDoorUnlocked = onVaultDoorUnlocked,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight()
-                        )
-                    }
-                }
+                TaxVaultVerticalFilterCard(
+                    language = language,
+                    darkModeEnabled = darkModeEnabled,
+                    isGoldTier = subscriptionTier.isGold(),
+                    filterState = taxVaultFilterState,
+                    visibilityMode = taxVaultVisibilityMode,
+                    budgetSummary = taxVaultBudgetSummary,
+                    onFilterSelected = onTaxVaultFilterSelected,
+                    onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
+                    onVaultDoorUnlocked = onVaultDoorUnlocked,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                )
             }
 
             item {

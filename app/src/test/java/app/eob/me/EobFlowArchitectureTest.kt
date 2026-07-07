@@ -233,17 +233,18 @@ class EobFlowArchitectureTest {
             "subscriptionTier.isGold()",
             "onTaxVaultFilterSelected",
             "HomeWeekCalendar",
-            "BoxWithConstraints",
-            "VaultEvidenceCarousel",
-            "evidenceThumbnails",
+            "bentoSpacing",
             "wrapContentHeight"
         ).forEach { snippet ->
             assertTrue("HomeScreen missing tax vault wiring: $snippet", homeSource.contains(snippet))
         }
+        assertFalse(
+            "Miniature evidence must not render on home screen",
+            homeSource.contains("VaultEvidenceCarousel")
+        )
         assertTrue(
             "Tax Vault card must sit below expandable calendar with responsive layout",
             homeSource.indexOf("HomeWeekCalendar") < homeSource.indexOf("TaxVaultVerticalFilterCard") &&
-                homeSource.contains("BoxWithConstraints") &&
                 !homeSource.contains(".height(vaultHeight)")
         )
         listOf(
@@ -262,6 +263,8 @@ class EobFlowArchitectureTest {
         }
         listOf(
             "TaxVaultVerticalFilterCard",
+            "showMiniatureEvidence",
+            "VaultEvidenceCarousel",
             "taxVaultFilterTitle",
             "taxVaultGoldLocked",
             "taxVaultCareTeamBorder",
@@ -2561,12 +2564,12 @@ class EobFlowArchitectureTest {
         listOf(
             "TaxVaultScreen",
             "FsaDoomsdayMonitorCard",
-            "VaultEvidenceCarousel",
+            "showMiniatureEvidence = true",
             "AsyncImage",
             "VaultExportSection",
             "EobRoute.TaxVault"
         ).forEach { snippet ->
-            assertTrue("PR#136: vault dashboard missing $snippet", vaultScreenSource.contains(snippet) || navHostSource.contains(snippet))
+            assertTrue("PR#136: vault dashboard missing $snippet", vaultScreenSource.contains(snippet) || navHostSource.contains(snippet) || homeSource.contains(snippet))
         }
         listOf(
             "processVaultReceiptScannedDocument",
