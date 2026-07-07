@@ -522,10 +522,9 @@ class EobViewModelFlowTest {
     }
 
     private fun waitForHubRecords(viewModel: EobViewModel) {
-        var attempts = 0
-        while (viewModel.eobRecords.value.isEmpty() && attempts < 1_000) {
+        val deadlineMs = System.currentTimeMillis() + 10_000
+        while (viewModel.eobRecords.value.isEmpty() && System.currentTimeMillis() < deadlineMs) {
             shadowOf(Looper.getMainLooper()).idle()
-            attempts++
         }
         assertTrue("Timed out waiting for hub EOB records", viewModel.eobRecords.value.isNotEmpty())
     }

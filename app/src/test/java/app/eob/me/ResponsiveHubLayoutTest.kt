@@ -20,6 +20,8 @@ class ResponsiveHubLayoutTest {
         assertTrue(navSource.contains("evidenceThumbnails = evidenceThumbnails"))
         assertTrue(navSource.contains("onTaxVaultEvidenceSelected"))
         assertTrue(navSource.contains("selectTaxVaultEvidencePreview"))
+        assertTrue(navSource.contains("subscriptionTier.isGold()"))
+        assertTrue(navSource.contains("billingNoticeForPaywall"))
     }
 
     @Test

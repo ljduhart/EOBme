@@ -909,9 +909,14 @@ private fun MainHubNavHost(
                         },
                         evidenceThumbnails = evidenceThumbnails,
                         onTaxVaultEvidenceSelected = { evidenceId ->
-                            eobViewModel.selectTaxVaultEvidencePreview(evidenceId)
-                            navController.navigate(EobRoute.TaxVault.route) { launchSingleTop = true }
-                            onActivity()
+                            if (!uiState.hubSettings.subscriptionTier.isGold()) {
+                                eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                                onActivity()
+                            } else {
+                                eobViewModel.selectTaxVaultEvidencePreview(evidenceId)
+                                navController.navigate(EobRoute.TaxVault.route) { launchSingleTop = true }
+                                onActivity()
+                            }
                         },
                         onInsurancePrescriptionsChange = { prescriptions ->
                             eobViewModel.updateInsuranceCardPrescriptions(
