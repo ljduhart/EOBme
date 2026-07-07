@@ -177,7 +177,10 @@ fun TaxVaultVerticalFilterCard(
                         text = EobStrings.t(language, "taxVaultDoorHoldHint"),
                         style = MaterialTheme.typography.labelSmall,
                         color = VaultNeonText.copy(alpha = 0.72f),
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
                     )
                 }
             } else {
@@ -203,7 +206,9 @@ fun TaxVaultVerticalFilterCard(
                     color = VaultNeonText,
                     fontWeight = FontWeight.Black,
                     fontSize = 34.sp,
-                    lineHeight = 34.sp
+                    lineHeight = 34.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = EobStrings.t(language, "taxVaultFilterTitle"),
@@ -221,7 +226,9 @@ fun TaxVaultVerticalFilterCard(
                 text = EobStrings.t(language, "taxVaultGoldLocked"),
                 style = MaterialTheme.typography.labelSmall,
                 color = VaultGoldText,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -229,7 +236,8 @@ fun TaxVaultVerticalFilterCard(
             text = EobStrings.t(language, "taxVaultFundTypePrompt"),
             style = MaterialTheme.typography.labelMedium,
             color = VaultNeonText.copy(alpha = 0.88f),
-            maxLines = 2
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
 
         Row(
@@ -260,7 +268,8 @@ fun TaxVaultVerticalFilterCard(
                 text = EobStrings.tf(language, "taxVaultShowLabel", eligibilityLabel),
                 style = MaterialTheme.typography.labelMedium,
                 color = VaultNeonText.copy(alpha = 0.92f),
-                maxLines = 2
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             Slider(
                 value = visibilityMode.ordinal.toFloat(),
@@ -300,8 +309,6 @@ fun TaxVaultVerticalFilterCard(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
 
         Row(
             modifier = Modifier.fillMaxWidth(),

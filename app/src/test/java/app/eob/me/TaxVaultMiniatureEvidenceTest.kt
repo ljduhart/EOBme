@@ -53,12 +53,13 @@ class TaxVaultMiniatureEvidenceTest {
         val modelsSource = readSource("data/TaxVaultModels.kt")
         val navSource = readSource("navigation/EobNavHost.kt")
 
-        assertTrue(screenSource.contains("MiniaturePolaroidEvidenceCard"))
+        assertTrue(uiSource.contains("MiniaturePolaroidEvidenceCard"))
         assertTrue(screenSource.contains("VaultAddReceiptButton"))
+        assertTrue(screenSource.contains("VaultEvidenceCarousel"))
         assertEquals(1, screenSource.split("VaultAddReceiptButton(").size - 1)
-        val carouselBlock = screenSource
-            .substringAfter("private fun VaultEvidenceCarousel")
-            .substringBefore("private fun VaultExportSection")
+        val carouselBlock = uiSource
+            .substringAfter("fun VaultEvidenceCarousel")
+            .substringBefore("fun VaultAddReceiptButton")
         val exportBlock = screenSource
             .substringAfter("private fun VaultExportSection")
             .substringBefore("@Composable\nprivate fun VaultEvidencePreviewOverlay")
@@ -72,8 +73,8 @@ class TaxVaultMiniatureEvidenceTest {
         assertTrue(navSource.contains("EobRoute.CameraCapture.route"))
         assertTrue(uiSource.contains("MiniatureEobPolaroidBody"))
         assertTrue(uiSource.contains("MiniatureReceiptPolaroidBody"))
-        assertTrue(uiSource.contains("MiniatureCardWidth"))
-        assertTrue(uiSource.contains("MiniatureCardHeight"))
+        assertTrue(uiSource.contains("MiniatureCardMinWidth"))
+        assertTrue(uiSource.contains("MiniatureCardMaxWidth"))
         assertTrue(uiSource.contains("VaultAddReceiptDocumentCameraIcon"))
         assertTrue(uiSource.contains("providerName.uppercase()"))
         assertTrue(uiSource.contains("VaultSparkleAccent"))

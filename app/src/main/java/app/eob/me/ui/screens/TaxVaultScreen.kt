@@ -14,18 +14,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -71,8 +69,8 @@ import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.VaultSubstantiationStatus
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
-import app.eob.me.ui.components.taxvault.MiniaturePolaroidEvidenceCard
 import app.eob.me.ui.components.taxvault.VaultAddReceiptButton
+import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
 import coil.compose.AsyncImage
 
 private val VaultInteriorBackground = Brush.verticalGradient(
@@ -271,7 +269,7 @@ private fun TaxVaultDashboard(
                 showTitaniumDoor = false,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(280.dp)
+                    .wrapContentHeight()
             )
             VaultExportSection(
                 language = language,
@@ -340,36 +338,6 @@ private fun FsaDoomsdayMonitorCard(
             fontWeight = FontWeight.SemiBold,
             color = Color.White
         )
-    }
-}
-
-@Composable
-private fun VaultEvidenceCarousel(
-    language: AppLanguage,
-    thumbnails: List<VaultEvidenceThumbnail>,
-    onEvidenceSelected: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            text = EobStrings.t(language, "taxVaultEvidenceGalleryTitle"),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        if (thumbnails.isNotEmpty()) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                items(thumbnails, key = { it.id }) { thumbnail ->
-                    MiniaturePolaroidEvidenceCard(
-                        thumbnail = thumbnail,
-                        onClick = { onEvidenceSelected(thumbnail.id) }
-                    )
-                }
-            }
-        }
     }
 }
 

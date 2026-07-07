@@ -55,19 +55,20 @@ import app.eob.me.data.TaxVaultBudgetSummary
 import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.UserProfile
+import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.YtdBentoViewMode
 import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.CleanInsuranceCard
-import app.eob.me.ui.components.bento.BentoCellLayout
 import app.eob.me.ui.components.bento.BentoGridCell
 import app.eob.me.ui.components.home.HomeAppointmentsSection
 import app.eob.me.ui.components.home.HomeCareTeamCards
 import app.eob.me.ui.components.home.HomeWeekCalendar
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
+import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.text.style.TextOverflow
 
 private val DarkHomeBackground = Brush.verticalGradient(
     colors = listOf(
@@ -135,6 +136,8 @@ fun HomeScreen(
     onTaxVaultFilterSelected: (TaxVaultFilterState) -> Unit,
     onTaxVaultVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
     onVaultDoorUnlocked: () -> Unit,
+    evidenceThumbnails: List<VaultEvidenceThumbnail> = emptyList(),
+    onTaxVaultEvidenceSelected: (String) -> Unit = {},
     onInsurancePrescriptionsChange: (String) -> Unit,
     onInsuranceDoctorNotesChange: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -168,7 +171,9 @@ fun HomeScreen(
                         ),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = homePrimaryText
+                        color = homePrimaryText,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = EobStrings.tf(
@@ -183,7 +188,9 @@ fun HomeScreen(
                             firebaseStatusLine
                         ),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = homeSecondaryText
+                        color = homeSecondaryText,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -290,28 +297,37 @@ fun HomeScreen(
             }
 
             item {
-                BoxWithConstraints(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val bentoColumnWidth = (maxWidth - 56.dp) / 3f
-                    val bentoCellHeight = bentoColumnWidth / BentoCellLayout.ASPECT_RATIO
-                    val vaultHeight = bentoCellHeight * 2 + 28.dp
-                    val vaultWidth = (maxWidth - 28.dp) / 2f
-                    TaxVaultVerticalFilterCard(
-                        language = language,
-                        darkModeEnabled = darkModeEnabled,
-                        isGoldTier = subscriptionTier.isGold(),
-                        filterState = taxVaultFilterState,
-                        visibilityMode = taxVaultVisibilityMode,
-                        budgetSummary = taxVaultBudgetSummary,
-                        onFilterSelected = onTaxVaultFilterSelected,
-                        onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
-                        onVaultDoorUnlocked = onVaultDoorUnlocked,
-                        modifier = Modifier
-                            .width(vaultWidth)
-                            .height(vaultHeight)
-                    )
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val miniatureCardWidth = (maxWidth / 3.2f).coerceIn(88.dp, 108.dp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (evidenceThumbnails.isNotEmpty()) {
+                            VaultEvidenceCarousel(
+                                language = language,
+                                thumbnails = evidenceThumbnails,
+                                onEvidenceSelected = onTaxVaultEvidenceSelected,
+                                titleColor = homePrimaryText,
+                                miniatureCardWidth = miniatureCardWidth,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        TaxVaultVerticalFilterCard(
+                            language = language,
+                            darkModeEnabled = darkModeEnabled,
+                            isGoldTier = subscriptionTier.isGold(),
+                            filterState = taxVaultFilterState,
+                            visibilityMode = taxVaultVisibilityMode,
+                            budgetSummary = taxVaultBudgetSummary,
+                            onFilterSelected = onTaxVaultFilterSelected,
+                            onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
+                            onVaultDoorUnlocked = onVaultDoorUnlocked,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                        )
+                    }
                 }
             }
 

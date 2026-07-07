@@ -233,15 +233,18 @@ class EobFlowArchitectureTest {
             "subscriptionTier.isGold()",
             "onTaxVaultFilterSelected",
             "HomeWeekCalendar",
-            "BoxWithConstraints"
+            "BoxWithConstraints",
+            "VaultEvidenceCarousel",
+            "evidenceThumbnails",
+            "wrapContentHeight"
         ).forEach { snippet ->
             assertTrue("HomeScreen missing tax vault wiring: $snippet", homeSource.contains(snippet))
         }
         assertTrue(
-            "Tax Vault card must sit below expandable calendar and be bento-sized",
+            "Tax Vault card must sit below expandable calendar with responsive layout",
             homeSource.indexOf("HomeWeekCalendar") < homeSource.indexOf("TaxVaultVerticalFilterCard") &&
                 homeSource.contains("BoxWithConstraints") &&
-                homeSource.contains("BentoCellLayout.ASPECT_RATIO")
+                !homeSource.contains(".height(vaultHeight)")
         )
         listOf(
             "enum class TaxVaultFilterState",

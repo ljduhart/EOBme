@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Favorite
@@ -41,6 +46,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
@@ -57,8 +63,51 @@ private val IconInk = Color.Black
 
 private val MiniatureCardWidth = 108.dp
 private val MiniatureCardHeight = 148.dp
+private val MiniatureCardAspectRatio = MiniatureCardWidth / MiniatureCardHeight
+private val MiniatureCardMinWidth = 88.dp
+private val MiniatureCardMaxWidth = 108.dp
 private val AddReceiptButtonWidth = 96.dp
 private val AddReceiptButtonHeight = 108.dp
+
+@Composable
+fun VaultEvidenceCarousel(
+    language: AppLanguage,
+    thumbnails: List<VaultEvidenceThumbnail>,
+    onEvidenceSelected: (String) -> Unit,
+    titleColor: Color = Color.White,
+    miniatureCardWidth: Dp = MiniatureCardWidth,
+    modifier: Modifier = Modifier
+) {
+    val resolvedCardWidth = miniatureCardWidth.coerceIn(MiniatureCardMinWidth, MiniatureCardMaxWidth)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = EobStrings.t(language, "taxVaultEvidenceGalleryTitle"),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = titleColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (thumbnails.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                items(thumbnails, key = { it.id }) { thumbnail ->
+                    MiniaturePolaroidEvidenceCard(
+                        thumbnail = thumbnail,
+                        cardWidth = resolvedCardWidth,
+                        onClick = { onEvidenceSelected(thumbnail.id) }
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun VaultAddReceiptButton(
@@ -179,11 +228,15 @@ private fun VaultAddReceiptDocumentCameraIcon(modifier: Modifier = Modifier) {
 fun MiniaturePolaroidEvidenceCard(
     thumbnail: VaultEvidenceThumbnail,
     onClick: () -> Unit,
+    cardWidth: Dp = MiniatureCardWidth,
     modifier: Modifier = Modifier
 ) {
+    val resolvedWidth = cardWidth.coerceIn(MiniatureCardMinWidth, MiniatureCardMaxWidth)
     Box(
         modifier = modifier
-            .size(width = MiniatureCardWidth, height = MiniatureCardHeight)
+            .widthIn(min = MiniatureCardMinWidth, max = MiniatureCardMaxWidth)
+            .width(resolvedWidth)
+            .height(resolvedWidth / MiniatureCardAspectRatio)
             .graphicsLayer { rotationZ = thumbnail.rotationDegrees }
             .shadow(8.dp, RoundedCornerShape(4.dp))
             .clip(RoundedCornerShape(4.dp))

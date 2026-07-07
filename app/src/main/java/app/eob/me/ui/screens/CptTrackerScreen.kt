@@ -13,9 +13,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -101,12 +101,16 @@ fun CptTrackerScreen(
             Text(
                 text = EobStrings.t(language, "cptTrackingTitle"),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = EobStrings.t(language, "cptTrackingSubtitle"),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -131,7 +135,7 @@ fun CptTrackerScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                columns = GridCells.Fixed(2),
+                columns = GridCells.Adaptive(minSize = 150.dp),
                 contentPadding = PaddingValues(bottom = 80.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -181,7 +185,9 @@ fun CptCategoryTabs(
                     color = contentColor,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -242,7 +248,7 @@ fun FlashcardItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(188.dp)
+            .aspectRatio(5f / 6f)
             .graphicsLayer {
                 rotationY = rotation
                 cameraDistance = 12f * density.density
