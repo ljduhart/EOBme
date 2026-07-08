@@ -43,14 +43,17 @@ class InsuranceCardFlipTest {
         assertTrue(source.contains("KeyboardCapitalization.Sentences"))
         assertTrue(source.contains("letterSpacing = 0.sp"))
         assertTrue(source.contains("localPrescriptions"))
-        assertTrue(source.contains("prescriptionsFocused"))
-        assertTrue(source.contains("onFocusChanged"))
+        assertFalse(source.contains("placeholder = {"))
+        assertFalse(source.contains("insuranceCardPrescriptionsPlaceholder"))
+        assertFalse(source.contains("insuranceCardDoctorNotesPlaceholder"))
     }
 
     @Test
-    fun viewModelSkipsStaleInsuranceMetadataDuringPersist() {
+    fun viewModelGuardsInsuranceMetadataDuringLocalEdits() {
         val source = readSource("viewmodel/EobViewModel.kt")
-        assertTrue(source.contains("insuranceNotesPersistJob?.isActive"))
+        assertTrue(source.contains("shouldIgnoreInsuranceMetadataSnapshot"))
+        assertTrue(source.contains("insuranceNotesLocalEditAtMillis"))
+        assertTrue(source.contains("INSURANCE_CARD_NOTES_REMOTE_GUARD_MS"))
     }
 
     @Test

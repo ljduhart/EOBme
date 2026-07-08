@@ -112,7 +112,7 @@
 
 # Veryfi mappers & parsers used by nested claims pipeline
 -keepnames class app.eob.me.network.VeryfiInsuranceEobMapper { *; }
--keepnames class app.eob.me.network.VeryfiInsuranceEobPayloadParser { *; }
+-keep class app.eob.me.network.VeryfiInsuranceEobPayloadParser { *; }
 -keepnames class app.eob.me.network.VeryfiAnyDocMapper { *; }
 -keepnames class app.eob.me.network.VeryfiIndexedFieldReader { *; }
 -keepnames class app.eob.me.network.VeryfiOcrFieldExtractor { *; }

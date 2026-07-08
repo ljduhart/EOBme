@@ -43,7 +43,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -96,24 +95,10 @@ fun CleanInsuranceCard(
     var flipped by remember { mutableStateOf(false) }
     var localPrescriptions by remember { mutableStateOf(currentPrescriptions) }
     var localDoctorNotes by remember { mutableStateOf(doctorQuickNotes) }
-    var prescriptionsFocused by remember { mutableStateOf(false) }
-    var doctorNotesFocused by remember { mutableStateOf(false) }
 
     LaunchedEffect(flipped) {
         if (flipped) {
             localPrescriptions = currentPrescriptions
-            localDoctorNotes = doctorQuickNotes
-        }
-    }
-
-    LaunchedEffect(currentPrescriptions) {
-        if (!flipped || !prescriptionsFocused) {
-            localPrescriptions = currentPrescriptions
-        }
-    }
-
-    LaunchedEffect(doctorQuickNotes) {
-        if (!flipped || !doctorNotesFocused) {
             localDoctorNotes = doctorQuickNotes
         }
     }
@@ -159,8 +144,6 @@ fun CleanInsuranceCard(
                         localDoctorNotes = updated
                         onDoctorQuickNotesChange(updated)
                     },
-                    onPrescriptionsFocusChanged = { prescriptionsFocused = it },
-                    onDoctorNotesFocusChanged = { doctorNotesFocused = it },
                     onFlip = { flipped = false },
                     modifier = Modifier.graphicsLayer { rotationY = 180f }
                 )
@@ -310,8 +293,6 @@ private fun InsuranceCardNotesBackFace(
     doctorQuickNotes: String,
     onCurrentPrescriptionsChange: (String) -> Unit,
     onDoctorQuickNotesChange: (String) -> Unit,
-    onPrescriptionsFocusChanged: (Boolean) -> Unit,
-    onDoctorNotesFocusChanged: (Boolean) -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -354,8 +335,7 @@ private fun InsuranceCardNotesBackFace(
             onValueChange = onCurrentPrescriptionsChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 88.dp, max = 132.dp)
-                .onFocusChanged { onPrescriptionsFocusChanged(it.isFocused) },
+                .heightIn(min = 88.dp, max = 132.dp),
             textStyle = notesTextStyle,
             shape = RoundedCornerShape(12.dp),
             colors = notesTextFieldColors(),
@@ -370,8 +350,7 @@ private fun InsuranceCardNotesBackFace(
             onValueChange = onDoctorQuickNotesChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 88.dp, max = 132.dp)
-                .onFocusChanged { onDoctorNotesFocusChanged(it.isFocused) },
+                .heightIn(min = 88.dp, max = 132.dp),
             textStyle = notesTextStyle,
             shape = RoundedCornerShape(12.dp),
             colors = notesTextFieldColors(),
