@@ -76,6 +76,7 @@ Before merging any `proguard-rules.pro` edit:
 2. Run `./gradlew :app:assembleRelease` (R8 must complete without errors).
 3. Confirm `HybridPipelineLockdownTest` still passes (manifest SHA-256 unchanged).
 4. Smoke-test: hybrid EOB scan, vault receipt scan, insurance news RSS, FSA notification worker, billing paywall.
+5. Do not remove `androidx.work.impl.**` or Room `**_Impl` keeps — required for `WorkDatabase_Impl` reflection.
 
 ## Forbidden patterns
 

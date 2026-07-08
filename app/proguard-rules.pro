@@ -147,12 +147,36 @@
 }
 
 # -----------------------------------------------------------------------------
-# WorkManager — FSA doomsday periodic notifications
+# Room (WorkManager internal persistence — WorkDatabase_Impl reflection)
 # -----------------------------------------------------------------------------
+-keep class * extends androidx.room.RoomDatabase { *; }
+-keep class androidx.room.RoomDatabase_Impl { *; }
+-keep class androidx.room.GeneratedImplementation { *; }
+-keep class androidx.room.DatabaseConfiguration { *; }
+-keep class androidx.sqlite.db.** { *; }
+-keep class **_Impl { *; }
+-keepclassmembers class * extends androidx.room.RoomDatabase {
+    <init>(...);
+}
+-dontwarn androidx.room.paging.**
+
+# -----------------------------------------------------------------------------
+# WorkManager — FSA doomsday periodic notifications + internal impl database
+# -----------------------------------------------------------------------------
+-keep class androidx.work.** { *; }
+-keep class * extends androidx.work.ListenableWorker { *; }
 -keep class * extends androidx.work.Worker { *; }
 -keep class * extends androidx.work.CoroutineWorker { *; }
+-keep class * implements androidx.work.DelegatingWorkerFactory { *; }
+-keep class * implements androidx.work.InputMerger { *; }
+-keep class androidx.work.impl.** { *; }
+-keepclassmembers class * extends androidx.work.ListenableWorker {
+    public <init>(...);
+}
+-keep class androidx.work.WorkerParameters { *; }
 -keep class app.eob.me.work.FsaDoomsdayNotificationWorker { *; }
 -keep class app.eob.me.work.FsaDoomsdayScheduler { *; }
+-dontwarn androidx.work.**
 
 # -----------------------------------------------------------------------------
 # Application entry points & Firebase messaging
