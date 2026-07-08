@@ -1101,7 +1101,9 @@ class EobFlowArchitectureTest {
         assertTrue(cardSource.contains("graphicsLayer"))
         assertTrue(cardSource.contains("rotationY"))
         assertTrue(cardSource.contains("insuranceCardPrescriptionsLabel"))
-        assertTrue(cardSource.contains("insuranceCardDoctorNotesLabel"))
+        assertTrue(cardSource.contains("insuranceCardDoctorNotesQuestionsLabel"))
+        assertTrue(cardSource.contains("Icons.Rounded.Medication"))
+        assertTrue(cardSource.contains("Icons.Rounded.EditNote"))
         assertFalse(
             "Insurance card front must not edit credential fields",
             cardSource.contains("onInsuranceNameChange")

@@ -955,6 +955,9 @@ class EobViewModel : ViewModel() {
     ) {
         insuranceCardMetadataListener?.remove()
         insuranceCardMetadataListener = repo.observeInsuranceCardMetadata(userId) { prescriptions, quickNotes ->
+            if (insuranceNotesPersistJob?.isActive == true) {
+                return@observeInsuranceCardMetadata
+            }
             val current = _syncProfile.value
             if (current.currentPrescriptions == prescriptions && current.doctorQuickNotes == quickNotes) {
                 return@observeInsuranceCardMetadata
