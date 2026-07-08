@@ -29,9 +29,31 @@ class InsuranceCardFlipTest {
     fun insuranceCardNotesBackExposesPrescriptionAndDoctorFields() {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
         assertTrue(source.contains("insuranceCardPrescriptionsLabel"))
-        assertTrue(source.contains("insuranceCardDoctorNotesLabel"))
+        assertTrue(source.contains("insuranceCardDoctorNotesQuestionsLabel"))
         assertTrue(source.contains("onCurrentPrescriptionsChange"))
         assertTrue(source.contains("onDoctorQuickNotesChange"))
+        assertTrue(source.contains("Icons.Rounded.Medication"))
+        assertTrue(source.contains("Icons.Rounded.EditNote"))
+    }
+
+    @Test
+    fun insuranceCardNotesAllowMultilineSpacingInput() {
+        val source = readSource("ui/components/CleanInsuranceCard.kt")
+        assertTrue(source.contains("singleLine = false"))
+        assertTrue(source.contains("KeyboardCapitalization.Sentences"))
+        assertTrue(source.contains("letterSpacing = 0.sp"))
+        assertTrue(source.contains("localPrescriptions"))
+        assertFalse(source.contains("placeholder = {"))
+        assertFalse(source.contains("insuranceCardPrescriptionsPlaceholder"))
+        assertFalse(source.contains("insuranceCardDoctorNotesPlaceholder"))
+    }
+
+    @Test
+    fun viewModelGuardsInsuranceMetadataDuringLocalEdits() {
+        val source = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(source.contains("shouldIgnoreInsuranceMetadataSnapshot"))
+        assertTrue(source.contains("insuranceNotesLocalEditAtMillis"))
+        assertTrue(source.contains("INSURANCE_CARD_NOTES_REMOTE_GUARD_MS"))
     }
 
     @Test
