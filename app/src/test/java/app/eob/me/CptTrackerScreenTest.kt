@@ -197,15 +197,17 @@ class CptTrackerScreenTest {
     }
 
     @Test
-    fun cptFlashcardBackShowsServiceDateOnBottomLeft() {
+    fun cptFlashcardBackShowsDosAndBilledInVerticalStacks() {
         val source = readSource("ui/screens/CptTrackerScreen.kt")
-        assertTrue(source.contains("cptFlashcardServiceDateLabel"))
+        assertTrue(source.contains("cptFlashcardDosLabel"))
+        assertTrue(source.contains("cptFlashcardBilledTitle"))
         assertTrue(source.contains("entry.serviceDates"))
+        assertTrue(source.contains("entry.totalBilled"))
         val backIndex = source.indexOf("private fun FlashcardBack")
         val backEnd = source.indexOf("internal fun categoryThemeColor", backIndex)
         val backBlock = source.substring(backIndex, backEnd)
-        assertTrue(backBlock.contains("textAlign = TextAlign.Start"))
-        assertTrue(backBlock.indexOf("cptFlashcardServiceDateLabel") < backBlock.indexOf("cptFlashcardBilledLabel"))
+        assertTrue(backBlock.contains("verticalArrangement = Arrangement.spacedBy(2.dp)"))
+        assertTrue(backBlock.indexOf("cptFlashcardDosLabel") < backBlock.indexOf("cptFlashcardBilledTitle"))
     }
 
     @Test

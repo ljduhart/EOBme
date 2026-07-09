@@ -405,6 +405,8 @@ object EobStrings {
         "cptEducationalBannerTitle" to "What is a CPT Code?",
         "cptEducationalBannerBody" to "Current Procedural Terminology codes are numbers your doctor uses to bill your insurance. As you upload EOBs, we'll translate them into plain English for you here.",
         "cptFlashcardOfficialDefinition" to "Official Definition:",
+        "cptFlashcardDosLabel" to "DOS",
+        "cptFlashcardBilledTitle" to "Billed",
         "cptFlashcardBilledLabel" to "Billed: %s",
         "cptFlashcardServiceDateLabel" to "Date of Service: %s",
         "cptCodeLabel" to "CPT %s",
