@@ -15,6 +15,8 @@ val hasValidGoogleServicesConfig = googleServicesConfigFile
         runCatching { appPackageRegex.containsMatchIn(configFile.readText()) }.getOrDefault(false)
     }
     ?: false
+val isCiEnvironment = providers.environmentVariable("CI").orNull != null ||
+    providers.environmentVariable("GITHUB_ACTIONS").orNull != null
 
 if (hasValidGoogleServicesConfig) {
     apply(plugin = "com.google.gms.google-services")
@@ -109,6 +111,14 @@ tasks.register("verifyGoogleServicesJson") {
 tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }.configureEach {
     if (hasValidGoogleServicesConfig) {
         dependsOn("verifyGoogleServicesJson")
+    }
+}
+
+if (hasValidGoogleServicesConfig && isCiEnvironment) {
+    afterEvaluate {
+        tasks.matching { it.name.startsWith("uploadCrashlyticsMappingFile") }.configureEach {
+            enabled = false
+        }
     }
 }
 
