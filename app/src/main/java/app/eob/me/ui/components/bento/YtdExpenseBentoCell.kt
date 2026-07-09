@@ -101,7 +101,8 @@ fun YtdExpenseBentoCell(
                         Text(
                             EobStrings.t(language, "ytdViewCost"),
                             fontSize = 7.sp,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     },
                     modifier = Modifier.weight(1f),
@@ -114,7 +115,8 @@ fun YtdExpenseBentoCell(
                         Text(
                             EobStrings.t(language, "ytdViewDeductible"),
                             fontSize = 7.sp,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     },
                     modifier = Modifier.weight(1f),
@@ -137,7 +139,9 @@ fun YtdExpenseBentoCell(
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 6.sp,
                     color = LineTrajectory,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
             Box(

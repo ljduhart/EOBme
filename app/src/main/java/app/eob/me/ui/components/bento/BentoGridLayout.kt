@@ -33,13 +33,6 @@ object BentoGridLayout {
         val delta = BentoCellLayout.LEGACY_ASPECT_RATIO - BentoCellLayout.ASPECT_RATIO
         return BentoCellLayout.ASPECT_RATIO + fraction * delta * 0.45f
     }
-
-    fun cellWidth(rowWidth: Dp, columns: Int = GRID_COLUMNS): Dp {
-        val gap = spacing(rowWidth)
-        val totalGaps = gap * (columns - 1).coerceAtLeast(0)
-        return ((rowWidth - totalGaps) / columns.coerceAtLeast(1))
-            .coerceAtLeast(MIN_CELL_WIDTH)
-    }
 }
 
 @Composable

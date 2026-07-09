@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
@@ -126,49 +127,54 @@ fun ProviderDirectoryBentoCell(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 6.dp, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                BentoCellTitle(
-                    text = HubBentoDestination.ProviderDirectory.title(language),
-                    maxLines = 2,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (directoryAssurance.state != NetworkAssuranceState.FullyAssured) {
-                    Text(
-                        text = directoryAssurance.statusLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = assuranceAccent,
-                        fontSize = 7.sp,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                if (avatars.isEmpty()) {
-                    Text(
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    BentoCellTitle(
                         text = HubBentoDestination.ProviderDirectory.title(language),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        textAlign = TextAlign.Center
-                    )
-                } else {
-                    ProviderAvatarFan(
-                        avatars = avatars,
-                        fanProgress = fanProgress,
+                        maxLines = 2,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    if (directoryAssurance.state != NetworkAssuranceState.FullyAssured) {
+                        Text(
+                            text = directoryAssurance.statusLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = assuranceAccent,
+                            fontSize = 7.sp,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
-            }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (avatars.isEmpty()) {
+                        Text(
+                            text = HubBentoDestination.ProviderDirectory.title(language),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        ProviderAvatarFan(
+                            avatars = avatars,
+                            fanProgress = fanProgress,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
     }
@@ -266,21 +272,25 @@ private fun ProviderAvatarFan(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = avatar.displayName.take(10),
+                                text = avatar.displayName,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 7.sp,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxWidth()
                             )
                             Text(
                                 text = avatar.specialtyLabel.uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 6.sp,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 textAlign = TextAlign.Center,
-                                color = NeonCyan.copy(alpha = 0.9f)
+                                color = NeonCyan.copy(alpha = 0.9f),
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }

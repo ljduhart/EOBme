@@ -140,7 +140,9 @@ fun CptTrackerBentoCell(
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 6.sp,
                         color = gaugeColor(snapshot.priceGaugePosition),
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
