@@ -1,8 +1,10 @@
 package app.eob.me
 
 import app.eob.me.data.CptCategory
+import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.BentoSnapshotExtractor
+import app.eob.me.data.EobStrings
 import app.eob.me.viewmodel.EobViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -194,6 +196,24 @@ class CptTrackerScreenTest {
         assertEquals("99213", officeEntries.first().code)
         assertEquals("$120.00", officeEntries.first().totalBilled)
         assertTrue(labEntries.isEmpty())
+    }
+
+    @Test
+    fun cptFlashcardStringKeysExistForAllLanguages() {
+        AppLanguage.entries.forEach { language ->
+            assertEquals("DOS", EobStrings.t(language, "cptFlashcardDosLabel"))
+            assertEquals("Billed", EobStrings.t(language, "cptFlashcardBilledTitle"))
+        }
+    }
+
+    @Test
+    fun cptFlashcardBackReservesHorizontalBilledAmountSpace() {
+        val source = readSource("ui/screens/CptTrackerScreen.kt")
+        val backIndex = source.indexOf("private fun FlashcardBack")
+        val backEnd = source.indexOf("internal fun categoryThemeColor", backIndex)
+        val backBlock = source.substring(backIndex, backEnd)
+        assertTrue(backBlock.contains("widthIn(min = 64.dp)"))
+        assertTrue(backBlock.contains("maxLines = 1"))
     }
 
     @Test

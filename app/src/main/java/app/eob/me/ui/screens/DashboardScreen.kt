@@ -66,7 +66,7 @@ fun DashboardScreen(
         )
     }
 
-    val providerBreakdown = remember(records) {
+    val providerBreakdown = remember(records, language) {
         records.groupBy { it.providerName }
             .map { (provider, recordList) ->
                 ProviderCostRow(
