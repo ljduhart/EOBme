@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -362,27 +363,52 @@ private fun FlashcardBack(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
-                Text(
-                    text = if (entry.serviceDates.isNotBlank()) {
-                        EobStrings.tf(language, "cptFlashcardServiceDateLabel", entry.serviceDates)
-                    } else {
-                        ""
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = CptFlashcardBackText.copy(alpha = 0.82f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Start
-                )
-                Text(
-                    text = EobStrings.tf(language, "cptFlashcardBilledLabel", entry.totalBilled),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = CptFlashcardBackText,
-                    textAlign = TextAlign.End
-                )
+                if (entry.serviceDates.isNotBlank()) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = EobStrings.t(language, "cptFlashcardDosLabel"),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CptFlashcardBackText.copy(alpha = 0.82f)
+                        )
+                        Text(
+                            text = entry.serviceDates,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CptFlashcardBackText.copy(alpha = 0.82f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.widthIn(min = 64.dp)
+                ) {
+                    Text(
+                        text = EobStrings.t(language, "cptFlashcardBilledTitle"),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = CptFlashcardBackText.copy(alpha = 0.82f),
+                        textAlign = TextAlign.End
+                    )
+                    Text(
+                        text = entry.totalBilled,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = CptFlashcardBackText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip,
+                        textAlign = TextAlign.End
+                    )
+                }
             }
         }
     }

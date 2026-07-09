@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobRecord
@@ -64,7 +66,7 @@ fun DashboardScreen(
         )
     }
 
-    val providerBreakdown = remember(records) {
+    val providerBreakdown = remember(records, language) {
         records.groupBy { it.providerName }
             .map { (provider, recordList) ->
                 ProviderCostRow(
@@ -200,18 +202,42 @@ fun DashboardScreen(
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
                         ) {
-                            Text(
-                                text = summary.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1
-                            )
+                            val providerNameLines = remember(summary.name) {
+                                splitProviderNameForDashboardRow(summary.name)
+                            }
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp)
+                            ) {
+                                Text(
+                                    text = providerNameLines.firstLine,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                providerNameLines.secondLine?.let { secondLine ->
+                                    Text(
+                                        text = secondLine,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
                             Text(
                                 text = String.format(Locale.US, "$%.2f", summary.totalAmount),
                                 style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Clip,
+                                softWrap = false,
+                                modifier = Modifier.widthIn(min = 72.dp)
                             )
                         }
 
@@ -280,3 +306,30 @@ private data class ProviderCostRow(
     val totalAmount: Double,
     val patientAmount: Double
 )
+
+internal data class ProviderNameLines(
+    val firstLine: String,
+    val secondLine: String?
+)
+
+/**
+ * When a provider name is long enough to crowd the billed amount on phone layouts,
+ * move the last word to a second line so currency stays horizontal.
+ */
+internal fun splitProviderNameForDashboardRow(
+    providerName: String,
+    maxSingleLineChars: Int = 28
+): ProviderNameLines {
+    val trimmed = providerName.trim()
+    if (trimmed.length <= maxSingleLineChars) {
+        return ProviderNameLines(firstLine = trimmed, secondLine = null)
+    }
+    val words = trimmed.split(Regex("\\s+")).filter { it.isNotBlank() }
+    if (words.size < 2) {
+        return ProviderNameLines(firstLine = trimmed, secondLine = null)
+    }
+    return ProviderNameLines(
+        firstLine = words.dropLast(1).joinToString(" "),
+        secondLine = words.last()
+    )
+}

@@ -17,8 +17,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.RotateLeft
+import androidx.compose.material.icons.rounded.EditNote
+import androidx.compose.material.icons.rounded.Medication
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,7 +42,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
@@ -56,6 +62,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 
 private val CardBackgroundGradient = Brush.linearGradient(
     colors = listOf(
@@ -85,6 +93,16 @@ fun CleanInsuranceCard(
     modifier: Modifier = Modifier
 ) {
     var flipped by remember { mutableStateOf(false) }
+    var localPrescriptions by remember { mutableStateOf(currentPrescriptions) }
+    var localDoctorNotes by remember { mutableStateOf(doctorQuickNotes) }
+
+    LaunchedEffect(flipped) {
+        if (flipped) {
+            localPrescriptions = currentPrescriptions
+            localDoctorNotes = doctorQuickNotes
+        }
+    }
+
     val rotation by animateFloatAsState(
         targetValue = if (flipped) 180f else 0f,
         animationSpec = tween(durationMillis = 450, easing = FastOutSlowInEasing),
@@ -116,10 +134,16 @@ fun CleanInsuranceCard(
             } else {
                 InsuranceCardNotesBackFace(
                     language = language,
-                    currentPrescriptions = currentPrescriptions,
-                    doctorQuickNotes = doctorQuickNotes,
-                    onCurrentPrescriptionsChange = onCurrentPrescriptionsChange,
-                    onDoctorQuickNotesChange = onDoctorQuickNotesChange,
+                    currentPrescriptions = localPrescriptions,
+                    doctorQuickNotes = localDoctorNotes,
+                    onCurrentPrescriptionsChange = { updated ->
+                        localPrescriptions = updated
+                        onCurrentPrescriptionsChange(updated)
+                    },
+                    onDoctorQuickNotesChange = { updated ->
+                        localDoctorNotes = updated
+                        onDoctorQuickNotesChange(updated)
+                    },
                     onFlip = { flipped = false },
                     modifier = Modifier.graphicsLayer { rotationY = 180f }
                 )
@@ -272,6 +296,17 @@ private fun InsuranceCardNotesBackFace(
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val notesKeyboardOptions = KeyboardOptions(
+        capitalization = KeyboardCapitalization.Sentences,
+        keyboardType = KeyboardType.Text,
+        autoCorrectEnabled = true,
+        imeAction = ImeAction.Default
+    )
+    val notesTextStyle = MaterialTheme.typography.bodyMedium.copy(
+        color = NotesPrimaryText,
+        letterSpacing = 0.sp
+    )
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -290,11 +325,10 @@ private fun InsuranceCardNotesBackFace(
             )
         }
 
-        Text(
-            text = EobStrings.t(language, "insuranceCardPrescriptionsLabel"),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = NotesPrimaryText
+        InsuranceCardNotesSectionHeader(
+            label = EobStrings.t(language, "insuranceCardPrescriptionsLabel"),
+            icon = Icons.Rounded.Medication,
+            iconContentDescription = EobStrings.t(language, "insuranceCardPrescriptionsIconDescription")
         )
         OutlinedTextField(
             value = currentPrescriptions,
@@ -302,28 +336,81 @@ private fun InsuranceCardNotesBackFace(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 88.dp, max = 132.dp),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = NotesPrimaryText),
+            textStyle = notesTextStyle,
             shape = RoundedCornerShape(12.dp),
             colors = notesTextFieldColors(),
+            keyboardOptions = notesKeyboardOptions,
+            singleLine = false,
             maxLines = 5
         )
 
-        Text(
-            text = EobStrings.t(language, "insuranceCardDoctorNotesLabel"),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = NotesPrimaryText
-        )
+        InsuranceCardDoctorNotesSectionHeader(language = language)
         OutlinedTextField(
             value = doctorQuickNotes,
             onValueChange = onDoctorQuickNotesChange,
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 88.dp, max = 132.dp),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = NotesPrimaryText),
+            textStyle = notesTextStyle,
             shape = RoundedCornerShape(12.dp),
             colors = notesTextFieldColors(),
+            keyboardOptions = notesKeyboardOptions,
+            singleLine = false,
             maxLines = 5
+        )
+    }
+}
+
+@Composable
+private fun InsuranceCardNotesSectionHeader(
+    label: String,
+    icon: ImageVector,
+    iconContentDescription: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = NotesPrimaryText
+        )
+        Icon(
+            imageVector = icon,
+            contentDescription = iconContentDescription,
+            tint = NotesSecondaryText,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+@Composable
+private fun InsuranceCardDoctorNotesSectionHeader(language: AppLanguage) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = EobStrings.t(language, "insuranceCardDoctorNotesPrefix"),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = NotesPrimaryText
+        )
+        Text(
+            text = EobStrings.t(language, "insuranceCardDoctorNotesQuestionsLabel"),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = NotesPrimaryText
+        )
+        Icon(
+            imageVector = Icons.Rounded.EditNote,
+            contentDescription = EobStrings.t(language, "insuranceCardDoctorNotesIconDescription"),
+            tint = NotesSecondaryText,
+            modifier = Modifier.size(18.dp)
         )
     }
 }

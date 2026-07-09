@@ -174,6 +174,7 @@ class EobViewModel : ViewModel() {
     private var profileListener: ListenerRegistration? = null
     private var insuranceCardMetadataListener: ListenerRegistration? = null
     private var insuranceNotesPersistJob: Job? = null
+    private var insuranceNotesLocalEditAtMillis: Long = 0L
     private var lastBackgroundAt: Long = System.currentTimeMillis()
     private var hasBeenBackgrounded: Boolean = false
 
@@ -955,6 +956,9 @@ class EobViewModel : ViewModel() {
     ) {
         insuranceCardMetadataListener?.remove()
         insuranceCardMetadataListener = repo.observeInsuranceCardMetadata(userId) { prescriptions, quickNotes ->
+            if (shouldIgnoreInsuranceMetadataSnapshot()) {
+                return@observeInsuranceCardMetadata
+            }
             val current = _syncProfile.value
             if (current.currentPrescriptions == prescriptions && current.doctorQuickNotes == quickNotes) {
                 return@observeInsuranceCardMetadata
@@ -1880,6 +1884,7 @@ class EobViewModel : ViewModel() {
         prescriptions: String,
         onProfileChanged: (UserProfile) -> Unit
     ) {
+        markInsuranceNotesLocalEdit()
         val updated = _syncProfile.value.copy(currentPrescriptions = prescriptions)
         updateSyncProfile(updated)
         onProfileChanged(updated)
@@ -1891,6 +1896,7 @@ class EobViewModel : ViewModel() {
         doctorQuickNotes: String,
         onProfileChanged: (UserProfile) -> Unit
     ) {
+        markInsuranceNotesLocalEdit()
         val updated = _syncProfile.value.copy(doctorQuickNotes = doctorQuickNotes)
         updateSyncProfile(updated)
         onProfileChanged(updated)
@@ -1909,6 +1915,18 @@ class EobViewModel : ViewModel() {
             delay(INSURANCE_CARD_NOTES_PERSIST_DEBOUNCE_MS)
             persistInsuranceCardNotes(userId, profile)
         }
+    }
+
+    private fun markInsuranceNotesLocalEdit() {
+        insuranceNotesLocalEditAtMillis = System.currentTimeMillis()
+    }
+
+    private fun shouldIgnoreInsuranceMetadataSnapshot(): Boolean {
+        if (insuranceNotesPersistJob?.isActive == true) {
+            return true
+        }
+        val elapsed = System.currentTimeMillis() - insuranceNotesLocalEditAtMillis
+        return elapsed in 0 until INSURANCE_CARD_NOTES_REMOTE_GUARD_MS
     }
 
     fun careTeamCardStates(language: AppLanguage): List<CareTeamCardDisplayState> {
@@ -2385,6 +2403,7 @@ class EobViewModel : ViewModel() {
 }
 
 private const val INSURANCE_CARD_NOTES_PERSIST_DEBOUNCE_MS = 400L
+private const val INSURANCE_CARD_NOTES_REMOTE_GUARD_MS = 1_200L
 
 private fun NewsRelease.key(): String = "$company|$headline|$date"
 

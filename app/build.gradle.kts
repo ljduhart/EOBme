@@ -8,10 +8,17 @@ val googleServicesConfigFiles = listOf(
     file("src/debug/google-services.json"),
     file("src/release/google-services.json")
 )
-val googleServicesConfigFile = googleServicesConfigFiles.firstOrNull { it.exists() }
-val hasGoogleServicesConfig = googleServicesConfigFile != null
+val googleServicesConfigFile = googleServicesConfigFiles.firstOrNull { it.exists() && it.isFile }
+val appPackageRegex = Regex(""""package_name"\s*:\s*"app\.eob\.me"""")
+val hasValidGoogleServicesConfig = googleServicesConfigFile
+    ?.let { configFile ->
+        runCatching { appPackageRegex.containsMatchIn(configFile.readText()) }.getOrDefault(false)
+    }
+    ?: false
+val isCiEnvironment = providers.environmentVariable("CI").orNull != null ||
+    providers.environmentVariable("GITHUB_ACTIONS").orNull != null
 
-if (hasGoogleServicesConfig) {
+if (hasValidGoogleServicesConfig) {
     apply(plugin = "com.google.gms.google-services")
     apply(plugin = "com.google.firebase.crashlytics")
 }
@@ -35,8 +42,12 @@ android {
     }
 
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -98,7 +109,17 @@ tasks.register("verifyGoogleServicesJson") {
 }
 
 tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }.configureEach {
-    dependsOn("verifyGoogleServicesJson")
+    if (hasValidGoogleServicesConfig) {
+        dependsOn("verifyGoogleServicesJson")
+    }
+}
+
+if (hasValidGoogleServicesConfig && isCiEnvironment) {
+    afterEvaluate {
+        tasks.matching { it.name.startsWith("uploadCrashlyticsMappingFile") }.configureEach {
+            enabled = false
+        }
+    }
 }
 
 dependencies {

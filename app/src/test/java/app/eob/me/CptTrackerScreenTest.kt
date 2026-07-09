@@ -1,8 +1,10 @@
 package app.eob.me
 
 import app.eob.me.data.CptCategory
+import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.BentoSnapshotExtractor
+import app.eob.me.data.EobStrings
 import app.eob.me.viewmodel.EobViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -197,15 +199,35 @@ class CptTrackerScreenTest {
     }
 
     @Test
-    fun cptFlashcardBackShowsServiceDateOnBottomLeft() {
+    fun cptFlashcardStringKeysExistForAllLanguages() {
+        AppLanguage.entries.forEach { language ->
+            assertEquals("DOS", EobStrings.t(language, "cptFlashcardDosLabel"))
+            assertEquals("Billed", EobStrings.t(language, "cptFlashcardBilledTitle"))
+        }
+    }
+
+    @Test
+    fun cptFlashcardBackReservesHorizontalBilledAmountSpace() {
         val source = readSource("ui/screens/CptTrackerScreen.kt")
-        assertTrue(source.contains("cptFlashcardServiceDateLabel"))
-        assertTrue(source.contains("entry.serviceDates"))
         val backIndex = source.indexOf("private fun FlashcardBack")
         val backEnd = source.indexOf("internal fun categoryThemeColor", backIndex)
         val backBlock = source.substring(backIndex, backEnd)
-        assertTrue(backBlock.contains("textAlign = TextAlign.Start"))
-        assertTrue(backBlock.indexOf("cptFlashcardServiceDateLabel") < backBlock.indexOf("cptFlashcardBilledLabel"))
+        assertTrue(backBlock.contains("widthIn(min = 64.dp)"))
+        assertTrue(backBlock.contains("maxLines = 1"))
+    }
+
+    @Test
+    fun cptFlashcardBackShowsDosAndBilledInVerticalStacks() {
+        val source = readSource("ui/screens/CptTrackerScreen.kt")
+        assertTrue(source.contains("cptFlashcardDosLabel"))
+        assertTrue(source.contains("cptFlashcardBilledTitle"))
+        assertTrue(source.contains("entry.serviceDates"))
+        assertTrue(source.contains("entry.totalBilled"))
+        val backIndex = source.indexOf("private fun FlashcardBack")
+        val backEnd = source.indexOf("internal fun categoryThemeColor", backIndex)
+        val backBlock = source.substring(backIndex, backEnd)
+        assertTrue(backBlock.contains("verticalArrangement = Arrangement.spacedBy(2.dp)"))
+        assertTrue(backBlock.indexOf("cptFlashcardDosLabel") < backBlock.indexOf("cptFlashcardBilledTitle"))
     }
 
     @Test
