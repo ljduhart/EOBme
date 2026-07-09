@@ -57,6 +57,7 @@ fun AppealGeneratorBentoCell(
     isProcessing: Boolean,
     onClick: () -> Unit,
     onProcessingAnimationFinished: () -> Unit,
+    cellAspectRatio: Float = BentoCellLayout.ASPECT_RATIO,
     modifier: Modifier = Modifier
 ) {
     LaunchedEffect(isProcessing) {
@@ -91,7 +92,7 @@ fun AppealGeneratorBentoCell(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(BentoCellLayout.ASPECT_RATIO)
+            .aspectRatio(cellAspectRatio)
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
@@ -135,13 +136,10 @@ fun AppealGeneratorBentoCell(
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                 }
-                Text(
+                BentoCellTitle(
                     text = HubBentoDestination.AppealGenerator.title(language),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
+                    maxLines = 2,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

@@ -62,6 +62,7 @@ fun InsuranceNewsBentoCell(
     language: AppLanguage,
     snapshot: InsuranceNewsBentoSnapshot,
     onClick: () -> Unit,
+    cellAspectRatio: Float = BentoCellLayout.ASPECT_RATIO,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -77,7 +78,7 @@ fun InsuranceNewsBentoCell(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(BentoCellLayout.ASPECT_RATIO)
+            .aspectRatio(cellAspectRatio)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

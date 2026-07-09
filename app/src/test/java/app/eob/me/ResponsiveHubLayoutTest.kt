@@ -54,7 +54,7 @@ class ResponsiveHubLayoutTest {
         val layoutSource = readSource("ui/components/bento/BentoCellLayout.kt")
         assertTrue(layoutSource.contains("LEGACY_ASPECT_RATIO = 1.35f"))
         assertTrue(layoutSource.contains("LEGACY_ASPECT_RATIO / 1.5f"))
-        assertTrue(readSource("ui/screens/HomeScreen.kt").contains("bentoSpacing"))
+        assertTrue(readSource("ui/screens/HomeScreen.kt").contains("BentoGridLayout.spacing"))
     }
 
     @Test

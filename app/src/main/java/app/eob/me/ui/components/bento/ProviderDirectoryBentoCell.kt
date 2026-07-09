@@ -62,6 +62,7 @@ fun ProviderDirectoryBentoCell(
     avatars: List<ProviderAvatarPreview>,
     directoryAssurance: ProviderDirectoryAssurance,
     onClick: () -> Unit,
+    cellAspectRatio: Float = BentoCellLayout.ASPECT_RATIO,
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -92,7 +93,7 @@ fun ProviderDirectoryBentoCell(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(BentoCellLayout.ASPECT_RATIO)
+            .aspectRatio(cellAspectRatio)
             .hoverable(interactionSource = interactionSource)
             .clickable(
                 interactionSource = interactionSource,
@@ -129,13 +130,10 @@ fun ProviderDirectoryBentoCell(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
+                BentoCellTitle(
                     text = HubBentoDestination.ProviderDirectory.title(language),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
+                    maxLines = 2,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 if (directoryAssurance.state != NetworkAssuranceState.FullyAssured) {
                     Text(

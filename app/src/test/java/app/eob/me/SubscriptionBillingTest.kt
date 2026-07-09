@@ -679,6 +679,39 @@ class SubscriptionBillingTest {
         assertTrue(manifest.contains("com.android.vending"))
     }
 
+    @Test
+    fun billingLibraryUsesLatestStableCatalogVersion() {
+        val versionCatalog = readFile("gradle/libs.versions.toml")
+        val buildScript = readFile("app/build.gradle.kts")
+        assertTrue(versionCatalog.contains("billing = \"9.1.0\""))
+        assertTrue(buildScript.contains("libs.billing"))
+        assertFalse(buildScript.contains("billing:8."))
+    }
+
+    @Test
+    fun billingRepositoryUsesAutoReconnectionAndValidLaunchFlow() {
+        val source = readSource("billing/BillingRepository.kt")
+        listOf(
+            "enableAutoServiceReconnection()",
+            "BillingFlowParams.newBuilder()",
+            "setProductDetailsParamsList",
+            "setOfferToken",
+            "launchBillingFlow(activity, flowParams)",
+            "QueryProductDetailsParams"
+        ).forEach { snippet ->
+            assertTrue("BillingRepository missing: $snippet", source.contains(snippet))
+        }
+        assertFalse("Dead PREMIUM_PRODUCT_ID alias must not remain", source.contains("PREMIUM_PRODUCT_ID"))
+    }
+
+    private fun readFile(relativePath: String): String {
+        val candidates = listOf(
+            java.io.File(relativePath),
+            java.io.File("../$relativePath")
+        )
+        return candidates.first { it.isFile }.readText()
+    }
+
     private fun readManifest(): String {
         val candidates = listOf(
             java.io.File("src/main/AndroidManifest.xml"),

@@ -45,6 +45,7 @@ class BillingRepository(
                 .enableOneTimeProducts()
                 .build()
         )
+        .enableAutoServiceReconnection()
         .build()
 
     fun startConnection() {
@@ -260,8 +261,6 @@ class BillingRepository(
     }
 
     companion object {
-        const val PREMIUM_PRODUCT_ID: String = SubscriptionCatalog.LEGACY_PREMIUM_PRODUCT_ID
-
         internal fun resolveOfferToken(product: ProductDetails, basePlanId: String): String? {
             return product.subscriptionOfferDetails
                 ?.firstOrNull { offer -> offer.basePlanId == basePlanId }

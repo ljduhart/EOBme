@@ -203,6 +203,7 @@ class EobFlowArchitectureTest {
         }
         listOf(
             "ui/components/bento/BentoCellLayout.kt",
+            "ui/components/bento/BentoGridLayout.kt",
             "ui/components/bento/HistoryBentoCell.kt",
             "ui/components/bento/ProviderDirectoryBentoCell.kt",
             "ui/components/bento/CptTrackerBentoCell.kt",
@@ -233,7 +234,7 @@ class EobFlowArchitectureTest {
             "subscriptionTier.isGold()",
             "onTaxVaultFilterSelected",
             "HomeWeekCalendar",
-            "bentoSpacing",
+            "BentoGridLayout.spacing",
             "wrapContentHeight"
         ).forEach { snippet ->
             assertTrue("HomeScreen missing tax vault wiring: $snippet", homeSource.contains(snippet))
@@ -361,11 +362,11 @@ class EobFlowArchitectureTest {
         val subscriptionStateSource = readSource("billing/SubscriptionState.kt")
         val subscriptionVmSource = readSource("viewmodel/SubscriptionViewModel.kt")
         listOf(
-            "LEGACY_PREMIUM_PRODUCT_ID",
             "SubscriptionCatalog.ALL_SUBSCRIPTION_PRODUCT_IDS",
             "SubscriptionCatalog.offerRef",
             "basePlanId",
             "resolveOfferToken",
+            "enableAutoServiceReconnection",
             "billing_user_canceled",
             "clearBillingNotice",
             "launchBillingFlow",
@@ -375,6 +376,9 @@ class EobFlowArchitectureTest {
         ).forEach { snippet ->
             assertTrue("Billing layer missing: $snippet", billingSource.contains(snippet))
         }
+        assertTrue(
+            readSource("data/SubscriptionCatalog.kt").contains("LEGACY_PREMIUM_PRODUCT_ID")
+        )
         assertTrue(
             subscriptionStateSource.contains("sealed interface SubscriptionState") &&
                 subscriptionStateSource.contains("Gold") &&

@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
@@ -75,6 +76,7 @@ fun HistoryBentoCell(
     onClick: () -> Unit,
     onFilterSelected: (HistoryBentoFilter) -> Unit,
     onFileDropAnimationFinished: () -> Unit,
+    cellAspectRatio: Float = BentoCellLayout.ASPECT_RATIO,
     modifier: Modifier = Modifier
 ) {
     val isPulsing = isLoadingInvoice || processingPhase == InvoiceProcessingPhase.Processing
@@ -110,7 +112,7 @@ fun HistoryBentoCell(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(BentoCellLayout.ASPECT_RATIO)
+            .aspectRatio(cellAspectRatio)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -150,7 +152,8 @@ fun HistoryBentoCell(
                     color = if (taxVaultActive) Color(0xFF3DDC84) else MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 if (taxVaultActive) {

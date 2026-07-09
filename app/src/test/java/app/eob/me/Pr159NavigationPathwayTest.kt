@@ -59,7 +59,7 @@ class Pr159NavigationPathwayTest {
         assertTrue(layoutSource.contains("LEGACY_ASPECT_RATIO / 1.5f"))
         assertTrue(homeSource.contains("HubBentoDestination.gridRows"))
         assertTrue(homeSource.contains("onBentoSelected(destination)"))
-        assertTrue(homeSource.contains("bentoSpacing"))
+        assertTrue(homeSource.contains("BentoGridLayout.spacing"))
         assertTrue(navSource.contains("navController.navigate(destination.route)"))
     }
 

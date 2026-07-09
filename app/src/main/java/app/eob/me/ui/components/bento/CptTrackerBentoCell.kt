@@ -62,6 +62,7 @@ fun CptTrackerBentoCell(
     language: AppLanguage,
     snapshot: CptBentoSnapshot,
     onClick: () -> Unit,
+    cellAspectRatio: Float = BentoCellLayout.ASPECT_RATIO,
     modifier: Modifier = Modifier
 ) {
     var ringTarget by remember(snapshot.ringProgress) { mutableFloatStateOf(0f) }
@@ -85,7 +86,7 @@ fun CptTrackerBentoCell(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(BentoCellLayout.ASPECT_RATIO)
+            .aspectRatio(cellAspectRatio)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -97,14 +98,9 @@ fun CptTrackerBentoCell(
                 .padding(horizontal = 6.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Text(
+            BentoCellTitle(
                 text = HubBentoDestination.CptTracker.title(language),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 1
+                modifier = Modifier.fillMaxWidth()
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -42,6 +42,7 @@ fun BentoGridCell(
     onYtdViewModeSelected: (YtdBentoViewMode) -> Unit,
     appealGeneratorBentoProcessing: Boolean,
     subscriptionTier: SubscriptionTier,
+    cellAspectRatio: Float = BentoCellLayout.ASPECT_RATIO,
     onLockedClick: () -> Unit,
     onClick: () -> Unit,
     onHistoryFilterSelected: (HistoryBentoFilter) -> Unit,
@@ -55,6 +56,7 @@ fun BentoGridCell(
         BentoGridCellContent(
             language = language,
             destination = destination,
+            cellAspectRatio = cellAspectRatio,
             historySnapshot = historySnapshot,
             taxVaultActive = taxVaultActive,
             taxVaultBudgetSummary = taxVaultBudgetSummary,
@@ -98,6 +100,7 @@ fun BentoGridCell(
 private fun BentoGridCellContent(
     language: AppLanguage,
     destination: HubBentoDestination,
+    cellAspectRatio: Float,
     historySnapshot: HistoryBentoSnapshot,
     taxVaultActive: Boolean,
     taxVaultBudgetSummary: TaxVaultBudgetSummary,
@@ -125,6 +128,7 @@ private fun BentoGridCellContent(
             HistoryBentoCell(
                 language = language,
                 snapshot = historySnapshot,
+                cellAspectRatio = cellAspectRatio,
                 taxVaultActive = taxVaultActive,
                 taxVaultBudgetSummary = taxVaultBudgetSummary,
                 taxVaultFilterState = taxVaultFilterState,
@@ -143,6 +147,7 @@ private fun BentoGridCellContent(
                 language = language,
                 avatars = providerAvatars,
                 directoryAssurance = providerDirectoryAssurance,
+                cellAspectRatio = cellAspectRatio,
                 onClick = onClick,
                 modifier = modifier
             )
@@ -151,6 +156,7 @@ private fun BentoGridCellContent(
             CptTrackerBentoCell(
                 language = language,
                 snapshot = cptBentoSnapshot,
+                cellAspectRatio = cellAspectRatio,
                 onClick = onClick,
                 modifier = modifier
             )
@@ -160,6 +166,7 @@ private fun BentoGridCellContent(
                 language = language,
                 snapshot = ytdBentoSnapshot,
                 viewMode = ytdBentoViewMode,
+                cellAspectRatio = cellAspectRatio,
                 onViewModeSelected = onYtdViewModeSelected,
                 onClick = onClick,
                 modifier = modifier
@@ -169,6 +176,7 @@ private fun BentoGridCellContent(
             InsuranceNewsBentoCell(
                 language = language,
                 snapshot = insuranceNewsBentoSnapshot,
+                cellAspectRatio = cellAspectRatio,
                 onClick = onClick,
                 modifier = modifier
             )
@@ -177,6 +185,7 @@ private fun BentoGridCellContent(
             AppealGeneratorBentoCell(
                 language = language,
                 isProcessing = appealGeneratorBentoProcessing,
+                cellAspectRatio = cellAspectRatio,
                 onClick = onClick,
                 onProcessingAnimationFinished = onAppealGeneratorProcessingFinished,
                 modifier = modifier

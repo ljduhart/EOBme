@@ -63,6 +63,7 @@ fun YtdExpenseBentoCell(
     viewMode: YtdBentoViewMode,
     onViewModeSelected: (YtdBentoViewMode) -> Unit,
     onClick: () -> Unit,
+    cellAspectRatio: Float = BentoCellLayout.ASPECT_RATIO,
     modifier: Modifier = Modifier
 ) {
     val morph by animateFloatAsState(
@@ -74,7 +75,7 @@ fun YtdExpenseBentoCell(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(BentoCellLayout.ASPECT_RATIO),
+            .aspectRatio(cellAspectRatio),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -85,14 +86,9 @@ fun YtdExpenseBentoCell(
                 .padding(horizontal = 5.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Text(
+            BentoCellTitle(
                 text = HubBentoDestination.YtdExpense.title(language),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 1
+                modifier = Modifier.fillMaxWidth()
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),

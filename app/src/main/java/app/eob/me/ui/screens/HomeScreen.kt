@@ -58,6 +58,7 @@ import app.eob.me.data.YtdDeductibleBentoSnapshot
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.CleanInsuranceCard
 import app.eob.me.ui.components.bento.BentoGridCell
+import app.eob.me.ui.components.bento.BentoGridLayout
 import app.eob.me.ui.components.home.HomeAppointmentsSection
 import app.eob.me.ui.components.home.HomeCareTeamCards
 import app.eob.me.ui.components.home.HomeWeekCalendar
@@ -245,15 +246,20 @@ fun HomeScreen(
             HubBentoDestination.gridRows.forEach { row ->
                 item {
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        val bentoSpacing = (maxWidth * 0.065f).coerceIn(14.dp, 28.dp)
+                        val bentoSpacing = BentoGridLayout.spacing(maxWidth)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(bentoSpacing)
                         ) {
                             row.forEach { destination ->
-                                BentoGridCell(
-                                    language = language,
-                                    destination = destination,
+                                BoxWithConstraints(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    val cellAspectRatio = BentoGridLayout.aspectRatioForCellWidth(maxWidth)
+                                    BentoGridCell(
+                                        language = language,
+                                        destination = destination,
+                                        cellAspectRatio = cellAspectRatio,
                                     historySnapshot = historySnapshot,
                                     taxVaultActive = taxVaultFilterState != TaxVaultFilterState.OFF,
                                     taxVaultBudgetSummary = taxVaultBudgetSummary,
@@ -275,8 +281,9 @@ fun HomeScreen(
                                     onHistoryFilterSelected = onHistoryFilterSelected,
                                     onInvoiceFileDropFinished = onInvoiceFileDropFinished,
                                     onAppealGeneratorProcessingFinished = onAppealGeneratorProcessingFinished,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                     }

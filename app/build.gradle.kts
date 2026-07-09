@@ -148,7 +148,7 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
-    implementation("com.android.billingclient:billing:8.3.0")
+    implementation(libs.billing)
     implementation(libs.revenuecat.purchases)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.coil.compose)
