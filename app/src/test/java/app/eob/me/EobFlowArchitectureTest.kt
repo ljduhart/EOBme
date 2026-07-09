@@ -506,6 +506,29 @@ class EobFlowArchitectureTest {
             File(appModuleRoot, "../../../../../../build.gradle.kts").readText()
                 .contains("libs.revenuecat.purchases")
         )
+        val repoRoot = resolveRepoRoot()
+        val buildScript = File(repoRoot, "app/build.gradle.kts").readText()
+        val versionCatalog = File(repoRoot, "gradle/libs.versions.toml").readText()
+        assertTrue(
+            "Play Billing 9.1.0 must be declared in version catalog",
+            versionCatalog.contains("billing = \"9.1.0\"")
+        )
+        assertTrue(
+            "Gradle must force billing 9.1.0 over RevenueCat transitive dependency",
+            buildScript.contains("resolutionStrategy.force") &&
+                buildScript.contains("com.android.billingclient:billing")
+        )
+        assertTrue(
+            "PaywallPricing must resolve packages through shared SubscriptionCatalog",
+            readSource("billing/PaywallPricing.kt").contains("RevenueCatPackageResolver.resolve") &&
+                readSource("billing/RevenueCatPackageResolver.kt").contains("SubscriptionCatalog.offerRef")
+        )
+        assertTrue(
+            "SubscriptionViewModel must merge Play Billing and RevenueCat notice streams for paywall",
+            subscriptionVmSource.contains("billingRepository.billingErrorKey") &&
+                subscriptionVmSource.contains("revenueCatBillingRepository.billingNoticeKey") &&
+                navHostSource.contains("handleBillingNoticeForPaywall")
+        )
     }
 
     @Test

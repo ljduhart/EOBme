@@ -704,6 +704,56 @@ class SubscriptionBillingTest {
         assertFalse("Dead PREMIUM_PRODUCT_ID alias must not remain", source.contains("PREMIUM_PRODUCT_ID"))
     }
 
+    @Test
+    fun billing910SyncsPlayBillingRevenueCatAndCustomPaywall() {
+        val buildScript = readFile("app/build.gradle.kts")
+        val subscriptionVm = readSource("viewmodel/SubscriptionViewModel.kt")
+        val billingRepo = readSource("billing/BillingRepository.kt")
+        val rcRepo = readSource("billing/RevenueCatBillingRepository.kt")
+        val paywallPricing = readSource("billing/PaywallPricing.kt")
+        val packageResolver = readSource("billing/RevenueCatPackageResolver.kt")
+        val navHost = readSource("navigation/EobNavHost.kt")
+        val paywall = readSource("ui/screens/PaywallDialog.kt")
+
+        assertTrue(buildScript.contains("libs.billing"))
+        assertTrue(
+            "Gradle must align RevenueCat transitive billing to 9.1.0",
+            buildScript.contains("resolutionStrategy.force") &&
+                buildScript.contains("com.android.billingclient:billing")
+        )
+
+        listOf(
+            billingRepo to "SubscriptionCatalog.offerRef",
+            billingRepo to "ALL_SUBSCRIPTION_PRODUCT_IDS",
+            packageResolver to "SubscriptionCatalog.offerRef",
+            paywallPricing to "RevenueCatPackageResolver.resolve"
+        ).forEach { (source, snippet) ->
+            assertTrue("Shared catalog sync missing $snippet", source.contains(snippet))
+        }
+
+        assertTrue(rcRepo.contains("awaitPurchase"))
+        assertTrue(rcRepo.contains("awaitOfferings"))
+        assertTrue(rcRepo.contains("_paywallPricing"))
+        assertTrue(
+            subscriptionVm.contains("revenueCatBillingRepository.purchase(activity, tier, interval)") &&
+                subscriptionVm.contains("billingRepository.launchBillingFlow(activity, tier, interval)") &&
+                subscriptionVm.contains("revenueCatBillingRepository.paywallPricing")
+        )
+        assertTrue(
+            subscriptionVm.contains("billingRepository.activePlayTier.collect") &&
+                subscriptionVm.contains("revenueCatBillingRepository.refreshCustomerInfo()")
+        )
+        assertTrue(
+            navHost.contains("subscriptionViewModel.paywallPricing.collectAsStateWithLifecycle") &&
+                navHost.contains("subscriptionViewModel.launchPurchaseFlow") &&
+                navHost.contains("PaywallDialog")
+        )
+        assertTrue(paywall.contains("paywallPricing.displayPrice"))
+        assertTrue(paywall.contains("paywallPricing.checkoutPrice"))
+        assertTrue(paywall.contains("onRestorePurchasesClicked"))
+        assertFalse("Paywall features must remain unchanged", paywall.contains("Loading prices"))
+    }
+
     private fun readFile(relativePath: String): String {
         val candidates = listOf(
             java.io.File(relativePath),

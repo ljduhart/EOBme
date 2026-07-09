@@ -65,6 +65,12 @@ android {
     }
 }
 
+// RevenueCat 10.8.0 transitively requests billing 8.3.0; force the app's explicit 9.1.0
+// so BillingRepository and Purchases.sharedInstance share one Play Billing runtime.
+configurations.configureEach {
+    resolutionStrategy.force("com.android.billingclient:billing:${libs.versions.billing.get()}")
+}
+
 tasks.withType<Test>().configureEach {
     maxParallelForks = 1
 }
