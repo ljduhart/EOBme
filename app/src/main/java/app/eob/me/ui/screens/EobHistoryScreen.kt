@@ -118,7 +118,7 @@ fun EobHistoryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.22f)
+                    .weight(0.16f)
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -197,7 +197,7 @@ fun EobHistoryScreen(
             if (recordCount == 0) {
                 Box(
                     modifier = Modifier
-                        .weight(0.78f)
+                        .weight(0.84f)
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp),
                     contentAlignment = Alignment.Center
@@ -219,7 +219,7 @@ fun EobHistoryScreen(
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
                     modifier = Modifier
-                        .weight(0.78f)
+                        .weight(0.84f)
                         .fillMaxWidth(),
                     onExpandToggle = { record ->
                         val recordKey = record.historyListKey()

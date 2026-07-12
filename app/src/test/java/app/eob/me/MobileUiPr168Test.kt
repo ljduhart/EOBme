@@ -9,11 +9,11 @@ class MobileUiPr168Test {
     fun eobHistoryHeaderUsesCompactWeightSplit() {
         val historySource = readSource("ui/screens/EobHistoryScreen.kt")
         val navSource = readSource("navigation/EobNavHost.kt")
-        assertTrue(historySource.contains(".weight(0.22f)"))
-        assertTrue(historySource.contains(".weight(0.78f)"))
+        assertTrue(historySource.contains(".weight(0.16f)"))
+        assertTrue(historySource.contains(".weight(0.84f)"))
         assertTrue(historySource.contains("FilledTonalButton"))
         assertFalse(historySource.contains("ExtendedFloatingActionButton"))
-        assertTrue(navSource.contains("fillMaxHeight(0.12f)"))
+        assertTrue(navSource.contains("fillMaxHeight(0.10f)"))
     }
 
     @Test

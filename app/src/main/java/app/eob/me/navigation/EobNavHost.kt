@@ -1560,7 +1560,7 @@ private fun HistoryRoute(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.12f)
+                .fillMaxHeight(0.10f)
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
