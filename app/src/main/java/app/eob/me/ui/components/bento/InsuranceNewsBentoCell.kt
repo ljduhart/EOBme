@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -317,33 +316,20 @@ private fun NewsMicroCardActionFace(
 @Composable
 private fun InsuranceBriefingLogoStrip(modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.height(22.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = modifier.height(18.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         MajorInsuranceCarrier.entries.forEach { carrier ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-                modifier = Modifier.width(34.dp)
-            ) {
-                Image(
-                    painter = painterResource(InsuranceBriefingAssets.logoResId(carrier)),
-                    contentDescription = carrier.displayName,
-                    modifier = Modifier
-                        .height(14.dp)
-                        .fillMaxWidth(),
-                    contentScale = ContentScale.Fit
-                )
-                Text(
-                    text = carrier.hubShortName,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 5.sp, lineHeight = 6.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            Image(
+                painter = painterResource(InsuranceBriefingAssets.logoResId(carrier)),
+                contentDescription = carrier.displayName,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(16.dp)
+                    .fillMaxWidth(),
+                contentScale = ContentScale.Fit
+            )
         }
     }
 }
