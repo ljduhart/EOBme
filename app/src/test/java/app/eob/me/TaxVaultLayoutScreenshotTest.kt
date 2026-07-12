@@ -82,6 +82,14 @@ class TaxVaultLayoutScreenshotTest {
 
     @Test
     @Config(qualifiers = "w360dp-h900dp")
+    fun narrowPhoneHomeTaxVaultFilterMockupScreenshot() {
+        renderHomeTaxVaultFilterSection(darkModeEnabled = true)
+        assertHomeTaxVaultFilterVisible()
+        saveScreenshot("tax_vault_filter_mockup_pr167.png")
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h900dp")
     fun narrowPhoneTaxVaultDashboardRendersEmbeddedEvidence() {
         renderTaxVaultDashboardSection(darkModeEnabled = true)
         assertTaxVaultControlsVisible()
@@ -94,6 +102,43 @@ class TaxVaultLayoutScreenshotTest {
         renderTaxVaultDashboardSection(darkModeEnabled = true)
         assertTaxVaultControlsVisible()
         saveScreenshot("wide_tablet_tax_vault_dashboard.png")
+    }
+
+    private fun renderHomeTaxVaultFilterSection(darkModeEnabled: Boolean) {
+        val language = AppLanguage.English
+        composeRule.setContent {
+            EOBmeTheme(darkTheme = darkModeEnabled) {
+                Surface(color = if (darkModeEnabled) Color(0xFF0A1628) else Color(0xFFF5F7FA)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                    ) {
+                        TaxVaultVerticalFilterCard(
+                            language = language,
+                            darkModeEnabled = darkModeEnabled,
+                            isGoldTier = true,
+                            filterState = TaxVaultFilterState.HSA,
+                            visibilityMode = TaxVaultVisibilityMode.GATED,
+                            budgetSummary = TaxVaultBudgetSummary(
+                                eligibleAmount = 1250.0,
+                                allocationLimit = 3000.0
+                            ),
+                            onFilterSelected = {},
+                            onVisibilityModeSelected = {},
+                            onVaultDoorUnlocked = {},
+                            showTitaniumDoor = true,
+                            showMiniatureEvidence = false,
+                            enableShimmerOverlay = false,
+                            modifier = Modifier
+                                .fillMaxWidth(0.88f)
+                                .wrapContentHeight()
+                        )
+                    }
+                }
+            }
+        }
+        composeRule.waitForIdle()
     }
 
     private fun renderTaxVaultDashboardSection(darkModeEnabled: Boolean) {
@@ -133,6 +178,22 @@ class TaxVaultLayoutScreenshotTest {
             }
         }
         composeRule.waitForIdle()
+    }
+
+    private fun assertHomeTaxVaultFilterVisible() {
+        composeRule.onNodeWithText(
+            EobStrings.t(AppLanguage.English, "taxVaultFilterTitle")
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(
+            EobStrings.t(AppLanguage.English, "taxVaultHsaFunds")
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(
+            EobStrings.t(AppLanguage.English, "taxVaultFsaFunds")
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(
+            EobStrings.t(AppLanguage.English, "taxVaultDoorHoldHint"),
+            substring = true
+        ).assertIsDisplayed()
     }
 
     private fun assertTaxVaultControlsVisible() {

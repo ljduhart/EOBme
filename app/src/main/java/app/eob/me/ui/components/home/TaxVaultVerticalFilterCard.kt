@@ -16,17 +16,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -44,11 +44,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
@@ -63,13 +67,16 @@ import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.asCurrency
+import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
 import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.ui.theme.EobBrandGlow
 import app.eob.me.ui.theme.EobInsuranceGradientEnd
 import app.eob.me.ui.theme.EobInsuranceGradientMid
 import app.eob.me.ui.theme.EobInsuranceGradientStart
-import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
 import kotlinx.coroutines.delay
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 private enum class VaultUiPhase {
     OFF,
@@ -92,8 +99,9 @@ private val VaultCardBackground = Brush.linearGradient(
 private val GlowGreen = Color(0xFF3DDC84)
 private val VaultGoldText = Color(0xFFFFD166)
 private val VaultPrimaryText = Color.White
-/** Accent for interactive highlights; primary labels use [VaultPrimaryText]. */
 private val VaultNeonText = EobBrandBlue
+private val VaultSilver = Color(0xFFB8C4D0)
+private val BinaryBeamColor = Color(0xFF7AD7FF)
 
 @Composable
 fun TaxVaultVerticalFilterCard(
@@ -164,7 +172,7 @@ fun TaxVaultVerticalFilterCard(
                         drawCircle(
                             color = GlowGreen.copy(alpha = rippleAlpha * 0.35f),
                             radius = size.minDimension * (0.4f + rippleAlpha * 0.2f),
-                            center = Offset(size.width * 0.5f, size.height * 0.18f)
+                            center = Offset(size.width * 0.18f, size.height * 0.12f)
                         )
                     }
                 }
@@ -172,15 +180,16 @@ fun TaxVaultVerticalFilterCard(
                     horizontal = VaultCardInnerPaddingHorizontal,
                     vertical = VaultCardInnerPaddingVertical
                 ),
-            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            TaxVaultHeaderEmblem(
+            TaxVaultFilterHeaderRow(
+                language = language,
                 openProgress = vaultOpenProgress,
                 glowColor = vaultGlowColor,
                 showLockedBadge = !isGoldTier,
+                showTitaniumDoor = showTitaniumDoor,
                 onVaultDoorClick = {
-                    if (showTitaniumDoor || !isGoldTier) return@TaxVaultHeaderEmblem
+                    if (showTitaniumDoor || !isGoldTier) return@TaxVaultFilterHeaderRow
                     when (uiPhase) {
                         VaultUiPhase.OFF -> {
                             uiPhase = VaultUiPhase.ACTIVATING
@@ -188,85 +197,56 @@ fun TaxVaultVerticalFilterCard(
                         }
                         else -> onFilterSelected(TaxVaultFilterState.OFF)
                     }
+                },
+                onVaultUnlocked = {
+                    if (!isGoldTier) return@TaxVaultFilterHeaderRow
+                    rippleAlpha = 1f
+                    uiPhase = VaultUiPhase.ACTIVATING
+                    onVaultDoorUnlocked()
                 }
             )
-            Text(
-                text = EobStrings.t(language, "taxVaultFilterTitle"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = VaultPrimaryText,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
 
-            if (showTitaniumDoor) {
-                TitaniumVaultBiometricScanner(
-                    onVaultUnlocked = {
-                        if (!isGoldTier) return@TitaniumVaultBiometricScanner
-                        rippleAlpha = 1f
-                        uiPhase = VaultUiPhase.ACTIVATING
-                        onVaultDoorUnlocked()
-                    }
-                )
+            if (!isGoldTier) {
                 Text(
-                    text = EobStrings.t(language, "taxVaultDoorHoldHint"),
+                    text = EobStrings.t(language, "taxVaultGoldLocked"),
                     style = MaterialTheme.typography.labelSmall,
-                    color = VaultPrimaryText.copy(alpha = 0.72f),
-                    modifier = Modifier.padding(top = 2.dp),
+                    color = VaultGoldText,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
-        if (!isGoldTier) {
             Text(
-                text = EobStrings.t(language, "taxVaultGoldLocked"),
-                style = MaterialTheme.typography.labelSmall,
-                color = VaultGoldText,
-                fontWeight = FontWeight.SemiBold,
+                text = EobStrings.t(language, "taxVaultFundTypePrompt"),
+                style = MaterialTheme.typography.labelMedium,
+                color = VaultPrimaryText.copy(alpha = 0.9f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-        }
 
-        Text(
-            text = EobStrings.t(language, "taxVaultFundTypePrompt"),
-            style = MaterialTheme.typography.labelMedium,
-            color = VaultPrimaryText.copy(alpha = 0.9f),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FundTypePill(
+                    label = EobStrings.t(language, "taxVaultHsaFunds"),
+                    selected = filterState == TaxVaultFilterState.HSA,
+                    enabled = controlsEnabled,
+                    onClick = { onFilterSelected(TaxVaultFilterState.HSA) },
+                    modifier = Modifier.weight(1f)
+                )
+                FundTypePill(
+                    label = EobStrings.t(language, "taxVaultFsaFunds"),
+                    selected = filterState == TaxVaultFilterState.FSA,
+                    enabled = controlsEnabled,
+                    onClick = { onFilterSelected(TaxVaultFilterState.FSA) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FundTypePill(
-                label = EobStrings.t(language, "taxVaultHsaFunds"),
-                selected = filterState == TaxVaultFilterState.HSA,
-                enabled = controlsEnabled,
-                onClick = { onFilterSelected(TaxVaultFilterState.HSA) },
-                modifier = Modifier.weight(1f)
-            )
-            FundTypePill(
-                label = EobStrings.t(language, "taxVaultFsaFunds"),
-                selected = filterState == TaxVaultFilterState.FSA,
-                enabled = controlsEnabled,
-                onClick = { onFilterSelected(TaxVaultFilterState.FSA) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
             Text(
                 text = EobStrings.tf(language, "taxVaultShowLabel", eligibilityLabel),
                 style = MaterialTheme.typography.labelMedium,
@@ -275,99 +255,110 @@ fun TaxVaultVerticalFilterCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth()
             )
-            Slider(
-                value = visibilityMode.ordinal.toFloat(),
-                onValueChange = { raw ->
-                    if (!controlsEnabled) return@Slider
-                    val mode = TaxVaultVisibilityMode.entries.getOrElse(raw.toInt()) {
-                        TaxVaultVisibilityMode.GATED
-                    }
-                    onVisibilityModeSelected(mode)
-                },
-                valueRange = 0f..2f,
-                steps = 1,
-                enabled = controlsEnabled,
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = EobBrandBlue,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.28f)
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Row(modifier = Modifier.fillMaxWidth()) {
-                TaxVaultVisibilityMode.entries.forEach { mode ->
-                    Text(
-                        text = EobStrings.t(language, mode.labelKey()),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
-                        color = if (mode == visibilityMode && controlsEnabled) {
-                            EobBrandBlue
-                        } else {
-                            VaultPrimaryText.copy(alpha = 0.68f)
-                        },
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
 
-        if (showMiniatureEvidence && evidenceThumbnails.isNotEmpty()) {
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val miniatureCardWidth = (maxWidth / 3.2f).coerceIn(88.dp, 108.dp)
-                VaultEvidenceCarousel(
-                    language = language,
-                    thumbnails = evidenceThumbnails,
-                    onEvidenceSelected = onEvidenceSelected,
-                    titleColor = VaultPrimaryText,
-                    miniatureCardWidth = miniatureCardWidth,
+            TaxVaultBinaryBeam(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(34.dp)
+            )
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Slider(
+                    value = visibilityMode.ordinal.toFloat(),
+                    onValueChange = { raw ->
+                        if (!controlsEnabled) return@Slider
+                        val mode = TaxVaultVisibilityMode.entries.getOrElse(raw.toInt()) {
+                            TaxVaultVisibilityMode.GATED
+                        }
+                        onVisibilityModeSelected(mode)
+                    },
+                    valueRange = 0f..2f,
+                    steps = 1,
+                    enabled = controlsEnabled,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.White,
+                        activeTrackColor = EobBrandBlue,
+                        inactiveTrackColor = Color.White.copy(alpha = 0.28f)
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    TaxVaultVisibilityMode.entries.forEach { mode ->
+                        Text(
+                            text = EobStrings.t(language, mode.labelKey()),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = if (mode == visibilityMode && controlsEnabled) {
+                                VaultNeonText
+                            } else {
+                                VaultPrimaryText.copy(alpha = 0.68f)
+                            },
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            VaultKeyGlyph()
-            Column(modifier = Modifier.weight(1f)) {
-                val statusText = when (uiPhase) {
-                    VaultUiPhase.ACTIVATING -> EobStrings.t(language, "taxVaultActivating")
-                    VaultUiPhase.OFF -> EobStrings.t(language, "taxVaultOffLabel")
-                    VaultUiPhase.ON -> EobStrings.tf(
-                        language,
-                        "taxVaultStatusFiltering",
-                        eligibilityLabel
+            if (showMiniatureEvidence && evidenceThumbnails.isNotEmpty()) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val miniatureCardWidth = (maxWidth / 3.2f).coerceIn(88.dp, 108.dp)
+                    VaultEvidenceCarousel(
+                        language = language,
+                        thumbnails = evidenceThumbnails,
+                        onEvidenceSelected = onEvidenceSelected,
+                        titleColor = VaultPrimaryText,
+                        miniatureCardWidth = miniatureCardWidth,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = VaultPrimaryText.copy(alpha = 0.92f),
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (uiPhase == VaultUiPhase.ON && budgetSummary.allocationLimit > 0.0) {
-                    Text(
-                        text = EobStrings.tf(
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                VaultKeyGlyph()
+                Column(modifier = Modifier.weight(1f)) {
+                    val statusText = when (uiPhase) {
+                        VaultUiPhase.ACTIVATING -> EobStrings.t(language, "taxVaultActivating")
+                        VaultUiPhase.OFF -> EobStrings.t(language, "taxVaultOffLabel")
+                        VaultUiPhase.ON -> EobStrings.tf(
                             language,
-                            "taxVaultBudgetReadout",
-                            budgetSummary.eligibleAmount.asCurrency(),
-                            budgetSummary.allocationLimit.asCurrency()
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = GlowGreen.copy(alpha = 0.92f),
-                        maxLines = 1,
+                            "taxVaultStatusFiltering",
+                            eligibilityLabel
+                        )
+                    }
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = VaultPrimaryText.copy(alpha = 0.92f),
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (uiPhase == VaultUiPhase.ON && budgetSummary.allocationLimit > 0.0) {
+                        Text(
+                            text = EobStrings.tf(
+                                language,
+                                "taxVaultBudgetReadout",
+                                budgetSummary.eligibleAmount.asCurrency(),
+                                budgetSummary.allocationLimit.asCurrency()
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = GlowGreen.copy(alpha = 0.92f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
-        }
         }
 
         if (enableShimmerOverlay) {
@@ -382,6 +373,200 @@ fun TaxVaultVerticalFilterCard(
             onFilterSelected(TaxVaultFilterState.HSA)
             uiPhase = VaultUiPhase.ON
         }
+    }
+}
+
+@Composable
+private fun TaxVaultFilterHeaderRow(
+    language: AppLanguage,
+    openProgress: Float,
+    glowColor: Color,
+    showLockedBadge: Boolean,
+    showTitaniumDoor: Boolean,
+    onVaultDoorClick: () -> Unit,
+    onVaultUnlocked: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        TaxVaultVaultIconCluster(
+            openProgress = openProgress,
+            glowColor = glowColor,
+            showLockedBadge = showLockedBadge,
+            onClick = onVaultDoorClick,
+            modifier = Modifier.size(76.dp)
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = EobStrings.t(language, "taxVaultFilterTitle"),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 18.sp,
+                    lineHeight = 22.sp
+                ),
+                fontWeight = FontWeight.Bold,
+                color = VaultPrimaryText,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (showTitaniumDoor) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                TitaniumVaultBiometricScanner(
+                    onVaultUnlocked = onVaultUnlocked,
+                    scannerSize = 52.dp
+                )
+                Text(
+                    text = EobStrings.t(language, "taxVaultDoorHoldHint"),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp, lineHeight = 8.sp),
+                    color = VaultPrimaryText.copy(alpha = 0.65f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(72.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaxVaultVaultIconCluster(
+    openProgress: Float,
+    glowColor: Color,
+    showLockedBadge: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val orbitRadius = size.minDimension * 0.44f
+            drawCircle(
+                color = EobBrandGlow.copy(alpha = 0.16f),
+                radius = orbitRadius,
+                center = center,
+                style = Stroke(width = 2.5f)
+            )
+            listOf(0f, 90f, 180f, 270f).forEach { degrees ->
+                rotate(degrees, center) {
+                    drawArc(
+                        color = EobBrandBlue.copy(alpha = 0.55f),
+                        startAngle = -28f,
+                        sweepAngle = 42f,
+                        useCenter = false,
+                        topLeft = Offset(center.x - orbitRadius, center.y - orbitRadius),
+                        size = Size(orbitRadius * 2f, orbitRadius * 2f),
+                        style = Stroke(width = 2.8f)
+                    )
+                }
+            }
+            repeat(3) { index ->
+                val gearCenter = Offset(
+                    x = size.width * (0.18f + index * 0.28f),
+                    y = size.height * 0.2f
+                )
+                drawGear(gearCenter, radius = 5.5f + index, teeth = 6, color = VaultSilver.copy(alpha = 0.35f))
+            }
+        }
+        VaultDoorGlyph(
+            openProgress = openProgress,
+            glowColor = glowColor,
+            showLockedBadge = showLockedBadge,
+            onClick = onClick,
+            modifier = Modifier.size(52.dp)
+        )
+        Text(
+            text = "\$f",
+            color = VaultPrimaryText,
+            fontWeight = FontWeight.Black,
+            fontSize = 22.sp,
+            lineHeight = 22.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun TaxVaultBinaryBeam(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "taxVaultBinaryBeam")
+    val scroll by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "taxVaultBinaryScroll"
+    )
+    val binaryColumns = remember {
+        listOf(
+            "10110",
+            "01101",
+            "11001",
+            "00111",
+            "10010"
+        )
+    }
+    Canvas(modifier = modifier) {
+        val beamWidth = size.width * 0.12f
+        val beamCenterX = size.width * 0.5f
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    BinaryBeamColor.copy(alpha = 0.05f),
+                    BinaryBeamColor.copy(alpha = 0.42f),
+                    BinaryBeamColor.copy(alpha = 0.18f),
+                    Color.Transparent
+                ),
+                startY = 0f,
+                endY = size.height
+            ),
+            topLeft = Offset(beamCenterX - beamWidth / 2f, 0f),
+            size = Size(beamWidth, size.height)
+        )
+        val paint = Paint().asFrameworkPaint().apply {
+            color = BinaryBeamColor.copy(alpha = 0.82f).toArgb()
+            textSize = 9.dp.toPx()
+            isAntiAlias = true
+        }
+        binaryColumns.forEachIndexed { columnIndex, column ->
+            val x = beamCenterX - beamWidth / 2f + columnIndex * (beamWidth / binaryColumns.size) + 4f
+            column.forEachIndexed { rowIndex, digit ->
+                val y = ((rowIndex + scroll * column.length) % (column.length + 2)) * 11f
+                drawContext.canvas.nativeCanvas.drawText(
+                    digit.toString(),
+                    x,
+                    y.coerceAtMost(size.height),
+                    paint
+                )
+            }
+        }
+    }
+}
+
+private fun DrawScope.drawGear(center: Offset, radius: Float, teeth: Int, color: Color) {
+    drawCircle(color = color.copy(alpha = 0.5f), radius = radius * 0.55f, center = center)
+    repeat(teeth) { index ->
+        val angle = (index.toFloat() / teeth) * (2f * PI.toFloat())
+        val outer = Offset(
+            x = center.x + cos(angle) * radius,
+            y = center.y + sin(angle) * radius
+        )
+        drawCircle(color = color, radius = radius * 0.22f, center = outer)
     }
 }
 
@@ -454,39 +639,7 @@ private fun Modifier.taxVaultCareTeamBorder(cornerRadius: androidx.compose.ui.un
         )
 }
 
-@Composable
-private fun TaxVaultHeaderEmblem(
-    openProgress: Float,
-    glowColor: Color,
-    showLockedBadge: Boolean,
-    onVaultDoorClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(88.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        VaultDoorGlyph(
-            openProgress = openProgress,
-            glowColor = glowColor,
-            showLockedBadge = showLockedBadge,
-            onClick = onVaultDoorClick,
-            modifier = Modifier.size(64.dp)
-        )
-        Text(
-            text = "\$f",
-            color = VaultPrimaryText,
-            fontWeight = FontWeight.Black,
-            fontSize = 36.sp,
-            lineHeight = 36.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTaxVaultDataStreams() {
+private fun DrawScope.drawTaxVaultDataStreams() {
     val streamColor = EobBrandBlue.copy(alpha = 0.22f)
     val xPositions = listOf(0.18f, 0.34f, 0.52f, 0.68f, 0.84f)
     xPositions.forEachIndexed { index, xFraction ->
@@ -598,7 +751,7 @@ private fun CanvasVaultDoorIcon(
     glowColor: Color,
     modifier: Modifier = Modifier
 ) {
-    androidx.compose.foundation.Canvas(modifier = modifier) {
+    Canvas(modifier = modifier) {
         val frameColor = Color.White.copy(alpha = 0.85f)
         val doorWidth = size.width * 0.42f
         val doorHeight = size.height * 0.72f
@@ -607,22 +760,22 @@ private fun CanvasVaultDoorIcon(
         drawRoundRect(
             color = frameColor.copy(alpha = 0.35f),
             topLeft = Offset(left - 4f, top - 4f),
-            size = androidx.compose.ui.geometry.Size(doorWidth + 8f, doorHeight + 8f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f),
+            size = Size(doorWidth + 8f, doorHeight + 8f),
+            cornerRadius = CornerRadius(4f, 4f),
             style = Stroke(width = 2f)
         )
         val split = doorWidth * (0.35f + openProgress * 0.3f)
         drawRoundRect(
             color = glowColor.copy(alpha = 0.75f),
             topLeft = Offset(left, top),
-            size = androidx.compose.ui.geometry.Size(split, doorHeight),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+            size = Size(split, doorHeight),
+            cornerRadius = CornerRadius(3f, 3f)
         )
         drawRoundRect(
             color = glowColor.copy(alpha = 0.55f),
             topLeft = Offset(left + split + 2f, top),
-            size = androidx.compose.ui.geometry.Size(doorWidth - split - 2f, doorHeight),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+            size = Size(doorWidth - split - 2f, doorHeight),
+            cornerRadius = CornerRadius(3f, 3f)
         )
         if (openProgress > 0.85f) {
             drawCircle(
@@ -640,7 +793,7 @@ private fun VaultKeyGlyph() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy((-5).dp)
     ) {
-        repeat(3) {
+        repeat(2) {
             Box(
                 modifier = Modifier
                     .size(width = 13.dp, height = 17.dp)

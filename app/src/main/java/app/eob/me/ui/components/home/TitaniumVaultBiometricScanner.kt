@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
@@ -39,16 +40,18 @@ private val UnlockGreen = Color(0xFF3DDC84)
 fun TitaniumVaultBiometricScanner(
     onVaultUnlocked: () -> Unit,
     modifier: Modifier = Modifier,
-    holdDurationMs: Long = 3_000L
+    holdDurationMs: Long = 3_000L,
+    scannerSize: Dp = 72.dp
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val ringProgress = remember { Animatable(0f) }
     val progress = ringProgress.value
+    val iconSize = scannerSize * 0.42f
 
     Box(
         modifier = modifier
-            .size(72.dp)
+            .size(scannerSize)
             .clip(CircleShape)
             .background(
                 Brush.radialGradient(
@@ -81,8 +84,8 @@ fun TitaniumVaultBiometricScanner(
             },
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(72.dp)) {
-            val stroke = 5.dp.toPx()
+        Canvas(modifier = Modifier.size(scannerSize)) {
+            val stroke = (scannerSize.toPx() * 0.07f).coerceAtLeast(3f)
             val diameter = size.minDimension - stroke
             val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
             val ringColor = if (progress >= 0.99f) UnlockGreen else ScannerGlow
@@ -109,7 +112,7 @@ fun TitaniumVaultBiometricScanner(
             imageVector = Icons.Rounded.Fingerprint,
             contentDescription = null,
             tint = Color.White.copy(alpha = 0.92f),
-            modifier = Modifier.size(30.dp)
+            modifier = Modifier.size(iconSize)
         )
     }
 }
