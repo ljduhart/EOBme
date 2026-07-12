@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -1555,28 +1557,32 @@ private fun HistoryRoute(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxHeight(0.12f)
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(EobStrings.t(language, "history")) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 48.dp),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                label = { Text(EobStrings.t(language, "provider")) },
                 placeholder = { Text(EobStrings.t(language, "provider")) },
                 singleLine = true
             )
-        }
-        if (totalBillingErrors > 0) {
-            Text(
-                text = "$totalBillingErrors ${EobStrings.t(language, "analysis")}",
-                modifier = Modifier.padding(horizontal = 16.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
+            if (totalBillingErrors > 0) {
+                Text(
+                    text = "$totalBillingErrors ${EobStrings.t(language, "analysis")}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 1
+                )
+            }
         }
         Box(modifier = Modifier.weight(1f)) {
             if (uiState.isLoadingInvoice) {

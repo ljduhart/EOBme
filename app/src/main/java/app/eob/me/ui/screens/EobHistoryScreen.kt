@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -32,7 +34,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -113,45 +115,55 @@ fun EobHistoryScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.22f)
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = EobStrings.t(language, "history"),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    ExtendedFloatingActionButton(
-                        expanded = true,
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = EobStrings.t(language, "history"),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "$recordCount ${EobStrings.t(language, "eobs")}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    FilledTonalButton(
                         onClick = onUploadEob,
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Add,
-                                contentDescription = EobStrings.t(language, "uploadEob")
-                            )
-                        },
-                        text = {
-                            Text(
-                                text = EobStrings.t(language, "uploadEob"),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    )
+                        modifier = Modifier.heightIn(max = 36.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = EobStrings.t(language, "uploadEob"),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = EobStrings.t(language, "uploadEob"),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$recordCount ${EobStrings.t(language, "eobs")}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(12.dp))
                 HistoryPaymentFilterChips(
                     language = language,
                     selectedFilter = paymentFilter,
@@ -173,18 +185,20 @@ fun EobHistoryScreen(
                             Color(0xFF3DDC84).copy(alpha = 0.14f),
                             RoundedCornerShape(8.dp)
                         )
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelMedium,
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF1B7F4B)
+                    color = Color(0xFF1B7F4B),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             if (recordCount == 0) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(0.78f)
+                        .fillMaxWidth()
                         .padding(horizontal = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -204,6 +218,9 @@ fun EobHistoryScreen(
                     selectedRecord = selectedRecord,
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
+                    modifier = Modifier
+                        .weight(0.78f)
+                        .fillMaxWidth(),
                     onExpandToggle = { record ->
                         val recordKey = record.historyListKey()
                         val collapsingSame = expandedRecordKey == recordKey
@@ -326,11 +343,12 @@ private fun HistoryTimelineList(
     onExpandToggle: (EobRecord) -> Unit,
     onDoctorAppealRequested: (EobRecord) -> Unit,
     onAppealInsurance: (EobRecord) -> Unit,
-    onDeleteEob: (EobRecord) -> Unit
+    onDeleteEob: (EobRecord) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {

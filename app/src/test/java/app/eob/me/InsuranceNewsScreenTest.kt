@@ -50,7 +50,7 @@ class InsuranceNewsScreenTest {
         assertTrue(source.contains("if (canOpenArticle)"))
         assertTrue(source.contains("InsuranceBriefingAssets.logoResId"))
         assertTrue(source.contains("painterResource"))
-        assertFalse(source.contains("carrierIcon"))
+        assertFalse(source.contains("hubShortName"))
         assertFalse(source.contains("HolographicGlassCard"))
         assertFalse(source.contains("HomeInsuranceNewsSection"))
     }

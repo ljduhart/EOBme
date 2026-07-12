@@ -70,7 +70,7 @@ class EobHistoryScreenTest {
             (rowIndex + 1_200).coerceAtMost(source.length)
         )
         assertTrue(headerBlock.contains("EobStrings.t(language, \"history\")"))
-        assertTrue(headerBlock.contains("ExtendedFloatingActionButton"))
+        assertTrue(headerBlock.contains("FilledTonalButton"))
         assertFalse(source.contains("floatingActionButton = {"))
     }
 

@@ -2670,7 +2670,7 @@ class EobFlowArchitectureTest {
             "PR#138: upload must not remain a scaffold FAB",
             historySource.contains("floatingActionButton = {")
         )
-        assertTrue(historySource.contains("ExtendedFloatingActionButton"))
+        assertTrue(historySource.contains("FilledTonalButton"))
     }
 
     @Test

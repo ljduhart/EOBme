@@ -63,6 +63,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -305,11 +306,6 @@ fun CarrierCard(
         width = if (isSelected) 2.dp else 1.dp,
         color = carrierCardBorderColor(isSelected)
     )
-    val labelColor = if (isSelected) {
-        CarrierSelectedBorder
-    } else {
-        insuranceNewsReadableTextColor()
-    }
 
     Card(
         modifier = modifier
@@ -334,30 +330,26 @@ fun CarrierCard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 10.dp, vertical = 12.dp),
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Image(
                     painter = painterResource(InsuranceBriefingAssets.logoResId(item.carrier)),
                     contentDescription = item.carrier.displayName,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp, vertical = 2.dp),
                     contentScale = ContentScale.Fit
-                )
-                Text(
-                    text = item.carrier.hubShortName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = labelColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = EobStrings.t(language, "insuranceNewsMonthlyBriefingsLabel"),
                     style = MaterialTheme.typography.labelSmall,
                     color = insuranceNewsReadableTextColor().copy(alpha = 0.82f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
         }
