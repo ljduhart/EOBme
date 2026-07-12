@@ -202,7 +202,7 @@ fun HomeScreen(
                         doctorQuickNotes = profile.doctorQuickNotes,
                         onCurrentPrescriptionsChange = onInsurancePrescriptionsChange,
                         onDoctorQuickNotesChange = onInsuranceDoctorNotesChange,
-                        modifier = Modifier.fillMaxWidth(0.92f)
+                        modifier = Modifier.fillMaxWidth(0.98f)
                     )
                 }
             }
@@ -305,20 +305,25 @@ fun HomeScreen(
             }
 
             item {
-                TaxVaultVerticalFilterCard(
-                    language = language,
-                    darkModeEnabled = darkModeEnabled,
-                    isGoldTier = subscriptionTier.isGold(),
-                    filterState = taxVaultFilterState,
-                    visibilityMode = taxVaultVisibilityMode,
-                    budgetSummary = taxVaultBudgetSummary,
-                    onFilterSelected = onTaxVaultFilterSelected,
-                    onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
-                    onVaultDoorUnlocked = onVaultDoorUnlocked,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TaxVaultVerticalFilterCard(
+                        language = language,
+                        darkModeEnabled = darkModeEnabled,
+                        isGoldTier = subscriptionTier.isGold(),
+                        filterState = taxVaultFilterState,
+                        visibilityMode = taxVaultVisibilityMode,
+                        budgetSummary = taxVaultBudgetSummary,
+                        onFilterSelected = onTaxVaultFilterSelected,
+                        onVisibilityModeSelected = onTaxVaultVisibilityModeSelected,
+                        onVaultDoorUnlocked = onVaultDoorUnlocked,
+                        modifier = Modifier
+                            .fillMaxWidth(0.88f)
+                            .wrapContentHeight()
+                    )
+                }
             }
 
             item {

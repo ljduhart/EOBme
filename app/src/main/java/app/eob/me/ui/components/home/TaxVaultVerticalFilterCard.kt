@@ -23,7 +23,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -75,7 +77,9 @@ private enum class VaultUiPhase {
     ON
 }
 
-private val VaultCardCornerRadius = 12.dp
+private val VaultCardCornerRadius = 16.dp
+private val VaultCardInnerPaddingHorizontal = 16.dp
+private val VaultCardInnerPaddingVertical = 14.dp
 private val VaultCardBackground = Brush.linearGradient(
     colors = listOf(
         EobInsuranceGradientStart,
@@ -87,7 +91,8 @@ private val VaultCardBackground = Brush.linearGradient(
 )
 private val GlowGreen = Color(0xFF3DDC84)
 private val VaultGoldText = Color(0xFFFFD166)
-/** Matches care-team smart card primary ink ([HomeCareTeamCards] CardInk / [EobBrandBlue]). */
+private val VaultPrimaryText = Color.White
+/** Accent for interactive highlights; primary labels use [VaultPrimaryText]. */
 private val VaultNeonText = EobBrandBlue
 
 @Composable
@@ -154,79 +159,66 @@ fun TaxVaultVerticalFilterCard(
             modifier = Modifier
                 .background(VaultCardBackground)
                 .drawBehind {
+                    drawTaxVaultDataStreams()
                     if (rippleAlpha > 0f) {
                         drawCircle(
                             color = GlowGreen.copy(alpha = rippleAlpha * 0.35f),
                             radius = size.minDimension * (0.4f + rippleAlpha * 0.2f),
-                            center = Offset(size.width * 0.22f, size.height * 0.12f)
+                            center = Offset(size.width * 0.5f, size.height * 0.18f)
                         )
                     }
                 }
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(
+                    horizontal = VaultCardInnerPaddingHorizontal,
+                    vertical = VaultCardInnerPaddingVertical
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            if (showTitaniumDoor) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    TitaniumVaultBiometricScanner(
-                        onVaultUnlocked = {
-                            if (!isGoldTier) return@TitaniumVaultBiometricScanner
-                            rippleAlpha = 1f
+            TaxVaultHeaderEmblem(
+                openProgress = vaultOpenProgress,
+                glowColor = vaultGlowColor,
+                showLockedBadge = !isGoldTier,
+                onVaultDoorClick = {
+                    if (showTitaniumDoor || !isGoldTier) return@TaxVaultHeaderEmblem
+                    when (uiPhase) {
+                        VaultUiPhase.OFF -> {
                             uiPhase = VaultUiPhase.ACTIVATING
-                            onVaultDoorUnlocked()
+                            rippleAlpha = 1f
                         }
-                    )
-                    Text(
-                        text = EobStrings.t(language, "taxVaultDoorHoldHint"),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = VaultNeonText.copy(alpha = 0.72f),
-                        modifier = Modifier.padding(top = 4.dp),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
+                        else -> onFilterSelected(TaxVaultFilterState.OFF)
+                    }
                 }
-            } else {
-                VaultDoorGlyph(
-                    openProgress = vaultOpenProgress,
-                    glowColor = vaultGlowColor,
-                    showLockedBadge = !isGoldTier,
-                    onClick = {
-                        if (!isGoldTier) return@VaultDoorGlyph
-                        when (uiPhase) {
-                            VaultUiPhase.OFF -> {
-                                uiPhase = VaultUiPhase.ACTIVATING
-                                rippleAlpha = 1f
-                            }
-                            else -> onFilterSelected(TaxVaultFilterState.OFF)
-                        }
+            )
+            Text(
+                text = EobStrings.t(language, "taxVaultFilterTitle"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = VaultPrimaryText,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+
+            if (showTitaniumDoor) {
+                TitaniumVaultBiometricScanner(
+                    onVaultUnlocked = {
+                        if (!isGoldTier) return@TitaniumVaultBiometricScanner
+                        rippleAlpha = 1f
+                        uiPhase = VaultUiPhase.ACTIVATING
+                        onVaultDoorUnlocked()
                     }
                 )
-            }
-            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "\$f",
-                    color = VaultNeonText,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 34.sp,
-                    lineHeight = 34.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = EobStrings.t(language, "taxVaultFilterTitle"),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = VaultNeonText,
+                    text = EobStrings.t(language, "taxVaultDoorHoldHint"),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = VaultPrimaryText.copy(alpha = 0.72f),
+                    modifier = Modifier.padding(top = 2.dp),
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
-        }
 
         if (!isGoldTier) {
             Text(
@@ -235,16 +227,20 @@ fun TaxVaultVerticalFilterCard(
                 color = VaultGoldText,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
         Text(
             text = EobStrings.t(language, "taxVaultFundTypePrompt"),
             style = MaterialTheme.typography.labelMedium,
-            color = VaultNeonText.copy(alpha = 0.88f),
+            color = VaultPrimaryText.copy(alpha = 0.9f),
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Row(
@@ -274,9 +270,10 @@ fun TaxVaultVerticalFilterCard(
             Text(
                 text = EobStrings.tf(language, "taxVaultShowLabel", eligibilityLabel),
                 style = MaterialTheme.typography.labelMedium,
-                color = VaultNeonText.copy(alpha = 0.92f),
+                color = VaultPrimaryText.copy(alpha = 0.92f),
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
             Slider(
                 value = visibilityMode.ordinal.toFloat(),
@@ -292,7 +289,7 @@ fun TaxVaultVerticalFilterCard(
                 enabled = controlsEnabled,
                 colors = SliderDefaults.colors(
                     thumbColor = Color.White,
-                    activeTrackColor = GlowGreen,
+                    activeTrackColor = EobBrandBlue,
                     inactiveTrackColor = Color.White.copy(alpha = 0.28f)
                 ),
                 modifier = Modifier.fillMaxWidth()
@@ -305,9 +302,9 @@ fun TaxVaultVerticalFilterCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 10.sp,
                         color = if (mode == visibilityMode && controlsEnabled) {
-                            GlowGreen
+                            EobBrandBlue
                         } else {
-                            VaultNeonText.copy(alpha = 0.68f)
+                            VaultPrimaryText.copy(alpha = 0.68f)
                         },
                         textAlign = TextAlign.Center,
                         maxLines = 2,
@@ -324,7 +321,7 @@ fun TaxVaultVerticalFilterCard(
                     language = language,
                     thumbnails = evidenceThumbnails,
                     onEvidenceSelected = onEvidenceSelected,
-                    titleColor = VaultNeonText,
+                    titleColor = VaultPrimaryText,
                     miniatureCardWidth = miniatureCardWidth,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -350,7 +347,7 @@ fun TaxVaultVerticalFilterCard(
                 Text(
                     text = statusText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = VaultNeonText.copy(alpha = 0.92f),
+                    color = VaultPrimaryText.copy(alpha = 0.92f),
                     fontWeight = FontWeight.Medium,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
@@ -458,6 +455,58 @@ private fun Modifier.taxVaultCareTeamBorder(cornerRadius: androidx.compose.ui.un
 }
 
 @Composable
+private fun TaxVaultHeaderEmblem(
+    openProgress: Float,
+    glowColor: Color,
+    showLockedBadge: Boolean,
+    onVaultDoorClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(88.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        VaultDoorGlyph(
+            openProgress = openProgress,
+            glowColor = glowColor,
+            showLockedBadge = showLockedBadge,
+            onClick = onVaultDoorClick,
+            modifier = Modifier.size(64.dp)
+        )
+        Text(
+            text = "\$f",
+            color = VaultPrimaryText,
+            fontWeight = FontWeight.Black,
+            fontSize = 36.sp,
+            lineHeight = 36.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTaxVaultDataStreams() {
+    val streamColor = EobBrandBlue.copy(alpha = 0.22f)
+    val xPositions = listOf(0.18f, 0.34f, 0.52f, 0.68f, 0.84f)
+    xPositions.forEachIndexed { index, xFraction ->
+        val x = size.width * xFraction
+        val streakHeight = size.height * (0.22f + index * 0.04f)
+        drawLine(
+            color = streamColor.copy(alpha = 0.14f + index * 0.03f),
+            start = Offset(x, size.height * 0.08f),
+            end = Offset(x + size.width * 0.02f, streakHeight),
+            strokeWidth = 2.5f
+        )
+        drawCircle(
+            color = EobBrandGlow.copy(alpha = 0.18f),
+            radius = 3f,
+            center = Offset(x, streakHeight)
+        )
+    }
+}
+
+@Composable
 private fun FundTypePill(
     label: String,
     selected: Boolean,
@@ -466,22 +515,16 @@ private fun FundTypePill(
     modifier: Modifier = Modifier
 ) {
     val background = if (selected) Color.White else Color.White.copy(alpha = 0.14f)
-    val textColor = if (selected) Color(0xFF0B1F45) else VaultNeonText.copy(alpha = 0.88f)
+    val textColor = if (selected) Color(0xFF0B1F45) else VaultPrimaryText.copy(alpha = 0.92f)
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .background(background)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 9.dp),
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(12.dp)
-                .border(1.dp, textColor.copy(alpha = 0.55f), RoundedCornerShape(2.dp))
-        )
-        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
@@ -489,7 +532,14 @@ private fun FundTypePill(
             color = textColor,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Start,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .border(1.dp, textColor.copy(alpha = 0.55f), RoundedCornerShape(2.dp))
         )
     }
 }
@@ -499,12 +549,12 @@ private fun VaultDoorGlyph(
     openProgress: Float,
     glowColor: Color,
     showLockedBadge: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Box(
-        modifier = Modifier
-            .size(56.dp)
+        modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .background(
                 Brush.verticalGradient(

@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 
 private val CardBackgroundGradient = Brush.linearGradient(
     colors = listOf(
@@ -81,6 +82,9 @@ private val NotesCardBackground = Color(0xFF121A24)
 private val NotesFieldBackground = Color(0xFF1B2430)
 private val NotesPrimaryText = Color(0xFFF2F6FA)
 private val NotesSecondaryText = Color(0xFFB8C4D0)
+private val InsuranceCardMinHeight = 176.dp
+private val InsuranceCardContentPadding = 13.dp
+private val InsuranceCardSectionSpacing = 9.dp
 
 @Composable
 fun CleanInsuranceCard(
@@ -117,7 +121,7 @@ fun CleanInsuranceCard(
     ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 220.dp)
+            .heightIn(min = InsuranceCardMinHeight)
             .graphicsLayer {
                 rotationY = rotation
                 cameraDistance = 12f * density.density
@@ -162,8 +166,8 @@ private fun InsuranceCardFrontFace(
         modifier = Modifier
             .fillMaxWidth()
             .background(CardBackgroundGradient)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(InsuranceCardContentPadding),
+        verticalArrangement = Arrangement.spacedBy(InsuranceCardSectionSpacing)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -207,20 +211,15 @@ private fun InsuranceCardFrontFace(
                     style = MaterialTheme.typography.labelSmall,
                     color = CardSecondaryText
                 )
-                Text(
-                    text = EobStrings.t(language, "cleanInsuranceMemberIdSectionLabel"),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = CardSecondaryText,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = display.memberId.uppercase(),
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Black,
                         color = CardPrimaryText,
-                        letterSpacing = 1.sp
+                        letterSpacing = 1.sp,
+                        fontSize = 24.sp,
+                        lineHeight = 28.sp
                     )
                 )
             }
@@ -231,44 +230,52 @@ private fun InsuranceCardFrontFace(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${EobStrings.t(language, "cleanInsuranceGroupNumberLabel")} " +
-                        EobStrings.t(language, "cleanInsuranceGroupSectionLabel"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = CardSecondaryText,
-                    letterSpacing = 0.5.sp
-                )
-                Text(
-                    text = display.groupNumber,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = CardPrimaryText
-                    )
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "${EobStrings.t(language, "cleanInsuranceCopayLabel")} " +
-                        EobStrings.t(language, "cleanInsuranceCopaySectionDetail"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = CardSecondaryText,
-                    letterSpacing = 0.5.sp
-                )
-                Text(
-                    text = EobStrings.tf(
-                        language,
-                        "cleanInsuranceCopayFormat",
-                        display.pcpCopay,
-                        display.specialistCopay
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
+            Text(
+                text = EobStrings.t(language, "cleanInsuranceGroupNumberLabel"),
+                style = MaterialTheme.typography.labelSmall,
+                color = CardSecondaryText,
+                letterSpacing = 0.5.sp,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "${EobStrings.t(language, "cleanInsuranceCopayLabel")} " +
+                    EobStrings.t(language, "cleanInsuranceCopaySectionDetail"),
+                style = MaterialTheme.typography.labelSmall,
+                color = CardSecondaryText,
+                letterSpacing = 0.5.sp,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = display.groupNumber,
+                style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = CardPrimaryText
-                )
-            }
+                ),
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = EobStrings.tf(
+                    language,
+                    "cleanInsuranceCopayFormat",
+                    display.pcpCopay,
+                    display.specialistCopay
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = CardPrimaryText,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f)
+            )
         }
 
         HorizontalDivider(color = CardDividerColor, thickness = 1.dp)
