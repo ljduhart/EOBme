@@ -8,7 +8,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,12 +34,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.HealthAndSafety
-import androidx.compose.material.icons.rounded.LocalHospital
 import androidx.compose.material.icons.rounded.Lightbulb
-import androidx.compose.material.icons.rounded.MedicalServices
-import androidx.compose.material.icons.rounded.People
-import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -62,14 +59,16 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
+import app.eob.me.data.InsuranceBriefingAssets
 import app.eob.me.data.InsuranceArticle
 import app.eob.me.data.InsuranceNewsCarrierHubItem
 import app.eob.me.data.MajorInsuranceCarrier
@@ -83,6 +82,33 @@ private val InfoBannerBackground = Color(0xFFE0F7FA)
 private val PulseDotTeal = Color(0xFF00897B)
 private val SourcePillText = Color(0xFFC62828)
 private val AmberLightbulb = Color(0xFFFFB300)
+
+@Composable
+private fun insuranceNewsReadableTextColor(): Color = MaterialTheme.colorScheme.onSurface
+
+@Composable
+private fun insuranceNewsTitleColor(): Color = MaterialTheme.colorScheme.onBackground
+
+@Composable
+private fun newsCardContainerColor(): Color =
+    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else NewsCardBackground
+
+@Composable
+private fun infoBannerContainerColor(): Color =
+    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else InfoBannerBackground
+
+@Composable
+private fun carrierCardBackground(isSelected: Boolean): Color = when {
+    isSelected && isSystemInDarkTheme() ->
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+    isSelected -> CarrierSelectedBackground
+    isSystemInDarkTheme() -> MaterialTheme.colorScheme.surfaceVariant
+    else -> MaterialTheme.colorScheme.surfaceVariant
+}
+
+@Composable
+private fun carrierCardBorderColor(isSelected: Boolean): Color =
+    if (isSelected) CarrierSelectedBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
 
 fun openCustomTab(context: Context, url: String) {
     val trimmed = url.trim()
@@ -147,6 +173,7 @@ fun NewsScreen(
                     Text(
                         text = EobStrings.t(language, "insuranceNewsCarrierFilterHint"),
                         style = MaterialTheme.typography.bodyMedium,
+                        color = insuranceNewsReadableTextColor(),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
@@ -160,12 +187,13 @@ fun NewsScreen(
                     Text(
                         text = EobStrings.t(language, "insuranceIntelligence"),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = insuranceNewsTitleColor()
                     )
                     Text(
                         text = EobStrings.t(language, "insuranceIntelligenceSubtitle"),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = insuranceNewsReadableTextColor().copy(alpha = 0.88f)
                     )
                 }
             }
@@ -176,7 +204,7 @@ fun NewsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = InfoBannerBackground),
+                    colors = CardDefaults.cardColors(containerColor = infoBannerContainerColor()),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
                 ) {
                     Row(
@@ -193,7 +221,7 @@ fun NewsScreen(
                         Text(
                             text = EobStrings.t(language, "insuranceIntelligenceTip"),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = insuranceNewsReadableTextColor()
                         )
                     }
                 }
@@ -210,7 +238,7 @@ fun NewsScreen(
                         Text(
                             text = EobStrings.t(language, "insuranceNewsAllClear"),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = insuranceNewsReadableTextColor().copy(alpha = 0.78f)
                         )
                     }
                 }
@@ -272,15 +300,15 @@ fun CarrierCard(
         label = "pulse_scale"
     )
 
-    val backgroundColor = if (isSelected) {
-        CarrierSelectedBackground
+    val backgroundColor = carrierCardBackground(isSelected)
+    val border = BorderStroke(
+        width = if (isSelected) 2.dp else 1.dp,
+        color = carrierCardBorderColor(isSelected)
+    )
+    val labelColor = if (isSelected) {
+        CarrierSelectedBorder
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
-    val border = if (isSelected) {
-        BorderStroke(2.dp, CarrierSelectedBorder)
-    } else {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        insuranceNewsReadableTextColor()
     }
 
     Card(
@@ -310,23 +338,24 @@ fun CarrierCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(
-                    imageVector = carrierIcon(item.carrier),
+                Image(
+                    painter = painterResource(InsuranceBriefingAssets.logoResId(item.carrier)),
                     contentDescription = item.carrier.displayName,
-                    tint = if (isSelected) CarrierSelectedBorder else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(28.dp),
+                    contentScale = ContentScale.Fit
                 )
                 Text(
                     text = item.carrier.hubShortName,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
+                    color = labelColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = EobStrings.t(language, "insuranceNewsMonthlyBriefingsLabel"),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = insuranceNewsReadableTextColor().copy(alpha = 0.82f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -350,7 +379,7 @@ fun NewsBriefingCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = NewsCardBackground),
+        colors = CardDefaults.cardColors(containerColor = newsCardContainerColor()),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
     ) {
         Column(
@@ -374,19 +403,19 @@ fun NewsBriefingCard(
                 text = news.headline,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = insuranceNewsReadableTextColor()
             )
 
             Text(
                 text = news.date,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = insuranceNewsReadableTextColor().copy(alpha = 0.78f)
             )
 
             Text(
                 text = news.displaySummary(),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = insuranceNewsReadableTextColor().copy(alpha = 0.9f)
             )
 
             if (canOpenArticle) {
@@ -471,14 +500,4 @@ private fun SwipeableNewsBriefingCard(
             )
         }
     )
-}
-
-private fun carrierIcon(carrier: MajorInsuranceCarrier): ImageVector {
-    return when (carrier) {
-        MajorInsuranceCarrier.UnitedHealthcare -> Icons.Rounded.HealthAndSafety
-        MajorInsuranceCarrier.Medicare -> Icons.Rounded.LocalHospital
-        MajorInsuranceCarrier.Aetna -> Icons.Rounded.VolunteerActivism
-        MajorInsuranceCarrier.BlueCross -> Icons.Rounded.MedicalServices
-        MajorInsuranceCarrier.Medicaid -> Icons.Rounded.People
-    }
 }

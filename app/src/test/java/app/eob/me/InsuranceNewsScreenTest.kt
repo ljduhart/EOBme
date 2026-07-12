@@ -48,7 +48,9 @@ class InsuranceNewsScreenTest {
         assertTrue(source.contains("insuranceNewsMonthlyBriefingsLabel"))
         assertTrue(source.contains("canOpenArticle"))
         assertTrue(source.contains("if (canOpenArticle)"))
-        assertFalse(source.contains("Icons.Rounded.Close"))
+        assertTrue(source.contains("InsuranceBriefingAssets.logoResId"))
+        assertTrue(source.contains("painterResource"))
+        assertFalse(source.contains("carrierIcon"))
         assertFalse(source.contains("HolographicGlassCard"))
         assertFalse(source.contains("HomeInsuranceNewsSection"))
     }
@@ -110,7 +112,7 @@ class InsuranceNewsScreenTest {
     @Test
     fun filteredNewsReleasesFallsBackWhenNoCarrierMatch() {
         val viewModel = EobViewModel()
-        viewModel.setSelectedNewsCarrier(MajorInsuranceCarrier.Medicaid)
+        viewModel.setSelectedNewsCarrier(MajorInsuranceCarrier.Humana)
         val filtered = viewModel.filteredNewsReleases(
             fallbackNews = listOf(
                 NewsRelease(

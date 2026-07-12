@@ -33,6 +33,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
+import app.eob.me.ui.components.LogoutConfirmDialog
 
 @Composable
 fun ProfileScreen(
@@ -51,6 +52,7 @@ fun ProfileScreen(
     openSupportInitially: Boolean = false
 ) {
     var showSupport by remember { mutableStateOf(openSupportInitially) }
+    var showLogoutConfirm by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var draftProfile by remember { mutableStateOf(profile) }
     var draftCredentials by remember { mutableStateOf(credentials) }
@@ -196,9 +198,20 @@ fun ProfileScreen(
         if (showSupport) {
             SupportContent(language)
         }
-        Button(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = { showLogoutConfirm = true }, modifier = Modifier.fillMaxWidth()) {
             Text(EobStrings.t(language, "logout"))
         }
+    }
+
+    if (showLogoutConfirm) {
+        LogoutConfirmDialog(
+            language = language,
+            onConfirm = {
+                showLogoutConfirm = false
+                onLogout()
+            },
+            onDismiss = { showLogoutConfirm = false }
+        )
     }
 }
 

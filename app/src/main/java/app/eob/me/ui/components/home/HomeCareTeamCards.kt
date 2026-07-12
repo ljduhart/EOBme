@@ -291,88 +291,87 @@ private fun CareTeamCardFront(
     smartCardSummariesEnabled: Boolean,
     onCall: (() -> Unit)?
 ) {
+    val metricsLine = formatMicroMetrics(language, cardState, smartCardSummariesEnabled)
     Box(
         modifier = Modifier
             .fillMaxSize()
             .frostedCareTeamCardSurface(CardInnerCornerRadius)
-            .padding(horizontal = 4.dp, vertical = 5.dp)
+            .padding(horizontal = 4.dp, vertical = 5.dp),
+        contentAlignment = Alignment.Center
     ) {
+        CareTeamProviderIcon(
+            type = cardState.type,
+            tint = CardInk.copy(alpha = 0.14f),
+            modifier = Modifier.size(40.dp)
+        )
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                CareTeamProviderIcon(
-                    type = cardState.type,
-                    tint = CardInk,
-                    modifier = Modifier.padding(end = 3.dp)
-                )
-                Text(
-                    text = careTeamLabel(language, cardState.type),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = CardInk,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 10.sp
-                )
-            }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(1.dp)
-            ) {
-                Text(
-                    text = cardState.primaryLine,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = CardInkDark,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 9.sp
-                )
-                Text(
-                    text = cardState.secondaryLine,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = secondaryLineColor(cardState),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 8.sp,
-                    fontWeight = if (isCallToActionLine(cardState)) FontWeight.SemiBold else FontWeight.Normal,
-                    modifier = Modifier.pointerInput(onCall) {
+            Text(
+                text = careTeamLabel(language, cardState.type),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = CardInk,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 10.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = cardState.primaryLine,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = CardInkDark,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 9.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = cardState.secondaryLine,
+                style = MaterialTheme.typography.labelSmall,
+                color = secondaryLineColor(cardState),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 8.sp,
+                fontWeight = if (isCallToActionLine(cardState)) FontWeight.SemiBold else FontWeight.Normal,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pointerInput(onCall) {
                         if (onCall != null) {
                             detectTapGestures(onTap = { onCall() })
                         }
                     }
-                )
-                cardState.tertiaryLine?.let { tertiary ->
-                    Text(
-                        text = tertiary,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tertiaryLineColor(cardState),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontSize = 7.sp
-                    )
-                }
-            }
-            Text(
-                text = formatMicroMetrics(language, cardState, smartCardSummariesEnabled),
-                style = MaterialTheme.typography.labelSmall,
-                color = CardInk.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                fontSize = 7.sp,
-                lineHeight = 8.sp
             )
+            cardState.tertiaryLine?.let { tertiary ->
+                Text(
+                    text = tertiary,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tertiaryLineColor(cardState),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 7.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            if (metricsLine.isNotBlank()) {
+                Text(
+                    text = metricsLine,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CardInk.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    fontSize = 7.sp,
+                    lineHeight = 8.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -688,11 +687,7 @@ private fun formatMicroMetrics(
     smartCardSummariesEnabled: Boolean
 ): String {
     if (!smartCardSummariesEnabled) {
-        return if (card.isAssigned) {
-            EobStrings.t(language, "careTeamTapToFlip")
-        } else {
-            EobStrings.t(language, "careTeamLongPressEdit")
-        }
+        return ""
     }
     val parts = mutableListOf<String>()
     if (card.metrics.relatedEobCount > 0) {
@@ -704,11 +699,5 @@ private fun formatMicroMetrics(
     if (card.metrics.flaggedIssueCount > 0) {
         parts += EobStrings.tf(language, "careTeamMicroFlags", card.metrics.flaggedIssueCount)
     }
-    return parts.joinToString(" · ").ifBlank {
-        if (card.isAssigned) {
-            EobStrings.t(language, "careTeamTapToFlip")
-        } else {
-            EobStrings.t(language, "careTeamLongPressEdit")
-        }
-    }
+    return parts.joinToString(" · ")
 }

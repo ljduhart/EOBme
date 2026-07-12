@@ -9,6 +9,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,7 +37,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -42,14 +47,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
+import app.eob.me.data.InsuranceBriefingAssets
 import app.eob.me.data.InsuranceNewsBentoSnapshot
+import app.eob.me.data.MajorInsuranceCarrier
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.glassEffect
 import app.eob.me.ui.theme.EobBrandBlue
 import app.eob.me.ui.theme.EobBrandCyan
 import app.eob.me.ui.theme.EobChartOrange
-import app.eob.me.ui.theme.EobCyberTextPrimary
-import app.eob.me.ui.theme.EobCyberTextSecondary
 import app.eob.me.ui.theme.EobCyberSurfaceVariant
 import kotlin.math.roundToInt
 
@@ -103,12 +108,17 @@ fun InsuranceNewsBentoCell(
                 Text(
                     text = EobStrings.t(language, "bentoInsuranceNews"),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
             }
+
+            InsuranceBriefingLogoStrip(
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Row(
                 modifier = Modifier
@@ -249,14 +259,14 @@ private fun NewsMicroCardPreview(
                 lineHeight = 10.sp
             ),
             fontWeight = FontWeight.SemiBold,
-            color = EobCyberTextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = company,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-            color = EobCyberTextSecondary,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -301,5 +311,39 @@ private fun NewsMicroCardActionFace(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+@Composable
+private fun InsuranceBriefingLogoStrip(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.height(22.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        MajorInsuranceCarrier.entries.forEach { carrier ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+                modifier = Modifier.width(34.dp)
+            ) {
+                Image(
+                    painter = painterResource(InsuranceBriefingAssets.logoResId(carrier)),
+                    contentDescription = carrier.displayName,
+                    modifier = Modifier
+                        .height(14.dp)
+                        .fillMaxWidth(),
+                    contentScale = ContentScale.Fit
+                )
+                Text(
+                    text = carrier.hubShortName,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 5.sp, lineHeight = 6.sp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 }

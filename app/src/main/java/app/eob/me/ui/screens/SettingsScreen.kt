@@ -55,6 +55,7 @@ import app.eob.me.data.HubSettingsState
 import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.data.SettingsTab
 import app.eob.me.data.SubscriptionTier
+import app.eob.me.ui.components.LogoutConfirmDialog
 import app.eob.me.data.UserProfile
 import app.eob.me.ui.components.HubHelpfulHintsIcon
 import app.eob.me.util.CacheSizeCalculator
@@ -262,6 +263,8 @@ private fun AccountSettingsTab(
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
+    var showLogoutConfirm by remember { mutableStateOf(false) }
+
     Text(EobStrings.t(language, "settingsAccountTitle"), style = MaterialTheme.typography.titleLarge)
     SettingsReadOnlyRow(
         language = language,
@@ -313,8 +316,18 @@ private fun AccountSettingsTab(
         language = language,
         onViewPlans = onManageSubscription
     )
-    OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+    OutlinedButton(onClick = { showLogoutConfirm = true }, modifier = Modifier.fillMaxWidth()) {
         Text(EobStrings.t(language, "logout"))
+    }
+    if (showLogoutConfirm) {
+        LogoutConfirmDialog(
+            language = language,
+            onConfirm = {
+                showLogoutConfirm = false
+                onLogout()
+            },
+            onDismiss = { showLogoutConfirm = false }
+        )
     }
     OutlinedButton(onClick = onDeleteAccount, modifier = Modifier.fillMaxWidth()) {
         Text(

@@ -18,14 +18,14 @@ enum class MajorInsuranceCarrier(val displayName: String, val hubShortName: Stri
     Medicare("Medicare", "Medicare"),
     Aetna("Aetna", "Aetna"),
     BlueCross("Blue Cross", "Blue Cross"),
-    Medicaid("Medicaid", "Medicaid");
+    Humana("Humana", "Humana");
 
     fun filterKeywords(): List<String> = when (this) {
         UnitedHealthcare -> listOf("United", "UHC", "UnitedHealthcare")
-        Medicare -> listOf("Medicare", "CMS", "Humana")
+        Medicare -> listOf("Medicare", "CMS")
         Aetna -> listOf("Aetna", "CVS")
         BlueCross -> listOf("Blue Cross", "BCBS", "Blue Cross Blue Shield")
-        Medicaid -> listOf("Medicaid", "CHIP")
+        Humana -> listOf("Humana", "Medicare Advantage")
     }
 }
 
@@ -96,8 +96,8 @@ object EobInsuranceNews {
                 "$month $year: Care navigation and plan transparency"
             MajorInsuranceCarrier.BlueCross ->
                 "$month $year: BCBS network and preventive care focus"
-            MajorInsuranceCarrier.Medicaid ->
-                "$month $year: Medicaid eligibility and care access"
+            MajorInsuranceCarrier.Humana ->
+                "$month $year: Humana Medicare Advantage and member updates"
         }
     }
 
@@ -111,8 +111,8 @@ object EobInsuranceNews {
                 "Aetna's $month $year updates focus on connected care programs, behavioral health access, and clearer EOB explanations for commercial members."
             MajorInsuranceCarrier.BlueCross ->
                 "Blue Cross plans shared $month $year updates on network adequacy, value-based care partnerships, and member advocacy for billing accuracy."
-            MajorInsuranceCarrier.Medicaid ->
-                "Medicaid program notices for $month $year cover renewal windows, care coordination, and community provider network changes."
+            MajorInsuranceCarrier.Humana ->
+                "Humana communications for $month $year highlight Medicare Advantage benefits, member education, and coordinated care programs."
         }
         return buildString {
             appendLine(intro)
