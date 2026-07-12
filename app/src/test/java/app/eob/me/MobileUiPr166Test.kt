@@ -28,8 +28,8 @@ class MobileUiPr166Test {
     fun taxVaultFilterCardMatchesCenteredMockLayout() {
         val filterSource = readSource("ui/components/home/TaxVaultVerticalFilterCard.kt")
         val homeSource = readSource("ui/screens/HomeScreen.kt")
-        assertTrue(filterSource.contains("TaxVaultFilterHeaderRow"))
-        assertTrue(filterSource.contains("drawTaxVaultDataStreams"))
+        assertTrue(filterSource.contains("TaxVaultBrandingHeader"))
+        assertTrue(filterSource.contains("drawTaxVaultCentralLightRay"))
         assertTrue(filterSource.contains("VaultPrimaryText = Color.White"))
         assertTrue(filterSource.contains("activeTrackColor = EobBrandBlue"))
         assertFalse(filterSource.contains("V2: Secure Lock Sequence"))
