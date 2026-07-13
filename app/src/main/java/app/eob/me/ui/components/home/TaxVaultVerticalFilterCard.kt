@@ -53,6 +53,8 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -168,7 +170,6 @@ fun TaxVaultVerticalFilterCard(
             modifier = Modifier
                 .background(VaultCardBackground)
                 .drawBehind {
-                    drawTaxVaultCentralLightRay()
                     if (rippleAlpha > 0f) {
                         drawCircle(
                             color = GlowGreen.copy(alpha = rippleAlpha * 0.35f),
@@ -335,14 +336,22 @@ fun TaxVaultVerticalFilterCard(
                             eligibilityLabel
                         )
                     }
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = VaultPrimaryText.copy(alpha = 0.92f),
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = VaultPrimaryText.copy(alpha = 0.92f),
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TaxVaultGoldKeyGlyph(modifier = Modifier.size(34.dp))
+                    }
                     if (uiPhase == VaultUiPhase.ON && budgetSummary.allocationLimit > 0.0) {
                         Text(
                             text = EobStrings.tf(
@@ -655,49 +664,81 @@ private fun Modifier.taxVaultCareTeamBorder(cornerRadius: androidx.compose.ui.un
         )
 }
 
-private fun DrawScope.drawTaxVaultCentralLightRay() {
-    val rayTop = Offset(size.width * 0.14f, size.height * 0.04f)
-    val rayBottom = Offset(size.width * 0.12f, size.height * 0.94f)
-    val topHalfWidth = size.width * 0.2f
-    val bottomHalfWidth = size.width * 0.07f
-
-    val beamPath = Path().apply {
-        moveTo(rayTop.x - topHalfWidth, rayTop.y)
-        lineTo(rayTop.x + topHalfWidth, rayTop.y)
-        lineTo(rayBottom.x + bottomHalfWidth, rayBottom.y)
-        lineTo(rayBottom.x - bottomHalfWidth, rayBottom.y)
-        close()
+@Composable
+private fun TaxVaultGoldKeyGlyph(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val goldBrush = Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFFFF4C2),
+                Color(0xFFFFD166),
+                Color(0xFFE6B422),
+                Color(0xFFC9A227)
+            ),
+            start = Offset(0f, 0f),
+            end = Offset(size.width, size.height)
+        )
+        val shadowGold = Color(0xFF8B6914)
+        val bowCenter = Offset(size.width * 0.24f, size.height * 0.5f)
+        val loopRadius = size.minDimension * 0.1f
+        val loopOffset = loopRadius * 0.62f
+        listOf(
+            Offset(bowCenter.x - loopOffset, bowCenter.y),
+            Offset(bowCenter.x + loopOffset, bowCenter.y),
+            Offset(bowCenter.x, bowCenter.y - loopOffset),
+            Offset(bowCenter.x, bowCenter.y + loopOffset)
+        ).forEach { center ->
+            drawCircle(
+                brush = goldBrush,
+                radius = loopRadius,
+                center = center,
+                style = Stroke(width = size.minDimension * 0.07f)
+            )
+            drawCircle(
+                color = shadowGold.copy(alpha = 0.45f),
+                radius = loopRadius * 0.42f,
+                center = center,
+                style = Stroke(width = size.minDimension * 0.035f)
+            )
+        }
+        val shankStart = Offset(bowCenter.x + loopRadius * 1.35f, bowCenter.y)
+        val shankEnd = Offset(size.width * 0.58f, bowCenter.y)
+        drawLine(
+            brush = goldBrush,
+            start = shankStart,
+            end = shankEnd,
+            strokeWidth = size.minDimension * 0.09f,
+            cap = StrokeCap.Round
+        )
+        val bitLeft = shankEnd.x
+        val bitTop = bowCenter.y - size.height * 0.2f
+        val bitWidth = size.width * 0.34f
+        val bitHeight = size.height * 0.4f
+        drawRoundRect(
+            brush = goldBrush,
+            topLeft = Offset(bitLeft, bitTop),
+            size = Size(bitWidth, bitHeight),
+            cornerRadius = CornerRadius(2f, 2f),
+            style = Stroke(width = size.minDimension * 0.07f)
+        )
+        val mazeInset = size.minDimension * 0.08f
+        val mazePath = Path().apply {
+            moveTo(bitLeft + mazeInset, bitTop + bitHeight * 0.35f)
+            lineTo(bitLeft + bitWidth * 0.55f, bitTop + bitHeight * 0.35f)
+            lineTo(bitLeft + bitWidth * 0.55f, bitTop + bitHeight * 0.68f)
+            lineTo(bitLeft + bitWidth - mazeInset, bitTop + bitHeight * 0.68f)
+            lineTo(bitLeft + bitWidth - mazeInset, bitTop + mazeInset)
+            lineTo(bitLeft + bitWidth * 0.42f, bitTop + mazeInset)
+        }
+        drawPath(
+            path = mazePath,
+            color = shadowGold.copy(alpha = 0.85f),
+            style = Stroke(
+                width = size.minDimension * 0.045f,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
     }
-    drawPath(
-        path = beamPath,
-        brush = Brush.linearGradient(
-            colors = listOf(
-                EobBrandGlow.copy(alpha = 0.62f),
-                EobBrandBlue.copy(alpha = 0.42f),
-                EobBrandBlue.copy(alpha = 0.22f),
-                EobBrandBlue.copy(alpha = 0.06f)
-            ),
-            start = rayTop,
-            end = rayBottom
-        )
-    )
-    drawPath(
-        path = beamPath,
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.22f),
-                EobBrandGlow.copy(alpha = 0.12f),
-                Color.Transparent
-            ),
-            start = rayTop,
-            end = Offset(rayBottom.x, size.height * 0.55f)
-        )
-    )
-    drawCircle(
-        color = EobBrandGlow.copy(alpha = 0.35f),
-        radius = topHalfWidth * 0.55f,
-        center = rayTop
-    )
 }
 
 @Composable

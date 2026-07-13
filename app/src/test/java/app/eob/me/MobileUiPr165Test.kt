@@ -52,14 +52,15 @@ class MobileUiPr165Test {
     }
 
     @Test
-    fun insuranceNewsBentoUsesBriefingLogosAndReadableDarkText() {
+    fun insuranceNewsBentoUsesReadableDarkTextWithoutExternalLogos() {
         val bentoSource = readSource("ui/components/bento/InsuranceNewsBentoCell.kt")
         val newsSource = readSource("ui/screens/NewsScreen.kt")
-        assertTrue(bentoSource.contains("InsuranceBriefingLogoStrip"))
-        assertTrue(bentoSource.contains("InsuranceBriefingAssets.logoResId"))
+        assertFalse(bentoSource.contains("InsuranceBriefingLogoStrip"))
+        assertFalse(bentoSource.contains("InsuranceBriefingAssets.logoResId"))
         assertTrue(bentoSource.contains("MaterialTheme.colorScheme.onSurface"))
         assertTrue(newsSource.contains("insuranceNewsReadableTextColor"))
-        assertTrue(newsSource.contains("isSystemInDarkTheme"))
+        assertTrue(newsSource.contains("InsuranceNewsDarkModeText"))
+        assertTrue(newsSource.contains("isHubDarkPresentation"))
     }
 
     private fun readSource(relativePath: String): String {

@@ -10,7 +10,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,7 +48,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +58,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -84,26 +84,34 @@ private val PulseDotTeal = Color(0xFF00897B)
 private val SourcePillText = Color(0xFFC62828)
 private val AmberLightbulb = Color(0xFFFFB300)
 
-@Composable
-private fun insuranceNewsReadableTextColor(): Color = MaterialTheme.colorScheme.onSurface
+private val InsuranceNewsDarkModeText = Color.Black
 
 @Composable
-private fun insuranceNewsTitleColor(): Color = MaterialTheme.colorScheme.onBackground
+private fun isHubDarkPresentation(): Boolean =
+    MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+@Composable
+private fun insuranceNewsReadableTextColor(): Color =
+    if (isHubDarkPresentation()) InsuranceNewsDarkModeText else MaterialTheme.colorScheme.onSurface
+
+@Composable
+private fun insuranceNewsTitleColor(): Color =
+    if (isHubDarkPresentation()) InsuranceNewsDarkModeText else MaterialTheme.colorScheme.onBackground
 
 @Composable
 private fun newsCardContainerColor(): Color =
-    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else NewsCardBackground
+    if (isHubDarkPresentation()) MaterialTheme.colorScheme.surfaceVariant else NewsCardBackground
 
 @Composable
 private fun infoBannerContainerColor(): Color =
-    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else InfoBannerBackground
+    if (isHubDarkPresentation()) MaterialTheme.colorScheme.surfaceVariant else InfoBannerBackground
 
 @Composable
 private fun carrierCardBackground(isSelected: Boolean): Color = when {
-    isSelected && isSystemInDarkTheme() ->
+    isSelected && isHubDarkPresentation() ->
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
     isSelected -> CarrierSelectedBackground
-    isSystemInDarkTheme() -> MaterialTheme.colorScheme.surfaceVariant
+    isHubDarkPresentation() -> MaterialTheme.colorScheme.surfaceVariant
     else -> MaterialTheme.colorScheme.surfaceVariant
 }
 
@@ -446,15 +454,50 @@ private fun SwipeableNewsBriefingCard(
     onReadFullBriefing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dismissState = rememberSwipeToDismissBoxState()
     val newsKey = "${news.company}|${news.headline}|${news.date}"
-    var deleteTriggered by remember(newsKey) { mutableStateOf(false) }
-
-    LaunchedEffect(dismissState.currentValue, newsKey) {
-        if (!deleteTriggered && dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            deleteTriggered = true
-            onDelete()
+    var showDeleteConfirm by remember(newsKey) { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                showDeleteConfirm = true
+                false
+            } else {
+                true
+            }
         }
+    )
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = {
+                Text(
+                    text = EobStrings.t(language, "deleteNewsConfirmTitle"),
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = EobStrings.t(language, "deleteNewsConfirmMessage"),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    }
+                ) {
+                    Text(EobStrings.t(language, "deleteNewsConfirmYes"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(EobStrings.t(language, "deleteNewsConfirmNo"))
+                }
+            }
+        )
     }
 
     SwipeToDismissBox(

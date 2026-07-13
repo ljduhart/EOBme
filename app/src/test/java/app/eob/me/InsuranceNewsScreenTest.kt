@@ -51,6 +51,8 @@ class InsuranceNewsScreenTest {
         assertTrue(source.contains("InsuranceBriefingAssets.logoResId"))
         assertTrue(source.contains("painterResource"))
         assertFalse(source.contains("hubShortName"))
+        assertTrue(source.contains("deleteNewsConfirmTitle"))
+        assertTrue(source.contains("InsuranceNewsDarkModeText"))
         assertFalse(source.contains("HolographicGlassCard"))
         assertFalse(source.contains("HomeInsuranceNewsSection"))
     }
