@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FilterCenterFocus
 import androidx.compose.material.icons.rounded.Biotech
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LocalHospital
@@ -66,8 +67,11 @@ private val CptOfficeVisitBlue = Color(0xFF03A9F4)
 /** Laboratory panels and urinalysis (81004, 80035, …) */
 private val CptLabGreen = Color(0xFF43A047)
 
-/** Hospital / inpatient / imaging (99221, 99222, 99223, …) */
+/** Hospital / inpatient care (99221, 99222, 99223, …) */
 private val CptHospitalRed = Color(0xFFE53935)
+
+/** Radiology / X-ray / CT / MRI (71046, 73562, 74177, …) */
+private val CptXRayChromeSilver = Color(0xFFB8C0CC)
 
 /** Durable medical equipment */
 private val CptDmeBlack = Color(0xFF212121)
@@ -419,6 +423,7 @@ internal fun categoryThemeColor(category: CptCategory): Color {
         CptCategory.OfficeVisit -> CptOfficeVisitBlue
         CptCategory.Lab -> CptLabGreen
         CptCategory.Hospital -> CptHospitalRed
+        CptCategory.XRay -> CptXRayChromeSilver
         CptCategory.Dme -> CptDmeBlack
         CptCategory.Injection -> CptInjectionYellow
         CptCategory.Other -> CptOtherPurple
@@ -427,7 +432,7 @@ internal fun categoryThemeColor(category: CptCategory): Color {
 
 internal fun categoryContentColor(category: CptCategory): Color {
     return when (category) {
-        CptCategory.Injection -> CptFlashcardBackText
+        CptCategory.Injection, CptCategory.XRay -> CptFlashcardBackText
         else -> Color.White
     }
 }
@@ -437,6 +442,7 @@ private fun categoryIcon(category: CptCategory): ImageVector {
         CptCategory.OfficeVisit -> Icons.Rounded.MedicalServices
         CptCategory.Lab -> Icons.Rounded.Biotech
         CptCategory.Hospital -> Icons.Rounded.LocalHospital
+        CptCategory.XRay -> Icons.Rounded.FilterCenterFocus
         CptCategory.Dme -> Icons.Rounded.MedicalInformation
         CptCategory.Injection -> Icons.Rounded.Vaccines
         CptCategory.Other -> Icons.Rounded.Info

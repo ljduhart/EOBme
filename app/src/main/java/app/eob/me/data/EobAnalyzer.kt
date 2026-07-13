@@ -106,6 +106,7 @@ object EobAnalyzer {
         CptCategory.OfficeVisit,
         CptCategory.Lab,
         CptCategory.Hospital,
+        CptCategory.XRay,
         CptCategory.Dme,
         CptCategory.Injection
     )
@@ -541,6 +542,7 @@ object EobAnalyzer {
             CptCategory.OfficeVisit -> EobStrings.t(language, "categoryOfficeVisit")
             CptCategory.Lab -> EobStrings.t(language, "categoryLab")
             CptCategory.Hospital -> EobStrings.t(language, "categoryHospital")
+            CptCategory.XRay -> EobStrings.t(language, "categoryXRay")
             CptCategory.Dme -> EobStrings.t(language, "categoryDme")
             CptCategory.Injection -> EobStrings.t(language, "categoryInjection")
             CptCategory.Other, null -> EobStrings.t(language, "provider")

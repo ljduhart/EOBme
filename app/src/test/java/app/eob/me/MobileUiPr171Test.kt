@@ -39,6 +39,18 @@ class MobileUiPr171Test {
         assertTrue(viewModelSource.contains("providerType: CareTeamProviderType"))
     }
 
+    @Test
+    fun cptTrackerIncludesXRayCategoryTabWithChromeSilver() {
+        val modelsSource = readSource("data/EobModels.kt")
+        val screenSource = readSource("ui/screens/CptTrackerScreen.kt")
+        val stringsSource = readSource("data/EobStrings.kt")
+        assertTrue(modelsSource.contains("XRay(\"X-Ray\")"))
+        assertTrue(screenSource.contains("CptXRayChromeSilver"))
+        assertTrue(screenSource.contains("CptCategory.XRay"))
+        assertTrue(stringsSource.contains("categoryXRay"))
+        assertTrue(stringsSource.contains("CptCategory.XRay"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             java.io.File("src/main/java/app/eob/me/$relativePath"),

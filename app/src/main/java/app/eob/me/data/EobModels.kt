@@ -20,6 +20,7 @@ enum class CptCategory(val displayName: String) {
     OfficeVisit("OVs"),
     Lab("Labs"),
     Hospital("Hospital"),
+    XRay("X-Ray"),
     Dme("DME"),
     Injection("Injections"),
     Other("Other")

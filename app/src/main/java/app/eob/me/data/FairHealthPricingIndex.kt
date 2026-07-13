@@ -34,6 +34,7 @@ object FairHealthPricingIndex {
             CptCategory.OfficeVisit -> 130.0
             CptCategory.Lab -> 45.0
             CptCategory.Hospital -> 280.0
+            CptCategory.XRay -> 220.0
             CptCategory.Dme -> 90.0
             CptCategory.Injection -> 75.0
             CptCategory.Other -> 100.0

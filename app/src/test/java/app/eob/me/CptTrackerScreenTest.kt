@@ -111,6 +111,24 @@ class CptTrackerScreenTest {
     }
 
     @Test
+    fun flashcardEntriesRouteChestXrayToXRayCategoryTab() {
+        val record = EobAnalyzer.analyze(
+            rawText = "Provider: Imaging Center\nAetna\n01/15/2026\n71046 billed $180.00 insurance paid $90.00",
+            sourceName = "test",
+            nextId = 7
+        )
+
+        val entries = BentoSnapshotExtractor.buildCptFlashcardEntries(
+            language = AppLanguage.English,
+            records = listOf(record),
+            category = CptCategory.XRay
+        )
+
+        assertEquals(1, entries.size)
+        assertEquals("71046", entries.first().code)
+    }
+
+    @Test
     fun cptTrackerScreenContainsFlashcardGridPatterns() {
         val source = readSource("ui/screens/CptTrackerScreen.kt")
         assertTrue(source.contains("fun CptTrackerScreen"))
@@ -119,6 +137,7 @@ class CptTrackerScreenTest {
         assertTrue(source.contains("CptOfficeVisitBlue"))
         assertTrue(source.contains("CptLabGreen"))
         assertTrue(source.contains("CptHospitalRed"))
+        assertTrue(source.contains("CptXRayChromeSilver"))
         assertTrue(source.contains("CptDmeBlack"))
         assertTrue(source.contains("CptInjectionYellow"))
         assertTrue(source.contains("CptOtherPurple"))

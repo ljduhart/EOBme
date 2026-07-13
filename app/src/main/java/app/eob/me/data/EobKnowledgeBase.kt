@@ -88,11 +88,11 @@ object EobKnowledgeBase {
         CptInfo("87086", "Urine culture.", CptCategory.Lab),
         CptInfo("93000", "Electrocardiogram with interpretation and report.", CptCategory.OfficeVisit),
         CptInfo("36415", "Routine venipuncture blood draw.", CptCategory.Lab),
-        CptInfo("71046", "Chest X-ray, two views.", CptCategory.Hospital),
-        CptInfo("73562", "Knee X-ray, three views.", CptCategory.Hospital),
-        CptInfo("74177", "CT abdomen and pelvis with contrast.", CptCategory.Hospital),
-        CptInfo("70553", "MRI brain without and with contrast.", CptCategory.Hospital),
-        CptInfo("72148", "MRI lumbar spine without contrast.", CptCategory.Hospital),
+        CptInfo("71046", "Chest X-ray, two views.", CptCategory.XRay),
+        CptInfo("73562", "Knee X-ray, three views.", CptCategory.XRay),
+        CptInfo("74177", "CT abdomen and pelvis with contrast.", CptCategory.XRay),
+        CptInfo("70553", "MRI brain without and with contrast.", CptCategory.XRay),
+        CptInfo("72148", "MRI lumbar spine without contrast.", CptCategory.XRay),
         CptInfo("45378", "Diagnostic colonoscopy.", CptCategory.Hospital),
         CptInfo("43239", "Upper GI endoscopy with biopsy.", CptCategory.Hospital),
         CptInfo("A0425", "Ground mileage for ambulance transport.", CptCategory.Dme),
@@ -215,7 +215,14 @@ object EobKnowledgeBase {
             code.startsWith("J") -> CptCategory.Injection
             code.startsWith("A") -> CptCategory.Dme
             code.startsWith("D") -> CptCategory.Other
-            else -> CptCategory.Other
+            else -> {
+                val numeric = code.filter { it.isDigit() }.take(5).toIntOrNull()
+                if (numeric != null && numeric in 70000..79999) {
+                    CptCategory.XRay
+                } else {
+                    CptCategory.Other
+                }
+            }
         }
     }
 }

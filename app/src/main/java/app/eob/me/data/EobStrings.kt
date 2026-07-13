@@ -56,6 +56,7 @@ object EobStrings {
             CptCategory.OfficeVisit -> t(language, "categoryOfficeVisit")
             CptCategory.Lab -> t(language, "categoryLab")
             CptCategory.Hospital -> t(language, "categoryHospital")
+            CptCategory.XRay -> t(language, "categoryXRay")
             CptCategory.Dme -> t(language, "categoryDme")
             CptCategory.Injection -> t(language, "categoryInjection")
             CptCategory.Other -> t(language, "categoryOther")
@@ -230,6 +231,7 @@ object EobStrings {
         "categoryOfficeVisit" to "OVs",
         "categoryLab" to "Labs",
         "categoryHospital" to "Hospital",
+        "categoryXRay" to "X-Ray",
         "categoryDme" to "DME",
         "categoryInjection" to "Injections",
         "categoryOther" to "Other",
