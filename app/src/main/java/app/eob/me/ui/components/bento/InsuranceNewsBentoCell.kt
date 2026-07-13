@@ -9,7 +9,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +19,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,9 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -46,9 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
-import app.eob.me.data.InsuranceBriefingAssets
 import app.eob.me.data.InsuranceNewsBentoSnapshot
-import app.eob.me.data.MajorInsuranceCarrier
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.ui.components.glassEffect
 import app.eob.me.ui.theme.EobBrandBlue
@@ -114,10 +108,6 @@ fun InsuranceNewsBentoCell(
                     modifier = Modifier.weight(1f)
                 )
             }
-
-            InsuranceBriefingLogoStrip(
-                modifier = Modifier.fillMaxWidth()
-            )
 
             Row(
                 modifier = Modifier
@@ -310,26 +300,5 @@ private fun NewsMicroCardActionFace(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-@Composable
-private fun InsuranceBriefingLogoStrip(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.height(18.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        MajorInsuranceCarrier.entries.forEach { carrier ->
-            Image(
-                painter = painterResource(InsuranceBriefingAssets.logoResId(carrier)),
-                contentDescription = carrier.displayName,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(16.dp)
-                    .fillMaxWidth(),
-                contentScale = ContentScale.Fit
-            )
-        }
     }
 }

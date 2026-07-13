@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,11 +84,15 @@ private val PulseDotTeal = Color(0xFF00897B)
 private val SourcePillText = Color(0xFFC62828)
 private val AmberLightbulb = Color(0xFFFFB300)
 
-@Composable
-private fun insuranceNewsReadableTextColor(): Color = MaterialTheme.colorScheme.onSurface
+private val InsuranceNewsDarkModeText = Color.Black
 
 @Composable
-private fun insuranceNewsTitleColor(): Color = MaterialTheme.colorScheme.onBackground
+private fun insuranceNewsReadableTextColor(): Color =
+    if (isSystemInDarkTheme()) InsuranceNewsDarkModeText else MaterialTheme.colorScheme.onSurface
+
+@Composable
+private fun insuranceNewsTitleColor(): Color =
+    if (isSystemInDarkTheme()) InsuranceNewsDarkModeText else MaterialTheme.colorScheme.onBackground
 
 @Composable
 private fun newsCardContainerColor(): Color =
@@ -446,15 +450,49 @@ private fun SwipeableNewsBriefingCard(
     onReadFullBriefing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dismissState = rememberSwipeToDismissBoxState()
-    val newsKey = "${news.company}|${news.headline}|${news.date}"
-    var deleteTriggered by remember(newsKey) { mutableStateOf(false) }
-
-    LaunchedEffect(dismissState.currentValue, newsKey) {
-        if (!deleteTriggered && dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            deleteTriggered = true
-            onDelete()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                showDeleteConfirm = true
+                false
+            } else {
+                true
+            }
         }
+    )
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = {
+                Text(
+                    text = EobStrings.t(language, "deleteNewsConfirmTitle"),
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = EobStrings.t(language, "deleteNewsConfirmMessage"),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    }
+                ) {
+                    Text(EobStrings.t(language, "deleteNewsConfirmYes"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(EobStrings.t(language, "deleteNewsConfirmNo"))
+                }
+            }
+        )
     }
 
     SwipeToDismissBox(
