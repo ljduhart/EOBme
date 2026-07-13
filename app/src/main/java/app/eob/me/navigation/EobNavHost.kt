@@ -1557,83 +1557,57 @@ private fun HistoryRoute(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.10f)
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 48.dp),
-                textStyle = MaterialTheme.typography.bodyMedium,
-                label = { Text(EobStrings.t(language, "provider")) },
-                placeholder = { Text(EobStrings.t(language, "provider")) },
-                singleLine = true
+        if (uiState.isLoadingInvoice) {
+            LoadingInvoiceScreen(modifier = Modifier.fillMaxSize())
+        } else {
+            EobHistoryScreen(
+                language = language,
+                timelineSections = timelineSections,
+                paymentFilter = historyPaymentFilter,
+                onPaymentFilterSelected = { filter ->
+                    eobViewModel.setHistoryPaymentFilter(filter)
+                    onActivity()
+                },
+                onDeleteEob = onDeleteEob,
+                onUploadEob = onLibraryUpload,
+                onRecordSelected = { record ->
+                    eobViewModel.selectRecord(record, profile)
+                    onActivity()
+                },
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                totalBillingErrors = totalBillingErrors,
+                selectedRecord = uiState.selectedRecord,
+                onAppealDoctorWithStrategy = { record, strategy ->
+                    if (eobViewModel.openAppealForRecord(
+                            record = record,
+                            profile = profile,
+                            target = AppealTarget.DOCTOR,
+                            language = language,
+                            disputeStrategy = strategy
+                        )
+                    ) {
+                        navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
+                    }
+                    onActivity()
+                },
+                onAppealInsuranceWithStrategy = { record, strategy ->
+                    if (eobViewModel.openAppealForRecord(
+                            record = record,
+                            profile = profile,
+                            target = AppealTarget.INSURANCE,
+                            language = language,
+                            insuranceStrategy = strategy
+                        )
+                    ) {
+                        navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
+                    }
+                    onActivity()
+                },
+                showVaultFilterBanner = eobViewModel.isTaxVaultHistoryGated(),
+                taxVaultFilterState = taxVaultFilterState,
+                modifier = Modifier.fillMaxSize()
             )
-            if (totalBillingErrors > 0) {
-                Text(
-                    text = "$totalBillingErrors ${EobStrings.t(language, "analysis")}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    maxLines = 1
-                )
-            }
-        }
-        Box(modifier = Modifier.weight(1f)) {
-            if (uiState.isLoadingInvoice) {
-                LoadingInvoiceScreen(modifier = Modifier.fillMaxSize())
-            } else {
-                EobHistoryScreen(
-                    language = language,
-                    timelineSections = timelineSections,
-                    paymentFilter = historyPaymentFilter,
-                    onPaymentFilterSelected = { filter ->
-                        eobViewModel.setHistoryPaymentFilter(filter)
-                        onActivity()
-                    },
-                    onDeleteEob = onDeleteEob,
-                    onUploadEob = onLibraryUpload,
-                    onRecordSelected = { record ->
-                        eobViewModel.selectRecord(record, profile)
-                        onActivity()
-                    },
-                    selectedRecord = uiState.selectedRecord,
-                    onAppealDoctorWithStrategy = { record, strategy ->
-                        if (eobViewModel.openAppealForRecord(
-                                record = record,
-                                profile = profile,
-                                target = AppealTarget.DOCTOR,
-                                language = language,
-                                disputeStrategy = strategy
-                            )
-                        ) {
-                            navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
-                        }
-                        onActivity()
-                    },
-                    onAppealInsuranceWithStrategy = { record, strategy ->
-                        if (eobViewModel.openAppealForRecord(
-                                record = record,
-                                profile = profile,
-                                target = AppealTarget.INSURANCE,
-                                language = language,
-                                insuranceStrategy = strategy
-                            )
-                        ) {
-                            navController.navigate(EobRoute.Appeal.route) { launchSingleTop = true }
-                        }
-                        onActivity()
-                    },
-                    showVaultFilterBanner = eobViewModel.isTaxVaultHistoryGated(),
-                    taxVaultFilterState = taxVaultFilterState,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
         }
     }
 }

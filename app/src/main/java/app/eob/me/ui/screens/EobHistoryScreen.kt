@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -39,6 +39,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -88,6 +89,9 @@ fun EobHistoryScreen(
     onDeleteEob: (EobRecord) -> Unit,
     onUploadEob: () -> Unit,
     onRecordSelected: (EobRecord) -> Unit,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    totalBillingErrors: Int = 0,
     selectedRecord: EobRecord? = null,
     onAppealDoctorWithStrategy: (EobRecord, DoctorDisputeStrategy) -> Unit = { _, _ -> },
     onAppealInsuranceWithStrategy: (EobRecord, InsuranceAppealStrategy) -> Unit = { _, _ -> },
@@ -112,155 +116,182 @@ fun EobHistoryScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.16f)
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = EobStrings.t(language, "history"),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "$recordCount ${EobStrings.t(language, "eobs")}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    FilledTonalButton(
-                        onClick = onUploadEob,
-                        modifier = Modifier.heightIn(max = 36.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                item(key = "history_search") {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = EobStrings.t(language, "uploadEob"),
-                            modifier = Modifier.size(18.dp)
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 48.dp),
+                            textStyle = MaterialTheme.typography.bodyMedium,
+                            label = { Text(EobStrings.t(language, "provider")) },
+                            placeholder = { Text(EobStrings.t(language, "provider")) },
+                            singleLine = true
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        if (totalBillingErrors > 0) {
+                            Text(
+                                text = "$totalBillingErrors ${EobStrings.t(language, "analysis")}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+
+                item(key = "history_header") {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = EobStrings.t(language, "history"),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "$recordCount ${EobStrings.t(language, "eobs")}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            FilledTonalButton(
+                                onClick = onUploadEob,
+                                modifier = Modifier.heightIn(max = 36.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = EobStrings.t(language, "uploadEob"),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = EobStrings.t(language, "uploadEob"),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        HistoryPaymentFilterChips(
+                            language = language,
+                            selectedFilter = paymentFilter,
+                            onFilterSelected = {
+                                onPaymentFilterSelected(it)
+                                expandedRecordKey = ""
+                                doctorAppealTargetRecord = null
+                            }
+                        )
+                    }
+                }
+
+                if (showVaultFilterBanner) {
+                    item(key = "vault_filter_banner") {
                         Text(
-                            text = EobStrings.t(language, "uploadEob"),
-                            style = MaterialTheme.typography.labelMedium,
+                            text = EobStrings.t(language, "taxVaultFilteredBanner"),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Color(0xFF3DDC84).copy(alpha = 0.14f),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
+                            color = Color(0xFF1B7F4B),
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
-                HistoryPaymentFilterChips(
-                    language = language,
-                    selectedFilter = paymentFilter,
-                    onFilterSelected = {
-                        onPaymentFilterSelected(it)
-                        expandedRecordKey = ""
-                        doctorAppealTargetRecord = null
+
+                if (recordCount == 0) {
+                    item(key = "history_empty") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = EobStrings.t(language, "historyEmptyHint"),
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                )
-            }
-
-            if (showVaultFilterBanner) {
-                Text(
-                    text = EobStrings.t(language, "taxVaultFilteredBanner"),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .background(
-                            Color(0xFF3DDC84).copy(alpha = 0.14f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF1B7F4B),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            if (recordCount == 0) {
-                Box(
-                    modifier = Modifier
-                        .weight(0.84f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = EobStrings.t(language, "historyEmptyHint"),
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                HistoryTimelineList(
-                    language = language,
-                    timelineSections = timelineSections,
-                    listState = listState,
-                    expandedRecordKey = expandedRecordKey,
-                    selectedRecord = selectedRecord,
-                    taxVaultFilterState = taxVaultFilterState,
-                    showVaultFilterBanner = showVaultFilterBanner,
-                    modifier = Modifier
-                        .weight(0.84f)
-                        .fillMaxWidth(),
-                    onExpandToggle = { record ->
-                        val recordKey = record.historyListKey()
-                        val collapsingSame = expandedRecordKey == recordKey
-                        if (collapsingSame) {
-                            doctorAppealTargetRecord = null
+                } else {
+                    historyTimelineItems(
+                        language = language,
+                        timelineSections = timelineSections,
+                        expandedRecordKey = expandedRecordKey,
+                        selectedRecord = selectedRecord,
+                        taxVaultFilterState = taxVaultFilterState,
+                        showVaultFilterBanner = showVaultFilterBanner,
+                        onExpandToggle = { record ->
+                            val recordKey = record.historyListKey()
+                            val collapsingSame = expandedRecordKey == recordKey
+                            if (collapsingSame) {
+                                doctorAppealTargetRecord = null
+                                insuranceAppealTargetRecord = null
+                                expandedRecordKey = ""
+                            } else {
+                                onRecordSelected(record)
+                                doctorAppealTargetRecord = null
+                                insuranceAppealTargetRecord = null
+                                expandedRecordKey = recordKey
+                            }
+                        },
+                        onDoctorAppealRequested = { record ->
+                            onRecordSelected(record)
                             insuranceAppealTargetRecord = null
-                            expandedRecordKey = ""
-                        } else {
+                            doctorAppealTargetRecord = if (
+                                doctorAppealTargetRecord?.matchesHistoryRecord(record) == true
+                            ) {
+                                null
+                            } else {
+                                record
+                            }
+                        },
+                        onAppealInsurance = { record ->
                             onRecordSelected(record)
                             doctorAppealTargetRecord = null
-                            insuranceAppealTargetRecord = null
-                            expandedRecordKey = recordKey
-                        }
-                    },
-                    onDoctorAppealRequested = { record ->
-                        onRecordSelected(record)
-                        insuranceAppealTargetRecord = null
-                        doctorAppealTargetRecord = if (
-                            doctorAppealTargetRecord?.matchesHistoryRecord(record) == true
-                        ) {
-                            null
-                        } else {
-                            record
-                        }
-                    },
-                    onAppealInsurance = { record ->
-                        onRecordSelected(record)
-                        doctorAppealTargetRecord = null
-                        insuranceAppealTargetRecord = if (
-                            insuranceAppealTargetRecord?.matchesHistoryRecord(record) == true
-                        ) {
-                            null
-                        } else {
-                            record
-                        }
-                    },
-                    onDeleteEob = onDeleteEob
-                )
+                            insuranceAppealTargetRecord = if (
+                                insuranceAppealTargetRecord?.matchesHistoryRecord(record) == true
+                            ) {
+                                null
+                            } else {
+                                record
+                            }
+                        },
+                        onDeleteEob = onDeleteEob
+                    )
+                }
             }
-        }
 
             doctorAppealTargetRecord?.let { record ->
                 if (selectedRecord?.matchesHistoryRecord(record) == true) {
@@ -331,11 +362,9 @@ private fun HistoryPaymentFilterChips(
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@Composable
-private fun HistoryTimelineList(
+private fun LazyListScope.historyTimelineItems(
     language: AppLanguage,
     timelineSections: List<HistoryTimelineSection>,
-    listState: LazyListState,
     expandedRecordKey: String,
     selectedRecord: EobRecord?,
     taxVaultFilterState: TaxVaultFilterState,
@@ -343,36 +372,28 @@ private fun HistoryTimelineList(
     onExpandToggle: (EobRecord) -> Unit,
     onDoctorAppealRequested: (EobRecord) -> Unit,
     onAppealInsurance: (EobRecord) -> Unit,
-    onDeleteEob: (EobRecord) -> Unit,
-    modifier: Modifier = Modifier
+    onDeleteEob: (EobRecord) -> Unit
 ) {
-    LazyColumn(
-        state = listState,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        timelineSections.forEach { section ->
-            stickyHeader(key = section.lazySectionKey()) {
-                HistoryMonthHeader(title = section.header)
-            }
-            items(
-                items = section.rows,
-                key = { row -> section.lazyItemKey(row.record) }
-            ) { row ->
-                HistoryTimelineItemRow(
-                    language = language,
-                    row = row,
-                    isExpanded = expandedRecordKey == row.record.historyListKey(),
-                    isSelected = selectedRecord?.matchesHistoryRecord(row.record) == true,
-                    taxVaultFilterState = taxVaultFilterState,
-                    showVaultFilterBanner = showVaultFilterBanner,
-                    onExpandToggle = { onExpandToggle(row.record) },
-                    onDoctorAppealRequested = { onDoctorAppealRequested(row.record) },
-                    onAppealInsurance = { onAppealInsurance(row.record) },
-                    onDeleteEob = { onDeleteEob(row.record) }
-                )
-            }
+    timelineSections.forEach { section ->
+        stickyHeader(key = section.lazySectionKey()) {
+            HistoryMonthHeader(title = section.header)
+        }
+        items(
+            items = section.rows,
+            key = { row -> section.lazyItemKey(row.record) }
+        ) { row ->
+            HistoryTimelineItemRow(
+                language = language,
+                row = row,
+                isExpanded = expandedRecordKey == row.record.historyListKey(),
+                isSelected = selectedRecord?.matchesHistoryRecord(row.record) == true,
+                taxVaultFilterState = taxVaultFilterState,
+                showVaultFilterBanner = showVaultFilterBanner,
+                onExpandToggle = { onExpandToggle(row.record) },
+                onDoctorAppealRequested = { onDoctorAppealRequested(row.record) },
+                onAppealInsurance = { onAppealInsurance(row.record) },
+                onDeleteEob = { onDeleteEob(row.record) }
+            )
         }
     }
 }

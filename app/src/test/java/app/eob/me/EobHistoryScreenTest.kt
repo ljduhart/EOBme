@@ -64,10 +64,12 @@ class EobHistoryScreenTest {
     @Test
     fun historyUploadButtonAlignsWithTitleRow() {
         val source = readSource("ui/screens/EobHistoryScreen.kt")
-        val rowIndex = source.indexOf("horizontalArrangement = Arrangement.SpaceBetween")
+        val headerMarker = "item(key = \"history_header\")"
+        val headerIndex = source.indexOf(headerMarker)
+        assertTrue(headerIndex >= 0)
         val headerBlock = source.substring(
-            (rowIndex - 200).coerceAtLeast(0),
-            (rowIndex + 1_200).coerceAtMost(source.length)
+            headerIndex,
+            (headerIndex + 2_000).coerceAtMost(source.length)
         )
         assertTrue(headerBlock.contains("EobStrings.t(language, \"history\")"))
         assertTrue(headerBlock.contains("FilledTonalButton"))

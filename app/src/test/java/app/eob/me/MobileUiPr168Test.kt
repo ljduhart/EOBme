@@ -6,14 +6,11 @@ import org.junit.Test
 
 class MobileUiPr168Test {
     @Test
-    fun eobHistoryHeaderUsesCompactWeightSplit() {
+    fun eobHistoryHeaderUsesCompactUploadRow() {
         val historySource = readSource("ui/screens/EobHistoryScreen.kt")
-        val navSource = readSource("navigation/EobNavHost.kt")
-        assertTrue(historySource.contains(".weight(0.16f)"))
-        assertTrue(historySource.contains(".weight(0.84f)"))
+        assertTrue(historySource.contains("item(key = \"history_header\")"))
         assertTrue(historySource.contains("FilledTonalButton"))
         assertFalse(historySource.contains("ExtendedFloatingActionButton"))
-        assertTrue(navSource.contains("fillMaxHeight(0.10f)"))
     }
 
     @Test

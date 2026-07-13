@@ -6,9 +6,10 @@ import org.junit.Test
 
 class MobileUiPr169Test {
     @Test
-    fun insuranceNewsUsesBlackReadableTextInDarkMode() {
+    fun insuranceNewsUsesHighContrastReadableTextInDarkMode() {
         val source = readSource("ui/screens/NewsScreen.kt")
         assertTrue(source.contains("InsuranceNewsDarkModeText"))
+        assertTrue(source.contains("EobCyberTextPrimary"))
         assertTrue(source.contains("isHubDarkPresentation()"))
         assertTrue(source.contains("background.luminance()"))
         assertTrue(source.contains("insuranceNewsTitleColor"))

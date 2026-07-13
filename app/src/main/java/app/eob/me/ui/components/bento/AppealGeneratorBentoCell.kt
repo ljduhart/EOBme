@@ -127,20 +127,21 @@ fun AppealGeneratorBentoCell(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                if (isProcessing) {
-                    AppealProcessingRing(tint = iconTint, modifier = Modifier.padding(bottom = 4.dp))
-                } else {
-                    HubBentoIcon(
-                        destination = HubBentoDestination.AppealGenerator,
-                        tint = iconTint,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
                 BentoCellTitle(
                     text = HubBentoDestination.AppealGenerator.title(language),
                     maxLines = 2,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp)
                 )
+                if (isProcessing) {
+                    AppealProcessingRing(tint = iconTint)
+                } else {
+                    HubBentoIcon(
+                        destination = HubBentoDestination.AppealGenerator,
+                        tint = iconTint
+                    )
+                }
             }
         }
     }

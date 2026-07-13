@@ -40,6 +40,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -75,6 +76,7 @@ import app.eob.me.data.InsuranceNewsCarrierHubItem
 import app.eob.me.data.MajorInsuranceCarrier
 import app.eob.me.data.NewsRelease
 import app.eob.me.ui.components.home.InsuranceArticleReaderOverlay
+import app.eob.me.ui.theme.EobCyberTextPrimary
 
 private val CarrierSelectedBackground = Color(0xFFE0F2F1)
 private val CarrierSelectedBorder = Color(0xFF00695C)
@@ -84,7 +86,7 @@ private val PulseDotTeal = Color(0xFF00897B)
 private val SourcePillText = Color(0xFFC62828)
 private val AmberLightbulb = Color(0xFFFFB300)
 
-private val InsuranceNewsDarkModeText = Color.Black
+private val InsuranceNewsDarkModeText = EobCyberTextPrimary
 
 @Composable
 private fun isHubDarkPresentation(): Boolean =
@@ -425,16 +427,37 @@ fun NewsBriefingCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (showReadMore) {
+                        val readMoreColors = if (isHubDarkPresentation()) {
+                            ButtonDefaults.outlinedButtonColors(
+                                contentColor = InsuranceNewsDarkModeText
+                            )
+                        } else {
+                            ButtonDefaults.outlinedButtonColors()
+                        }
                         OutlinedButton(
                             onClick = onReadMore,
-                            shape = RoundedCornerShape(50)
+                            shape = RoundedCornerShape(50),
+                            colors = readMoreColors,
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = if (isHubDarkPresentation()) {
+                                    InsuranceNewsDarkModeText.copy(alpha = 0.7f)
+                                } else {
+                                    MaterialTheme.colorScheme.outline
+                                }
+                            )
                         ) {
                             Text(EobStrings.t(language, "insuranceNewsReadMore"))
                         }
                     } else {
                         Spacer(modifier = Modifier.width(1.dp))
                     }
-                    TextButton(onClick = onReadFullBriefing) {
+                    TextButton(
+                        onClick = onReadFullBriefing,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
                         Text(EobStrings.t(language, "insuranceNewsReadFullBriefing"))
                     }
                 }
