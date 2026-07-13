@@ -3,6 +3,7 @@ package app.eob.me.ui.components.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +24,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobStrings
+import app.eob.me.data.PreferredDoctor
 import app.eob.me.ui.theme.EobCareDentistBlue
 import app.eob.me.ui.theme.EobCarePcpGreen
 import app.eob.me.ui.theme.EobCareSpecialistYellow
@@ -113,37 +115,90 @@ fun ProviderTypeChipBar(
     language: AppLanguage,
     selected: CareTeamProviderType,
     onSelected: (CareTeamProviderType) -> Unit,
+    preferredDoctors: Map<CareTeamProviderType, PreferredDoctor> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        CareTeamProviderType.displayOrder.forEach { type ->
-            val chipColor = CareTeamColors.colorFor(type)
-            FilterChip(
-                selected = selected == type,
-                onClick = { onSelected(type) },
-                label = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            Modifier
-                                .size(8.dp)
-                                .background(chipColor, CircleShape)
-                        )
-                        Text(
-                            text = careTeamLabel(language, type),
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                },
-                modifier = Modifier.weight(1f)
-            )
+        CareTeamProviderType.displayOrder.chunked(2).forEach { rowTypes ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowTypes.forEach { type ->
+                    ProviderTypeChipCell(
+                        language = language,
+                        type = type,
+                        selected = selected == type,
+                        detailLine = providerTypeDetailLine(language, type, preferredDoctors),
+                        onClick = { onSelected(type) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (rowTypes.size == 1) {
+                    Box(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun ProviderTypeChipCell(
+    language: AppLanguage,
+    type: CareTeamProviderType,
+    selected: Boolean,
+    detailLine: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val chipColor = CareTeamColors.colorFor(type)
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier
+                        .size(10.dp)
+                        .background(chipColor, CircleShape)
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = careTeamLabel(language, type),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = detailLine,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                    )
+                }
+            }
+        },
+        modifier = modifier.fillMaxWidth()
+    )
+}
+
+private fun providerTypeDetailLine(
+    language: AppLanguage,
+    type: CareTeamProviderType,
+    preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>
+): String {
+    val doctorName = preferredDoctors[type]?.name.orEmpty().trim()
+    return doctorName.ifBlank { EobStrings.t(language, "careTeamUnassignedHint") }
 }
