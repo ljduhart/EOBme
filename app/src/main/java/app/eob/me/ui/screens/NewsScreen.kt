@@ -10,7 +10,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +58,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -87,27 +87,31 @@ private val AmberLightbulb = Color(0xFFFFB300)
 private val InsuranceNewsDarkModeText = Color.Black
 
 @Composable
+private fun isHubDarkPresentation(): Boolean =
+    MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+@Composable
 private fun insuranceNewsReadableTextColor(): Color =
-    if (isSystemInDarkTheme()) InsuranceNewsDarkModeText else MaterialTheme.colorScheme.onSurface
+    if (isHubDarkPresentation()) InsuranceNewsDarkModeText else MaterialTheme.colorScheme.onSurface
 
 @Composable
 private fun insuranceNewsTitleColor(): Color =
-    if (isSystemInDarkTheme()) InsuranceNewsDarkModeText else MaterialTheme.colorScheme.onBackground
+    if (isHubDarkPresentation()) InsuranceNewsDarkModeText else MaterialTheme.colorScheme.onBackground
 
 @Composable
 private fun newsCardContainerColor(): Color =
-    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else NewsCardBackground
+    if (isHubDarkPresentation()) MaterialTheme.colorScheme.surfaceVariant else NewsCardBackground
 
 @Composable
 private fun infoBannerContainerColor(): Color =
-    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else InfoBannerBackground
+    if (isHubDarkPresentation()) MaterialTheme.colorScheme.surfaceVariant else InfoBannerBackground
 
 @Composable
 private fun carrierCardBackground(isSelected: Boolean): Color = when {
-    isSelected && isSystemInDarkTheme() ->
+    isSelected && isHubDarkPresentation() ->
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
     isSelected -> CarrierSelectedBackground
-    isSystemInDarkTheme() -> MaterialTheme.colorScheme.surfaceVariant
+    isHubDarkPresentation() -> MaterialTheme.colorScheme.surfaceVariant
     else -> MaterialTheme.colorScheme.surfaceVariant
 }
 
@@ -450,7 +454,8 @@ private fun SwipeableNewsBriefingCard(
     onReadFullBriefing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showDeleteConfirm by remember { mutableStateOf(false) }
+    val newsKey = "${news.company}|${news.headline}|${news.date}"
+    var showDeleteConfirm by remember(newsKey) { mutableStateOf(false) }
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {

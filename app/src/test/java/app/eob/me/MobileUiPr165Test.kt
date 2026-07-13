@@ -60,7 +60,7 @@ class MobileUiPr165Test {
         assertTrue(bentoSource.contains("MaterialTheme.colorScheme.onSurface"))
         assertTrue(newsSource.contains("insuranceNewsReadableTextColor"))
         assertTrue(newsSource.contains("InsuranceNewsDarkModeText"))
-        assertTrue(newsSource.contains("isSystemInDarkTheme"))
+        assertTrue(newsSource.contains("isHubDarkPresentation"))
     }
 
     private fun readSource(relativePath: String): String {

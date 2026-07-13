@@ -9,7 +9,8 @@ class MobileUiPr169Test {
     fun insuranceNewsUsesBlackReadableTextInDarkMode() {
         val source = readSource("ui/screens/NewsScreen.kt")
         assertTrue(source.contains("InsuranceNewsDarkModeText"))
-        assertTrue(source.contains("if (isSystemInDarkTheme()) InsuranceNewsDarkModeText"))
+        assertTrue(source.contains("isHubDarkPresentation()"))
+        assertTrue(source.contains("background.luminance()"))
         assertTrue(source.contains("insuranceNewsTitleColor"))
     }
 
@@ -22,6 +23,7 @@ class MobileUiPr169Test {
         assertTrue(swipeBlock.contains("deleteNewsConfirmTitle"))
         assertTrue(swipeBlock.contains("deleteNewsConfirmMessage"))
         assertTrue(swipeBlock.contains("AlertDialog"))
+        assertTrue(swipeBlock.contains("remember(newsKey)"))
         assertFalse(swipeBlock.contains("deleteTriggered"))
     }
 
