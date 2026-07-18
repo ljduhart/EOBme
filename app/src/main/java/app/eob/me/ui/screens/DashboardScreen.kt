@@ -75,7 +75,7 @@ fun DashboardScreen(
             .sortedByDescending { it.totalAmount }
     }
 
-    val allocationSlices = remember(metrics, language) {
+    val allocationCategories = remember(metrics, language) {
         listOf(
             AllocationSlice(
                 label = EobStrings.t(language, "networkSavingsAdjustments"),
@@ -92,7 +92,10 @@ fun DashboardScreen(
                 amount = metrics.patientDue,
                 color = PatientRed
             )
-        ).filter { it.amount > 0.0 }
+        )
+    }
+    val pieSlices = remember(allocationCategories) {
+        allocationCategories.filter { it.amount > 0.0 }
     }
 
     LazyColumn(
@@ -147,7 +150,7 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     ClaimAllocationPieChart(
-                        slices = allocationSlices,
+                        slices = pieSlices,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(220.dp)
@@ -155,7 +158,7 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    allocationSlices.forEach { slice ->
+                    allocationCategories.forEach { slice ->
                         LegendItem(
                             label = slice.label,
                             amount = slice.amount,
@@ -315,7 +318,11 @@ private fun FacilityBarRow(
     maxAmount: Double,
     language: AppLanguage
 ) {
-    val barFraction = (amount / maxAmount).toFloat().coerceIn(0.05f, 1f)
+    val barFraction = if (amount <= 0.0) {
+        0f
+    } else {
+        (amount / maxAmount).toFloat().coerceIn(0f, 1f)
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),

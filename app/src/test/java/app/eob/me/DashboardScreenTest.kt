@@ -51,6 +51,19 @@ class DashboardScreenTest {
     }
 
     @Test
+    fun claimAllocationLegendAlwaysListsAllCategories() {
+        val source = readSource("ui/screens/DashboardScreen.kt")
+        assertTrue(source.contains("allocationCategories.forEach"))
+        assertTrue(source.contains("pieSlices"))
+    }
+
+    @Test
+    fun facilityBarGraphUsesZeroWidthForZeroAmounts() {
+        val source = readSource("ui/screens/DashboardScreen.kt")
+        assertTrue(source.contains("if (amount <= 0.0)"))
+    }
+
+    @Test
     fun spendingByFacilityUsesBarGraphWithTotals() {
         val source = readSource("ui/screens/DashboardScreen.kt")
         assertTrue(source.contains("FacilitySpendingBarChart"))
