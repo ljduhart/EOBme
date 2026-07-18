@@ -161,8 +161,22 @@ fun ProfileScreen(
                         validationErrors = errors
                         return@Button
                     }
-                    val profileToSave = mergedProfile
-                    val credentialsToSave = draftCredentials.copy(email = profileToSave.email)
+                    val profileToSave = mergedProfile.copy(
+                        firstName = mergedProfile.firstName.trim(),
+                        lastName = mergedProfile.lastName.trim(),
+                        email = mergedProfile.email.trim(),
+                        city = mergedProfile.city.trim(),
+                        state = mergedProfile.state.trim(),
+                        insuranceName = mergedProfile.insuranceName.trim(),
+                        insuranceId = mergedProfile.insuranceId.trim(),
+                        groupName = mergedProfile.groupName.trim(),
+                        pcpCopay = mergedProfile.pcpCopay.trim(),
+                        specialistCopay = mergedProfile.specialistCopay.trim()
+                    )
+                    val credentialsToSave = draftCredentials.copy(
+                        email = profileToSave.email,
+                        password = draftCredentials.password
+                    )
                     onProfileChanged(profileToSave)
                     onCredentialsChanged(credentialsToSave)
                     onSave(profileToSave, credentialsToSave)

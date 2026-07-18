@@ -47,6 +47,14 @@ class MobileUiPr172Test {
         assertTrue(source.contains("fieldErrorText"))
     }
 
+    @Test
+    fun profileSaveTrimsValidatedTextFields() {
+        val source = readSource("ui/screens/ProfileScreen.kt")
+        assertTrue(source.contains("firstName = mergedProfile.firstName.trim()"))
+        assertTrue(source.contains("email = mergedProfile.email.trim()"))
+        assertTrue(source.contains("state = mergedProfile.state.trim()"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             java.io.File("src/main/java/app/eob/me/$relativePath"),
