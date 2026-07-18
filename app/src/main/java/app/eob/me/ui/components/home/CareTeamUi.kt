@@ -24,7 +24,6 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.EobStrings
-import app.eob.me.data.PreferredDoctor
 import app.eob.me.ui.theme.EobCareDentistBlue
 import app.eob.me.ui.theme.EobCarePcpGreen
 import app.eob.me.ui.theme.EobCareSpecialistYellow
@@ -115,7 +114,6 @@ fun ProviderTypeChipBar(
     language: AppLanguage,
     selected: CareTeamProviderType,
     onSelected: (CareTeamProviderType) -> Unit,
-    preferredDoctors: Map<CareTeamProviderType, PreferredDoctor> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -132,7 +130,6 @@ fun ProviderTypeChipBar(
                         language = language,
                         type = type,
                         selected = selected == type,
-                        detailLine = providerTypeDetailLine(language, type, preferredDoctors),
                         onClick = { onSelected(type) },
                         modifier = Modifier.weight(1f)
                     )
@@ -150,7 +147,6 @@ private fun ProviderTypeChipCell(
     language: AppLanguage,
     type: CareTeamProviderType,
     selected: Boolean,
-    detailLine: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -160,7 +156,6 @@ private fun ProviderTypeChipCell(
         onClick = onClick,
         label = {
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -169,36 +164,15 @@ private fun ProviderTypeChipCell(
                         .size(10.dp)
                         .background(chipColor, CircleShape)
                 )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Text(
-                        text = careTeamLabel(language, type),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = detailLine,
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-                    )
-                }
+                Text(
+                    text = careTeamLabel(language, type),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         },
         modifier = modifier.fillMaxWidth()
     )
-}
-
-private fun providerTypeDetailLine(
-    language: AppLanguage,
-    type: CareTeamProviderType,
-    preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>
-): String {
-    val doctorName = preferredDoctors[type]?.name.orEmpty().trim()
-    return doctorName.ifBlank { EobStrings.t(language, "careTeamUnassignedHint") }
 }
