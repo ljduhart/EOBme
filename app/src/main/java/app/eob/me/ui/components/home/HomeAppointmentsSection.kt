@@ -156,7 +156,6 @@ fun HomeAppointmentsSection(
                         ProviderTypeChipBar(
                             language = language,
                             selected = appointment.providerType,
-                            preferredDoctors = preferredDoctors,
                             onSelected = { type ->
                                 onUpdateAppointment(
                                     appointment.id,
@@ -236,7 +235,6 @@ fun HomeAppointmentsSection(
                     ProviderTypeChipBar(
                         language = language,
                         selected = selectedProviderType,
-                        preferredDoctors = preferredDoctors,
                         onSelected = { selectedProviderType = it }
                     )
                 }

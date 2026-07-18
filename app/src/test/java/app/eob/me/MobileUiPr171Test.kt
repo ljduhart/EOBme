@@ -6,12 +6,10 @@ import org.junit.Test
 
 class MobileUiPr171Test {
     @Test
-    fun providerTypeChipBarUsesTwoByTwoGridWithDetailLines() {
+    fun providerTypeChipBarUsesTwoByTwoGrid() {
         val source = readSource("ui/components/home/CareTeamUi.kt")
         assertTrue(source.contains("displayOrder.chunked(2)"))
         assertTrue(source.contains("ProviderTypeChipCell"))
-        assertTrue(source.contains("providerTypeDetailLine"))
-        assertTrue(source.contains("preferredDoctors"))
         assertTrue(source.contains(".size(10.dp)"))
         assertFalse(source.contains("CareTeamProviderType.displayOrder.forEach { type ->"))
     }
@@ -25,7 +23,6 @@ class MobileUiPr171Test {
         assertTrue(notesIndex >= 0)
         assertTrue(chipIndex > notesIndex)
         assertTrue(saveIndex > chipIndex)
-        assertTrue(source.contains("preferredDoctors = preferredDoctors"))
     }
 
     @Test

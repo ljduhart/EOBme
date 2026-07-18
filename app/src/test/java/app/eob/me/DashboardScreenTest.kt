@@ -51,15 +51,12 @@ class DashboardScreenTest {
     }
 
     @Test
-    fun spendingByFacilityRowReservesHorizontalAmountSpace() {
+    fun spendingByFacilityUsesBarGraphWithTotals() {
         val source = readSource("ui/screens/DashboardScreen.kt")
-        val rowStart = source.indexOf("items(providerBreakdown")
-        val rowEnd = source.indexOf("LinearProgressIndicator", rowStart)
-        val rowBlock = source.substring(rowStart, rowEnd)
-        assertTrue(rowBlock.contains("splitProviderNameForDashboardRow"))
-        assertTrue(rowBlock.contains("widthIn(min = 72.dp)"))
-        assertTrue(rowBlock.contains("softWrap = false"))
-        assertTrue(rowBlock.contains("maxLines = 1"))
+        assertTrue(source.contains("FacilitySpendingBarChart"))
+        assertTrue(source.contains("facilityTotal.asCurrency()"))
+        assertTrue(source.contains("patientTotal.asCurrency()"))
+        assertTrue(source.contains("amount.asCurrency()"))
     }
 
     private fun readSource(relativePath: String): String {

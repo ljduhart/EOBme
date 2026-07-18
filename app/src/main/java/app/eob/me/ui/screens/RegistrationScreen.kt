@@ -37,6 +37,7 @@ import app.eob.me.data.AuthRecoveryFlow
 import app.eob.me.data.EobLegalUrls
 import app.eob.me.data.EobStrings
 import app.eob.me.data.RegistrationCredentials
+import app.eob.me.data.ProfileFieldErrors
 import app.eob.me.data.UserProfile
 
 @Composable
@@ -594,7 +595,9 @@ fun ProfileFields(
     profile: UserProfile,
     onProfileChanged: (UserProfile) -> Unit,
     fieldsEnabled: Boolean = true,
-    showEmailField: Boolean = true
+    showEmailField: Boolean = true,
+    fieldErrors: ProfileFieldErrors = ProfileFieldErrors(),
+    showFieldErrors: Boolean = false
 ) {
     OutlinedTextField(
         value = profile.firstName,
@@ -602,7 +605,9 @@ fun ProfileFields(
         label = { Text(EobStrings.t(language, "firstName")) },
         modifier = Modifier.fillMaxWidth(),
         readOnly = !fieldsEnabled,
-        enabled = fieldsEnabled
+        enabled = fieldsEnabled,
+        isError = showFieldErrors && fieldErrors.firstName != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.firstName)
     )
     OutlinedTextField(
         value = profile.lastName,
@@ -610,7 +615,9 @@ fun ProfileFields(
         label = { Text(EobStrings.t(language, "lastName")) },
         modifier = Modifier.fillMaxWidth(),
         readOnly = !fieldsEnabled,
-        enabled = fieldsEnabled
+        enabled = fieldsEnabled,
+        isError = showFieldErrors && fieldErrors.lastName != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.lastName)
     )
     if (showEmailField) {
         OutlinedTextField(
@@ -619,7 +626,9 @@ fun ProfileFields(
             label = { Text(EobStrings.t(language, "email")) },
             modifier = Modifier.fillMaxWidth(),
             readOnly = !fieldsEnabled,
-            enabled = fieldsEnabled
+            enabled = fieldsEnabled,
+            isError = showFieldErrors && fieldErrors.email != null,
+            supportingText = fieldErrorText(showFieldErrors, fieldErrors.email)
         )
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -629,7 +638,9 @@ fun ProfileFields(
             label = { Text(EobStrings.t(language, "city")) },
             modifier = Modifier.weight(1f),
             readOnly = !fieldsEnabled,
-            enabled = fieldsEnabled
+            enabled = fieldsEnabled,
+            isError = showFieldErrors && fieldErrors.city != null,
+            supportingText = fieldErrorText(showFieldErrors, fieldErrors.city)
         )
         OutlinedTextField(
             value = profile.state,
@@ -637,7 +648,9 @@ fun ProfileFields(
             label = { Text(EobStrings.t(language, "state")) },
             modifier = Modifier.weight(1f),
             readOnly = !fieldsEnabled,
-            enabled = fieldsEnabled
+            enabled = fieldsEnabled,
+            isError = showFieldErrors && fieldErrors.state != null,
+            supportingText = fieldErrorText(showFieldErrors, fieldErrors.state)
         )
     }
     OutlinedTextField(
@@ -646,7 +659,9 @@ fun ProfileFields(
         label = { Text(EobStrings.t(language, "insuranceNameField")) },
         modifier = Modifier.fillMaxWidth(),
         readOnly = !fieldsEnabled,
-        enabled = fieldsEnabled
+        enabled = fieldsEnabled,
+        isError = showFieldErrors && fieldErrors.insuranceName != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.insuranceName)
     )
     OutlinedTextField(
         value = profile.insuranceId,
@@ -654,7 +669,9 @@ fun ProfileFields(
         label = { Text(EobStrings.t(language, "insuranceId")) },
         modifier = Modifier.fillMaxWidth(),
         readOnly = !fieldsEnabled,
-        enabled = fieldsEnabled
+        enabled = fieldsEnabled,
+        isError = showFieldErrors && fieldErrors.insuranceId != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.insuranceId)
     )
     OutlinedTextField(
         value = profile.groupName,
@@ -662,7 +679,9 @@ fun ProfileFields(
         label = { Text(EobStrings.t(language, "groupName")) },
         modifier = Modifier.fillMaxWidth(),
         readOnly = !fieldsEnabled,
-        enabled = fieldsEnabled
+        enabled = fieldsEnabled,
+        isError = showFieldErrors && fieldErrors.groupName != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.groupName)
     )
     OutlinedTextField(
         value = profile.pcpCopay,
@@ -672,7 +691,9 @@ fun ProfileFields(
         readOnly = !fieldsEnabled,
         enabled = fieldsEnabled,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true
+        singleLine = true,
+        isError = showFieldErrors && fieldErrors.pcpCopay != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.pcpCopay)
     )
     OutlinedTextField(
         value = profile.specialistCopay,
@@ -682,7 +703,9 @@ fun ProfileFields(
         readOnly = !fieldsEnabled,
         enabled = fieldsEnabled,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true
+        singleLine = true,
+        isError = showFieldErrors && fieldErrors.specialistCopay != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.specialistCopay)
     )
     OutlinedTextField(
         value = profile.annualDeductibleLimit.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
@@ -694,7 +717,9 @@ fun ProfileFields(
         readOnly = !fieldsEnabled,
         enabled = fieldsEnabled,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true
+        singleLine = true,
+        isError = showFieldErrors && fieldErrors.annualDeductibleLimit != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.annualDeductibleLimit)
     )
     OutlinedTextField(
         value = profile.annualOutOfPocketMax.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
@@ -706,7 +731,9 @@ fun ProfileFields(
         readOnly = !fieldsEnabled,
         enabled = fieldsEnabled,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true
+        singleLine = true,
+        isError = showFieldErrors && fieldErrors.annualOutOfPocketMax != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.annualOutOfPocketMax)
     )
     OutlinedTextField(
         value = profile.hsaAllocation.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
@@ -718,7 +745,9 @@ fun ProfileFields(
         readOnly = !fieldsEnabled,
         enabled = fieldsEnabled,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true
+        singleLine = true,
+        isError = showFieldErrors && fieldErrors.hsaAllocation != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.hsaAllocation)
     )
     OutlinedTextField(
         value = profile.fsaAllocation.takeIf { it > 0 }?.let { formatPlanAmount(it) }.orEmpty(),
@@ -730,8 +759,19 @@ fun ProfileFields(
         readOnly = !fieldsEnabled,
         enabled = fieldsEnabled,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true
+        singleLine = true,
+        isError = showFieldErrors && fieldErrors.fsaAllocation != null,
+        supportingText = fieldErrorText(showFieldErrors, fieldErrors.fsaAllocation)
     )
+}
+
+@Composable
+private fun fieldErrorText(showFieldErrors: Boolean, message: String?): (@Composable () -> Unit)? {
+    return if (showFieldErrors && message != null) {
+        { Text(message) }
+    } else {
+        null
+    }
 }
 
 private fun formatPlanAmount(amount: Double): String {

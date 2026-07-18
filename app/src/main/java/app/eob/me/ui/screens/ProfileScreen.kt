@@ -31,6 +31,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
+import app.eob.me.data.ProfileFieldErrors
+import app.eob.me.data.ProfileFormValidator
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.ui.components.LogoutConfirmDialog
@@ -57,6 +59,9 @@ fun ProfileScreen(
     var draftProfile by remember { mutableStateOf(profile) }
     var draftCredentials by remember { mutableStateOf(credentials) }
 
+    var showValidationErrors by remember { mutableStateOf(false) }
+    var validationErrors by remember { mutableStateOf(ProfileFieldErrors()) }
+
     LaunchedEffect(profile, credentials) {
         if (!isEditing) {
             draftProfile = profile
@@ -71,9 +76,6 @@ fun ProfileScreen(
     val mergedProfile = draftProfile.copy(
         email = draftCredentials.email.ifBlank { draftProfile.email }
     )
-    val canSave = mergedProfile.isComplete &&
-        draftCredentials.email.isNotBlank() &&
-        (draftCredentials.password.isBlank() || draftCredentials.isPasswordValid)
 
     LaunchedEffect(openSupportInitially) {
         if (openSupportInitially) showSupport = true
@@ -93,7 +95,9 @@ fun ProfileScreen(
             profile = mergedProfile,
             onProfileChanged = { draftProfile = it },
             fieldsEnabled = isEditing,
-            showEmailField = false
+            showEmailField = false,
+            fieldErrors = validationErrors,
+            showFieldErrors = showValidationErrors
         )
         OutlinedTextField(
             value = draftCredentials.email,
@@ -103,7 +107,13 @@ fun ProfileScreen(
             singleLine = true,
             readOnly = !isEditing,
             enabled = isEditing,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            isError = showValidationErrors && validationErrors.email != null,
+            supportingText = if (showValidationErrors && validationErrors.email != null) {
+                { Text(validationErrors.email!!) }
+            } else {
+                null
+            }
         )
         OutlinedTextField(
             value = draftCredentials.password,
@@ -114,15 +124,14 @@ fun ProfileScreen(
             readOnly = !isEditing,
             enabled = isEditing,
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            isError = showValidationErrors && validationErrors.password != null,
+            supportingText = if (showValidationErrors && validationErrors.password != null) {
+                { Text(validationErrors.password!!) }
+            } else {
+                null
+            }
         )
-        if (isEditing && draftCredentials.password.isNotBlank() && !draftCredentials.isPasswordValid) {
-            Text(
-                EobStrings.t(language, "passwordRule"),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -131,6 +140,8 @@ fun ProfileScreen(
                 onClick = {
                     draftProfile = profile
                     draftCredentials = credentials
+                    showValidationErrors = false
+                    validationErrors = ProfileFieldErrors()
                     isEditing = true
                 },
                 modifier = Modifier.weight(1f),
@@ -140,15 +151,27 @@ fun ProfileScreen(
             }
             Button(
                 onClick = {
+                    val errors = ProfileFormValidator.validate(
+                        language = language,
+                        profile = mergedProfile,
+                        credentials = draftCredentials
+                    )
+                    if (errors.hasErrors) {
+                        showValidationErrors = true
+                        validationErrors = errors
+                        return@Button
+                    }
                     val profileToSave = mergedProfile
                     val credentialsToSave = draftCredentials.copy(email = profileToSave.email)
                     onProfileChanged(profileToSave)
                     onCredentialsChanged(credentialsToSave)
                     onSave(profileToSave, credentialsToSave)
+                    showValidationErrors = false
+                    validationErrors = ProfileFieldErrors()
                     isEditing = false
                 },
                 modifier = Modifier.weight(1f),
-                enabled = isEditing && canSave
+                enabled = isEditing
             ) {
                 Text(EobStrings.t(language, "profileSavedButton"))
             }
