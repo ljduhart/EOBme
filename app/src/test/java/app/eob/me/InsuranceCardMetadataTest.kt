@@ -59,6 +59,14 @@ class InsuranceCardMetadataTest {
         assertTrue(source.contains("BackHandler(enabled = flipped)"))
     }
 
+    @Test
+    fun cleanInsuranceCardRefreshesLocalNotesWhenFlippedToBack() {
+        val source = readSource("ui/components/CleanInsuranceCard.kt")
+        assertTrue(source.contains("LaunchedEffect(flipped)"))
+        assertTrue(source.contains("if (flipped)"))
+        assertTrue(source.contains("localDosageSchedule = medicationDosageSchedule"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             java.io.File("src/main/java/app/eob/me/$relativePath"),

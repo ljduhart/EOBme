@@ -10,7 +10,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -53,6 +52,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -129,7 +130,12 @@ fun CleanInsuranceCard(
     }
 
     LaunchedEffect(flipped) {
-        if (!flipped) {
+        if (flipped) {
+            localPrescriptions = currentPrescriptions
+            localDosageSchedule = medicationDosageSchedule
+            localAllergies = medicationAllergies
+            localDoctorNotes = doctorQuickNotes
+        } else {
             backMode = InsuranceCardBackMode.Hub
         }
     }
@@ -476,6 +482,7 @@ private fun InsuranceCardBackLauncher(
 ) {
     Column(
         modifier = Modifier
+            .semantics { this.contentDescription = contentDescription }
             .clickable(onClick = onClick)
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
