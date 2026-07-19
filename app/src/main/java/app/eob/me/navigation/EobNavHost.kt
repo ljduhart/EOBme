@@ -909,6 +909,22 @@ private fun MainHubNavHost(
                             )
                             onActivity()
                         },
+                        onInsuranceDosageScheduleChange = { dosageSchedule ->
+                            eobViewModel.updateInsuranceCardDosageSchedule(
+                                userId = userId,
+                                medicationDosageSchedule = dosageSchedule,
+                                onProfileChanged = appViewModel::applyRemoteProfile
+                            )
+                            onActivity()
+                        },
+                        onInsuranceAllergiesChange = { allergies ->
+                            eobViewModel.updateInsuranceCardAllergies(
+                                userId = userId,
+                                medicationAllergies = allergies,
+                                onProfileChanged = appViewModel::applyRemoteProfile
+                            )
+                            onActivity()
+                        },
                         onInsuranceDoctorNotesChange = { notes ->
                             eobViewModel.updateInsuranceCardDoctorNotes(
                                 userId = userId,

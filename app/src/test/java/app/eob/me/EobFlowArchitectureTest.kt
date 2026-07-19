@@ -1127,10 +1127,10 @@ class EobFlowArchitectureTest {
         assertTrue(cardSource.contains("InsuranceCardDisplay"))
         assertTrue(cardSource.contains("graphicsLayer"))
         assertTrue(cardSource.contains("rotationY"))
-        assertTrue(cardSource.contains("insuranceCardPrescriptionsLabel"))
-        assertTrue(cardSource.contains("insuranceCardDoctorNotesQuestionsLabel"))
-        assertTrue(cardSource.contains("Icons.Rounded.Medication"))
-        assertTrue(cardSource.contains("Icons.Rounded.EditNote"))
+        assertTrue(cardSource.contains("insuranceCardActiveMedicationsLabel"))
+        assertTrue(cardSource.contains("insuranceCardDigitalNotepadTitle"))
+        assertTrue(cardSource.contains("InsuranceCardPillBottleIcon"))
+        assertTrue(cardSource.contains("InsuranceCardNotepadIcon"))
         assertFalse(
             "Insurance card front must not edit credential fields",
             cardSource.contains("onInsuranceNameChange")
@@ -1139,6 +1139,8 @@ class EobFlowArchitectureTest {
             "fun applyInsuranceCardNotes",
             "fun persistInsuranceCardNotes",
             "fun updateInsuranceCardPrescriptions",
+            "fun updateInsuranceCardDosageSchedule",
+            "fun updateInsuranceCardAllergies",
             "fun updateInsuranceCardDoctorNotes",
             "observeInsuranceCardMetadata"
         ).forEach { snippet ->

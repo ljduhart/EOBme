@@ -76,9 +76,13 @@ class EobViewModelFlowTest {
         val updated = viewModel.applyInsuranceCardNotes(
             profile = profile,
             currentPrescriptions = "Lisinopril 10mg",
+            medicationDosageSchedule = "Daily at 8 AM",
+            medicationAllergies = "Penicillin",
             doctorQuickNotes = "Ask about knee pain."
         )
         assertEquals("Lisinopril 10mg", updated.currentPrescriptions)
+        assertEquals("Daily at 8 AM", updated.medicationDosageSchedule)
+        assertEquals("Penicillin", updated.medicationAllergies)
         assertEquals("Ask about knee pain.", updated.doctorQuickNotes)
     }
 
