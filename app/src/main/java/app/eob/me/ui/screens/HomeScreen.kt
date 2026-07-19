@@ -134,6 +134,8 @@ fun HomeScreen(
     onTaxVaultVisibilityModeSelected: (TaxVaultVisibilityMode) -> Unit,
     onVaultDoorUnlocked: () -> Unit,
     onInsurancePrescriptionsChange: (String) -> Unit,
+    onInsuranceDosageScheduleChange: (String) -> Unit,
+    onInsuranceAllergiesChange: (String) -> Unit,
     onInsuranceDoctorNotesChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -199,8 +201,12 @@ fun HomeScreen(
                         language = language,
                         display = insuranceCardDisplay,
                         currentPrescriptions = profile.currentPrescriptions,
+                        medicationDosageSchedule = profile.medicationDosageSchedule,
+                        medicationAllergies = profile.medicationAllergies,
                         doctorQuickNotes = profile.doctorQuickNotes,
                         onCurrentPrescriptionsChange = onInsurancePrescriptionsChange,
+                        onMedicationDosageScheduleChange = onInsuranceDosageScheduleChange,
+                        onMedicationAllergiesChange = onInsuranceAllergiesChange,
                         onDoctorQuickNotesChange = onInsuranceDoctorNotesChange,
                         modifier = Modifier.fillMaxWidth(0.98f)
                     )

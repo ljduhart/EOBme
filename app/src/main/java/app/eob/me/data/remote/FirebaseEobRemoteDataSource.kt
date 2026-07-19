@@ -10,6 +10,7 @@ import app.eob.me.data.DocumentScanPipelineRepository
 import app.eob.me.data.DocumentUploadResult
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.FirebaseSyncStatus
+import app.eob.me.data.InsuranceCardNotesMetadata
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
@@ -59,7 +60,7 @@ class FirebaseEobRemoteDataSource(
 
     override fun observeInsuranceCardMetadata(
         userId: String,
-        onMetadata: (currentPrescriptions: String, doctorQuickNotes: String) -> Unit
+        onMetadata: (InsuranceCardNotesMetadata) -> Unit
     ): ListenerRegistration? = firebase.observeInsuranceCardMetadata(userId, onMetadata)
 
     override fun saveEob(userId: String, record: EobRecord, onComplete: (String) -> Unit) {

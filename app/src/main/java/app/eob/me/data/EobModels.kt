@@ -43,6 +43,8 @@ data class UserProfile(
     val pcpCopay: String = "",
     val specialistCopay: String = "",
     val currentPrescriptions: String = "",
+    val medicationDosageSchedule: String = "",
+    val medicationAllergies: String = "",
     val doctorQuickNotes: String = ""
 ) {
     val insuranceCompany: String get() = insuranceName
@@ -84,6 +86,33 @@ data class UserProfile(
             hsaAllocation = hsaAllocation.coerceIn(0.0, 100_000.0),
             fsaAllocation = fsaAllocation.coerceIn(0.0, 100_000.0)
         )
+    }
+}
+
+data class InsuranceCardNotesMetadata(
+    val currentPrescriptions: String = "",
+    val medicationDosageSchedule: String = "",
+    val medicationAllergies: String = "",
+    val doctorQuickNotes: String = ""
+) {
+    fun mergeInto(profile: UserProfile): UserProfile {
+        return profile.copy(
+            currentPrescriptions = currentPrescriptions,
+            medicationDosageSchedule = medicationDosageSchedule,
+            medicationAllergies = medicationAllergies,
+            doctorQuickNotes = doctorQuickNotes
+        )
+    }
+
+    companion object {
+        fun fromProfile(profile: UserProfile): InsuranceCardNotesMetadata {
+            return InsuranceCardNotesMetadata(
+                currentPrescriptions = profile.currentPrescriptions,
+                medicationDosageSchedule = profile.medicationDosageSchedule,
+                medicationAllergies = profile.medicationAllergies,
+                doctorQuickNotes = profile.doctorQuickNotes
+            )
+        }
     }
 }
 

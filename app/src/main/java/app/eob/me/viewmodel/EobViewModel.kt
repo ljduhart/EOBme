@@ -29,6 +29,7 @@ import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.HistoryTimelineSection
 import app.eob.me.data.InsuranceCardDisplay
+import app.eob.me.data.InsuranceCardNotesMetadata
 import app.eob.me.data.HistoryBentoSnapshot
 import app.eob.me.data.InsuranceNewsBentoSnapshot
 import app.eob.me.data.InvoiceProcessingPhase
@@ -955,18 +956,19 @@ class EobViewModel : ViewModel() {
         onProfileChanged: (UserProfile) -> Unit
     ) {
         insuranceCardMetadataListener?.remove()
-        insuranceCardMetadataListener = repo.observeInsuranceCardMetadata(userId) { prescriptions, quickNotes ->
+        insuranceCardMetadataListener = repo.observeInsuranceCardMetadata(userId) { metadata ->
             if (shouldIgnoreInsuranceMetadataSnapshot()) {
                 return@observeInsuranceCardMetadata
             }
             val current = _syncProfile.value
-            if (current.currentPrescriptions == prescriptions && current.doctorQuickNotes == quickNotes) {
+            if (current.currentPrescriptions == metadata.currentPrescriptions &&
+                current.medicationDosageSchedule == metadata.medicationDosageSchedule &&
+                current.medicationAllergies == metadata.medicationAllergies &&
+                current.doctorQuickNotes == metadata.doctorQuickNotes
+            ) {
                 return@observeInsuranceCardMetadata
             }
-            val merged = current.copy(
-                currentPrescriptions = prescriptions,
-                doctorQuickNotes = quickNotes
-            )
+            val merged = metadata.mergeInto(current)
             updateSyncProfile(merged)
             onProfileChanged(merged)
         }
@@ -979,6 +981,8 @@ class EobViewModel : ViewModel() {
             onProfile = { remoteProfile ->
                 val merged = remoteProfile.copy(
                     currentPrescriptions = _syncProfile.value.currentPrescriptions,
+                    medicationDosageSchedule = _syncProfile.value.medicationDosageSchedule,
+                    medicationAllergies = _syncProfile.value.medicationAllergies,
                     doctorQuickNotes = _syncProfile.value.doctorQuickNotes
                 )
                 updateSyncProfile(merged)
@@ -1871,10 +1875,14 @@ class EobViewModel : ViewModel() {
     fun applyInsuranceCardNotes(
         profile: UserProfile,
         currentPrescriptions: String,
+        medicationDosageSchedule: String,
+        medicationAllergies: String,
         doctorQuickNotes: String
     ): UserProfile {
         return profile.copy(
             currentPrescriptions = currentPrescriptions,
+            medicationDosageSchedule = medicationDosageSchedule,
+            medicationAllergies = medicationAllergies,
             doctorQuickNotes = doctorQuickNotes
         )
     }
@@ -1886,6 +1894,30 @@ class EobViewModel : ViewModel() {
     ) {
         markInsuranceNotesLocalEdit()
         val updated = _syncProfile.value.copy(currentPrescriptions = prescriptions)
+        updateSyncProfile(updated)
+        onProfileChanged(updated)
+        scheduleInsuranceCardNotesPersist(userId, updated)
+    }
+
+    fun updateInsuranceCardDosageSchedule(
+        userId: String,
+        medicationDosageSchedule: String,
+        onProfileChanged: (UserProfile) -> Unit
+    ) {
+        markInsuranceNotesLocalEdit()
+        val updated = _syncProfile.value.copy(medicationDosageSchedule = medicationDosageSchedule)
+        updateSyncProfile(updated)
+        onProfileChanged(updated)
+        scheduleInsuranceCardNotesPersist(userId, updated)
+    }
+
+    fun updateInsuranceCardAllergies(
+        userId: String,
+        medicationAllergies: String,
+        onProfileChanged: (UserProfile) -> Unit
+    ) {
+        markInsuranceNotesLocalEdit()
+        val updated = _syncProfile.value.copy(medicationAllergies = medicationAllergies)
         updateSyncProfile(updated)
         onProfileChanged(updated)
         scheduleInsuranceCardNotesPersist(userId, updated)

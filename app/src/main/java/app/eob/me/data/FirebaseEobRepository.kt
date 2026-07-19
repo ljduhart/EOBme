@@ -294,7 +294,7 @@ class FirebaseEobRepository(private val context: Context) {
 
     fun observeInsuranceCardMetadata(
         userId: String,
-        onMetadata: (currentPrescriptions: String, doctorQuickNotes: String) -> Unit
+        onMetadata: (InsuranceCardNotesMetadata) -> Unit
     ): ListenerRegistration? {
         if (!configured || userId.isBlank()) return null
         return firestore().collection(USERS).document(userId).collection("insurance-cards")
@@ -303,13 +303,32 @@ class FirebaseEobRepository(private val context: Context) {
                 if (error != null) return@addSnapshotListener
                 val data = snapshot?.data ?: return@addSnapshotListener
                 onMetadata(
-                    insuranceCardStringValue(data, "currentPrescriptions", "current_prescriptions"),
-                    insuranceCardStringValue(
-                        data,
-                        "doctorQuickNotes",
-                        "doctor_quick_notes",
-                        "quickNotes",
-                        "quick_notes"
+                    InsuranceCardNotesMetadata(
+                        currentPrescriptions = insuranceCardStringValue(
+                            data,
+                            "currentPrescriptions",
+                            "current_prescriptions"
+                        ),
+                        medicationDosageSchedule = insuranceCardStringValue(
+                            data,
+                            "medicationDosageSchedule",
+                            "medication_dosage_schedule",
+                            "dosageSchedule",
+                            "dosage_schedule"
+                        ),
+                        medicationAllergies = insuranceCardStringValue(
+                            data,
+                            "medicationAllergies",
+                            "medication_allergies",
+                            "allergies"
+                        ),
+                        doctorQuickNotes = insuranceCardStringValue(
+                            data,
+                            "doctorQuickNotes",
+                            "doctor_quick_notes",
+                            "quickNotes",
+                            "quick_notes"
+                        )
                     )
                 )
             }
@@ -329,6 +348,8 @@ class FirebaseEobRepository(private val context: Context) {
                     "groupName" to profile.groupName,
                     "insuranceCardDownloadUrl" to profile.insuranceCardDownloadUrl,
                     "currentPrescriptions" to profile.currentPrescriptions,
+                    "medicationDosageSchedule" to profile.medicationDosageSchedule,
+                    "medicationAllergies" to profile.medicationAllergies,
                     "doctorQuickNotes" to profile.doctorQuickNotes,
                     "updatedAt" to System.currentTimeMillis()
                 )

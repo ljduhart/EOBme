@@ -21,19 +21,19 @@ class InsuranceCardFlipTest {
         assertTrue(source.contains("graphicsLayer"))
         assertTrue(source.contains("rotationY"))
         assertTrue(source.contains("insurance_card_rotation"))
-        assertTrue(source.contains("InsuranceCardNotesBackFace"))
+        assertTrue(source.contains("InsuranceCardBackFace"))
         assertTrue(source.contains("InsuranceCardFlipButton"))
     }
 
     @Test
-    fun insuranceCardNotesBackExposesPrescriptionAndDoctorFields() {
+    fun insuranceCardBackUsesPillBottleAndNotepadPanels() {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
-        assertTrue(source.contains("insuranceCardPrescriptionsLabel"))
-        assertTrue(source.contains("insuranceCardDoctorNotesQuestionsLabel"))
-        assertTrue(source.contains("onCurrentPrescriptionsChange"))
+        assertTrue(source.contains("InsuranceCardBackHub"))
+        assertTrue(source.contains("InsuranceCardMedicationsPanel"))
+        assertTrue(source.contains("InsuranceCardDigitalNotepadPanel"))
+        assertTrue(source.contains("onMedicationDosageScheduleChange"))
+        assertTrue(source.contains("onMedicationAllergiesChange"))
         assertTrue(source.contains("onDoctorQuickNotesChange"))
-        assertTrue(source.contains("Icons.Rounded.Medication"))
-        assertTrue(source.contains("Icons.Rounded.EditNote"))
     }
 
     @Test
@@ -41,11 +41,8 @@ class InsuranceCardFlipTest {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
         assertTrue(source.contains("singleLine = false"))
         assertTrue(source.contains("KeyboardCapitalization.Sentences"))
-        assertTrue(source.contains("letterSpacing = 0.sp"))
         assertTrue(source.contains("localPrescriptions"))
         assertFalse(source.contains("placeholder = {"))
-        assertFalse(source.contains("insuranceCardPrescriptionsPlaceholder"))
-        assertFalse(source.contains("insuranceCardDoctorNotesPlaceholder"))
     }
 
     @Test
@@ -64,8 +61,12 @@ class InsuranceCardFlipTest {
         assertTrue(homeSource.contains("onInsurancePrescriptionsChange"))
         assertTrue(homeSource.contains("onInsuranceDoctorNotesChange"))
         assertTrue(homeSource.contains("profile.currentPrescriptions"))
+        assertTrue(homeSource.contains("profile.medicationDosageSchedule"))
+        assertTrue(homeSource.contains("profile.medicationAllergies"))
         assertTrue(homeSource.contains("profile.doctorQuickNotes"))
         assertTrue(navSource.contains("updateInsuranceCardPrescriptions"))
+        assertTrue(navSource.contains("updateInsuranceCardDosageSchedule"))
+        assertTrue(navSource.contains("updateInsuranceCardAllergies"))
         assertTrue(navSource.contains("updateInsuranceCardDoctorNotes"))
         assertTrue(viewModelSource.contains("observeInsuranceCardMetadata"))
         assertTrue(viewModelSource.contains("scheduleInsuranceCardNotesPersist"))
@@ -75,6 +76,7 @@ class InsuranceCardFlipTest {
     fun cleanInsuranceCardBackHandlerFlipsToFrontBeforeHubExit() {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
         assertTrue(source.contains("BackHandler(enabled = flipped)"))
+        assertTrue(source.contains("InsuranceCardBackMode.Hub"))
     }
 
     @Test
@@ -83,6 +85,8 @@ class InsuranceCardFlipTest {
         val observeBlock = source.substringAfter("private fun observeProfile")
             .substringBefore("fun fetchHistoryFromFirestore")
         assertTrue(observeBlock.contains("currentPrescriptions = _syncProfile.value.currentPrescriptions"))
+        assertTrue(observeBlock.contains("medicationDosageSchedule = _syncProfile.value.medicationDosageSchedule"))
+        assertTrue(observeBlock.contains("medicationAllergies = _syncProfile.value.medicationAllergies"))
         assertTrue(observeBlock.contains("doctorQuickNotes = _syncProfile.value.doctorQuickNotes"))
     }
 
@@ -94,17 +98,23 @@ class InsuranceCardFlipTest {
             insuranceName = "Aetna",
             insuranceId = "ABC123",
             currentPrescriptions = "Rx A",
+            medicationDosageSchedule = "Morning",
+            medicationAllergies = "None",
             doctorQuickNotes = "Note A"
         )
         val updated = viewModel.applyInsuranceCardNotes(
             profile = profile,
             currentPrescriptions = "Rx B",
+            medicationDosageSchedule = "Evening",
+            medicationAllergies = "Sulfa",
             doctorQuickNotes = "Note B"
         )
         assertEquals("Jane", updated.firstName)
         assertEquals("Aetna", updated.insuranceName)
         assertEquals("ABC123", updated.insuranceId)
         assertEquals("Rx B", updated.currentPrescriptions)
+        assertEquals("Evening", updated.medicationDosageSchedule)
+        assertEquals("Sulfa", updated.medicationAllergies)
         assertEquals("Note B", updated.doctorQuickNotes)
     }
 

@@ -11,6 +11,7 @@ import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.NewsRelease
+import app.eob.me.data.InsuranceCardNotesMetadata
 import app.eob.me.data.UserProfile
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.Flow
@@ -50,7 +51,7 @@ interface EobRepository {
 
     fun observeInsuranceCardMetadata(
         userId: String,
-        onMetadata: (currentPrescriptions: String, doctorQuickNotes: String) -> Unit
+        onMetadata: (InsuranceCardNotesMetadata) -> Unit
     ): ListenerRegistration?
 
     fun saveEob(userId: String, record: EobRecord, onComplete: (String) -> Unit)
