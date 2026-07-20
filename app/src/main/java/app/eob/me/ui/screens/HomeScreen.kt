@@ -1,6 +1,5 @@
 package app.eob.me.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,16 +18,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import app.eob.me.ui.theme.EobCyberTextPrimary
 import app.eob.me.ui.theme.EobCyberTextSecondary
-import app.eob.me.ui.theme.EobHomeGradientBase
-import app.eob.me.ui.theme.EobHomeGradientDeep
-import app.eob.me.ui.theme.EobHomeGradientMid
-import app.eob.me.ui.theme.EobHomeGradientSurface
-import app.eob.me.ui.theme.EobHomeLightGradientBase
-import app.eob.me.ui.theme.EobHomeLightGradientMid
-import app.eob.me.ui.theme.EobHomeLightGradientTop
 import app.eob.me.ui.theme.EobLightTextPrimary
 import app.eob.me.ui.theme.EobLightTextSecondary
 import androidx.compose.ui.text.font.FontWeight
@@ -61,32 +52,12 @@ import app.eob.me.ui.components.bento.BentoGridCell
 import app.eob.me.ui.components.bento.BentoGridLayout
 import app.eob.me.ui.components.home.HomeAppointmentsSection
 import app.eob.me.ui.components.home.HomeCareTeamCards
+import app.eob.me.ui.components.home.HomeProviderBackground
 import app.eob.me.ui.components.home.HomeWeekCalendar
 import androidx.compose.foundation.layout.BoxWithConstraints
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.text.style.TextOverflow
-
-private val DarkHomeBackground = Brush.verticalGradient(
-    colors = listOf(
-        EobHomeGradientDeep,
-        EobHomeGradientBase,
-        EobHomeGradientSurface,
-        EobHomeGradientMid,
-        EobHomeGradientBase,
-        EobHomeGradientDeep
-    )
-)
-
-private val LightHomeBackground = Brush.verticalGradient(
-    colors = listOf(
-        EobHomeLightGradientTop,
-        EobHomeLightGradientMid,
-        EobHomeLightGradientBase,
-        EobHomeLightGradientMid,
-        EobHomeLightGradientTop
-    )
-)
 
 /**
  * Scrollable main hub — state from [app.eob.me.viewmodel.EobViewModel].
@@ -142,15 +113,13 @@ fun HomeScreen(
     var appointmentPrefillDate by remember { mutableStateOf("") }
     var openAppointmentDialog by remember { mutableStateOf(false) }
 
-    val homeBackground = if (darkModeEnabled) DarkHomeBackground else LightHomeBackground
     val homePrimaryText = if (darkModeEnabled) EobCyberTextPrimary else EobLightTextPrimary
     val homeSecondaryText = if (darkModeEnabled) EobCyberTextSecondary else EobLightTextSecondary
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(homeBackground)
+        modifier = modifier.fillMaxSize()
     ) {
+        HomeProviderBackground(darkModeEnabled = darkModeEnabled)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
