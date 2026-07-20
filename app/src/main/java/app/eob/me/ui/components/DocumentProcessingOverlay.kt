@@ -27,10 +27,10 @@ import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.EobStrings
+import app.eob.me.ui.theme.EobCyberAccent
+import app.eob.me.ui.theme.EobCyberGlow
 
 private val ProcessingBackdrop = Color(0xCC05070D)
-private val LaserRed = Color(0xFFFF2D2D)
-private val LaserGlow = Color(0xFFFF6B6B)
 
 @Composable
 fun DocumentProcessingOverlay(
@@ -102,9 +102,9 @@ private fun DocumentLaserScanEffect(modifier: Modifier = Modifier) {
         val gradient = Brush.verticalGradient(
             colors = listOf(
                 Color.Transparent,
-                LaserGlow.copy(alpha = 0.35f),
-                LaserRed.copy(alpha = 0.95f),
-                LaserGlow.copy(alpha = 0.35f),
+                EobCyberGlow.copy(alpha = 0.35f),
+                EobCyberAccent.copy(alpha = 0.95f),
+                EobCyberGlow.copy(alpha = 0.35f),
                 Color.Transparent
             ),
             startY = laserY - laserHalfHeight,
@@ -116,7 +116,7 @@ private fun DocumentLaserScanEffect(modifier: Modifier = Modifier) {
             size = androidx.compose.ui.geometry.Size(size.width, laserHalfHeight * 2f)
         )
         drawLine(
-            color = LaserRed,
+            color = EobCyberAccent,
             start = Offset(0f, laserY),
             end = Offset(size.width, laserY),
             strokeWidth = 2.dp.toPx()
