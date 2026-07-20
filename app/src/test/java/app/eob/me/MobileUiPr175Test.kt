@@ -8,7 +8,7 @@ import java.io.File
 class MobileUiPr175Test {
     @Test
     fun homeMedicalProviderBackgroundAssetExists() {
-        val drawable = File("app/src/main/res/drawable/home_medical_provider_background.png")
+        val drawable = homeBackgroundDrawable()
         assertTrue("home_medical_provider_background.png must exist", drawable.isFile)
         assertTrue("home_medical_provider_background.png must not be empty", drawable.length() > 0)
     }
@@ -47,6 +47,14 @@ class MobileUiPr175Test {
         assertFalse(splashSource.contains("HomeProviderBackground"))
         assertFalse(introSource.contains("HomeProviderBackground"))
         assertFalse(pipelineSource.contains("HomeProviderBackground"))
+    }
+
+    private fun homeBackgroundDrawable(): File {
+        val candidates = listOf(
+            File("src/main/res/drawable/home_medical_provider_background.png"),
+            File("app/src/main/res/drawable/home_medical_provider_background.png")
+        )
+        return candidates.first { it.isFile }
     }
 
     private fun readSource(relativePath: String): String {
