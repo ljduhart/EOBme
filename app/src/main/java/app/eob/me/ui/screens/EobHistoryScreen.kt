@@ -37,6 +37,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +47,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -77,6 +79,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.data.CptGlobalPeriodAlert
+import app.eob.me.data.UpcodingVerificationAlert
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
@@ -106,6 +109,7 @@ fun EobHistoryScreen(
     showVaultFilterBanner: Boolean = false,
     taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert? = { _, _ -> null },
+    upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert? = { _, _ -> null },
     modifier: Modifier = Modifier
 ) {
     var expandedRecordKey by remember { mutableStateOf("") }
@@ -263,6 +267,7 @@ fun EobHistoryScreen(
                         taxVaultFilterState = taxVaultFilterState,
                         showVaultFilterBanner = showVaultFilterBanner,
                         globalPeriodAlertForCharge = globalPeriodAlertForCharge,
+                        upcodingVerificationForCharge = upcodingVerificationForCharge,
                         onExpandToggle = { record ->
                             val recordKey = record.historyListKey()
                             val collapsingSame = expandedRecordKey == recordKey
@@ -381,6 +386,7 @@ private fun LazyListScope.historyTimelineItems(
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
+    upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
     onExpandToggle: (EobRecord) -> Unit,
     onDoctorAppealRequested: (EobRecord) -> Unit,
     onAppealInsurance: (EobRecord) -> Unit,
@@ -402,6 +408,7 @@ private fun LazyListScope.historyTimelineItems(
                 taxVaultFilterState = taxVaultFilterState,
                 showVaultFilterBanner = showVaultFilterBanner,
                 globalPeriodAlertForCharge = globalPeriodAlertForCharge,
+                upcodingVerificationForCharge = upcodingVerificationForCharge,
                 onExpandToggle = { onExpandToggle(row.record) },
                 onDoctorAppealRequested = { onDoctorAppealRequested(row.record) },
                 onAppealInsurance = { onAppealInsurance(row.record) },
@@ -438,6 +445,7 @@ private fun HistoryTimelineItemRow(
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
+    upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
@@ -452,6 +460,7 @@ private fun HistoryTimelineItemRow(
             taxVaultFilterState = taxVaultFilterState,
             showVaultFilterBanner = showVaultFilterBanner,
             globalPeriodAlertForCharge = globalPeriodAlertForCharge,
+            upcodingVerificationForCharge = upcodingVerificationForCharge,
             onExpandToggle = onExpandToggle,
             onDoctorAppealRequested = onDoctorAppealRequested,
             onAppealInsurance = onAppealInsurance,
@@ -470,6 +479,7 @@ private fun HistoryTimelineItemRowContent(
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
+    upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
@@ -570,6 +580,7 @@ private fun HistoryTimelineItemRowContent(
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
                     globalPeriodAlertForCharge = globalPeriodAlertForCharge,
+                    upcodingVerificationForCharge = upcodingVerificationForCharge,
                     onExpandToggle = onExpandToggle,
                     onDoctorAppealRequested = onDoctorAppealRequested,
                     onAppealInsurance = onAppealInsurance
@@ -632,6 +643,7 @@ private fun WalletReceiptCard(
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
+    upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit
@@ -771,7 +783,8 @@ private fun WalletReceiptCard(
                         ReceiptCptLine(
                             language = language,
                             charge = charge,
-                            globalPeriodAlert = globalPeriodAlertForCharge(record, charge)
+                            globalPeriodAlert = globalPeriodAlertForCharge(record, charge),
+                            upcodingVerification = upcodingVerificationForCharge(record, charge)
                         )
                     }
                 }
@@ -943,7 +956,8 @@ private fun DoctorAppealStrategyFloater(
 private fun ReceiptCptLine(
     language: AppLanguage,
     charge: EobCharge,
-    globalPeriodAlert: CptGlobalPeriodAlert?
+    globalPeriodAlert: CptGlobalPeriodAlert?,
+    upcodingVerification: UpcodingVerificationAlert?
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -978,11 +992,92 @@ private fun ReceiptCptLine(
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
+        if (upcodingVerification != null) {
+            UpcodingVerificationBubble(
+                language = language,
+                alert = upcodingVerification
+            )
+        }
         if (globalPeriodAlert != null) {
             GlobalPeriodThoughtBubble(
                 language = language,
                 alert = globalPeriodAlert
             )
+        }
+    }
+}
+
+@Composable
+private fun UpcodingVerificationBubble(
+    language: AppLanguage,
+    alert: UpcodingVerificationAlert
+) {
+    AnimatedVisibility(
+        visible = alert.isActive,
+        enter = expandVertically(animationSpec = tween(280)) + fadeIn(animationSpec = tween(280)),
+        exit = shrinkVertically(animationSpec = tween(220)) + fadeOut(animationSpec = tween(220))
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp, bottom = 6.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.errorContainer
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = EobStrings.tf(
+                            language,
+                            "historyUpcodingVerification",
+                            alert.requiredTimeRange
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            // TODO: Persist upcoding verification affirmative response.
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = EobStrings.t(language, "historyUpcodingYes"),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            // TODO: Persist upcoding verification negative response.
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = EobStrings.t(language, "historyUpcodingNo"),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
         }
     }
 }

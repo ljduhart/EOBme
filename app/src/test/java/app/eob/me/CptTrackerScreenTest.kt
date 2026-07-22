@@ -111,6 +111,31 @@ class CptTrackerScreenTest {
     }
 
     @Test
+    fun flashcardEntriesExcludeZeroBilledCharges() {
+        val record = EobAnalyzer.analyze(
+            rawText = """
+                Provider: Clinic
+                Aetna
+                01/15/2026
+                99213 billed $0.00
+                99214 billed $150.00 insurance paid $90.00
+            """.trimIndent(),
+            sourceName = "test",
+            nextId = 8
+        )
+
+        val entries = BentoSnapshotExtractor.buildCptFlashcardEntries(
+            language = AppLanguage.English,
+            records = listOf(record),
+            category = CptCategory.OfficeVisit
+        )
+
+        assertEquals(1, entries.size)
+        assertEquals("99214", entries.first().code)
+        assertEquals("$150.00", entries.first().totalBilled)
+    }
+
+    @Test
     fun flashcardEntriesRouteChestXrayToXRayCategoryTab() {
         val record = EobAnalyzer.analyze(
             rawText = "Provider: Imaging Center\nAetna\n01/15/2026\n71046 billed $180.00 insurance paid $90.00",

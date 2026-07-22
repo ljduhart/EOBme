@@ -1636,6 +1636,7 @@ private fun HistoryRoute(
                 showVaultFilterBanner = eobViewModel.isTaxVaultHistoryGated(),
                 taxVaultFilterState = taxVaultFilterState,
                 globalPeriodAlertForCharge = eobViewModel::globalPeriodAlertForCharge,
+                upcodingVerificationForCharge = eobViewModel::upcodingVerificationForCharge,
                 modifier = Modifier.fillMaxSize()
             )
         }

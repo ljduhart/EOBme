@@ -17,6 +17,7 @@ object BentoSnapshotExtractor {
             .filter { EobAnalyzer.serviceYear(it.serviceDate) == year }
             .flatMap { it.charges }
             .filter { EobAnalyzer.isValidCptCode(it.cptCode) }
+            .filter { it.billedAmount > 0.0 }
             .filter { it.category == selectedCategory }
 
         val dominantCode = yearCharges
@@ -74,6 +75,7 @@ object BentoSnapshotExtractor {
         return records
             .flatMap { it.charges }
             .filter { EobAnalyzer.isValidCptCode(it.cptCode) }
+            .filter { it.billedAmount > 0.0 }
             .filter { it.category == category }
             .groupBy { it.cptCode }
             .map { (code, charges) ->

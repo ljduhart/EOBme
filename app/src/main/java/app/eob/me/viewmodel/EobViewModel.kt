@@ -58,6 +58,8 @@ import app.eob.me.data.BillingIssue
 import app.eob.me.data.BillingIssueSeverity
 import app.eob.me.data.CptGlobalPeriodAlert
 import app.eob.me.data.CptGlobalPeriodCalculator
+import app.eob.me.data.UpcodingVerificationAlert
+import app.eob.me.data.UpcodingVerificationCalculator
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.HubSettingsState
@@ -1816,6 +1818,18 @@ class EobViewModel : ViewModel() {
     fun detectBillingIssuesForRecord(record: EobRecord): List<BillingIssue> {
         return EobAnalyzer.detectBillingIssues(record) +
             CptGlobalPeriodCalculator.billingIssuesFor(record, _eobRecords.value)
+    }
+
+    fun upcodingVerificationForCharge(
+        record: EobRecord,
+        charge: EobCharge
+    ): UpcodingVerificationAlert? {
+        return UpcodingVerificationCalculator.upcodingVerificationForCharge(charge)
+            ?.takeIf { alert -> alert.isActive }
+    }
+
+    fun upcodingVerificationsForRecord(record: EobRecord): List<UpcodingVerificationAlert> {
+        return UpcodingVerificationCalculator.upcodingVerificationsForRecord(record)
     }
 
     fun globalPeriodAlertForCharge(
