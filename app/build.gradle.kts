@@ -25,16 +25,12 @@ if (hasValidGoogleServicesConfig) {
 
 android {
     namespace = "app.eob.me"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "app.eob.me"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 144
         versionName = "15.3"
 
