@@ -8,8 +8,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +48,7 @@ class MainActivity : FragmentActivity() {
             EOBmeTheme(darkTheme = useDarkTheme) {
                 Scaffold(
                     containerColor = Color.Transparent,
+                    contentWindowInsets = WindowInsets.safeDrawing,
                     modifier = Modifier
                         .fillMaxSize()
                         .background(appBackground)
@@ -52,7 +56,12 @@ class MainActivity : FragmentActivity() {
                             detectTapGestures { viewModel.updateActivityTime() }
                         }
                 ) { innerPadding ->
-                    Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .consumeWindowInsets(innerPadding)
+                            .padding(innerPadding)
+                    ) {
                         EobNavHost(
                             viewModel = viewModel,
                             onHubDarkModeChanged = { enabled ->
