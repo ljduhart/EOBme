@@ -35,8 +35,7 @@ class MobileUiPr179Test {
         val analyzerSource = readSource("data/EobAnalyzer.kt")
         val bentoSource = readSource("ui/components/bento/ProviderDirectoryBentoCell.kt")
         assertTrue(viewModelSource.contains("HOME_BENTO_PROVIDER_PREVIEW_LIMIT = 2"))
-        assertTrue(viewModelSource.contains("providerDirectoryByRecency"))
-        assertFalse(viewModelSource.contains("getProviderStorageLimit(tier)"))
+        assertTrue(viewModelSource.contains("limit = HOME_BENTO_PROVIDER_PREVIEW_LIMIT"))
         assertTrue(analyzerSource.contains("fun providerDirectoryByRecency"))
         assertTrue(bentoSource.contains("avatars.take(2)"))
     }
