@@ -58,6 +58,8 @@ import app.eob.me.data.BillingIssue
 import app.eob.me.data.BillingIssueSeverity
 import app.eob.me.data.CptGlobalPeriodAlert
 import app.eob.me.data.CptGlobalPeriodCalculator
+import app.eob.me.data.NcciBundlingAlert
+import app.eob.me.data.NcciBundlingCalculator
 import app.eob.me.data.UpcodingVerificationAlert
 import app.eob.me.data.UpcodingVerificationCalculator
 import app.eob.me.data.CameraScanDocumentType
@@ -1817,7 +1819,21 @@ class EobViewModel : ViewModel() {
 
     fun detectBillingIssuesForRecord(record: EobRecord): List<BillingIssue> {
         return EobAnalyzer.detectBillingIssues(record) +
-            CptGlobalPeriodCalculator.billingIssuesFor(record, _eobRecords.value)
+            CptGlobalPeriodCalculator.billingIssuesFor(record, _eobRecords.value) +
+            NcciBundlingCalculator.billingIssuesFor(record)
+    }
+
+    fun bundlingAlertForCharges(
+        record: EobRecord,
+        columnOneCharge: EobCharge,
+        columnTwoCharge: EobCharge
+    ): NcciBundlingAlert? {
+        return NcciBundlingCalculator.bundlingAlertForChargePair(columnOneCharge, columnTwoCharge)
+            ?.takeIf { alert -> alert.isActive }
+    }
+
+    fun bundlingAlertsForRecord(record: EobRecord): List<NcciBundlingAlert> {
+        return NcciBundlingCalculator.bundlingAlertsForRecord(record)
     }
 
     fun upcodingVerificationForCharge(
