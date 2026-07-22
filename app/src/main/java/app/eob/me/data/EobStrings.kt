@@ -330,6 +330,7 @@ object EobStrings {
         "historyFilterFlagged" to "Flagged",
         "historyReceiptLineCount" to "%d lines",
         "historyProcedureCodes" to "Procedure Codes (CPT)",
+        "historyGlobalPeriodAlert" to "Heads up! A %d-day global period started on %s. Routine follow-up care for this procedure is fully covered until %s.",
         "historyAppealDoctorPill" to "Appeal doctor",
         "historyAppealInsurancePill" to "Appeal insurer",
         "historyFilterCount" to "%d %s",

@@ -20,6 +20,7 @@ import app.eob.me.data.CareTeamProviderType
 import app.eob.me.data.DoctorAppointment
 import app.eob.me.data.PreferredDoctor
 import app.eob.me.data.EobAnalyzer
+import app.eob.me.data.EobCharge
 import app.eob.me.data.EobInsuranceNews
 import app.eob.me.data.EobRecord
 import app.eob.me.data.EobStrings
@@ -53,7 +54,10 @@ import app.eob.me.data.YtdExpenseData
 import app.eob.me.data.YtdExpenseYearSelection
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.AppLockTimeout
+import app.eob.me.data.BillingIssue
 import app.eob.me.data.BillingIssueSeverity
+import app.eob.me.data.CptGlobalPeriodAlert
+import app.eob.me.data.CptGlobalPeriodCalculator
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.billing.SubscriptionState
 import app.eob.me.data.HubSettingsState
@@ -1807,8 +1811,25 @@ class EobViewModel : ViewModel() {
 
     fun totalBillingErrors(records: List<EobRecord>): Int {
         return records.sumOf { record ->
-            EobAnalyzer.detectBillingIssues(record).count { it.severity != BillingIssueSeverity.Info }
+            detectBillingIssuesForRecord(record).count { it.severity != BillingIssueSeverity.Info }
         }
+    }
+
+    fun detectBillingIssuesForRecord(record: EobRecord): List<BillingIssue> {
+        return EobAnalyzer.detectBillingIssues(record) +
+            CptGlobalPeriodCalculator.billingIssuesFor(record, _eobRecords.value)
+    }
+
+    fun globalPeriodAlertForCharge(
+        record: EobRecord,
+        charge: EobCharge
+    ): CptGlobalPeriodAlert? {
+        return CptGlobalPeriodCalculator.globalPeriodAlertForCharge(charge)
+            ?.takeIf { alert -> alert.isActive }
+    }
+
+    fun globalPeriodAlertsForRecord(record: EobRecord): List<CptGlobalPeriodAlert> {
+        return CptGlobalPeriodCalculator.globalPeriodAlertsForRecord(record)
     }
 
     fun currentNewsReleases(fallbackNews: List<NewsRelease>): List<NewsRelease> {

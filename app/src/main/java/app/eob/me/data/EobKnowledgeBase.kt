@@ -203,6 +203,13 @@ object EobKnowledgeBase {
             )
         }
         return cptDescriptions.firstOrNull { it.code.equals(normalized, ignoreCase = true) }
+            ?: CptGlobalPeriodMap.entryFor(normalized)?.let { entry ->
+                CptInfo(
+                    code = entry.code,
+                    description = entry.procedureDescription,
+                    category = CptCategory.Hospital
+                )
+            }
             ?: CptInfo(
                 code = normalized,
                 description = "CPT/HCPCS code recognized; review the EOB for payer-specific details.",

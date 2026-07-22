@@ -1,9 +1,14 @@
 package app.eob.me.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.InsuranceAppealStrategy
+import app.eob.me.data.CptGlobalPeriodAlert
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
@@ -97,6 +104,7 @@ fun EobHistoryScreen(
     onAppealInsuranceWithStrategy: (EobRecord, InsuranceAppealStrategy) -> Unit = { _, _ -> },
     showVaultFilterBanner: Boolean = false,
     taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
+    globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert? = { _, _ -> null },
     modifier: Modifier = Modifier
 ) {
     var expandedRecordKey by remember { mutableStateOf("") }
@@ -252,6 +260,7 @@ fun EobHistoryScreen(
                         selectedRecord = selectedRecord,
                         taxVaultFilterState = taxVaultFilterState,
                         showVaultFilterBanner = showVaultFilterBanner,
+                        globalPeriodAlertForCharge = globalPeriodAlertForCharge,
                         onExpandToggle = { record ->
                             val recordKey = record.historyListKey()
                             val collapsingSame = expandedRecordKey == recordKey
@@ -369,6 +378,7 @@ private fun LazyListScope.historyTimelineItems(
     selectedRecord: EobRecord?,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
+    globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
     onExpandToggle: (EobRecord) -> Unit,
     onDoctorAppealRequested: (EobRecord) -> Unit,
     onAppealInsurance: (EobRecord) -> Unit,
@@ -389,6 +399,7 @@ private fun LazyListScope.historyTimelineItems(
                 isSelected = selectedRecord?.matchesHistoryRecord(row.record) == true,
                 taxVaultFilterState = taxVaultFilterState,
                 showVaultFilterBanner = showVaultFilterBanner,
+                globalPeriodAlertForCharge = globalPeriodAlertForCharge,
                 onExpandToggle = { onExpandToggle(row.record) },
                 onDoctorAppealRequested = { onDoctorAppealRequested(row.record) },
                 onAppealInsurance = { onAppealInsurance(row.record) },
@@ -424,6 +435,7 @@ private fun HistoryTimelineItemRow(
     isSelected: Boolean,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
+    globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
@@ -437,6 +449,7 @@ private fun HistoryTimelineItemRow(
             isSelected = isSelected,
             taxVaultFilterState = taxVaultFilterState,
             showVaultFilterBanner = showVaultFilterBanner,
+            globalPeriodAlertForCharge = globalPeriodAlertForCharge,
             onExpandToggle = onExpandToggle,
             onDoctorAppealRequested = onDoctorAppealRequested,
             onAppealInsurance = onAppealInsurance,
@@ -454,6 +467,7 @@ private fun HistoryTimelineItemRowContent(
     isSelected: Boolean,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
+    globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
@@ -553,6 +567,7 @@ private fun HistoryTimelineItemRowContent(
                     isSelected = isSelected,
                     taxVaultFilterState = taxVaultFilterState,
                     showVaultFilterBanner = showVaultFilterBanner,
+                    globalPeriodAlertForCharge = globalPeriodAlertForCharge,
                     onExpandToggle = onExpandToggle,
                     onDoctorAppealRequested = onDoctorAppealRequested,
                     onAppealInsurance = onAppealInsurance
@@ -614,6 +629,7 @@ private fun WalletReceiptCard(
     isSelected: Boolean,
     taxVaultFilterState: TaxVaultFilterState,
     showVaultFilterBanner: Boolean,
+    globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit
@@ -750,7 +766,11 @@ private fun WalletReceiptCard(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     record.charges.forEach { charge ->
-                        ReceiptCptLine(language = language, charge = charge)
+                        ReceiptCptLine(
+                            language = language,
+                            charge = charge,
+                            globalPeriodAlert = globalPeriodAlertForCharge(record, charge)
+                        )
                     }
                 }
             }
@@ -920,39 +940,92 @@ private fun DoctorAppealStrategyFloater(
 @Composable
 private fun ReceiptCptLine(
     language: AppLanguage,
-    charge: EobCharge
+    charge: EobCharge,
+    globalPeriodAlert: CptGlobalPeriodAlert?
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 3.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = EobStrings.tf(language, "cptCodeLabel", charge.cptCode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (charge.cptDescription.isNotBlank()) {
+                    Text(
+                        text = charge.cptDescription,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = EobStrings.tf(language, "cptCodeLabel", charge.cptCode),
+                text = charge.billedAmount.asCurrency(),
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            if (charge.cptDescription.isNotBlank()) {
+        }
+        if (globalPeriodAlert != null) {
+            GlobalPeriodThoughtBubble(
+                language = language,
+                alert = globalPeriodAlert
+            )
+        }
+    }
+}
+
+@Composable
+private fun GlobalPeriodThoughtBubble(
+    language: AppLanguage,
+    alert: CptGlobalPeriodAlert
+) {
+    AnimatedVisibility(
+        visible = alert.isActive,
+        enter = expandVertically(animationSpec = tween(280)) + fadeIn(animationSpec = tween(280)),
+        exit = shrinkVertically(animationSpec = tween(220)) + fadeOut(animationSpec = tween(220))
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp, bottom = 6.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Lightbulb,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
                 Text(
-                    text = charge.cptDescription,
+                    text = EobStrings.tf(
+                        language,
+                        "historyGlobalPeriodAlert",
+                        alert.globalDays,
+                        alert.serviceDate,
+                        alert.expirationDate
+                    ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = charge.billedAmount.asCurrency(),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }
 
