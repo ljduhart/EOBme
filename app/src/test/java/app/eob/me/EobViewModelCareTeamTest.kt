@@ -196,6 +196,23 @@ class EobViewModelCareTeamTest {
     }
 
     @Test
+    fun careTeamShimmerSuppressedWhenAnyCardCompleteWithPhone() {
+        val viewModel = EobViewModel()
+        assertFalse(viewModel.careTeamShimmerSuppressed(AppLanguage.English))
+        viewModel.updatePreferredDoctor(
+            PreferredDoctor(
+                type = CareTeamProviderType.Pcp,
+                name = "john smith",
+                phone = "5551234567"
+            )
+        )
+        assertTrue(viewModel.careTeamShimmerSuppressed(AppLanguage.English))
+        val cards = viewModel.careTeamCardStates(AppLanguage.English)
+        val pcp = cards.first { it.type == CareTeamProviderType.Pcp }
+        assertTrue(pcp.isCompleteWithPhone)
+    }
+
+    @Test
     fun addAppointmentStoresProviderType() {
         val viewModel = EobViewModel()
         viewModel.addAppointment(

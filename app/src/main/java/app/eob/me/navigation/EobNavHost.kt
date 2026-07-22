@@ -767,6 +767,16 @@ private fun MainHubNavHost(
                     ) {
                         eobViewModel.careTeamCardStates(language)
                     }
+                    val careTeamShimmerSuppressed = remember(
+                        uiState.preferredDoctors,
+                        uiState.appointments,
+                        sortedEobRecords,
+                        uiState.isLoadingInvoice,
+                        uiState.invoiceProcessingPhase,
+                        language
+                    ) {
+                        eobViewModel.careTeamShimmerSuppressed(language)
+                    }
                     val providerDirectoryAssurance = remember(
                         uiState.preferredDoctors,
                         sortedEobRecords,
@@ -823,6 +833,7 @@ private fun MainHubNavHost(
                         appointments = uiState.appointments,
                         preferredDoctors = uiState.preferredDoctors,
                         careTeamCards = careTeamCards,
+                        careTeamShimmerSuppressed = careTeamShimmerSuppressed,
                         providerDirectoryAssurance = providerDirectoryAssurance,
                         cptBentoSnapshot = cptBentoSnapshot,
                         insuranceNewsBentoSnapshot = insuranceNewsBentoSnapshot,

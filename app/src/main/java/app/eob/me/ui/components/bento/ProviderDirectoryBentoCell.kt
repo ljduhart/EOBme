@@ -186,7 +186,7 @@ private fun ProviderAvatarFan(
     fanProgress: Float,
     modifier: Modifier = Modifier
 ) {
-    val displayAvatars = avatars.take(3)
+    val displayAvatars = avatars.take(2)
     val fanOffsets = listOf(-28f, 0f, 28f)
     val fanRotations = listOf(-14f, 0f, 14f)
     val arcLift = listOf(10f, 0f, 10f)

@@ -503,8 +503,8 @@ object EobAnalyzer {
         }
     }
 
-    fun providerAvatarPreviews(records: List<EobRecord>, language: AppLanguage, limit: Int = 3): List<ProviderAvatarPreview> {
-        return providerDirectory(records).take(limit).map { summary ->
+    fun providerAvatarPreviews(records: List<EobRecord>, language: AppLanguage, limit: Int = 2): List<ProviderAvatarPreview> {
+        return providerDirectoryByRecency(records).take(limit).map { summary ->
             val sampleRecord = records.firstOrNull { providerNamesEqual(it.providerName, summary.providerName) }
             ProviderAvatarPreview(
                 initials = providerInitials(summary.providerName),
@@ -568,6 +568,14 @@ object EobAnalyzer {
                 )
             }
             .sortedByDescending { it.eobCount }
+    }
+
+    fun providerDirectoryByRecency(records: List<EobRecord>): List<ProviderSummary> {
+        return providerDirectory(records).sortedByDescending { summary ->
+            records
+                .filter { providerNamesEqual(it.providerName, summary.providerName) }
+                .maxOfOrNull { it.serviceDateSortKey } ?: Int.MIN_VALUE
+        }
     }
 
     private fun confidence(fieldName: String, value: String, isReliable: Boolean): EobFieldConfidence {

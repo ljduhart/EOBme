@@ -137,6 +137,7 @@ fun HomeCareTeamCards(
     preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>,
     onSaveDoctor: (PreferredDoctor) -> Unit,
     smartCardSummariesEnabled: Boolean,
+    shimmerSuppressed: Boolean,
     modifier: Modifier = Modifier
 ) {
     var editingType by remember { mutableStateOf<CareTeamProviderType?>(null) }
@@ -151,6 +152,7 @@ fun HomeCareTeamCards(
                 cardState = cardState,
                 doctor = preferredDoctors[cardState.type] ?: PreferredDoctor(type = cardState.type),
                 smartCardSummariesEnabled = smartCardSummariesEnabled,
+                shimmerSuppressed = shimmerSuppressed,
                 onEdit = { editingType = cardState.type },
                 modifier = Modifier.weight(1f)
             )
@@ -177,6 +179,7 @@ private fun CareTeamSmartCard(
     cardState: CareTeamCardDisplayState,
     doctor: PreferredDoctor,
     smartCardSummariesEnabled: Boolean,
+    shimmerSuppressed: Boolean,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -190,9 +193,9 @@ private fun CareTeamSmartCard(
         isFlipped = false
     }
 
-    LaunchedEffect(cardState.type, cardState.isAssigned) {
+    LaunchedEffect(cardState.type, cardState.isAssigned, shimmerSuppressed) {
         showShimmer = false
-        if (!cardState.isAssigned) {
+        if (!cardState.isAssigned && !shimmerSuppressed) {
             delay(4_000)
             showShimmer = true
         }
@@ -227,9 +230,14 @@ private fun CareTeamSmartCard(
                     isPressed = false
                 }
             }
-            .pointerInput(cardState.phoneDialUri) {
+            .pointerInput(cardState.isCompleteWithPhone, doctor.phone) {
                 detectTapGestures(
                     onTap = { isFlipped = !isFlipped },
+                    onDoubleTap = {
+                        if (cardState.isCompleteWithPhone) {
+                            dialCareTeamPhone(context, language, doctor.phone)
+                        }
+                    },
                     onLongPress = { onEdit() }
                 )
             },
@@ -252,10 +260,7 @@ private fun CareTeamSmartCard(
                     CareTeamCardFront(
                         language = language,
                         cardState = cardState,
-                        smartCardSummariesEnabled = smartCardSummariesEnabled,
-                        onCall = cardState.phoneDialUri?.let {
-                            { dialCareTeamPhone(context, language, doctor.phone) }
-                        }
+                        smartCardSummariesEnabled = smartCardSummariesEnabled
                     )
                 } else {
                     Box(
@@ -265,15 +270,12 @@ private fun CareTeamSmartCard(
                     ) {
                         CareTeamCardBack(
                             language = language,
-                            doctor = doctor,
-                            onDialPhone = cardState.phoneDialUri?.let {
-                                { dialCareTeamPhone(context, language, doctor.phone) }
-                            }
+                            doctor = doctor
                         )
                     }
                 }
             }
-            if (!cardState.isAssigned && showShimmer) {
+            if (!cardState.isAssigned && showShimmer && !shimmerSuppressed) {
                 FrostedCardShimmerOverlay(
                     modifier = Modifier
                         .fillMaxSize()
@@ -288,8 +290,7 @@ private fun CareTeamSmartCard(
 private fun CareTeamCardFront(
     language: AppLanguage,
     cardState: CareTeamCardDisplayState,
-    smartCardSummariesEnabled: Boolean,
-    onCall: (() -> Unit)?
+    smartCardSummariesEnabled: Boolean
 ) {
     val metricsLine = formatMicroMetrics(language, cardState, smartCardSummariesEnabled)
     Box(
@@ -340,13 +341,7 @@ private fun CareTeamCardFront(
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 8.sp,
                 fontWeight = if (isCallToActionLine(cardState)) FontWeight.SemiBold else FontWeight.Normal,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .pointerInput(onCall) {
-                        if (onCall != null) {
-                            detectTapGestures(onTap = { onCall() })
-                        }
-                    }
+                modifier = Modifier.fillMaxWidth()
             )
             cardState.tertiaryLine?.let { tertiary ->
                 Text(
@@ -489,8 +484,7 @@ private fun FrostedCardShimmerOverlay(modifier: Modifier = Modifier) {
 @Composable
 private fun CareTeamCardBack(
     language: AppLanguage,
-    doctor: PreferredDoctor,
-    onDialPhone: (() -> Unit)?
+    doctor: PreferredDoctor
 ) {
     val notSet = EobStrings.t(language, "valueNotSet")
     val phoneDisplay = when {
@@ -498,7 +492,7 @@ private fun CareTeamCardBack(
         else -> DeviceCallingUtils.formatPhoneForDisplay(doctor.phone)
             .ifBlank { doctor.phone }
     }
-    val phoneIsDialable = onDialPhone != null && doctor.phone.isNotBlank()
+    val phoneIsDialable = doctor.phone.isNotBlank()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -526,8 +520,7 @@ private fun CareTeamCardBack(
                 fontSize = 8.sp,
                 maxLines = 1,
                 color = if (phoneIsDialable) NeonBlueBorder else CardInkDark,
-                fontWeight = if (phoneIsDialable) FontWeight.SemiBold else FontWeight.Normal,
-                onClick = onDialPhone
+                fontWeight = if (phoneIsDialable) FontWeight.SemiBold else FontWeight.Normal
             )
         }
     }

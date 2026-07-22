@@ -53,4 +53,49 @@ class EobAnalyzerBentoTest {
         assertEquals(1, previews.size)
         assertEquals("CM", previews.first().initials)
     }
+
+    @Test
+    fun providerAvatarPreviewsReturnTwoMostRecentProviders() {
+        val older = EobRecord(
+            id = 1,
+            sourceName = "eob",
+            providerName = "Old Clinic",
+            insuranceName = "Aetna",
+            serviceDate = "01/01/2025",
+            serviceDateSortKey = 20250101,
+            charges = emptyList(),
+            duplicateChargeWarnings = emptyList(),
+            rawText = ""
+        )
+        val newer = EobRecord(
+            id = 2,
+            sourceName = "eob",
+            providerName = "New Clinic",
+            insuranceName = "Aetna",
+            serviceDate = "06/01/2026",
+            serviceDateSortKey = 20260601,
+            charges = emptyList(),
+            duplicateChargeWarnings = emptyList(),
+            rawText = ""
+        )
+        val middle = EobRecord(
+            id = 3,
+            sourceName = "eob",
+            providerName = "Mid Clinic",
+            insuranceName = "Aetna",
+            serviceDate = "03/01/2026",
+            serviceDateSortKey = 20260301,
+            charges = emptyList(),
+            duplicateChargeWarnings = emptyList(),
+            rawText = ""
+        )
+        val previews = EobAnalyzer.providerAvatarPreviews(
+            listOf(older, newer, middle),
+            AppLanguage.English,
+            limit = 2
+        )
+        assertEquals(2, previews.size)
+        assertEquals("NC", previews[0].initials)
+        assertEquals("MC", previews[1].initials)
+    }
 }

@@ -44,6 +44,7 @@ class CareTeamStateExtractorTest {
         assertEquals("Dr. Smith", pcp.primaryLine)
         assertEquals("(555) 010-0", pcp.secondaryLine)
         assertTrue(pcp.phoneDialUri?.startsWith("tel:") == true)
+        assertTrue(pcp.isCompleteWithPhone)
     }
 
     @Test

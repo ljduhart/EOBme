@@ -169,6 +169,7 @@ class EobViewModel : ViewModel() {
     companion object {
         const val TAX_VAULT_MAX_EXPORT_EOBS = 5
         const val TAX_VAULT_MAX_EXPORT_RECEIPTS = 2
+        const val HOME_BENTO_PROVIDER_PREVIEW_LIMIT = 2
     }
 
     private var repository: EobRepository? = null
@@ -1716,14 +1717,11 @@ class EobViewModel : ViewModel() {
     }
 
     fun providerAvatarPreviews(language: AppLanguage): List<ProviderAvatarPreview> {
-        val tier = _uiState.value.hubSettings.subscriptionTier
-        val previewLimit = when (val access = EobmeFeatureGate.getProviderStorageLimit(tier)) {
-            FeatureAccess.Unlimited -> 3
-            is FeatureAccess.Limited -> access.limit.coerceAtMost(3)
-            FeatureAccess.Denied -> 0
-        }
-        if (previewLimit == 0) return emptyList()
-        return EobAnalyzer.providerAvatarPreviews(_eobRecords.value, language, limit = previewLimit)
+        return EobAnalyzer.providerAvatarPreviews(
+            records = _eobRecords.value,
+            language = language,
+            limit = HOME_BENTO_PROVIDER_PREVIEW_LIMIT
+        )
     }
 
     fun providerDirectory(): List<ProviderSummary> {
@@ -1991,6 +1989,10 @@ class EobViewModel : ViewModel() {
             records = _eobRecords.value,
             invoiceProcessing = isInvoicePipelineActive()
         )
+    }
+
+    fun careTeamShimmerSuppressed(language: AppLanguage): Boolean {
+        return careTeamCardStates(language).any { it.isCompleteWithPhone }
     }
 
     fun providerDirectoryAssurance(language: AppLanguage): ProviderDirectoryAssurance {

@@ -1152,7 +1152,7 @@ class EobFlowArchitectureTest {
     fun careTeamShimmerDelaysFourSecondsOnUnassignedCards() {
         val careTeamSource = readSource("ui/components/home/HomeCareTeamCards.kt")
         assertTrue(careTeamSource.contains("delay(4_000)"))
-        assertTrue(careTeamSource.contains("!cardState.isAssigned && showShimmer"))
+        assertTrue(careTeamSource.contains("!cardState.isAssigned && showShimmer && !shimmerSuppressed"))
     }
 
     @Test

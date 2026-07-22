@@ -74,6 +74,7 @@ fun HomeScreen(
     appointments: List<DoctorAppointment>,
     preferredDoctors: Map<CareTeamProviderType, PreferredDoctor>,
     careTeamCards: List<CareTeamCardDisplayState>,
+    careTeamShimmerSuppressed: Boolean,
     providerDirectoryAssurance: ProviderDirectoryAssurance,
     cptBentoSnapshot: CptBentoSnapshot,
     insuranceNewsBentoSnapshot: InsuranceNewsBentoSnapshot,
@@ -202,6 +203,7 @@ fun HomeScreen(
                     preferredDoctors = preferredDoctors,
                     onSaveDoctor = onSavePreferredDoctor,
                     smartCardSummariesEnabled = EobmeFeatureGate.hasSmartCardSummaries(subscriptionTier),
+                    shimmerSuppressed = careTeamShimmerSuppressed,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

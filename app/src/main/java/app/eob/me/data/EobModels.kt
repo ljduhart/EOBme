@@ -293,7 +293,11 @@ data class CareTeamCardDisplayState(
     val specialistReferralActive: Boolean = false,
     val therapistNetworkStatus: TherapistNetworkStatus = TherapistNetworkStatus.Unknown,
     val therapistCopayAmount: Double? = null
-)
+) {
+    /** Assigned provider with a dialable phone number (name + phone). */
+    val isCompleteWithPhone: Boolean
+        get() = isAssigned && phoneDialUri != null
+}
 
 enum class YtdBentoViewMode {
     CostOverview,
