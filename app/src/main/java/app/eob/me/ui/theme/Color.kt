@@ -90,6 +90,12 @@ val EobSubscriptionFree = Color(0xFF8A8F98)
 val EobSubscriptionSilver = Color(0xFF9EA3A8)
 val EobSubscriptionGold = Color(0xFFD4AF37)
 
+// Expense Analytics semantic tokens (light-mode dashboard)
+val EobExpenseNetworkSavings = Color(0xFF9E9E9E)
+val EobExpenseCarrierCovered = Color(0xFF0288D1)
+val EobExpensePatientResponsibility = Color(0xFFE65100)
+val EobExpenseBentoSurface = Color(0xFFF7F9FC)
+
 // Home hub gradient stops for light mode (layout unchanged; colors only)
 val EobHomeLightGradientTop = EobLightBackground
 val EobHomeLightGradientMid = EobLightBackgroundSoft

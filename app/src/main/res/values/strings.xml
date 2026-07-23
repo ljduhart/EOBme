@@ -25,4 +25,38 @@
     <string name="account_profile_tier_gold">Gold</string>
     <string name="account_profile_email_cd">Email address</string>
     <string name="account_profile_tier_icon_cd">Subscription tier icon</string>
+
+    <!-- Expense Analytics (Dashboard) -->
+    <string name="expense_analytics_title">EOBme</string>
+    <string name="expense_analytics_back_cd">Navigate back</string>
+    <string name="expense_analytics_page_title">Expense Analytics</string>
+    <string name="expense_analytics_claim_allocation">Claim Allocation</string>
+    <string name="expense_analytics_total_billed">Total billed %1$s</string>
+    <string name="expense_analytics_network_savings">Network savings adjustments</string>
+    <string name="expense_analytics_carrier_covered">Covered by carrier</string>
+    <string name="expense_analytics_patient_responsibility">Patient responsibility</string>
+    <string name="expense_analytics_summary_title">Spending Summary</string>
+    <string name="expense_analytics_total_oop_label">Total patient out-of-pocket</string>
+    <string name="expense_analytics_carrier_contribution">Carrier covered %1$s</string>
+    <string name="expense_analytics_network_savings_detail">Network savings %1$s</string>
+    <string name="expense_analytics_total_billed_detail">Total billed %1$s</string>
+    <string name="expense_analytics_sort_highest_patient_share">Sort by Highest Patient Share</string>
+    <string name="expense_analytics_sort_newest_activity">Sort by Newest Activity</string>
+    <string name="expense_analytics_sort_highest_billed">Highest Billed Total</string>
+    <string name="expense_analytics_sort_alphabetical">Facility Alphabetical</string>
+    <string name="expense_analytics_facilities_title">Facility Spending</string>
+    <string name="expense_analytics_carrier_share">Carrier share</string>
+    <string name="expense_analytics_patient_share">Patient share</string>
+    <string name="expense_analytics_expand_cd">Expand facility claims</string>
+    <string name="expense_analytics_collapse_cd">Collapse facility claims</string>
+    <string name="expense_analytics_claim_label">Claim %1$s</string>
+    <string name="expense_analytics_claim_dos">[%1$s]</string>
+    <string name="expense_analytics_scan_cd">Inspect scanned EOB source</string>
+    <string name="expense_analytics_status_cd">Claim validation status</string>
+    <string name="expense_analytics_appeal_cd">Generate appeal letter</string>
+    <string name="expense_analytics_status_audited">Audited correct</string>
+    <string name="expense_analytics_status_error">Potential billing error</string>
+    <string name="expense_analytics_status_appealed">Appeal in progress</string>
+    <string name="expense_analytics_empty">Upload EOBs to unlock expense analytics insights.</string>
+    <string name="expense_analytics_loading">Loading expense analytics…</string>
 </resources>

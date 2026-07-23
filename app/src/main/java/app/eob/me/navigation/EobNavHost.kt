@@ -1,6 +1,7 @@
 package app.eob.me.navigation
 
 import android.Manifest
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
@@ -75,7 +76,6 @@ import app.eob.me.ui.components.DocumentProcessingOverlay
 import app.eob.me.ui.components.HubBottomBar
 import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.navigation.HubBottomTab
-import android.content.Intent
 import app.eob.me.ui.screens.AppealScreen
 import app.eob.me.ui.screens.TaxVaultScreen
 import app.eob.me.ui.screens.AuthChoiceScreen
@@ -585,7 +585,8 @@ private fun MainHubNavHost(
     val showSettingsGear = currentRoute == EobRoute.Home.route
     val showBottomBar = currentRoute !in hubRoutesWithoutBottomBar
     val showHubHeader = currentRoute !in hubRoutesWithoutBottomBar &&
-        currentRoute != EobRoute.Settings.route
+        currentRoute != EobRoute.Settings.route &&
+        currentRoute != EobRoute.Dashboard.route
     val selectedBottomTab = HubBottomTab.fromRoute(currentRoute)
 
     LaunchedEffect(profile) {
@@ -593,6 +594,7 @@ private fun MainHubNavHost(
     }
 
     val accountProfileUiState by eobViewModel.accountProfileUiState.collectAsStateWithLifecycle()
+    val expenseAnalyticsState by eobViewModel.expenseAnalyticsState.collectAsStateWithLifecycle()
 
     val appVersionLabel = remember(language) {
         val packageInfo = runCatching {
@@ -1073,8 +1075,56 @@ private fun MainHubNavHost(
                 }
                 composable(EobRoute.Dashboard.route) {
                     DashboardScreen(
-                        language = language,
-                        records = sortedEobRecords,
+                        state = expenseAnalyticsState,
+                        onBack = {
+                            navController.navigate(EobRoute.Home.route) {
+                                popUpTo(EobRoute.Home.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                            onActivity()
+                        },
+                        onSortSelected = { sort ->
+                            eobViewModel.setExpenseAnalyticsSort(sort)
+                            onActivity()
+                        },
+                        onFacilityExpandedToggle = { facilityId ->
+                            eobViewModel.toggleExpenseAnalyticsFacilityExpanded(facilityId)
+                            onActivity()
+                        },
+                        onInspectClaimSource = { claim ->
+                            val record = eobViewModel.recordForExpenseAnalyticsClaim(claim.id)
+                            if (record != null) {
+                                eobViewModel.selectRecord(record, profile)
+                                if (claim.storageDownloadUrl.isNotBlank()) {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(claim.storageDownloadUrl))
+                                    )
+                                } else {
+                                    navController.navigate(EobRoute.History.route) {
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }
+                            onActivity()
+                        },
+                        onAppealClaim = { claim ->
+                            val record = eobViewModel.recordForExpenseAnalyticsClaim(claim.id)
+                            if (record != null) {
+                                eobViewModel.markExpenseAnalyticsClaimAppealed(claim.id)
+                                if (eobViewModel.openAppealForRecord(
+                                        record = record,
+                                        profile = profile,
+                                        target = AppealTarget.INSURANCE,
+                                        language = language
+                                    )
+                                ) {
+                                    navController.navigate(EobRoute.Appeal.route) {
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }
+                            onActivity()
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

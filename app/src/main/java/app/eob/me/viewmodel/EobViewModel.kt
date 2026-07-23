@@ -23,6 +23,9 @@ import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobInsuranceNews
 import app.eob.me.data.EobRecord
+import app.eob.me.data.ExpenseAnalyticsCalculator
+import app.eob.me.data.ExpenseAnalyticsSort
+import app.eob.me.data.ExpenseAnalyticsState
 import app.eob.me.data.EobStrings
 import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.CareTeamStateExtractor
@@ -231,6 +234,30 @@ class EobViewModel : ViewModel() {
     ) { profile, hubSettings ->
         buildAccountProfileUiState(profile, hubSettings)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountProfileUiState())
+
+    private val _expenseAnalyticsSort = MutableStateFlow(ExpenseAnalyticsSort.HighestPatientShare)
+    private val _expenseAnalyticsExpandedFacilityIds = MutableStateFlow<Set<String>>(emptySet())
+    private val _expenseAnalyticsAppealedClaimIds = MutableStateFlow<Set<String>>(emptySet())
+
+    val expenseAnalyticsState: StateFlow<ExpenseAnalyticsState> = combine(
+        sortedEobRecords,
+        _uiState.map { state ->
+            state.isLoadingInvoice to state.firebaseSyncStatus.isConfigured
+        }.distinctUntilChanged(),
+        _expenseAnalyticsSort,
+        _expenseAnalyticsExpandedFacilityIds,
+        _expenseAnalyticsAppealedClaimIds
+    ) { records, loadingContext, sort, expandedFacilityIds, appealedClaimIds ->
+        val (isProcessingInvoice, syncConfigured) = loadingContext
+        ExpenseAnalyticsCalculator.buildState(
+            records = records,
+            sort = sort,
+            expandedFacilityIds = expandedFacilityIds,
+            appealedClaimIds = appealedClaimIds,
+            issueDetector = { record -> detectBillingIssuesForRecord(record) },
+            isLoading = isProcessingInvoice && records.isEmpty() && syncConfigured
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExpenseAnalyticsState())
 
     private var eobListener: ListenerRegistration? = null
     private var vaultReceiptListener: ListenerRegistration? = null
@@ -1833,6 +1860,24 @@ class EobViewModel : ViewModel() {
 
     fun yearlyHealthCostSummary(preferredYear: Int? = null): YearlyHealthCostSummary {
         return EobAnalyzer.yearlyHealthCostSummary(_eobRecords.value, preferredYear)
+    }
+
+    fun setExpenseAnalyticsSort(sort: ExpenseAnalyticsSort) {
+        _expenseAnalyticsSort.value = sort
+    }
+
+    fun toggleExpenseAnalyticsFacilityExpanded(facilityId: String) {
+        _expenseAnalyticsExpandedFacilityIds.update { expanded ->
+            if (facilityId in expanded) expanded - facilityId else expanded + facilityId
+        }
+    }
+
+    fun markExpenseAnalyticsClaimAppealed(claimId: String) {
+        _expenseAnalyticsAppealedClaimIds.update { appealed -> appealed + claimId }
+    }
+
+    fun recordForExpenseAnalyticsClaim(claimId: String): EobRecord? {
+        return _eobRecords.value.firstOrNull { record -> record.historyListKey() == claimId }
     }
 
     fun ytdExpenseData(profile: UserProfile): YtdExpenseData {

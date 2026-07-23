@@ -6,15 +6,13 @@ import org.junit.Test
 
 class MobileUiPr172Test {
     @Test
-    fun dashboardUsesPieChartAndFacilityBarGraph() {
+    fun dashboardUsesFacilityAnalyticsBarLayout() {
         val source = readSource("ui/screens/DashboardScreen.kt")
-        assertTrue(source.contains("ClaimAllocationPieChart"))
-        assertTrue(source.contains("drawArc"))
-        assertTrue(source.contains("useCenter = true"))
-        assertTrue(source.contains("FacilitySpendingBarChart"))
-        assertTrue(source.contains("facilitySpendingTotal"))
+        assertTrue(source.contains("FacilitySpendingCard"))
+        assertTrue(source.contains("DualShareProgressBar"))
         assertTrue(source.contains("asCurrency()"))
-        assertFalse(source.contains("LinearProgressIndicator"))
+        assertFalse(source.contains("ClaimAllocationPieChart"))
+        assertFalse(source.contains("drawArc"))
     }
 
     @Test
