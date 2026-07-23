@@ -560,7 +560,8 @@ enum class BillingIssueType {
     MissingDateOfService,
     MissingCptCode,
     PossibleDenial,
-    VisitDuringGlobalPeriod
+    VisitDuringGlobalPeriod,
+    PossibleUnbundling
 }
 
 enum class BillingIssueSeverity {
