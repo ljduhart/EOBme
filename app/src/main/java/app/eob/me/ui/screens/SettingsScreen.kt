@@ -25,14 +25,10 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import app.eob.me.data.AccountProfileUiState
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.EobLegalUrls
@@ -54,24 +51,18 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.HubSettingsState
 import app.eob.me.data.ImageCompressionLevel
 import app.eob.me.data.SettingsTab
-import app.eob.me.data.SubscriptionTier
-import app.eob.me.ui.components.LogoutConfirmDialog
-import app.eob.me.data.UserProfile
-import app.eob.me.ui.components.HubHelpfulHintsIcon
 import app.eob.me.util.CacheSizeCalculator
 
 @Composable
 fun SettingsScreen(
     language: AppLanguage,
-    profile: UserProfile,
+    accountProfileUiState: AccountProfileUiState,
     hubSettings: HubSettingsState,
     appVersionLabel: String,
-    accountEditing: Boolean,
-    draftFirstName: String,
-    draftLastName: String,
+    onBack: () -> Unit,
+    onEnableAccountEditing: () -> Unit,
     onDraftFirstNameChanged: (String) -> Unit,
     onDraftLastNameChanged: (String) -> Unit,
-    onEnableAccountEditing: () -> Unit,
     onSaveAccountProfile: () -> Unit,
     onCancelAccountEditing: () -> Unit,
     onManageSubscription: () -> Unit,
@@ -92,51 +83,26 @@ fun SettingsScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showHelpfulHintsDialog by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PrimaryScrollableTabRow(
-                selectedTabIndex = hubSettings.selectedTab.ordinal,
-                edgePadding = 8.dp,
-                modifier = Modifier.weight(1f)
-            ) {
-                SettingsTab.entries.forEach { tab ->
-                    Tab(
-                        selected = hubSettings.selectedTab == tab,
-                        onClick = { onTabSelected(tab) },
-                        text = { Text(EobStrings.t(language, tab.labelKey())) }
-                    )
-                }
-            }
-            IconButton(onClick = { showHelpfulHintsDialog = true }) {
-                Icon(
-                    imageVector = HubHelpfulHintsIcon.Lightbulb,
-                    contentDescription = EobStrings.t(language, "settingsHelpfulHintsTitle"),
-                    tint = androidx.compose.ui.graphics.Color.Unspecified
-                )
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-        }
+    AccountProfileSettingsScaffold(
+        language = language,
+        selectedTab = hubSettings.selectedTab,
+        onBack = onBack,
+        onOpenHelpfulHints = { showHelpfulHintsDialog = true },
+        onTabSelected = onTabSelected,
+        modifier = modifier
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             when (hubSettings.selectedTab) {
-                SettingsTab.Account -> AccountSettingsTab(
+                SettingsTab.Account -> AccountProfileSettingsContent(
                     language = language,
-                    profile = profile,
-                    subscriptionTier = hubSettings.subscriptionTier,
-                    accountEditing = accountEditing,
-                    draftFirstName = draftFirstName,
-                    draftLastName = draftLastName,
+                    accountProfileUiState = accountProfileUiState,
+                    onEnableAccountEditing = onEnableAccountEditing,
                     onDraftFirstNameChanged = onDraftFirstNameChanged,
                     onDraftLastNameChanged = onDraftLastNameChanged,
-                    onEnableAccountEditing = onEnableAccountEditing,
                     onSaveAccountProfile = onSaveAccountProfile,
                     onCancelAccountEditing = onCancelAccountEditing,
                     onManageSubscription = onManageSubscription,
@@ -149,19 +115,22 @@ fun SettingsScreen(
                     onPinLockToggle = onPinLockToggle,
                     onSavePin = onSavePin,
                     onAppLockTimeoutSelected = onAppLockTimeoutSelected,
-                    onCrashlyticsToggle = onCrashlyticsToggle
+                    onCrashlyticsToggle = onCrashlyticsToggle,
+                    modifier = Modifier.padding(16.dp)
                 )
                 SettingsTab.DocumentScan -> DocumentScanSettingsTab(
                     language = language,
                     hubSettings = hubSettings,
                     onWifiOnlyToggle = onWifiOnlyToggle,
                     onCompressionSelected = onCompressionSelected,
-                    onAutoCropToggle = onAutoCropToggle
+                    onAutoCropToggle = onAutoCropToggle,
+                    modifier = Modifier.padding(16.dp)
                 )
                 SettingsTab.Storage -> StorageSettingsTab(
                     language = language,
                     cacheSizeBytes = hubSettings.cacheSizeBytes,
-                    onClearCache = onClearCache
+                    onClearCache = onClearCache,
+                    modifier = Modifier.padding(16.dp)
                 )
                 SettingsTab.Legal -> LegalSettingsTab(
                     language = language,
@@ -175,14 +144,16 @@ fun SettingsScreen(
                         context.startActivity(
                             Intent(Intent.ACTION_VIEW, Uri.parse(EobLegalUrls.TERMS_OF_USE))
                         )
-                    }
+                    },
+                    modifier = Modifier.padding(16.dp)
                 )
             }
-            if (hubSettings.settingsNotice.isNotBlank()) {
+            if (hubSettings.selectedTab != SettingsTab.Account && hubSettings.settingsNotice.isNotBlank()) {
                 Text(
                     text = hubSettings.settingsNotice,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
         }
@@ -248,122 +219,6 @@ fun SettingsScreen(
     }
 }
 
-@Composable
-private fun AccountSettingsTab(
-    language: AppLanguage,
-    profile: UserProfile,
-    subscriptionTier: SubscriptionTier,
-    accountEditing: Boolean,
-    draftFirstName: String,
-    draftLastName: String,
-    onDraftFirstNameChanged: (String) -> Unit,
-    onDraftLastNameChanged: (String) -> Unit,
-    onEnableAccountEditing: () -> Unit,
-    onSaveAccountProfile: () -> Unit,
-    onCancelAccountEditing: () -> Unit,
-    onManageSubscription: () -> Unit,
-    onLogout: () -> Unit,
-    onDeleteAccount: () -> Unit
-) {
-    var showLogoutConfirm by remember { mutableStateOf(false) }
-
-    Text(EobStrings.t(language, "settingsAccountTitle"), style = MaterialTheme.typography.titleLarge)
-    SettingsReadOnlyRow(
-        language = language,
-        label = EobStrings.t(language, "firstName"),
-        value = if (accountEditing) draftFirstName else profile.firstName,
-        editable = accountEditing,
-        onValueChange = onDraftFirstNameChanged
-    )
-    SettingsReadOnlyRow(
-        language = language,
-        label = EobStrings.t(language, "lastName"),
-        value = if (accountEditing) draftLastName else profile.lastName,
-        editable = accountEditing,
-        onValueChange = onDraftLastNameChanged
-    )
-    SettingsReadOnlyRow(
-        language = language,
-        label = EobStrings.t(language, "email"),
-        value = profile.email,
-        editable = false,
-        onValueChange = {}
-    )
-    SettingsReadOnlyRow(
-        language = language,
-        label = EobStrings.t(language, "settingsSubscriptionTier"),
-        value = EobStrings.t(language, subscriptionTier.labelKey()),
-        editable = false,
-        onValueChange = {}
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        if (!accountEditing) {
-            OutlinedButton(onClick = onEnableAccountEditing, modifier = Modifier.weight(1f)) {
-                Text(EobStrings.t(language, "editProfile"))
-            }
-        } else {
-            OutlinedButton(onClick = onCancelAccountEditing, modifier = Modifier.weight(1f)) {
-                Text(EobStrings.t(language, "settingsCancelEdit"))
-            }
-            Button(onClick = onSaveAccountProfile, modifier = Modifier.weight(1f)) {
-                Text(EobStrings.t(language, "profileSavedButton"))
-            }
-        }
-    }
-    HorizontalDivider()
-    SubscriptionManagementSection(
-        language = language,
-        onViewPlans = onManageSubscription
-    )
-    OutlinedButton(onClick = { showLogoutConfirm = true }, modifier = Modifier.fillMaxWidth()) {
-        Text(EobStrings.t(language, "logout"))
-    }
-    if (showLogoutConfirm) {
-        LogoutConfirmDialog(
-            language = language,
-            onConfirm = {
-                showLogoutConfirm = false
-                onLogout()
-            },
-            onDismiss = { showLogoutConfirm = false }
-        )
-    }
-    OutlinedButton(onClick = onDeleteAccount, modifier = Modifier.fillMaxWidth()) {
-        Text(
-            EobStrings.t(language, "settingsDeleteAccount"),
-            color = MaterialTheme.colorScheme.error
-        )
-    }
-}
-
-@Composable
-private fun SubscriptionManagementSection(
-    language: AppLanguage,
-    onViewPlans: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text(
-            text = EobStrings.t(language, "billingManageSubscriptionTitle"),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = EobStrings.t(language, "billingManageSubscriptionHint"),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        OutlinedButton(onClick = onViewPlans, modifier = Modifier.fillMaxWidth()) {
-            Text(EobStrings.t(language, "settingsManageSubscription"))
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SecuritySettingsTab(
@@ -372,54 +227,60 @@ private fun SecuritySettingsTab(
     onPinLockToggle: (Boolean) -> Unit,
     onSavePin: (String, String) -> Boolean,
     onAppLockTimeoutSelected: (AppLockTimeout) -> Unit,
-    onCrashlyticsToggle: (Boolean) -> Unit
+    onCrashlyticsToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var showPinDialog by remember { mutableStateOf(false) }
     var pinDraft by remember { mutableStateOf("") }
     var confirmPinDraft by remember { mutableStateOf("") }
 
-    Text(EobStrings.t(language, "settingsSecurityTitle"), style = MaterialTheme.typography.titleLarge)
-    if (!hubSettings.pinConfigured) {
-        Button(
-            onClick = {
-                pinDraft = ""
-                confirmPinDraft = ""
-                showPinDialog = true
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(EobStrings.t(language, "settingsCreatePin"))
-        }
-    } else {
-        OutlinedButton(
-            onClick = {
-                pinDraft = ""
-                confirmPinDraft = ""
-                showPinDialog = true
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(EobStrings.t(language, "settingsChangePin"))
-        }
-        SettingsToggleRow(
-            label = EobStrings.t(language, "settingsPinLock"),
-            checked = hubSettings.pinLockEnabled,
-            onCheckedChange = { enabled ->
-                if (enabled && !hubSettings.pinConfigured) return@SettingsToggleRow
-                onPinLockToggle(enabled)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(EobStrings.t(language, "settingsSecurityTitle"), style = MaterialTheme.typography.titleLarge)
+        if (!hubSettings.pinConfigured) {
+            Button(
+                onClick = {
+                    pinDraft = ""
+                    confirmPinDraft = ""
+                    showPinDialog = true
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(EobStrings.t(language, "settingsCreatePin"))
             }
+        } else {
+            OutlinedButton(
+                onClick = {
+                    pinDraft = ""
+                    confirmPinDraft = ""
+                    showPinDialog = true
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(EobStrings.t(language, "settingsChangePin"))
+            }
+            SettingsToggleRow(
+                label = EobStrings.t(language, "settingsPinLock"),
+                checked = hubSettings.pinLockEnabled,
+                onCheckedChange = { enabled ->
+                    if (enabled && !hubSettings.pinConfigured) return@SettingsToggleRow
+                    onPinLockToggle(enabled)
+                }
+            )
+        }
+        AppLockTimeoutDropdown(
+            language = language,
+            selectedTimeout = hubSettings.appLockTimeout,
+            onTimeoutSelected = onAppLockTimeoutSelected
+        )
+        SettingsToggleRow(
+            label = EobStrings.t(language, "settingsCrashlyticsOptIn"),
+            checked = hubSettings.crashlyticsOptIn,
+            onCheckedChange = onCrashlyticsToggle
         )
     }
-    AppLockTimeoutDropdown(
-        language = language,
-        selectedTimeout = hubSettings.appLockTimeout,
-        onTimeoutSelected = onAppLockTimeoutSelected
-    )
-    SettingsToggleRow(
-        label = EobStrings.t(language, "settingsCrashlyticsOptIn"),
-        checked = hubSettings.crashlyticsOptIn,
-        onCheckedChange = onCrashlyticsToggle
-    )
 
     if (showPinDialog) {
         AlertDialog(
@@ -490,47 +351,59 @@ private fun DocumentScanSettingsTab(
     hubSettings: HubSettingsState,
     onWifiOnlyToggle: (Boolean) -> Unit,
     onCompressionSelected: (ImageCompressionLevel) -> Unit,
-    onAutoCropToggle: (Boolean) -> Unit
+    onAutoCropToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Text(EobStrings.t(language, "settingsDocumentScanTitle"), style = MaterialTheme.typography.titleLarge)
-    SettingsToggleRow(
-        label = EobStrings.t(language, "settingsUploadWifiOnly"),
-        checked = hubSettings.uploadOverWifiOnly,
-        onCheckedChange = onWifiOnlyToggle
-    )
-    Text(EobStrings.t(language, "settingsImageCompression"), style = MaterialTheme.typography.titleMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ImageCompressionLevel.entries.forEach { level ->
-            FilterChip(
-                selected = hubSettings.imageCompressionLevel == level,
-                onClick = { onCompressionSelected(level) },
-                label = { Text(EobStrings.t(language, level.labelKey())) }
-            )
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(EobStrings.t(language, "settingsDocumentScanTitle"), style = MaterialTheme.typography.titleLarge)
+        SettingsToggleRow(
+            label = EobStrings.t(language, "settingsUploadWifiOnly"),
+            checked = hubSettings.uploadOverWifiOnly,
+            onCheckedChange = onWifiOnlyToggle
+        )
+        Text(EobStrings.t(language, "settingsImageCompression"), style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ImageCompressionLevel.entries.forEach { level ->
+                FilterChip(
+                    selected = hubSettings.imageCompressionLevel == level,
+                    onClick = { onCompressionSelected(level) },
+                    label = { Text(EobStrings.t(language, level.labelKey())) }
+                )
+            }
         }
+        SettingsToggleRow(
+            label = EobStrings.t(language, "settingsAutoCrop"),
+            checked = hubSettings.autoCropEnabled,
+            onCheckedChange = onAutoCropToggle
+        )
     }
-    SettingsToggleRow(
-        label = EobStrings.t(language, "settingsAutoCrop"),
-        checked = hubSettings.autoCropEnabled,
-        onCheckedChange = onAutoCropToggle
-    )
 }
 
 @Composable
 private fun StorageSettingsTab(
     language: AppLanguage,
     cacheSizeBytes: Long,
-    onClearCache: () -> Unit
+    onClearCache: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Text(EobStrings.t(language, "settingsStorageTitle"), style = MaterialTheme.typography.titleLarge)
-    SettingsReadOnlyRow(
-        language = language,
-        label = EobStrings.t(language, "settingsCacheSize"),
-        value = CacheSizeCalculator.formatBytes(cacheSizeBytes),
-        editable = false,
-        onValueChange = {}
-    )
-    Button(onClick = onClearCache, modifier = Modifier.fillMaxWidth()) {
-        Text(EobStrings.t(language, "settingsClearCache"))
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(EobStrings.t(language, "settingsStorageTitle"), style = MaterialTheme.typography.titleLarge)
+        SettingsReadOnlyRow(
+            language = language,
+            label = EobStrings.t(language, "settingsCacheSize"),
+            value = CacheSizeCalculator.formatBytes(cacheSizeBytes),
+            editable = false,
+            onValueChange = {}
+        )
+        Button(onClick = onClearCache, modifier = Modifier.fillMaxWidth()) {
+            Text(EobStrings.t(language, "settingsClearCache"))
+        }
     }
 }
 
@@ -539,24 +412,30 @@ private fun LegalSettingsTab(
     language: AppLanguage,
     appVersionLabel: String,
     onOpenPrivacy: () -> Unit,
-    onOpenTerms: () -> Unit
+    onOpenTerms: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Text(EobStrings.t(language, "settingsLegalTitle"), style = MaterialTheme.typography.titleLarge)
-    SettingsLinkRow(
-        label = EobStrings.t(language, "privacyPolicy"),
-        onClick = onOpenPrivacy
-    )
-    SettingsLinkRow(
-        label = EobStrings.t(language, "termsOfUse"),
-        onClick = onOpenTerms
-    )
-    Spacer(Modifier.height(24.dp))
-    Text(
-        text = appVersionLabel,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth()
-    )
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(EobStrings.t(language, "settingsLegalTitle"), style = MaterialTheme.typography.titleLarge)
+        SettingsLinkRow(
+            label = EobStrings.t(language, "privacyPolicy"),
+            onClick = onOpenPrivacy
+        )
+        SettingsLinkRow(
+            label = EobStrings.t(language, "termsOfUse"),
+            onClick = onOpenTerms
+        )
+        Spacer(Modifier.height(24.dp))
+        Text(
+            text = appVersionLabel,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

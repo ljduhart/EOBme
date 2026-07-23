@@ -584,17 +584,15 @@ private fun MainHubNavHost(
     val showBack = currentRoute in hubBackRoutes
     val showSettingsGear = currentRoute == EobRoute.Home.route
     val showBottomBar = currentRoute !in hubRoutesWithoutBottomBar
-    val showHubHeader = currentRoute !in hubRoutesWithoutBottomBar
+    val showHubHeader = currentRoute !in hubRoutesWithoutBottomBar &&
+        currentRoute != EobRoute.Settings.route
     val selectedBottomTab = HubBottomTab.fromRoute(currentRoute)
-    var settingsDraftFirstName by remember(profile.firstName) { mutableStateOf(profile.firstName) }
-    var settingsDraftLastName by remember(profile.lastName) { mutableStateOf(profile.lastName) }
 
-    LaunchedEffect(profile.firstName, profile.lastName, uiState.hubSettings.settingsAccountEditing) {
-        if (!uiState.hubSettings.settingsAccountEditing) {
-            settingsDraftFirstName = profile.firstName
-            settingsDraftLastName = profile.lastName
-        }
+    LaunchedEffect(profile) {
+        eobViewModel.syncAccountProfileSource(profile)
     }
+
+    val accountProfileUiState by eobViewModel.accountProfileUiState.collectAsStateWithLifecycle()
 
     val appVersionLabel = remember(language) {
         val packageInfo = runCatching {
@@ -1304,19 +1302,23 @@ private fun MainHubNavHost(
                 composable(EobRoute.Settings.route) {
                     SettingsScreen(
                         language = language,
-                        profile = profile,
+                        accountProfileUiState = accountProfileUiState,
                         hubSettings = uiState.hubSettings,
                         appVersionLabel = appVersionLabel,
-                        accountEditing = uiState.hubSettings.settingsAccountEditing,
-                        draftFirstName = settingsDraftFirstName,
-                        draftLastName = settingsDraftLastName,
-                        onDraftFirstNameChanged = { settingsDraftFirstName = it },
-                        onDraftLastNameChanged = { settingsDraftLastName = it },
+                        onBack = {
+                            navController.navigate(EobRoute.Home.route) {
+                                popUpTo(EobRoute.Home.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                            onActivity()
+                        },
                         onEnableAccountEditing = eobViewModel::enableSettingsAccountEditing,
+                        onDraftFirstNameChanged = eobViewModel::updateSettingsAccountDraftFirstName,
+                        onDraftLastNameChanged = eobViewModel::updateSettingsAccountDraftLastName,
                         onSaveAccountProfile = {
                             val updatedProfile = profile.copy(
-                                firstName = settingsDraftFirstName.trim(),
-                                lastName = settingsDraftLastName.trim()
+                                firstName = uiState.hubSettings.settingsDraftFirstName.trim(),
+                                lastName = uiState.hubSettings.settingsDraftLastName.trim()
                             )
                             onProfileChanged(updatedProfile)
                             eobViewModel.updateSyncProfile(updatedProfile)
@@ -1328,11 +1330,7 @@ private fun MainHubNavHost(
                             eobViewModel.disableSettingsAccountEditing()
                             onActivity()
                         },
-                        onCancelAccountEditing = {
-                            settingsDraftFirstName = profile.firstName
-                            settingsDraftLastName = profile.lastName
-                            eobViewModel.disableSettingsAccountEditing()
-                        },
+                        onCancelAccountEditing = eobViewModel::disableSettingsAccountEditing,
                         onManageSubscription = ::launchManageSubscriptionFlow,
                         onLogout = {
                             eobViewModel.resetHubState()

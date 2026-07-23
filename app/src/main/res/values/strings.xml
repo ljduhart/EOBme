@@ -1,3 +1,28 @@
 <resources>
     <string name="app_name">EOBme</string>
+
+    <!-- Account & Profile settings (Settings > Account tab) -->
+    <string name="account_profile_app_title">EOBme</string>
+    <string name="account_profile_settings_cd">Settings</string>
+    <string name="account_profile_back_cd">Navigate back</string>
+    <string name="account_profile_section_title">Profile Settings</string>
+    <string name="account_profile_name_caption">First &amp; last name</string>
+    <string name="account_profile_edit_cd">Edit profile</string>
+    <string name="account_profile_first_name_label">First name</string>
+    <string name="account_profile_last_name_label">Last name</string>
+    <string name="account_profile_save">Save profile</string>
+    <string name="account_profile_cancel">Cancel</string>
+    <string name="account_profile_subscription_section">Subscription Card</string>
+    <string name="account_profile_subscription_caption">Subscription tier</string>
+    <string name="account_profile_manage_subscription">Manage subscription</string>
+    <string name="account_profile_subscription_hint">View plans, compare features, and manage billing through Google Play.</string>
+    <string name="account_profile_actions_section">Account Actions</string>
+    <string name="account_profile_logout">Log out</string>
+    <string name="account_profile_danger_zone">Danger Zone</string>
+    <string name="account_profile_delete_account">Delete account</string>
+    <string name="account_profile_tier_free">Free</string>
+    <string name="account_profile_tier_silver">Silver</string>
+    <string name="account_profile_tier_gold">Gold</string>
+    <string name="account_profile_email_cd">Email address</string>
+    <string name="account_profile_tier_icon_cd">Subscription tier icon</string>
 </resources>

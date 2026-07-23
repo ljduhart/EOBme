@@ -32,7 +32,7 @@ class MobileUiPr165Test {
     @Test
     fun logoutConfirmationDialogIsWiredInProfileAndSettings() {
         val profileSource = readSource("ui/screens/ProfileScreen.kt")
-        val settingsSource = readSource("ui/screens/SettingsScreen.kt")
+        val settingsSource = readSource("ui/screens/AccountProfileSettingsContent.kt")
         val dialogSource = readSource("ui/components/LogoutConfirmDialog.kt")
         listOf(
             "LogoutConfirmDialog",

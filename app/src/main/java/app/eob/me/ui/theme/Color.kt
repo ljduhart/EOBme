@@ -85,6 +85,10 @@ val EobLightSurfaceVariant = Color(0xFFEEF2F7)
 val EobLightTextPrimary = Color(0xFF102033)
 val EobLightTextSecondary = Color(0xFF5C6B7A)
 val EobLightOutline = Color(0xFFB7C7D9)
+val EobBentoCardSurface = Color(0xFFF0F4F8)
+val EobSubscriptionFree = Color(0xFF8A8F98)
+val EobSubscriptionSilver = Color(0xFF9EA3A8)
+val EobSubscriptionGold = Color(0xFFD4AF37)
 
 // Home hub gradient stops for light mode (layout unchanged; colors only)
 val EobHomeLightGradientTop = EobLightBackground

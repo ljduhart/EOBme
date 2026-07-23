@@ -721,7 +721,13 @@ class EobFlowArchitectureTest {
             "updateBillingNotice",
             "HubCrashlyticsGate"
         ).forEach { snippet ->
-            assertTrue("Settings flow missing: $snippet", navHostSource.contains(snippet) || readSource("viewmodel/EobViewModel.kt").contains(snippet) || readSource("util/HubCrashlyticsGate.kt").contains(snippet))
+            assertTrue(
+                "Settings flow missing: $snippet",
+                navHostSource.contains(snippet) ||
+                    readSource("viewmodel/EobViewModel.kt").contains(snippet) ||
+                    readSource("util/HubCrashlyticsGate.kt").contains(snippet) ||
+                    readSource("ui/screens/AccountProfileSettingsContent.kt").contains(snippet)
+            )
         }
         listOf(
             "onHubDarkModeChanged",
@@ -761,7 +767,10 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("util/EobDocumentOcrPreCheck.kt").contains("validate"))
         assertTrue(readSource("ui/components/DocumentProcessingOverlay.kt").contains("DocumentProcessingOverlay"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
-        assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon"))
+        assertTrue(
+            readSource("ui/screens/AccountProfileSettingsContent.kt").contains("HubSettingsGearIcon") ||
+                readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon")
+        )
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsHelpfulHintsTitle"))
         assertTrue(readSource("data/HubSettingsStore.kt").contains("saveAppPin"))
         assertTrue(readSource("ui/components/home/TaxVaultVerticalFilterCard.kt").contains("VaultNeonText"))
