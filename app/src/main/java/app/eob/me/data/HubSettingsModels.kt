@@ -1,5 +1,8 @@
 package app.eob.me.data
 
+import androidx.annotation.StringRes
+import app.eob.me.R
+
 enum class SubscriptionTier {
     Free,
     Silver,
@@ -9,6 +12,13 @@ enum class SubscriptionTier {
         Free -> "settingsTierFree"
         Silver -> "settingsTierSilver"
         Gold -> "settingsTierGold"
+    }
+
+    @StringRes
+    fun accountProfileLabelRes(): Int = when (this) {
+        Free -> R.string.account_profile_tier_free
+        Silver -> R.string.account_profile_tier_silver
+        Gold -> R.string.account_profile_tier_gold
     }
 
     fun isGold(): Boolean = this == Gold
@@ -21,6 +31,17 @@ enum class SubscriptionTier {
         Gold -> 2
     }
 }
+
+data class AccountProfileUiState(
+    val displayName: String = "",
+    val initials: String = "?",
+    val email: String = "",
+    val subscriptionTier: SubscriptionTier = SubscriptionTier.Free,
+    val isEditing: Boolean = false,
+    val draftFirstName: String = "",
+    val draftLastName: String = "",
+    val notice: String = ""
+)
 
 enum class AppLockTimeout(val millis: Long) {
     FiveMinutes(300_000L),
@@ -74,6 +95,8 @@ data class HubSettingsState(
     val cacheSizeBytes: Long = 0L,
     val subscriptionTier: SubscriptionTier = SubscriptionTier.Free,
     val settingsAccountEditing: Boolean = false,
+    val settingsDraftFirstName: String = "",
+    val settingsDraftLastName: String = "",
     val settingsNotice: String = "",
     val manageSubscriptionNotice: String = "",
     val appLocked: Boolean = false,

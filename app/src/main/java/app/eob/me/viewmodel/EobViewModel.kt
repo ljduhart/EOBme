@@ -54,6 +54,7 @@ import app.eob.me.data.YtdExpenseData
 import app.eob.me.data.YtdExpenseYearSelection
 import app.eob.me.data.YearlyHealthCostSummary
 import app.eob.me.data.AppLockTimeout
+import app.eob.me.data.AccountProfileUiState
 import app.eob.me.data.BillingIssue
 import app.eob.me.data.BillingIssueSeverity
 import app.eob.me.data.CptGlobalPeriodAlert
@@ -222,6 +223,15 @@ class EobViewModel : ViewModel() {
     private var deletedNewsKeys: Set<String> = emptySet()
     private var newsRotationJob: Job? = null
     private val _syncProfile = MutableStateFlow(UserProfile())
+    private val _accountProfileSource = MutableStateFlow(UserProfile())
+
+    val accountProfileUiState: StateFlow<AccountProfileUiState> = combine(
+        _accountProfileSource,
+        _uiState.map { it.hubSettings }.distinctUntilChanged()
+    ) { profile, hubSettings ->
+        buildAccountProfileUiState(profile, hubSettings)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountProfileUiState())
+
     private var eobListener: ListenerRegistration? = null
     private var vaultReceiptListener: ListenerRegistration? = null
 
@@ -605,15 +615,98 @@ class EobViewModel : ViewModel() {
     }
 
     fun enableSettingsAccountEditing() {
+        val profile = _accountProfileSource.value
         _uiState.update { state ->
-            state.copy(hubSettings = state.hubSettings.copy(settingsAccountEditing = true, settingsNotice = ""))
+            state.copy(
+                hubSettings = state.hubSettings.copy(
+                    settingsAccountEditing = true,
+                    settingsDraftFirstName = profile.firstName,
+                    settingsDraftLastName = profile.lastName,
+                    settingsNotice = ""
+                )
+            )
         }
     }
 
     fun disableSettingsAccountEditing() {
+        val profile = _accountProfileSource.value
         _uiState.update { state ->
-            state.copy(hubSettings = state.hubSettings.copy(settingsAccountEditing = false))
+            state.copy(
+                hubSettings = state.hubSettings.copy(
+                    settingsAccountEditing = false,
+                    settingsDraftFirstName = profile.firstName,
+                    settingsDraftLastName = profile.lastName
+                )
+            )
         }
+    }
+
+    fun updateSettingsAccountDraftFirstName(value: String) {
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(settingsDraftFirstName = value))
+        }
+    }
+
+    fun updateSettingsAccountDraftLastName(value: String) {
+        _uiState.update { state ->
+            state.copy(hubSettings = state.hubSettings.copy(settingsDraftLastName = value))
+        }
+    }
+
+    fun syncAccountProfileSource(profile: UserProfile) {
+        _accountProfileSource.value = profile
+        val hubSettings = _uiState.value.hubSettings
+        if (!hubSettings.settingsAccountEditing) {
+            _uiState.update { state ->
+                state.copy(
+                    hubSettings = state.hubSettings.copy(
+                        settingsDraftFirstName = profile.firstName,
+                        settingsDraftLastName = profile.lastName
+                    )
+                )
+            }
+        }
+    }
+
+    fun profileInitials(firstName: String, lastName: String): String {
+        val firstInitial = firstName.trim().firstOrNull()?.uppercaseChar()?.toString().orEmpty()
+        val lastInitial = lastName.trim().firstOrNull()?.uppercaseChar()?.toString().orEmpty()
+        return when {
+            firstInitial.isNotEmpty() && lastInitial.isNotEmpty() -> "$firstInitial$lastInitial"
+            firstInitial.isNotEmpty() -> firstInitial
+            lastInitial.isNotEmpty() -> lastInitial
+            else -> "?"
+        }
+    }
+
+    private fun buildAccountProfileUiState(
+        profile: UserProfile,
+        hubSettings: HubSettingsState
+    ): AccountProfileUiState {
+        val firstName = if (hubSettings.settingsAccountEditing) {
+            hubSettings.settingsDraftFirstName
+        } else {
+            profile.firstName
+        }
+        val lastName = if (hubSettings.settingsAccountEditing) {
+            hubSettings.settingsDraftLastName
+        } else {
+            profile.lastName
+        }
+        val displayName = listOf(firstName.trim(), lastName.trim())
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+            .ifBlank { profile.email.ifBlank { "—" } }
+        return AccountProfileUiState(
+            displayName = displayName,
+            initials = profileInitials(firstName, lastName),
+            email = profile.email,
+            subscriptionTier = hubSettings.subscriptionTier,
+            isEditing = hubSettings.settingsAccountEditing,
+            draftFirstName = hubSettings.settingsDraftFirstName,
+            draftLastName = hubSettings.settingsDraftLastName,
+            notice = hubSettings.settingsNotice
+        )
     }
 
     fun updateSettingsNotice(message: String) {

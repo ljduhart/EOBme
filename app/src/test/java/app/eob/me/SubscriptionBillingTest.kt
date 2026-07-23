@@ -439,9 +439,9 @@ class SubscriptionBillingTest {
 
     @Test
     fun settingsManageSubscriptionIsNotTierGated() {
-        val settingsSource = readSource("ui/screens/SettingsScreen.kt")
+        val settingsSource = readSource("ui/screens/AccountProfileSettingsContent.kt")
         val manageSource = readSource("ui/screens/ManageSubscriptionScreen.kt")
-        assertTrue(settingsSource.contains("SubscriptionManagementSection"))
+        assertTrue(settingsSource.contains("SubscriptionBentoCard"))
         assertTrue(settingsSource.contains("onManageSubscription"))
         assertFalse(settingsSource.contains("onSubscribe"))
         assertFalse(settingsSource.contains("onCancelSubscription"))
