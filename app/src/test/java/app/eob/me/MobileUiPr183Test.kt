@@ -19,7 +19,7 @@ class MobileUiPr183Test {
     @Test
     fun dashboardUsesModernExpenseAnalyticsLayout() {
         val dashboardSource = readSource("ui/screens/DashboardScreen.kt")
-        val stringsSource = readFile("app/src/main/res/values/strings.xml")
+        val stringsSource = readSource("data/EobStrings.kt")
         assertTrue(dashboardSource.contains("CenterAlignedTopAppBar"))
         assertTrue(dashboardSource.contains("ClaimAllocationBar"))
         assertTrue(dashboardSource.contains("SummaryBentoCard"))
@@ -32,7 +32,7 @@ class MobileUiPr183Test {
         assertTrue(dashboardSource.contains("EobExpenseNetworkSavings"))
         assertFalse(dashboardSource.contains("HolographicGlassCard"))
         assertFalse(dashboardSource.contains("ClaimAllocationPieChart"))
-        assertTrue(stringsSource.contains("expense_analytics_sort_highest_patient_share"))
+        assertTrue(stringsSource.contains("\"expenseAnalyticsSortHighestPatientShare\""))
         assertFalse(dashboardSource.contains("App Store"))
         assertFalse(dashboardSource.contains("iOS"))
     }

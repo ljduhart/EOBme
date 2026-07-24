@@ -768,7 +768,7 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("ui/components/DocumentProcessingOverlay.kt").contains("DocumentProcessingOverlay"))
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsPinLock"))
         assertTrue(
-            readSource("ui/screens/AccountProfileSettingsContent.kt").contains("HubSettingsGearIcon") ||
+            readSource("ui/screens/AccountProfileSettingsContent.kt").contains("HubHelpfulHintsIcon") ||
                 readSource("ui/screens/SettingsScreen.kt").contains("HubHelpfulHintsIcon")
         )
         assertTrue(readSource("ui/screens/SettingsScreen.kt").contains("settingsHelpfulHintsTitle"))

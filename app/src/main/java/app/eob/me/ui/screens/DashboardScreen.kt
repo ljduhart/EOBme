@@ -49,13 +49,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import app.eob.me.R
+import app.eob.me.data.AppLanguage
 import app.eob.me.data.ClaimStatus
+import app.eob.me.data.EobStrings
 import app.eob.me.data.ExpenseAnalyticsAllocation
 import app.eob.me.data.ExpenseAnalyticsSort
 import app.eob.me.data.ExpenseAnalyticsState
@@ -70,6 +70,7 @@ import app.eob.me.ui.theme.EobExpensePatientResponsibility
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
+    language: AppLanguage,
     state: ExpenseAnalyticsState,
     onBack: () -> Unit,
     onSortSelected: (ExpenseAnalyticsSort) -> Unit,
@@ -82,7 +83,7 @@ fun DashboardScreen(
         CenterAlignedTopAppBar(
             title = {
                 Text(
-                    text = stringResource(R.string.expense_analytics_title),
+                    text = EobStrings.t(language, "appBrand"),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -91,7 +92,7 @@ fun DashboardScreen(
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.expense_analytics_back_cd)
+                        contentDescription = EobStrings.t(language, "expenseAnalyticsBackCd")
                     )
                 }
             },
@@ -110,7 +111,7 @@ fun DashboardScreen(
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = stringResource(R.string.expense_analytics_loading),
+                            text = EobStrings.t(language, "expenseAnalyticsLoading"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -125,7 +126,7 @@ fun DashboardScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = stringResource(R.string.expense_analytics_empty),
+                        text = EobStrings.t(language, "expenseAnalyticsEmpty"),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -134,6 +135,7 @@ fun DashboardScreen(
             }
             else -> {
                 ExpenseAnalyticsContent(
+                    language = language,
                     state = state,
                     onSortSelected = onSortSelected,
                     onFacilityExpandedToggle = onFacilityExpandedToggle,
@@ -147,6 +149,7 @@ fun DashboardScreen(
 
 @Composable
 private fun ExpenseAnalyticsContent(
+    language: AppLanguage,
     state: ExpenseAnalyticsState,
     onSortSelected: (ExpenseAnalyticsSort) -> Unit,
     onFacilityExpandedToggle: (String) -> Unit,
@@ -160,35 +163,38 @@ private fun ExpenseAnalyticsContent(
     ) {
         item {
             Text(
-                text = stringResource(R.string.expense_analytics_page_title),
+                text = EobStrings.t(language, "expenseAnalytics"),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
         }
         item {
             ClaimAllocationSection(
+                language = language,
                 allocation = state.allocation!!,
                 totalBilled = state.totalBilled
             )
         }
         item {
-            SummaryBentoCard(state = state)
+            SummaryBentoCard(language = language, state = state)
         }
         item {
             ExpenseAnalyticsSortChips(
+                language = language,
                 selectedSort = state.selectedSort,
                 onSortSelected = onSortSelected
             )
         }
         item {
             Text(
-                text = stringResource(R.string.expense_analytics_facilities_title),
+                text = EobStrings.t(language, "expenseAnalyticsFacilitiesTitle"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
         }
         items(state.facilities, key = { facility -> facility.id }) { facility ->
             FacilitySpendingCard(
+                language = language,
                 facility = facility,
                 onToggleExpanded = { onFacilityExpandedToggle(facility.id) },
                 onInspectClaimSource = onInspectClaimSource,
@@ -200,6 +206,7 @@ private fun ExpenseAnalyticsContent(
 
 @Composable
 private fun ClaimAllocationSection(
+    language: AppLanguage,
     allocation: ExpenseAnalyticsAllocation,
     totalBilled: Double
 ) {
@@ -217,28 +224,28 @@ private fun ClaimAllocationSection(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = stringResource(R.string.expense_analytics_claim_allocation),
+                text = EobStrings.t(language, "expenseAnalyticsClaimAllocation"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = stringResource(R.string.expense_analytics_total_billed, totalBilled.asCurrency()),
+                text = EobStrings.tf(language, "expenseAnalyticsTotalBilled", totalBilled.asCurrency()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             ClaimAllocationBar(allocation = allocation)
             AllocationLegendRow(
-                label = stringResource(R.string.expense_analytics_network_savings),
+                label = EobStrings.t(language, "expenseAnalyticsNetworkSavings"),
                 amount = allocation.networkSavings,
                 color = EobExpenseNetworkSavings
             )
             AllocationLegendRow(
-                label = stringResource(R.string.expense_analytics_carrier_covered),
+                label = EobStrings.t(language, "expenseAnalyticsCarrierCovered"),
                 amount = allocation.carrierCovered,
                 color = EobExpenseCarrierCovered
             )
             AllocationLegendRow(
-                label = stringResource(R.string.expense_analytics_patient_responsibility),
+                label = EobStrings.t(language, "expenseAnalyticsPatientResponsibility"),
                 amount = allocation.patientResponsibility,
                 color = EobExpensePatientResponsibility
             )
@@ -313,7 +320,10 @@ private fun AllocationLegendRow(
 }
 
 @Composable
-private fun SummaryBentoCard(state: ExpenseAnalyticsState) {
+private fun SummaryBentoCard(
+    language: AppLanguage,
+    state: ExpenseAnalyticsState
+) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -328,12 +338,12 @@ private fun SummaryBentoCard(state: ExpenseAnalyticsState) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = stringResource(R.string.expense_analytics_summary_title),
+                text = EobStrings.t(language, "expenseAnalyticsSummaryTitle"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = stringResource(R.string.expense_analytics_total_oop_label),
+                text = EobStrings.t(language, "expenseAnalyticsTotalOopLabel"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -344,23 +354,26 @@ private fun SummaryBentoCard(state: ExpenseAnalyticsState) {
                 color = EobExpensePatientResponsibility
             )
             Text(
-                text = stringResource(
-                    R.string.expense_analytics_carrier_contribution,
+                text = EobStrings.tf(
+                    language,
+                    "expenseAnalyticsCarrierContribution",
                     state.totalCarrierContribution.asCurrency()
                 ),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = stringResource(
-                    R.string.expense_analytics_network_savings_detail,
+                text = EobStrings.tf(
+                    language,
+                    "expenseAnalyticsNetworkSavingsDetail",
                     state.totalNetworkSavings.asCurrency()
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = stringResource(
-                    R.string.expense_analytics_total_billed_detail,
+                text = EobStrings.tf(
+                    language,
+                    "expenseAnalyticsTotalBilledDetail",
                     state.totalBilled.asCurrency()
                 ),
                 style = MaterialTheme.typography.bodySmall,
@@ -372,25 +385,26 @@ private fun SummaryBentoCard(state: ExpenseAnalyticsState) {
 
 @Composable
 private fun ExpenseAnalyticsSortChips(
+    language: AppLanguage,
     selectedSort: ExpenseAnalyticsSort,
     onSortSelected: (ExpenseAnalyticsSort) -> Unit
 ) {
     val sorts = listOf(
-        ExpenseAnalyticsSort.HighestPatientShare to R.string.expense_analytics_sort_highest_patient_share,
-        ExpenseAnalyticsSort.NewestActivity to R.string.expense_analytics_sort_newest_activity,
-        ExpenseAnalyticsSort.HighestBilledTotal to R.string.expense_analytics_sort_highest_billed,
-        ExpenseAnalyticsSort.FacilityAlphabetical to R.string.expense_analytics_sort_alphabetical
+        ExpenseAnalyticsSort.HighestPatientShare to "expenseAnalyticsSortHighestPatientShare",
+        ExpenseAnalyticsSort.NewestActivity to "expenseAnalyticsSortNewestActivity",
+        ExpenseAnalyticsSort.HighestBilledTotal to "expenseAnalyticsSortHighestBilled",
+        ExpenseAnalyticsSort.FacilityAlphabetical to "expenseAnalyticsSortAlphabetical"
     )
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(sorts) { (sort, labelRes) ->
+        items(sorts) { (sort, labelKey) ->
             FilterChip(
                 selected = selectedSort == sort,
                 onClick = { onSortSelected(sort) },
                 label = {
                     Text(
-                        text = stringResource(labelRes),
+                        text = EobStrings.t(language, labelKey),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -402,6 +416,7 @@ private fun ExpenseAnalyticsSortChips(
 
 @Composable
 private fun FacilitySpendingCard(
+    language: AppLanguage,
     facility: FacilitySpending,
     onToggleExpanded: () -> Unit,
     onInspectClaimSource: (MedicalClaim) -> Unit,
@@ -472,11 +487,12 @@ private fun FacilitySpendingCard(
                 IconButton(onClick = onToggleExpanded) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = stringResource(
+                        contentDescription = EobStrings.t(
+                            language,
                             if (facility.isExpanded) {
-                                R.string.expense_analytics_collapse_cd
+                                "expenseAnalyticsCollapseCd"
                             } else {
-                                R.string.expense_analytics_expand_cd
+                                "expenseAnalyticsExpandCd"
                             }
                         ),
                         modifier = Modifier.rotate(chevronRotation)
@@ -499,6 +515,7 @@ private fun FacilitySpendingCard(
                 ) {
                     facility.claims.forEach { claim ->
                         ClaimEntryRow(
+                            language = language,
                             claim = claim,
                             onInspectClaimSource = onInspectClaimSource,
                             onAppealClaim = onAppealClaim
@@ -544,6 +561,7 @@ private fun DualShareProgressBar(
 
 @Composable
 private fun ClaimEntryRow(
+    language: AppLanguage,
     claim: MedicalClaim,
     onInspectClaimSource: (MedicalClaim) -> Unit,
     onAppealClaim: (MedicalClaim) -> Unit
@@ -563,18 +581,19 @@ private fun ClaimEntryRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.expense_analytics_claim_label, claim.claimNumber),
+                    text = EobStrings.tf(language, "expenseAnalyticsClaimLabel", claim.claimNumber),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = stringResource(R.string.expense_analytics_claim_dos, claim.dateOfService),
+                    text = EobStrings.tf(language, "expenseAnalyticsClaimDos", claim.dateOfService),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = stringResource(
-                        R.string.expense_analytics_carrier_contribution,
+                    text = EobStrings.tf(
+                        language,
+                        "expenseAnalyticsCarrierContribution",
                         claim.carrierCovered.asCurrency()
                     ),
                     style = MaterialTheme.typography.bodySmall
@@ -589,12 +608,12 @@ private fun ClaimEntryRow(
                 IconButton(onClick = { onInspectClaimSource(claim) }) {
                     Icon(
                         imageVector = Icons.Outlined.DocumentScanner,
-                        contentDescription = stringResource(R.string.expense_analytics_scan_cd)
+                        contentDescription = EobStrings.t(language, "expenseAnalyticsScanCd")
                     )
                 }
                 Icon(
                     imageVector = claimStatusIcon(claim.status),
-                    contentDescription = claimStatusContentDescription(claim.status),
+                    contentDescription = claimStatusContentDescription(language, claim.status),
                     tint = claimStatusTint(claim.status),
                     modifier = Modifier
                         .size(24.dp)
@@ -603,7 +622,7 @@ private fun ClaimEntryRow(
                 IconButton(onClick = { onAppealClaim(claim) }) {
                     Icon(
                         imageVector = Icons.Filled.Gavel,
-                        contentDescription = stringResource(R.string.expense_analytics_appeal_cd),
+                        contentDescription = EobStrings.t(language, "expenseAnalyticsAppealCd"),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -628,12 +647,11 @@ private fun claimStatusIcon(status: ClaimStatus): androidx.compose.ui.graphics.v
     }
 }
 
-@Composable
-private fun claimStatusContentDescription(status: ClaimStatus): String {
+private fun claimStatusContentDescription(language: AppLanguage, status: ClaimStatus): String {
     return when (status) {
-        ClaimStatus.AuditedCorrect -> stringResource(R.string.expense_analytics_status_audited)
-        is ClaimStatus.PotentialError -> stringResource(R.string.expense_analytics_status_error)
-        ClaimStatus.Appealed -> stringResource(R.string.expense_analytics_status_appealed)
+        ClaimStatus.AuditedCorrect -> EobStrings.t(language, "expenseAnalyticsStatusAudited")
+        is ClaimStatus.PotentialError -> EobStrings.t(language, "expenseAnalyticsStatusError")
+        ClaimStatus.Appealed -> EobStrings.t(language, "expenseAnalyticsStatusAppealed")
     }
 }
 
