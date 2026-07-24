@@ -48,7 +48,7 @@ import app.eob.me.data.SettingsTab
 import app.eob.me.ui.components.HubHelpfulHintsIcon
 import app.eob.me.ui.components.LogoutConfirmDialog
 import app.eob.me.ui.components.SubscriptionTierIcon
-import app.eob.me.ui.theme.EobBentoCardSurface
+import app.eob.me.ui.theme.BentoReadableTheme
 import app.eob.me.ui.theme.EobBrandBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,6 +112,7 @@ fun AccountProfileSettingsScaffold(
 @Composable
 fun AccountProfileSettingsContent(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     accountProfileUiState: AccountProfileUiState,
     onEnableAccountEditing: () -> Unit,
     onDraftFirstNameChanged: (String) -> Unit,
@@ -138,6 +139,7 @@ fun AccountProfileSettingsContent(
         )
         ProfileSettingsBentoCard(
             language = language,
+            darkModeEnabled = darkModeEnabled,
             accountProfileUiState = accountProfileUiState,
             onEnableAccountEditing = onEnableAccountEditing,
             onDraftFirstNameChanged = onDraftFirstNameChanged,
@@ -152,11 +154,13 @@ fun AccountProfileSettingsContent(
         )
         SubscriptionBentoCard(
             language = language,
+            darkModeEnabled = darkModeEnabled,
             subscriptionTier = accountProfileUiState.subscriptionTier,
             onManageSubscription = onManageSubscription
         )
         AccountActionsBentoCard(
             language = language,
+            darkModeEnabled = darkModeEnabled,
             onLogout = { showLogoutConfirm = true },
             onDeleteAccount = onDeleteAccount
         )
@@ -184,6 +188,7 @@ fun AccountProfileSettingsContent(
 @Composable
 private fun ProfileSettingsBentoCard(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     accountProfileUiState: AccountProfileUiState,
     onEnableAccountEditing: () -> Unit,
     onDraftFirstNameChanged: (String) -> Unit,
@@ -191,11 +196,14 @@ private fun ProfileSettingsBentoCard(
     onSaveAccountProfile: () -> Unit,
     onCancelAccountEditing: () -> Unit
 ) {
+    val cardSurface = BentoReadableTheme.accountCardSurface(darkModeEnabled)
+    val primaryText = BentoReadableTheme.primaryText(darkModeEnabled)
+    val secondaryText = BentoReadableTheme.secondaryText(darkModeEnabled)
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = androidx.compose.material3.CardDefaults.elevatedCardColors(
-            containerColor = EobBentoCardSurface
+            containerColor = cardSurface
         )
     ) {
         Column(
@@ -224,7 +232,8 @@ private fun ProfileSettingsBentoCard(
                         Text(
                             text = accountProfileUiState.initials,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = primaryText
                         )
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -247,12 +256,13 @@ private fun ProfileSettingsBentoCard(
                             Text(
                                 text = accountProfileUiState.displayName,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                color = primaryText
                             )
                             Text(
                                 text = EobStrings.t(language, "accountProfileNameCaption"),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = secondaryText
                             )
                         }
                     }
@@ -275,12 +285,13 @@ private fun ProfileSettingsBentoCard(
                     Icon(
                         imageVector = Icons.Outlined.Email,
                         contentDescription = EobStrings.t(language, "accountProfileEmailCd"),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = secondaryText,
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
                         text = accountProfileUiState.email.ifBlank { "—" },
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = primaryText
                     )
                 }
             }
@@ -310,15 +321,18 @@ private fun ProfileSettingsBentoCard(
 @Composable
 private fun SubscriptionBentoCard(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     subscriptionTier: app.eob.me.data.SubscriptionTier,
     onManageSubscription: () -> Unit
 ) {
     val tierColor = SubscriptionTierIcon.tintFor(subscriptionTier)
+    val cardSurface = BentoReadableTheme.accountCardSurface(darkModeEnabled)
+    val secondaryText = BentoReadableTheme.secondaryText(darkModeEnabled)
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = androidx.compose.material3.CardDefaults.elevatedCardColors(
-            containerColor = EobBentoCardSurface
+            containerColor = cardSurface
         )
     ) {
         Column(
@@ -353,7 +367,7 @@ private fun SubscriptionBentoCard(
                         Text(
                             text = EobStrings.t(language, "accountProfileSubscriptionCaption"),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = secondaryText
                         )
                     }
                 }
@@ -364,7 +378,7 @@ private fun SubscriptionBentoCard(
             Text(
                 text = EobStrings.t(language, "billingManageSubscriptionHint"),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = secondaryText
             )
         }
     }
@@ -373,14 +387,17 @@ private fun SubscriptionBentoCard(
 @Composable
 private fun AccountActionsBentoCard(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
+    val cardSurface = BentoReadableTheme.accountCardSurface(darkModeEnabled)
+    val primaryText = BentoReadableTheme.primaryText(darkModeEnabled)
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = androidx.compose.material3.CardDefaults.elevatedCardColors(
-            containerColor = EobBentoCardSurface
+            containerColor = cardSurface
         )
     ) {
         Column(
@@ -392,7 +409,8 @@ private fun AccountActionsBentoCard(
             Text(
                 text = EobStrings.t(language, "accountProfileActionsSection"),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = primaryText
             )
             OutlinedButton(
                 onClick = onLogout,
@@ -404,7 +422,8 @@ private fun AccountActionsBentoCard(
             Text(
                 text = EobStrings.t(language, "accountProfileDangerZone"),
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = primaryText
             )
             TextButton(
                 onClick = onDeleteAccount,

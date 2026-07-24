@@ -9,9 +9,9 @@ import java.io.File
 
 class DashboardScreenTest {
     @Test
-    fun dashboardUsesSegmentedAllocationBarInsteadOfPieChart() {
+    fun dashboardUsesDetailedClaimAllocationBarChart() {
         val source = readSource("ui/screens/DashboardScreen.kt")
-        assertTrue(source.contains("ClaimAllocationBar"))
+        assertTrue(source.contains("ClaimAllocationDetailedBarChart"))
         assertFalse(source.contains("ClaimAllocationPieChart"))
         assertFalse(source.contains("drawArc"))
     }

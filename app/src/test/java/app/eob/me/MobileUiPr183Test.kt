@@ -21,7 +21,7 @@ class MobileUiPr183Test {
         val dashboardSource = readSource("ui/screens/DashboardScreen.kt")
         val stringsSource = readSource("data/EobStrings.kt")
         assertTrue(dashboardSource.contains("CenterAlignedTopAppBar"))
-        assertTrue(dashboardSource.contains("ClaimAllocationBar"))
+        assertTrue(dashboardSource.contains("ClaimAllocationDetailedBarChart"))
         assertTrue(dashboardSource.contains("SummaryBentoCard"))
         assertTrue(dashboardSource.contains("ExpenseAnalyticsSortChips"))
         assertTrue(dashboardSource.contains("FacilitySpendingCard"))

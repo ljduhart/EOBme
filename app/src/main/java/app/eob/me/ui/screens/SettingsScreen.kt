@@ -99,6 +99,7 @@ fun SettingsScreen(
             when (hubSettings.selectedTab) {
                 SettingsTab.Account -> AccountProfileSettingsContent(
                     language = language,
+                    darkModeEnabled = hubSettings.darkModeEnabled,
                     accountProfileUiState = accountProfileUiState,
                     onEnableAccountEditing = onEnableAccountEditing,
                     onDraftFirstNameChanged = onDraftFirstNameChanged,

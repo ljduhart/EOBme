@@ -62,15 +62,17 @@ import app.eob.me.data.ExpenseAnalyticsState
 import app.eob.me.data.FacilitySpending
 import app.eob.me.data.MedicalClaim
 import app.eob.me.data.asCurrency
-import app.eob.me.ui.theme.EobExpenseBentoSurface
+import app.eob.me.ui.theme.BentoReadableTheme
 import app.eob.me.ui.theme.EobExpenseCarrierCovered
 import app.eob.me.ui.theme.EobExpenseNetworkSavings
 import app.eob.me.ui.theme.EobExpensePatientResponsibility
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     state: ExpenseAnalyticsState,
     onBack: () -> Unit,
     onSortSelected: (ExpenseAnalyticsSort) -> Unit,
@@ -136,6 +138,7 @@ fun DashboardScreen(
             else -> {
                 ExpenseAnalyticsContent(
                     language = language,
+                    darkModeEnabled = darkModeEnabled,
                     state = state,
                     onSortSelected = onSortSelected,
                     onFacilityExpandedToggle = onFacilityExpandedToggle,
@@ -150,6 +153,7 @@ fun DashboardScreen(
 @Composable
 private fun ExpenseAnalyticsContent(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     state: ExpenseAnalyticsState,
     onSortSelected: (ExpenseAnalyticsSort) -> Unit,
     onFacilityExpandedToggle: (String) -> Unit,
@@ -171,12 +175,17 @@ private fun ExpenseAnalyticsContent(
         item {
             ClaimAllocationSection(
                 language = language,
+                darkModeEnabled = darkModeEnabled,
                 allocation = state.allocation!!,
                 totalBilled = state.totalBilled
             )
         }
         item {
-            SummaryBentoCard(language = language, state = state)
+            SummaryBentoCard(
+                language = language,
+                darkModeEnabled = darkModeEnabled,
+                state = state
+            )
         }
         item {
             ExpenseAnalyticsSortChips(
@@ -195,6 +204,7 @@ private fun ExpenseAnalyticsContent(
         items(state.facilities, key = { facility -> facility.id }) { facility ->
             FacilitySpendingCard(
                 language = language,
+                darkModeEnabled = darkModeEnabled,
                 facility = facility,
                 onToggleExpanded = { onFacilityExpandedToggle(facility.id) },
                 onInspectClaimSource = onInspectClaimSource,
@@ -207,14 +217,18 @@ private fun ExpenseAnalyticsContent(
 @Composable
 private fun ClaimAllocationSection(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     allocation: ExpenseAnalyticsAllocation,
     totalBilled: Double
 ) {
+    val cardSurface = BentoReadableTheme.expenseCardSurface(darkModeEnabled)
+    val primaryText = BentoReadableTheme.primaryText(darkModeEnabled)
+    val secondaryText = BentoReadableTheme.secondaryText(darkModeEnabled)
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = androidx.compose.material3.CardDefaults.elevatedCardColors(
-            containerColor = EobExpenseBentoSurface
+            containerColor = cardSurface
         )
     ) {
         Column(
@@ -226,66 +240,140 @@ private fun ClaimAllocationSection(
             Text(
                 text = EobStrings.t(language, "expenseAnalyticsClaimAllocation"),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = primaryText
             )
             Text(
                 text = EobStrings.tf(language, "expenseAnalyticsTotalBilled", totalBilled.asCurrency()),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = secondaryText
             )
-            ClaimAllocationBar(allocation = allocation)
+            ClaimAllocationDetailedBarChart(
+                language = language,
+                darkModeEnabled = darkModeEnabled,
+                allocation = allocation
+            )
             AllocationLegendRow(
                 label = EobStrings.t(language, "expenseAnalyticsNetworkSavings"),
                 amount = allocation.networkSavings,
-                color = EobExpenseNetworkSavings
+                color = EobExpenseNetworkSavings,
+                darkModeEnabled = darkModeEnabled
             )
             AllocationLegendRow(
                 label = EobStrings.t(language, "expenseAnalyticsCarrierCovered"),
                 amount = allocation.carrierCovered,
-                color = EobExpenseCarrierCovered
+                color = EobExpenseCarrierCovered,
+                darkModeEnabled = darkModeEnabled
             )
             AllocationLegendRow(
                 label = EobStrings.t(language, "expenseAnalyticsPatientResponsibility"),
                 amount = allocation.patientResponsibility,
-                color = EobExpensePatientResponsibility
+                color = EobExpensePatientResponsibility,
+                darkModeEnabled = darkModeEnabled
             )
         }
     }
 }
 
 @Composable
-private fun ClaimAllocationBar(allocation: ExpenseAnalyticsAllocation) {
-    val barShape = RoundedCornerShape(8.dp)
+private fun ClaimAllocationDetailedBarChart(
+    language: AppLanguage,
+    darkModeEnabled: Boolean,
+    allocation: ExpenseAnalyticsAllocation
+) {
+    val primaryText = BentoReadableTheme.primaryText(darkModeEnabled)
+    val secondaryText = BentoReadableTheme.secondaryText(darkModeEnabled)
+    val barTrackColor = if (darkModeEnabled) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    val segments = listOf(
+        Triple(
+            EobStrings.t(language, "expenseAnalyticsNetworkSavings"),
+            allocation.networkSavings,
+            EobExpenseNetworkSavings
+        ),
+        Triple(
+            EobStrings.t(language, "expenseAnalyticsCarrierCovered"),
+            allocation.carrierCovered,
+            EobExpenseCarrierCovered
+        ),
+        Triple(
+            EobStrings.t(language, "expenseAnalyticsPatientResponsibility"),
+            allocation.patientResponsibility,
+            EobExpensePatientResponsibility
+        )
+    )
+    val maxAmount = segments.maxOf { it.second }.coerceAtLeast(0.01)
+    val maxBarHeight = 120.dp
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(14.dp)
-            .clip(barShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .height(196.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        if (allocation.networkSavingsFraction() > 0f) {
-            Box(
-                modifier = Modifier
-                    .weight(allocation.networkSavingsFraction().coerceAtLeast(0.001f))
-                    .fillMaxHeight()
-                    .background(EobExpenseNetworkSavings)
+        segments.forEach { (label, amount, color) ->
+            val fraction = (amount / maxAmount).toFloat().coerceIn(0f, 1f)
+            val animatedFraction by animateFloatAsState(
+                targetValue = fraction,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "claimAllocationBarHeight"
             )
-        }
-        if (allocation.carrierCoveredFraction() > 0f) {
-            Box(
-                modifier = Modifier
-                    .weight(allocation.carrierCoveredFraction().coerceAtLeast(0.001f))
-                    .fillMaxHeight()
-                    .background(EobExpenseCarrierCovered)
-            )
-        }
-        if (allocation.patientResponsibilityFraction() > 0f) {
-            Box(
-                modifier = Modifier
-                    .weight(allocation.patientResponsibilityFraction().coerceAtLeast(0.001f))
-                    .fillMaxHeight()
-                    .background(EobExpensePatientResponsibility)
-            )
+            val percent = if (allocation.totalBilled <= 0.0) {
+                0
+            } else {
+                ((amount / allocation.totalBilled) * 100.0).roundToInt()
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                Text(
+                    text = "$percent%",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = color,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = amount.asCurrency(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = primaryText,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(maxBarHeight)
+                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                        .background(barTrackColor),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(animatedFraction.coerceAtLeast(if (amount > 0.0) 0.04f else 0f))
+                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                            .background(color)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = secondaryText,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -294,8 +382,11 @@ private fun ClaimAllocationBar(allocation: ExpenseAnalyticsAllocation) {
 private fun AllocationLegendRow(
     label: String,
     amount: Double,
-    color: androidx.compose.ui.graphics.Color
+    color: androidx.compose.ui.graphics.Color,
+    darkModeEnabled: Boolean
 ) {
+    val primaryText = BentoReadableTheme.primaryText(darkModeEnabled)
+    val emphasisText = BentoReadableTheme.emphasisText(darkModeEnabled)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -309,12 +400,17 @@ private fun AllocationLegendRow(
                     .background(color)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = primaryText
+            )
         }
         Text(
             text = amount.asCurrency(),
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            color = emphasisText
         )
     }
 }
@@ -322,13 +418,17 @@ private fun AllocationLegendRow(
 @Composable
 private fun SummaryBentoCard(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     state: ExpenseAnalyticsState
 ) {
+    val cardSurface = BentoReadableTheme.expenseCardSurface(darkModeEnabled)
+    val primaryText = BentoReadableTheme.primaryText(darkModeEnabled)
+    val secondaryText = BentoReadableTheme.secondaryText(darkModeEnabled)
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = androidx.compose.material3.CardDefaults.elevatedCardColors(
-            containerColor = EobExpenseBentoSurface
+            containerColor = cardSurface
         )
     ) {
         Column(
@@ -340,12 +440,13 @@ private fun SummaryBentoCard(
             Text(
                 text = EobStrings.t(language, "expenseAnalyticsSummaryTitle"),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = primaryText
             )
             Text(
                 text = EobStrings.t(language, "expenseAnalyticsTotalOopLabel"),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = secondaryText
             )
             Text(
                 text = state.totalPatientOutOfPocket.asCurrency(),
@@ -359,7 +460,8 @@ private fun SummaryBentoCard(
                     "expenseAnalyticsCarrierContribution",
                     state.totalCarrierContribution.asCurrency()
                 ),
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = primaryText
             )
             Text(
                 text = EobStrings.tf(
@@ -368,7 +470,7 @@ private fun SummaryBentoCard(
                     state.totalNetworkSavings.asCurrency()
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = secondaryText
             )
             Text(
                 text = EobStrings.tf(
@@ -377,7 +479,7 @@ private fun SummaryBentoCard(
                     state.totalBilled.asCurrency()
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = secondaryText
             )
         }
     }
@@ -417,11 +519,15 @@ private fun ExpenseAnalyticsSortChips(
 @Composable
 private fun FacilitySpendingCard(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     facility: FacilitySpending,
     onToggleExpanded: () -> Unit,
     onInspectClaimSource: (MedicalClaim) -> Unit,
     onAppealClaim: (MedicalClaim) -> Unit
 ) {
+    val cardSurface = BentoReadableTheme.expenseCardSurface(darkModeEnabled)
+    val primaryText = BentoReadableTheme.primaryText(darkModeEnabled)
+    val emphasisText = BentoReadableTheme.emphasisText(darkModeEnabled)
     val chevronRotation by animateFloatAsState(
         targetValue = if (facility.isExpanded) 180f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -442,7 +548,7 @@ private fun FacilitySpendingCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = androidx.compose.material3.CardDefaults.elevatedCardColors(
-            containerColor = EobExpenseBentoSurface
+            containerColor = cardSurface
         )
     ) {
         Column(
@@ -465,6 +571,7 @@ private fun FacilitySpendingCard(
                             text = facility.providerName,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
+                            color = primaryText,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(end = 8.dp),
@@ -475,13 +582,15 @@ private fun FacilitySpendingCard(
                             text = facility.totalSpent.asCurrency(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
+                            color = emphasisText,
                             textAlign = TextAlign.End
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     DualShareProgressBar(
                         carrierFraction = carrierFraction,
-                        patientFraction = patientFraction
+                        patientFraction = patientFraction,
+                        darkModeEnabled = darkModeEnabled
                     )
                 }
                 IconButton(onClick = onToggleExpanded) {
@@ -516,6 +625,7 @@ private fun FacilitySpendingCard(
                     facility.claims.forEach { claim ->
                         ClaimEntryRow(
                             language = language,
+                            darkModeEnabled = darkModeEnabled,
                             claim = claim,
                             onInspectClaimSource = onInspectClaimSource,
                             onAppealClaim = onAppealClaim
@@ -530,15 +640,21 @@ private fun FacilitySpendingCard(
 @Composable
 private fun DualShareProgressBar(
     carrierFraction: Float,
-    patientFraction: Float
+    patientFraction: Float,
+    darkModeEnabled: Boolean
 ) {
     val barShape = RoundedCornerShape(6.dp)
+    val trackColor = if (darkModeEnabled) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(10.dp)
             .clip(barShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(trackColor)
     ) {
         if (carrierFraction > 0f) {
             Box(
@@ -562,10 +678,13 @@ private fun DualShareProgressBar(
 @Composable
 private fun ClaimEntryRow(
     language: AppLanguage,
+    darkModeEnabled: Boolean,
     claim: MedicalClaim,
     onInspectClaimSource: (MedicalClaim) -> Unit,
     onAppealClaim: (MedicalClaim) -> Unit
 ) {
+    val primaryText = BentoReadableTheme.primaryText(darkModeEnabled)
+    val secondaryText = BentoReadableTheme.secondaryText(darkModeEnabled)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -583,12 +702,13 @@ private fun ClaimEntryRow(
                 Text(
                     text = EobStrings.tf(language, "expenseAnalyticsClaimLabel", claim.claimNumber),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = primaryText
                 )
                 Text(
                     text = EobStrings.tf(language, "expenseAnalyticsClaimDos", claim.dateOfService),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = secondaryText
                 )
                 Text(
                     text = EobStrings.tf(
@@ -596,12 +716,14 @@ private fun ClaimEntryRow(
                         "expenseAnalyticsCarrierContribution",
                         claim.carrierCovered.asCurrency()
                     ),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = primaryText
                 )
                 Text(
                     text = claim.totalBilled.asCurrency(),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = primaryText
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {

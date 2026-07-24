@@ -1078,6 +1078,7 @@ private fun MainHubNavHost(
                 composable(EobRoute.Dashboard.route) {
                     DashboardScreen(
                         language = language,
+                        darkModeEnabled = uiState.hubSettings.darkModeEnabled,
                         state = expenseAnalyticsState,
                         onBack = {
                             navController.navigate(EobRoute.Home.route) {
