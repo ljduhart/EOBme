@@ -89,7 +89,8 @@ fun ManageSubscriptionScreen(
                     selectedTier = tier
                     onTierSelected(tier, billingInterval)
                 },
-                tierNotice = tierNotice
+                tierNotice = tierNotice,
+                modifier = Modifier.weight(1f)
             )
         }
 
