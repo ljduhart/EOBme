@@ -36,7 +36,7 @@ class MobileUiPr184Test {
 
     @Test
     fun manageSubscriptionBillingTabsUseLocalizedKeys() {
-        val source = readSource("ui/screens/ManageSubscriptionScreen.kt")
+        val source = readSource("ui/components/SubscriptionTierComparisonPanel.kt")
         assertTrue(source.contains("EobStrings.t(language, \"billingIntervalMonthly\")"))
         assertTrue(source.contains("EobStrings.t(language, \"billingIntervalAnnual\")"))
         assertFalse(source.contains("Text(\"Monthly\")"))

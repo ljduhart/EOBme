@@ -1,7 +1,5 @@
 package app.eob.me.ui.screens
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,17 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,8 +32,8 @@ import app.eob.me.billing.PaywallPricing
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.BillingInterval
 import app.eob.me.data.EobStrings
-import app.eob.me.data.SubscriptionCatalog
 import app.eob.me.data.SubscriptionTier
+import app.eob.me.ui.components.SubscriptionTierComparisonPanel
 
 @Composable
 fun PaywallDialog(
@@ -91,22 +82,27 @@ private fun PaywallScreen(
     var selectedTier by remember(currentSubscriptionTier) {
         mutableStateOf(
             when (currentSubscriptionTier) {
-                SubscriptionTier.Gold -> SubscriptionTier.Silver
-                SubscriptionTier.Silver -> SubscriptionTier.Gold
+                SubscriptionTier.Gold -> SubscriptionTier.Gold
+                SubscriptionTier.Silver -> SubscriptionTier.Silver
                 SubscriptionTier.Free -> SubscriptionTier.Silver
             }
         )
     }
     val billingInterval = if (isAnnual) BillingInterval.ANNUAL else BillingInterval.MONTHLY
-    val purchaseBlocked = selectedTier == currentSubscriptionTier
+    val purchaseBlocked = selectedTier == SubscriptionTier.Free ||
+        selectedTier == currentSubscriptionTier
     val isDowngrade = currentSubscriptionTier.rank() > selectedTier.rank()
+    val contextMessage = when {
+        message.isNotBlank() -> message
+        isDowngrade && !purchaseBlocked -> EobStrings.t(language, "billingDowngradeNextCycle")
+        else -> ""
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(16.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) {
@@ -116,83 +112,48 @@ private fun PaywallScreen(
             Text(
                 text = EobStrings.t(language, "billingPaywallTitle"),
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = EobStrings.t(language, "billingManageSubscriptionHint"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                textAlign = TextAlign.Center
             )
 
-            if (message.isNotBlank()) {
+            if (contextMessage.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = message,
-                    color = MaterialTheme.colorScheme.error,
+                    text = contextMessage,
+                    color = if (message.isNotBlank()) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
                     style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-            } else if (isDowngrade && !purchaseBlocked) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = EobStrings.t(language, "billingDowngradeNextCycle"),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            PrimaryTabRow(
-                selectedTabIndex = if (isAnnual) 1 else 0,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp))
-            ) {
-                Tab(
-                    selected = !isAnnual,
-                    onClick = { isAnnual = false },
-                    text = { Text(EobStrings.t(language, "billingIntervalMonthly")) }
-                )
-                Tab(
-                    selected = isAnnual,
-                    onClick = { isAnnual = true },
-                    text = { Text(EobStrings.t(language, "billingIntervalAnnual")) }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            TierSelectorCard(
-                title = "Free Tier",
-                price = SubscriptionCatalog.displayPrice(SubscriptionTier.Free, billingInterval),
-                features = SubscriptionCatalog.features(SubscriptionTier.Free),
-                isSelected = selectedTier == SubscriptionTier.Free,
-                isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Free,
-                enabled = true,
-                onClick = { selectedTier = SubscriptionTier.Free }
-            )
-
             Spacer(modifier = Modifier.height(12.dp))
 
-            TierSelectorCard(
-                title = "Silver Tier",
-                price = paywallPricing.displayPrice(SubscriptionTier.Silver, billingInterval),
-                features = SubscriptionCatalog.features(SubscriptionTier.Silver),
-                isSelected = selectedTier == SubscriptionTier.Silver,
-                isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Silver,
-                enabled = currentSubscriptionTier != SubscriptionTier.Silver,
-                onClick = { selectedTier = SubscriptionTier.Silver }
+            SubscriptionTierComparisonPanel(
+                language = language,
+                currentSubscriptionTier = currentSubscriptionTier,
+                paywallPricing = paywallPricing,
+                isAnnual = isAnnual,
+                onAnnualSelected = { isAnnual = it },
+                selectedTier = selectedTier,
+                onTierSelected = { selectedTier = it },
+                tierNotice = "",
+                modifier = Modifier.weight(1f)
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TierSelectorCard(
-                title = "Gold Tier",
-                price = paywallPricing.displayPrice(SubscriptionTier.Gold, billingInterval),
-                features = SubscriptionCatalog.features(SubscriptionTier.Gold),
-                isSelected = selectedTier == SubscriptionTier.Gold,
-                isCurrentPlan = currentSubscriptionTier == SubscriptionTier.Gold,
-                isRecommended = true,
-                enabled = currentSubscriptionTier != SubscriptionTier.Gold,
-                onClick = { selectedTier = SubscriptionTier.Gold }
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
 
             val finalPrice = paywallPricing.checkoutPrice(selectedTier, billingInterval)
 
@@ -232,103 +193,7 @@ private fun PaywallScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun TierSelectorCard(
-    title: String,
-    price: String,
-    features: List<String>,
-    isSelected: Boolean,
-    isCurrentPlan: Boolean = false,
-    isRecommended: Boolean = false,
-    enabled: Boolean = true,
-    onClick: () -> Unit
-) {
-    val borderColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.outlineVariant
-    }
-    val bgColor = if (isSelected) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (enabled) {
-                    Modifier.clickable(onClick = onClick)
-                } else {
-                    Modifier
-                }
-            ),
-        border = BorderStroke(if (isSelected) 2.dp else 1.dp, borderColor),
-        colors = CardDefaults.cardColors(containerColor = bgColor)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                when {
-                    isCurrentPlan -> {
-                        Badge(containerColor = MaterialTheme.colorScheme.secondary) {
-                            Text(
-                                text = "CURRENT",
-                                modifier = Modifier.padding(4.dp)
-                            )
-                        }
-                    }
-                    isRecommended -> {
-                        Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                            Text(
-                                text = "RECOMMENDED",
-                                modifier = Modifier.padding(4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-            Text(
-                text = price,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Black
-            )
             Spacer(modifier = Modifier.height(8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                features.forEach { feature ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = "✓",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = feature,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
         }
     }
 }

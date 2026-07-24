@@ -68,6 +68,7 @@ import app.eob.me.data.UpcodingVerificationAlert
 import app.eob.me.data.UpcodingVerificationCalculator
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.billing.SubscriptionState
+import app.eob.me.navigation.HubBentoDestination
 import app.eob.me.data.HubSettingsState
 import app.eob.me.data.HubSettingsStore
 import app.eob.me.data.ImageCompressionLevel
@@ -615,6 +616,28 @@ class EobViewModel : ViewModel() {
     fun billingNoticeForPaywall(language: AppLanguage): String {
         val notice = _uiState.value.hubSettings.settingsNotice
         return notice.takeIf { it in localizedBillingNotices(language) }.orEmpty()
+    }
+
+    fun paywallMessageForBentoDestination(
+        language: AppLanguage,
+        destination: HubBentoDestination
+    ): String {
+        billingNoticeForPaywall(language).takeIf { it.isNotBlank() }?.let { return it }
+        return when (destination) {
+            HubBentoDestination.YtdExpense ->
+                EobStrings.t(language, "paywallUnlockYtdExpense")
+            HubBentoDestination.InsuranceNews ->
+                EobStrings.t(language, "paywallUnlockInsuranceNews")
+            HubBentoDestination.AppealGenerator ->
+                EobStrings.t(language, "paywallUnlockAppealGenerator")
+            else -> EobStrings.t(language, "premiumUpgradeToUnlock")
+        }
+    }
+
+    fun paywallMessageForBillingErrorGate(language: AppLanguage): String {
+        return billingNoticeForPaywall(language).ifBlank {
+            EobStrings.t(language, "paywallUnlockBillingErrors")
+        }
     }
 
     private fun localizedBillingNotices(language: AppLanguage): Set<String> = setOf(
@@ -2351,7 +2374,10 @@ class EobViewModel : ViewModel() {
         if (!canAccessAppealGenerator()) {
             showPaywall(
                 billingNoticeForPaywall(language).ifBlank {
-                    appealGateMessage(language)
+                    paywallMessageForBentoDestination(
+                        language,
+                        HubBentoDestination.AppealGenerator
+                    )
                 }
             )
             return false

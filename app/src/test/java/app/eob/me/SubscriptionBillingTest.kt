@@ -251,14 +251,17 @@ class SubscriptionBillingTest {
     @Test
     fun paywallDialogSourcesTierFeaturesFromSubscriptionCatalog() {
         val paywallSource = readSource("ui/screens/PaywallDialog.kt")
-        assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Silver)"))
-        assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Gold)"))
-        assertTrue(paywallSource.contains("paywallPricing.displayPrice"))
+        val panelSource = readSource("ui/components/SubscriptionTierComparisonPanel.kt")
+        assertTrue(paywallSource.contains("SubscriptionTierComparisonPanel"))
         assertTrue(paywallSource.contains("paywallPricing.checkoutPrice"))
         assertTrue(paywallSource.contains("currentSubscriptionTier"))
         assertTrue(paywallSource.contains("alreadySubscribedLabel"))
-        assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Free)"))
-        assertTrue(paywallSource.contains("Column(verticalArrangement = Arrangement.spacedBy"))
+        assertTrue(panelSource.contains("paywallPricing.displayPrice"))
+        assertTrue(panelSource.contains("SubscriptionCatalog.features(SubscriptionTier.Silver)"))
+        assertTrue(panelSource.contains("SubscriptionCatalog.goldStandardFeatures"))
+        assertTrue(panelSource.contains("SubscriptionCatalog.goldHighlightFeatures"))
+        assertTrue(panelSource.contains("SubscriptionCatalog.features(SubscriptionTier.Free)"))
+        assertTrue(panelSource.contains("verticalScroll"))
     }
 
     @Test
@@ -533,11 +536,13 @@ class SubscriptionBillingTest {
             viewModel.downgradeNextCycleMessage(AppLanguage.English)
         )
         val manageSource = readSource("ui/screens/ManageSubscriptionScreen.kt")
-        assertTrue(manageSource.contains("goldHighlightFeatures"))
-        assertTrue(manageSource.contains("goldStandardFeatures"))
-        assertTrue(manageSource.contains("billingAlreadyPurchasedByUser"))
-        assertTrue(manageSource.contains("billingDowngradeNextCycle"))
-        assertTrue(manageSource.contains("billingGoldHighlightsTitle"))
+        val panelSource = readSource("ui/components/SubscriptionTierComparisonPanel.kt")
+        assertTrue(manageSource.contains("SubscriptionTierComparisonPanel"))
+        assertTrue(panelSource.contains("goldHighlightFeatures"))
+        assertTrue(panelSource.contains("goldStandardFeatures"))
+        assertTrue(panelSource.contains("billingAlreadyPurchasedByUser"))
+        assertTrue(panelSource.contains("billingDowngradeNextCycle"))
+        assertTrue(panelSource.contains("billingGoldHighlightsTitle"))
         assertEquals(
             listOf(
                 "Smart Card Summaries",
@@ -579,9 +584,10 @@ class SubscriptionBillingTest {
     @Test
     fun paywallDialogUsesLocalizedBillingCopy() {
         val paywallSource = readSource("ui/screens/PaywallDialog.kt")
+        val panelSource = readSource("ui/components/SubscriptionTierComparisonPanel.kt")
         assertTrue(paywallSource.contains("language: AppLanguage"))
         assertTrue(paywallSource.contains("billingPaywallTitle"))
-        assertTrue(paywallSource.contains("billingIntervalMonthly"))
+        assertTrue(panelSource.contains("billingIntervalMonthly"))
         assertTrue(paywallSource.contains("billingSubscribeForPrice"))
     }
 
@@ -748,7 +754,8 @@ class SubscriptionBillingTest {
                 navHost.contains("subscriptionViewModel.launchPurchaseFlow") &&
                 navHost.contains("PaywallDialog")
         )
-        assertTrue(paywall.contains("paywallPricing.displayPrice"))
+        val panel = readSource("ui/components/SubscriptionTierComparisonPanel.kt")
+        assertTrue(panel.contains("paywallPricing.displayPrice"))
         assertTrue(paywall.contains("paywallPricing.checkoutPrice"))
         assertTrue(paywall.contains("onRestorePurchasesClicked"))
         assertFalse("Paywall features must remain unchanged", paywall.contains("Loading prices"))

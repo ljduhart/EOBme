@@ -867,7 +867,7 @@ private fun MainHubNavHost(
                             if (filter == HistoryBentoFilter.Flagged &&
                                 !EobmeFeatureGate.hasBillingErrorDetection(uiState.hubSettings.subscriptionTier)
                             ) {
-                                eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                                eobViewModel.showPaywall(eobViewModel.paywallMessageForBillingErrorGate(language))
                                 onActivity()
                             } else {
                                 eobViewModel.setHistoryBentoFilter(filter)
@@ -897,8 +897,10 @@ private fun MainHubNavHost(
                         taxVaultVisibilityMode = taxVaultVisibilityMode,
                         taxVaultBudgetSummary = taxVaultBudgetSummary,
                         subscriptionTier = uiState.hubSettings.subscriptionTier,
-                        onPremiumFeatureLocked = {
-                            eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                        onPremiumFeatureLocked = { destination ->
+                            eobViewModel.showPaywall(
+                                eobViewModel.paywallMessageForBentoDestination(language, destination)
+                            )
                             onActivity()
                         },
                         onTaxVaultFilterSelected = { filter ->
@@ -1148,7 +1150,12 @@ private fun MainHubNavHost(
                     val subscriptionTier = uiState.hubSettings.subscriptionTier
                     if (!EobmeFeatureGate.hasYtdExpenseTracker(subscriptionTier)) {
                         LaunchedEffect(Unit) {
-                            eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                            eobViewModel.showPaywall(
+                                eobViewModel.paywallMessageForBentoDestination(
+                                    language,
+                                    HubBentoDestination.YtdExpense
+                                )
+                            )
                             navController.popBackStack(EobRoute.Home.route, inclusive = false)
                         }
                         return@composable
@@ -1264,7 +1271,12 @@ private fun MainHubNavHost(
                     val subscriptionTier = uiState.hubSettings.subscriptionTier
                     if (!EobmeFeatureGate.hasRealTimeNews(subscriptionTier)) {
                         LaunchedEffect(Unit) {
-                            eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                            eobViewModel.showPaywall(
+                                eobViewModel.paywallMessageForBentoDestination(
+                                    language,
+                                    HubBentoDestination.InsuranceNews
+                                )
+                            )
                             navController.popBackStack(EobRoute.Home.route, inclusive = false)
                         }
                         return@composable
@@ -1305,7 +1317,12 @@ private fun MainHubNavHost(
                     val subscriptionTier = uiState.hubSettings.subscriptionTier
                     if (EobmeFeatureGate.getAppealLetterLimit(subscriptionTier) is FeatureAccess.Denied) {
                         LaunchedEffect(Unit) {
-                            eobViewModel.showPaywall(eobViewModel.billingNoticeForPaywall(language))
+                            eobViewModel.showPaywall(
+                                eobViewModel.paywallMessageForBentoDestination(
+                                    language,
+                                    HubBentoDestination.AppealGenerator
+                                )
+                            )
                             navController.popBackStack(EobRoute.Home.route, inclusive = false)
                         }
                         return@composable

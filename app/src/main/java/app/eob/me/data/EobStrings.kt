@@ -750,7 +750,11 @@ object EobStrings {
         "expenseAnalyticsCarrierCovered" to "Covered by carrier",
         "expenseAnalyticsPatientResponsibility" to "Patient responsibility",
         "expenseAnalyticsFacilitiesTitle" to "Facility Spending",
-        "expenseAnalyticsStatusCd" to "Claim validation status"
+        "expenseAnalyticsStatusCd" to "Claim validation status",
+        "paywallUnlockYtdExpense" to "Upgrade to unlock the Y-T-D Expense Tracker. Compare Free, Silver, and Gold plans below.",
+        "paywallUnlockInsuranceNews" to "Upgrade to unlock Real Time Insurance News. Compare Free, Silver, and Gold plans below.",
+        "paywallUnlockAppealGenerator" to "Upgrade to unlock the Appeal Generator. Compare Free, Silver, and Gold plans below.",
+        "paywallUnlockBillingErrors" to "Upgrade to unlock Billing Error Detection. Compare Free, Silver, and Gold plans below."
     )
 
     private val exactRepositoryMessages = mapOf(
@@ -1078,7 +1082,11 @@ object EobStrings {
         "expenseAnalyticsCarrierCovered" to "Cubierto por la aseguradora",
         "expenseAnalyticsPatientResponsibility" to "Responsabilidad del paciente",
         "expenseAnalyticsFacilitiesTitle" to "Gasto por instalación",
-        "expenseAnalyticsStatusCd" to "Estado de validación del reclamo"
+        "expenseAnalyticsStatusCd" to "Estado de validación del reclamo",
+        "paywallUnlockYtdExpense" to "Mejora para desbloquear el rastreador de gastos Y-T-D. Compare los planes Gratis, Plata y Oro a continuación.",
+        "paywallUnlockInsuranceNews" to "Mejora para desbloquear noticias de seguros en tiempo real. Compare los planes Gratis, Plata y Oro a continuación.",
+        "paywallUnlockAppealGenerator" to "Mejora para desbloquear el generador de apelaciones. Compare los planes Gratis, Plata y Oro a continuación.",
+        "paywallUnlockBillingErrors" to "Mejora para desbloquear la detección de errores de facturación. Compare los planes Gratis, Plata y Oro a continuación."
     )
 
     private val french = english + mapOf(
@@ -1362,7 +1370,11 @@ object EobStrings {
         "expenseAnalyticsCarrierCovered" to "Couvert par l'assureur",
         "expenseAnalyticsPatientResponsibility" to "Responsabilité du patient",
         "expenseAnalyticsFacilitiesTitle" to "Dépenses par établissement",
-        "expenseAnalyticsStatusCd" to "État de validation de la réclamation"
+        "expenseAnalyticsStatusCd" to "État de validation de la réclamation",
+        "paywallUnlockYtdExpense" to "Mettez à niveau pour déverrouiller le suivi des dépenses Y-T-D. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
+        "paywallUnlockInsuranceNews" to "Mettez à niveau pour déverrouiller les actualités d'assurance en temps réel. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
+        "paywallUnlockAppealGenerator" to "Mettez à niveau pour déverrouiller le générateur d'appels. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
+        "paywallUnlockBillingErrors" to "Mettez à niveau pour déverrouiller la détection d'erreurs de facturation. Comparez les forfaits Gratuit, Argent et Or ci-dessous."
     )
 
     private val chinese = english + mapOf(
@@ -1646,7 +1658,11 @@ object EobStrings {
         "expenseAnalyticsCarrierCovered" to "保险公司承担",
         "expenseAnalyticsPatientResponsibility" to "患者责任",
         "expenseAnalyticsFacilitiesTitle" to "医疗机构支出",
-        "expenseAnalyticsStatusCd" to "理赔验证状态"
+        "expenseAnalyticsStatusCd" to "理赔验证状态",
+        "paywallUnlockYtdExpense" to "升级以解锁年度费用跟踪器。请在下方比较免费、银级和金级计划。",
+        "paywallUnlockInsuranceNews" to "升级以解锁实时保险新闻。请在下方比较免费、银级和金级计划。",
+        "paywallUnlockAppealGenerator" to "升级以解锁申诉生成器。请在下方比较免费、银级和金级计划。",
+        "paywallUnlockBillingErrors" to "升级以解锁账单错误检测。请在下方比较免费、银级和金级计划。"
     )
 
     private val localized = mapOf(

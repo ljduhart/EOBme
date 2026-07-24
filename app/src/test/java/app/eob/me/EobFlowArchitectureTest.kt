@@ -498,7 +498,8 @@ class EobFlowArchitectureTest {
         )
         assertTrue(
             "Paywall must use dynamic RevenueCat pricing",
-            readSource("ui/screens/PaywallDialog.kt").contains("paywallPricing.displayPrice") &&
+            readSource("ui/screens/PaywallDialog.kt").contains("paywallPricing") &&
+                readSource("ui/components/SubscriptionTierComparisonPanel.kt").contains("paywallPricing.displayPrice") &&
                 readSource("navigation/EobNavHost.kt").contains("paywallPricing")
         )
         assertTrue(
@@ -638,7 +639,8 @@ class EobFlowArchitectureTest {
         assertTrue("PR#100 audit: restore purchases required", revenueCatBillingSource.contains("awaitRestore"))
         assertTrue("PR#100 audit: metadata sync required", revenueCatBillingSource.contains("attachUserMetadata"))
 
-        assertTrue("PR#100 audit: paywall uses dynamic pricing", paywallSource.contains("paywallPricing.displayPrice"))
+        assertTrue("PR#100 audit: paywall uses dynamic pricing", paywallSource.contains("paywallPricing") ||
+            readSource("ui/components/SubscriptionTierComparisonPanel.kt").contains("paywallPricing.displayPrice"))
         assertTrue("PR#100 audit: restore button on paywall", paywallSource.contains("onRestorePurchasesClicked"))
         assertTrue("PR#100 audit: manage subscription available in settings", settingsSource.contains("onManageSubscription"))
         assertFalse(
@@ -1339,14 +1341,16 @@ class EobFlowArchitectureTest {
             assertTrue("PR#104 audit: home back navigation barrier missing $snippet", navHostSource.contains(snippet))
         }
 
+        val tierPanelSource = readSource("ui/components/SubscriptionTierComparisonPanel.kt")
         listOf(
             "Silver Tier",
             "Gold Tier",
             "SubscriptionCatalog.features(SubscriptionTier.Silver)",
-            "SubscriptionCatalog.features(SubscriptionTier.Gold)",
+            "SubscriptionCatalog.goldStandardFeatures",
             "onRestorePurchasesClicked"
         ).forEach { snippet ->
-            assertTrue("PR#104 audit: paywall tier listings missing $snippet", paywallSource.contains(snippet))
+            val source = if (snippet == "onRestorePurchasesClicked") paywallSource else tierPanelSource
+            assertTrue("PR#104 audit: paywall tier listings missing $snippet", source.contains(snippet))
         }
 
         listOf(
@@ -2806,7 +2810,10 @@ class EobFlowArchitectureTest {
         assertTrue(navHostSource.contains("alreadySubscribedLabel"))
         assertTrue(paywallSource.contains("alreadySubscribedLabel"))
         assertTrue(pricingSource.contains("SubscriptionCatalog.displayPrice"))
-        assertTrue(paywallSource.contains("SubscriptionCatalog.features(SubscriptionTier.Free)"))
+        assertTrue(
+            readSource("ui/components/SubscriptionTierComparisonPanel.kt")
+                .contains("SubscriptionCatalog.features(SubscriptionTier.Free)")
+        )
         listOf(
             "ui/screens/SplashScreen.kt",
             "ui/screens/LanguageScreen.kt",
