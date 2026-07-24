@@ -1075,6 +1075,7 @@ private fun MainHubNavHost(
                 }
                 composable(EobRoute.Dashboard.route) {
                     DashboardScreen(
+                        language = language,
                         state = expenseAnalyticsState,
                         onBack = {
                             navController.navigate(EobRoute.Home.route) {

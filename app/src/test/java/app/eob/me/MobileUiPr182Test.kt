@@ -23,7 +23,7 @@ class MobileUiPr182Test {
     fun accountProfileSettingsUsesBentoCardsAndTopAppBar() {
         val contentSource = readSource("ui/screens/AccountProfileSettingsContent.kt")
         val settingsSource = readSource("ui/screens/SettingsScreen.kt")
-        val stringsSource = readFile("app/src/main/res/values/strings.xml")
+        val stringsSource = readSource("data/EobStrings.kt")
         assertTrue(contentSource.contains("CenterAlignedTopAppBar"))
         assertTrue(contentSource.contains("PrimaryScrollableTabRow"))
         assertTrue(contentSource.contains("ProfileSettingsBentoCard"))
@@ -32,8 +32,8 @@ class MobileUiPr182Test {
         assertTrue(contentSource.contains("ElevatedCard"))
         assertTrue(contentSource.contains("FilledTonalButton"))
         assertTrue(settingsSource.contains("AccountProfileSettingsScaffold"))
-        assertTrue(stringsSource.contains("account_profile_manage_subscription"))
-        assertTrue(stringsSource.contains("manage billing through Google Play"))
+        assertTrue(stringsSource.contains("\"settingsManageSubscription\""))
+        assertTrue(stringsSource.contains("billingManageSubscriptionHint"))
         assertFalse(stringsSource.contains("App Store"))
         assertFalse(stringsSource.contains("iOS"))
     }

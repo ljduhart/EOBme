@@ -1,8 +1,5 @@
 package app.eob.me.data
 
-import androidx.annotation.StringRes
-import app.eob.me.R
-
 enum class SubscriptionTier {
     Free,
     Silver,
@@ -12,13 +9,6 @@ enum class SubscriptionTier {
         Free -> "settingsTierFree"
         Silver -> "settingsTierSilver"
         Gold -> "settingsTierGold"
-    }
-
-    @StringRes
-    fun accountProfileLabelRes(): Int = when (this) {
-        Free -> R.string.account_profile_tier_free
-        Silver -> R.string.account_profile_tier_silver
-        Gold -> R.string.account_profile_tier_gold
     }
 
     fun isGold(): Boolean = this == Gold

@@ -464,4 +464,62 @@ class EobStringsCoverageTest {
             assertFalse("Returned dictionary key instead of text", localized == "eobUploadVeryfiStarted")
         }
     }
+
+    @Test
+    fun helpfulHintsKeysResolveForEveryLanguage() {
+        val keys = buildList {
+            add("settingsHelpfulHintsTitle")
+            add("settingsHelpfulHintsClose")
+            for (index in 1..10) {
+                add("settingsHelpfulHint$index")
+            }
+        }
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                val value = EobStrings.t(language, key)
+                assertNotEquals("$key unresolved for $language", key, value)
+                assertTrue("$key blank for $language", value.isNotBlank())
+            }
+        }
+    }
+
+    @Test
+    fun accountProfileAndExpenseAnalyticsKeysResolveForEveryLanguage() {
+        val keys = listOf(
+            "accountProfileSectionTitle",
+            "accountProfileNameCaption",
+            "accountProfileEditCd",
+            "accountProfileSaveProfile",
+            "accountProfileSubscriptionSection",
+            "accountProfileSubscriptionCaption",
+            "accountProfileActionsSection",
+            "accountProfileDangerZone",
+            "accountProfileHelpfulHintsCd",
+            "accountProfileBackCd",
+            "accountProfileTierIconCd",
+            "accountProfileEmailCd",
+            "expenseAnalytics",
+            "expenseAnalyticsBackCd",
+            "expenseAnalyticsClaimAllocation",
+            "expenseAnalyticsSummaryTitle",
+            "expenseAnalyticsFacilitiesTitle",
+            "expenseAnalyticsNetworkSavings",
+            "expenseAnalyticsCarrierCovered",
+            "expenseAnalyticsPatientResponsibility",
+            "expenseAnalyticsEmpty",
+            "expenseAnalyticsLoading",
+            "expenseAnalyticsStatusCd",
+            "billingIntervalMonthly",
+            "billingIntervalAnnual"
+        )
+        AppLanguage.entries.forEach { language ->
+            keys.forEach { key ->
+                val value = EobStrings.t(language, key)
+                assertNotEquals("$key unresolved for $language", key, value)
+                assertTrue("$key blank for $language", value.isNotBlank())
+            }
+            val billed = EobStrings.tf(language, "expenseAnalyticsTotalBilled", "$100.00")
+            assertTrue(billed.contains("100"))
+        }
+    }
 }

@@ -104,12 +104,12 @@ fun ManageSubscriptionScreen(
                 Tab(
                     selected = !isAnnual,
                     onClick = { isAnnual = false },
-                    text = { Text("Monthly") }
+                    text = { Text(EobStrings.t(language, "billingIntervalMonthly")) }
                 )
                 Tab(
                     selected = isAnnual,
                     onClick = { isAnnual = true },
-                    text = { Text("Annual (Save up to 25%)") }
+                    text = { Text(EobStrings.t(language, "billingIntervalAnnual")) }
                 )
             }
 

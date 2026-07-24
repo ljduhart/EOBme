@@ -26,10 +26,11 @@ class DashboardScreenTest {
     }
 
     @Test
-    fun dashboardUsesStringResourcesForDisplayText() {
+    fun dashboardUsesEobStringsForDisplayText() {
         val source = readSource("ui/screens/DashboardScreen.kt")
-        assertTrue(source.contains("stringResource(R.string.expense_analytics_"))
-        assertFalse(source.contains("EobStrings.t(language"))
+        assertTrue(source.contains("EobStrings.t(language"))
+        assertTrue(source.contains("EobStrings.tf(language"))
+        assertFalse(source.contains("stringResource(R.string.expense_analytics_"))
     }
 
     @Test
