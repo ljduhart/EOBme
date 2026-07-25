@@ -116,7 +116,8 @@ class VeryfiDocumentClient(
     suspend fun writeReconciliationFindings(
         userId: String,
         extraction: VeryfiStreamExtraction,
-        sourceName: String = "Veryfi"
+        sourceName: String = "Veryfi",
+        targetFirestoreId: String? = null
     ): EobRecord {
         if (userId.isBlank() || extraction.documentRefId.isBlank()) {
             throw IllegalArgumentException("User id and document reference id are required.")
@@ -127,11 +128,16 @@ class VeryfiDocumentClient(
             documentRefId = extraction.documentRefId,
             sourceName = sourceName
         )
-        val reconciliationPayload = buildReconciliationPayload(record, extraction.payload, storagePath)
+        val resolvedFirestoreId = targetFirestoreId?.trim()?.takeIf { it.isNotBlank() } ?: record.firestoreId
+        val reconciledRecord = record.copy(
+            firestoreId = resolvedFirestoreId,
+            id = resolvedFirestoreId.toIntOrNull() ?: record.id
+        )
+        val reconciliationPayload = buildReconciliationPayload(reconciledRecord, extraction.payload, storagePath)
         val userRef = firestore.collection(USERS).document(userId)
-        setMergeAwait(userRef.collection(EOBS).document(record.firestoreId), reconciliationPayload)
-        setMergeAwait(userRef.collection(EOB_RECORDS).document(record.firestoreId), reconciliationPayload)
-        return record
+        setMergeAwait(userRef.collection(EOBS).document(reconciledRecord.firestoreId), reconciliationPayload)
+        setMergeAwait(userRef.collection(EOB_RECORDS).document(reconciledRecord.firestoreId), reconciliationPayload)
+        return reconciledRecord
     }
 
     /**

@@ -10,13 +10,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import app.eob.me.data.DuplicateEobWarningState
 import androidx.compose.ui.Modifier
 import app.eob.me.ui.theme.EobCyberTextPrimary
 import app.eob.me.ui.theme.EobCyberTextSecondary
@@ -109,6 +112,9 @@ fun HomeScreen(
     onInsuranceDosageScheduleChange: (String) -> Unit,
     onInsuranceAllergiesChange: (String) -> Unit,
     onInsuranceDoctorNotesChange: (String) -> Unit,
+    duplicateEobWarningState: DuplicateEobWarningState? = null,
+    onDiscardDuplicateScan: () -> Unit = {},
+    onOverwriteDuplicateScan: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var appointmentPrefillDate by remember { mutableStateOf("") }
@@ -320,6 +326,28 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        }
+
+        duplicateEobWarningState?.let {
+            AlertDialog(
+                onDismissRequest = onDiscardDuplicateScan,
+                title = {
+                    Text(text = EobStrings.t(language, "duplicateEobDialogTitle"))
+                },
+                text = {
+                    Text(text = EobStrings.t(language, "duplicateEobDialogMessage"))
+                },
+                confirmButton = {
+                    TextButton(onClick = onOverwriteDuplicateScan) {
+                        Text(text = EobStrings.t(language, "duplicateEobDialogUpdate"))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDiscardDuplicateScan) {
+                        Text(text = EobStrings.t(language, "duplicateEobDialogDiscard"))
+                    }
+                }
+            )
         }
     }
 }

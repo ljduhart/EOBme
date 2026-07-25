@@ -594,6 +594,49 @@ object EobAnalyzer {
             first.charges.map { it.cptCode }.sorted() == second.charges.map { it.cptCode }.sorted()
     }
 
+    private val claimIdRegex = Regex(
+        "(?i)(?:claim\\s*(?:id|#|number)|claim_number|claim_id)\\s*[:#\\s-]*([A-Z0-9][A-Z0-9\\-]{2,})"
+    )
+
+    fun claimIdForRecord(record: EobRecord): String {
+        val fromText = claimIdRegex.find(record.rawText)?.groupValues?.getOrNull(1)?.trim().orEmpty()
+        if (fromText.isNotBlank()) return fromText
+        return Regex("(?i)\"claim_id\"\\s*:\\s*\"([^\"]+)\"").find(record.rawText)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim()
+            .orEmpty()
+    }
+
+    /**
+     * Returns the first existing EOB that matches [candidate] by claim id, or by provider + service date.
+     */
+    fun findDuplicateScanMatch(
+        existingRecords: List<EobRecord>,
+        candidate: EobRecord,
+        candidateClaimId: String = ""
+    ): EobRecord? {
+        val resolvedClaimId = candidateClaimId.trim().ifBlank { claimIdForRecord(candidate) }
+        return existingRecords.firstOrNull { existing ->
+            if (candidate.firestoreId.isNotBlank() && existing.firestoreId == candidate.firestoreId) {
+                return@firstOrNull false
+            }
+            if (resolvedClaimId.isNotBlank()) {
+                val existingClaimId = claimIdForRecord(existing)
+                existingClaimId.isNotBlank() &&
+                    existingClaimId.equals(resolvedClaimId, ignoreCase = true)
+            } else {
+                val providerMatches = existing.providerName.trim()
+                    .equals(candidate.providerName.trim(), ignoreCase = true)
+                val dateMatches = existing.serviceDate.isNotBlank() &&
+                    candidate.serviceDate.isNotBlank() &&
+                    !existing.serviceDate.equals("Date not recognized", ignoreCase = true) &&
+                    existing.serviceDate == candidate.serviceDate
+                providerMatches && dateMatches
+            }
+        }
+    }
+
     fun compactDuplicateEobs(records: List<EobRecord>): List<EobRecord> {
         val compacted = records.sortedBy { it.serviceDateSortKey }.fold(mutableListOf<EobRecord>()) { merged, record ->
             val duplicateIndex = merged.indexOfFirst { existing ->

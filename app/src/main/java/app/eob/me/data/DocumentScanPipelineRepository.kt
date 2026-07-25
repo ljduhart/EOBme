@@ -61,6 +61,19 @@ class DocumentScanPipelineRepository(
         uri: Uri,
         sourceName: String
     ): VeryfiAnyDocExtractionResult {
+        val pending = extractHybridDocument(context, userId, uri, sourceName)
+        return persistHybridDocument(userId, pending, sourceName)
+    }
+
+    /**
+     * Runs the hybrid Veryfi extraction and Storage upload without committing to Firestore.
+     */
+    suspend fun extractHybridDocument(
+        context: Context,
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): HybridScanPendingPersistence {
         val contentType = context.contentResolver.getType(uri)
             ?: if (uri.toString().endsWith(".pdf", ignoreCase = true)) "application/pdf" else "image/jpeg"
         val extension = HybridDocumentRef.extensionForContentType(contentType)
@@ -101,25 +114,6 @@ class DocumentScanPipelineRepository(
                 throw error
             }
 
-            val streamedRecord = runCatching {
-                veryfiClient.writeReconciliationFindings(
-                    userId = userId,
-                    extraction = VeryfiStreamExtraction(
-                        documentRefId = documentRefId,
-                        sourceFilePath = storagePath,
-                        payload = anyDocResult.rawPayload
-                    ),
-                    sourceName = sourceName
-                )
-            }.getOrElse { error ->
-                uploadDeferred.cancel()
-                throw IllegalStateException(
-                    "Veryfi extraction succeeded but Firestore reconciliation failed: " +
-                        VeryfiHybridStreamErrorMapper.describe(error),
-                    error
-                )
-            }
-
             val upload = try {
                 uploadDeferred.await()
             } catch (error: Throwable) {
@@ -129,18 +123,41 @@ class DocumentScanPipelineRepository(
                 )
             }
 
-            veryfiClient.finalizeHybridReconciliation(
-                userId = userId,
-                record = streamedRecord,
-                downloadUrl = upload.downloadUrl,
-                storagePath = storagePath
-            )
-
-            anyDocResult.copy(
-                record = streamedRecord,
-                downloadUrl = upload.downloadUrl
+            HybridScanPendingPersistence(
+                anyDocResult = anyDocResult,
+                documentRefId = documentRefId,
+                storagePath = storagePath,
+                upload = upload
             )
         }
+    }
+
+    suspend fun persistHybridDocument(
+        userId: String,
+        pending: HybridScanPendingPersistence,
+        sourceName: String,
+        targetFirestoreId: String? = null
+    ): VeryfiAnyDocExtractionResult {
+        val streamedRecord = veryfiClient.writeReconciliationFindings(
+            userId = userId,
+            extraction = VeryfiStreamExtraction(
+                documentRefId = pending.documentRefId,
+                sourceFilePath = pending.storagePath,
+                payload = pending.anyDocResult.rawPayload
+            ),
+            sourceName = sourceName,
+            targetFirestoreId = targetFirestoreId
+        )
+        veryfiClient.finalizeHybridReconciliation(
+            userId = userId,
+            record = streamedRecord,
+            downloadUrl = pending.upload.downloadUrl,
+            storagePath = pending.storagePath
+        )
+        return pending.anyDocResult.copy(
+            record = streamedRecord,
+            downloadUrl = pending.upload.downloadUrl
+        )
     }
 
     suspend fun uploadAndExtractDocument(

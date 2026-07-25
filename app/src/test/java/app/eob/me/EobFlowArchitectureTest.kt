@@ -756,7 +756,10 @@ class EobFlowArchitectureTest {
         assertTrue(readSource("network/VeryfiAnyDocConstants.kt").contains("health_insurance_eob"))
         assertTrue(readSource("network/VeryfiAnyDocApiService.kt").contains("VeryfiAnyDocConstants.ANY_DOCUMENTS_PATH"))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("documentScanState"))
-        assertTrue(readSource("viewmodel/EobViewModel.kt").contains("processHybridScannedDocument"))
+        assertTrue(
+            readSource("viewmodel/EobViewModel.kt").contains("extractHybridScannedDocument") ||
+                readSource("viewmodel/EobViewModel.kt").contains("processHybridScannedDocument")
+        )
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("runDocumentOcrPreCheck("))
         assertTrue(readSource("viewmodel/EobViewModel.kt").contains("cameraScanDocumentType"))
         assertTrue(readSource("data/DocumentScanPipelineRepository.kt").contains("veryfiAnyDocRepository.extractHealthInsuranceEob"))
@@ -1424,7 +1427,7 @@ class EobFlowArchitectureTest {
             "veryfiAnyDocExtractionState",
             "VeryfiAnyDocExtractionState",
             "processScannedDocument",
-            "processHybridScannedDocument"
+            "extractHybridScannedDocument"
         ).forEach { snippet ->
             assertTrue("PR#108: EobViewModel AnyDocs state barrier missing $snippet", viewModelSource.contains(snippet))
         }
@@ -1485,7 +1488,11 @@ class EobFlowArchitectureTest {
         assertTrue(functionsIndex.contains("/eobs/"))
         assertTrue(functionsConstants.contains("\"partner/any-documents/\""))
         assertFalse(constantsSource.contains("partner/documents/"))
-        assertTrue(viewModelSource.contains("processHybridScannedDocument"))
+        assertTrue(viewModelSource.contains("processScannedDocument"))
+        assertTrue(
+            viewModelSource.contains("extractHybridScannedDocument") ||
+                viewModelSource.contains("processHybridScannedDocument")
+        )
         assertFalse(viewModelSource.contains("partner/documents/"))
         val navHostSource = readSource("navigation/EobNavHost.kt")
         val remoteSource = readSource("data/remote/FirebaseEobRemoteDataSource.kt")
@@ -1637,7 +1644,7 @@ class EobFlowArchitectureTest {
             "toProcessedResult()",
             "veryfiExtractedDataRecordId",
             "private fun generateAppealLetter",
-            "processHybridScannedDocument"
+            "extractHybridScannedDocument"
         ).forEach { snippet ->
             assertTrue("PR#114 final: EobViewModel source-of-truth barrier missing $snippet", viewModelSource.contains(snippet))
         }
@@ -2213,7 +2220,8 @@ class EobFlowArchitectureTest {
         }
         listOf(
             "fun processScannedDocument",
-            "processHybridScannedDocument",
+            "extractHybridScannedDocument",
+            "persistHybridScannedDocument",
             "observeEobs",
             "applyRemoteRecords"
         ).forEach { snippet ->

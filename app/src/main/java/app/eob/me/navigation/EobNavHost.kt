@@ -738,6 +738,7 @@ private fun MainHubNavHost(
                     val hubTimeKey = eobViewModel.hubTimeKey()
                     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
                     val taxVaultVisibilityMode by eobViewModel.taxVaultVisibilityMode.collectAsStateWithLifecycle()
+                    val duplicateEobWarningState by eobViewModel.duplicateEobWarningState.collectAsStateWithLifecycle()
                     val historySnapshot = remember(
                         sortedEobRecords,
                         hubTimeKey,
@@ -946,6 +947,15 @@ private fun MainHubNavHost(
                                 doctorQuickNotes = notes,
                                 onProfileChanged = appViewModel::applyRemoteProfile
                             )
+                            onActivity()
+                        },
+                        duplicateEobWarningState = duplicateEobWarningState,
+                        onDiscardDuplicateScan = {
+                            eobViewModel.onDiscardDuplicateScan()
+                            onActivity()
+                        },
+                        onOverwriteDuplicateScan = {
+                            eobViewModel.onOverwriteDuplicateScan()
                             onActivity()
                         },
                         modifier = Modifier.fillMaxSize()

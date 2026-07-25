@@ -16,12 +16,12 @@
   "protectedFiles": [
     {
       "path": "app/src/main/java/app/eob/me/data/DocumentScanPipelineRepository.kt",
-      "sha256": "d88c499fc5bca9dc21974ee1a4ec8280653fbc549718fed979abb0028115e610",
+      "sha256": "6ad48b0ac2a335dd8dff0dc1fb1856923811b3ac97818de44352a2108968fc32",
       "tier": "hybrid-pipeline"
     },
     {
       "path": "app/src/main/java/app/eob/me/network/VeryfiDocumentClient.kt",
-      "sha256": "98e4cefb390c6a1db9c90b61245148812f473c6a7e00e80939ded3d9eb285d74",
+      "sha256": "e35d69bc56f5cdc004389c1508a4391f5e7dc0bdc2d41015d6ce9438e7127727",
       "tier": "hybrid-pipeline"
     },
     {

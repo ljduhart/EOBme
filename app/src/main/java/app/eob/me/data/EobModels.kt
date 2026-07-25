@@ -198,6 +198,31 @@ data class EobRecord(
     fun matchesHistoryRecord(other: EobRecord): Boolean = historyListKey() == other.historyListKey()
 }
 
+/**
+ * Holds a completed hybrid Veryfi extraction and Storage upload before Firestore persistence.
+ * Used by [app.eob.me.viewmodel.EobViewModel] to evaluate duplicate scans before saving.
+ */
+data class HybridScanPendingPersistence(
+    val anyDocResult: VeryfiAnyDocExtractionResult,
+    val documentRefId: String,
+    val storagePath: String,
+    val upload: DocumentUploadResult
+)
+
+/**
+ * Temporary state when a new scan collides with an existing EOB in local history.
+ */
+data class DuplicateEobWarningState(
+    val pendingScan: HybridScanPendingPersistence,
+    val existingRecord: EobRecord,
+    val scannedRecord: EobRecord,
+    val claimId: String,
+    val userId: String,
+    val sourceName: String,
+    val language: AppLanguage,
+    val scanType: CameraScanDocumentType
+)
+
 data class NewsRelease(
     val company: String,
     val headline: String,

@@ -73,9 +73,14 @@ class HybridPipelineLockdownTest {
         assertTrue(veryfiClient.contains("\"fileBase64\" to encoded"))
         assertTrue(veryfiClient.contains("EXTRACT_VERYFI_HYBRID_STREAM"))
         assertTrue(pipeline.contains("processHybridDocument"))
+        assertTrue(pipeline.contains("extractHybridDocument"))
+        assertTrue(pipeline.contains("persistHybridDocument"))
         assertTrue(pipeline.contains("extractionDeferred"))
         assertTrue(pipeline.contains("uploadDeferred"))
-        assertTrue(viewModel.contains("processHybridScannedDocument"))
+        assertTrue(
+            viewModel.contains("extractHybridScannedDocument") ||
+                viewModel.contains("processHybridScannedDocument")
+        )
         assertFalse(
             "Live stream must not depend on Storage download URL for Veryfi extraction",
             veryfiClient.contains("downloadUrl") && veryfiClient.contains("streamExtractDocument") &&

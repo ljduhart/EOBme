@@ -43,8 +43,10 @@ import app.eob.me.data.InsuranceNewsCarrierHubItem
 import app.eob.me.data.MajorInsuranceCarrier
 import app.eob.me.data.FirebaseSyncStatus
 import app.eob.me.data.DocumentScanPipelineState
+import app.eob.me.data.DuplicateEobWarningState
 import app.eob.me.data.VeryfiAnyDocExtractionState
 import app.eob.me.data.VeryfiExtractedData
+import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.data.toVeryfiExtractedData
 import app.eob.me.data.EobmeFeatureGate
 import app.eob.me.data.EobKnowledgeBase
@@ -211,6 +213,9 @@ class EobViewModel : ViewModel() {
 
     private val _documentScanState = MutableStateFlow<DocumentScanPipelineState>(DocumentScanPipelineState.Idle)
     val documentScanState: StateFlow<DocumentScanPipelineState> = _documentScanState.asStateFlow()
+
+    private val _duplicateEobWarningState = MutableStateFlow<DuplicateEobWarningState?>(null)
+    val duplicateEobWarningState: StateFlow<DuplicateEobWarningState?> = _duplicateEobWarningState.asStateFlow()
 
     private val _veryfiAnyDocExtractionState =
         MutableStateFlow<VeryfiAnyDocExtractionState>(VeryfiAnyDocExtractionState.Idle)
@@ -2422,6 +2427,88 @@ class EobViewModel : ViewModel() {
         _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Idle
     }
 
+    fun evaluateNewScan(newEobData: EobRecord, claimId: String = ""): EobRecord? {
+        return EobAnalyzer.findDuplicateScanMatch(_eobRecords.value, newEobData, claimId)
+    }
+
+    fun onDiscardDuplicateScan() {
+        _duplicateEobWarningState.value = null
+        dismissDocumentScanState()
+        setLoadingInvoice(false)
+    }
+
+    fun onOverwriteDuplicateScan() {
+        val warning = _duplicateEobWarningState.value ?: return
+        val repo = repository ?: return
+        documentScanJob?.cancel()
+        val generation = ++documentScanGeneration
+        documentScanJob = viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                setLoadingInvoice(true)
+                _documentScanState.value = DocumentScanPipelineState.UploadingAndProcessing
+            }
+            val result = runCatching {
+                repo.persistHybridScannedDocument(
+                    userId = warning.userId,
+                    pending = warning.pendingScan,
+                    sourceName = warning.sourceName,
+                    targetFirestoreId = warning.existingRecord.firestoreId.takeIf { it.isNotBlank() }
+                )
+            }
+            withContext(Dispatchers.Main) {
+                if (generation != documentScanGeneration) return@withContext
+                _duplicateEobWarningState.value = null
+                result.fold(
+                    onSuccess = { anyDocResult ->
+                        applyHybridScanSuccess(
+                            anyDocResult = anyDocResult,
+                            language = warning.language,
+                            scanType = warning.scanType
+                        )
+                        updateUploadNotice(EobStrings.t(warning.language, "duplicateReplaced"))
+                    },
+                    onFailure = { error ->
+                        setLoadingInvoice(false)
+                        val message = error.localizedMessage
+                            ?.takeIf { it.isNotBlank() }
+                            ?: EobStrings.t(warning.language, "documentScanFailed")
+                        _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Error(message)
+                        _documentScanState.value = DocumentScanPipelineState.Error(message)
+                        updateUploadNotice(message)
+                    }
+                )
+            }
+        }
+    }
+
+    private fun applyHybridScanSuccess(
+        anyDocResult: VeryfiAnyDocExtractionResult,
+        language: AppLanguage,
+        scanType: CameraScanDocumentType
+    ) {
+        val processedResult = anyDocResult.toProcessedResult()
+        _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Success(anyDocResult)
+        _documentScanState.value = DocumentScanPipelineState.Success(processedResult)
+        _uiState.update { state ->
+            state.copy(
+                selectedRecord = anyDocResult.record,
+                veryfiExtractedData = processedResult.veryfiData,
+                veryfiExtractedDataRecordId = anyDocResult.record.firestoreId,
+                appealLetter = generateAppealLetter(
+                    profile = _syncProfile.value,
+                    record = anyDocResult.record,
+                    veryfiData = processedResult.veryfiData
+                ),
+                appealLetterEditingEnabled = false
+            )
+        }
+        if (scanType == CameraScanDocumentType.Eob) {
+            recordEobScanUsage()
+        }
+        updateUploadNotice(EobStrings.t(language, "documentScanSuccess"))
+        setLoadingInvoice(false)
+    }
+
     fun processScannedDocument(
         userId: String,
         uri: Uri,
@@ -2510,10 +2597,40 @@ class EobViewModel : ViewModel() {
             }
 
             val extraction = runCatching {
-                repo.processHybridScannedDocument(
+                val pending = repo.extractHybridScannedDocument(
                     context = context,
                     userId = userId,
                     uri = preparedUri,
+                    sourceName = sourceName
+                )
+                if (resolvedScanType == CameraScanDocumentType.Eob) {
+                    val scannedRecord = pending.anyDocResult.record
+                    val claimId = pending.anyDocResult.extraction.claimId
+                    val duplicate = evaluateNewScan(scannedRecord, claimId)
+                    if (duplicate != null) {
+                        withContext(Dispatchers.Main) {
+                            if (generation != documentScanGeneration) return@withContext
+                            _duplicateEobWarningState.value = DuplicateEobWarningState(
+                                pendingScan = pending,
+                                existingRecord = duplicate,
+                                scannedRecord = scannedRecord,
+                                claimId = claimId,
+                                userId = userId,
+                                sourceName = sourceName,
+                                language = language,
+                                scanType = resolvedScanType
+                            )
+                            _veryfiAnyDocExtractionState.value =
+                                VeryfiAnyDocExtractionState.Success(pending.anyDocResult)
+                            _documentScanState.value = DocumentScanPipelineState.Idle
+                            setLoadingInvoice(false)
+                        }
+                        return@runCatching null
+                    }
+                }
+                repo.persistHybridScannedDocument(
+                    userId = userId,
+                    pending = pending,
                     sourceName = sourceName
                 )
             }
@@ -2521,28 +2638,12 @@ class EobViewModel : ViewModel() {
                 if (generation != documentScanGeneration) return@withContext
                 extraction.fold(
                     onSuccess = { anyDocResult ->
-                        val processedResult = anyDocResult.toProcessedResult()
-                        _veryfiAnyDocExtractionState.value =
-                            VeryfiAnyDocExtractionState.Success(anyDocResult)
-                        _documentScanState.value = DocumentScanPipelineState.Success(processedResult)
-                        _uiState.update { state ->
-                            state.copy(
-                                selectedRecord = anyDocResult.record,
-                                veryfiExtractedData = processedResult.veryfiData,
-                                veryfiExtractedDataRecordId = anyDocResult.record.firestoreId,
-                                appealLetter = generateAppealLetter(
-                                    profile = _syncProfile.value,
-                                    record = anyDocResult.record,
-                                    veryfiData = processedResult.veryfiData
-                                ),
-                                appealLetterEditingEnabled = false
-                            )
-                        }
-                        if (resolvedScanType == CameraScanDocumentType.Eob) {
-                            recordEobScanUsage()
-                        }
-                        updateUploadNotice(EobStrings.t(language, "documentScanSuccess"))
-                        setLoadingInvoice(false)
+                        if (anyDocResult == null) return@fold
+                        applyHybridScanSuccess(
+                            anyDocResult = anyDocResult,
+                            language = language,
+                            scanType = resolvedScanType
+                        )
                     },
                     onFailure = { error ->
                         if (generation != documentScanGeneration) return@fold

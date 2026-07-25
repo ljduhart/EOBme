@@ -414,6 +414,56 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun findDuplicateScanMatchUsesClaimIdOrProviderAndDate() {
+        val existing = EobAnalyzer.analyze(
+            """
+                UnitedHealthcare
+                Claim ID: CLM-908877
+                Provider: Lakeside Family Medical Clinic
+                Date of Service: 01/12/2025
+                99215 billed $265.00 insurance paid $120.00 contractual adjustment $95.00 copay $25.00
+            """.trimIndent(),
+            "camera",
+            1
+        )
+        val duplicateByClaim = EobAnalyzer.analyze(
+            """
+                UnitedHealthcare
+                Claim Number: CLM-908877
+                Provider: Other Clinic
+                Date of Service: 02/01/2025
+                99215 billed $100.00 insurance paid $50.00
+            """.trimIndent(),
+            "library",
+            2
+        )
+        val duplicateByProviderDate = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Lakeside Family Medical Clinic
+                Date of Service: 01/12/2025
+                99214 billed $180.00 insurance paid $90.00
+            """.trimIndent(),
+            "library",
+            3
+        )
+        val unrelated = EobAnalyzer.analyze(
+            """
+                Aetna
+                Provider: Downtown Medical Group
+                Date of Service: 03/01/2025
+                99214 billed $180.00 insurance paid $90.00
+            """.trimIndent(),
+            "library",
+            4
+        )
+
+        assertEquals(existing.id, EobAnalyzer.findDuplicateScanMatch(listOf(existing), duplicateByClaim)?.id)
+        assertEquals(existing.id, EobAnalyzer.findDuplicateScanMatch(listOf(existing), duplicateByProviderDate)?.id)
+        assertEquals(null, EobAnalyzer.findDuplicateScanMatch(listOf(existing), unrelated))
+    }
+
+    @Test
     fun compactDuplicateEobsKeepsOneReplacementCopy() {
         val original = EobAnalyzer.analyze(
             """

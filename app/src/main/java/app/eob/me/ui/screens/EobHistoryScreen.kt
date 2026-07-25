@@ -754,6 +754,18 @@ private fun WalletReceiptCard(
                     amount = record.totalInsurancePaidAmount.asCurrency()
                 )
                 ReceiptAmountRow(
+                    label = EobStrings.t(language, "copay"),
+                    amount = record.totalCopayAmount.asCurrency()
+                )
+                ReceiptAmountRow(
+                    label = EobStrings.t(language, "deductible"),
+                    amount = record.totalDeductibleAmount.asCurrency()
+                )
+                ReceiptAmountRow(
+                    label = EobStrings.t(language, "coinsurance"),
+                    amount = record.totalCoinsuranceAmount.asCurrency()
+                )
+                ReceiptAmountRow(
                     label = EobStrings.t(language, "patientResponsibility"),
                     amount = record.totalPatientResponsibility.asCurrency(),
                     emphasized = true
@@ -1004,6 +1016,80 @@ private fun ReceiptCptLine(
                 alert = globalPeriodAlert
             )
         }
+        ReceiptChargeDetailRows(language = language, charge = charge)
+    }
+}
+
+@Composable
+private fun ReceiptChargeDetailRows(
+    language: AppLanguage,
+    charge: EobCharge
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, top = 2.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        ReceiptMiniAmountRow(
+            label = EobStrings.t(language, "billed"),
+            amount = charge.billedAmount.asCurrency()
+        )
+        ReceiptMiniAmountRow(
+            label = EobStrings.t(language, "paid"),
+            amount = charge.insurancePaidAmount.asCurrency()
+        )
+        ReceiptMiniAmountRow(
+            label = EobStrings.t(language, "contractualAdjustment"),
+            amount = charge.contractualAdjustmentAmount.asCurrency()
+        )
+        ReceiptMiniAmountRow(
+            label = EobStrings.t(language, "copay"),
+            amount = charge.copayAmount.asCurrency()
+        )
+        ReceiptMiniAmountRow(
+            label = EobStrings.t(language, "deductible"),
+            amount = charge.deductibleAmount.asCurrency()
+        )
+        ReceiptMiniAmountRow(
+            label = EobStrings.t(language, "coinsurance"),
+            amount = charge.coinsuranceAmount.asCurrency()
+        )
+        val patientShare = charge.copayAmount + charge.deductibleAmount + charge.coinsuranceAmount
+        ReceiptMiniAmountRow(
+            label = EobStrings.t(language, "patientResponsibility"),
+            amount = patientShare.asCurrency(),
+            emphasized = true
+        )
+    }
+}
+
+@Composable
+private fun ReceiptMiniAmountRow(
+    label: String,
+    amount: String,
+    emphasized: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = amount,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
+            color = if (emphasized) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
+        )
     }
 }
 

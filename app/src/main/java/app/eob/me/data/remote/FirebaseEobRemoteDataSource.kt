@@ -14,6 +14,7 @@ import app.eob.me.data.InsuranceCardNotesMetadata
 import app.eob.me.data.NewsRelease
 import app.eob.me.data.UserProfile
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.data.HybridScanPendingPersistence
 import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.util.EobDocumentOcrPreCheck
 import com.google.firebase.firestore.ListenerRegistration
@@ -103,6 +104,25 @@ class FirebaseEobRemoteDataSource(
         uri: Uri,
         sourceName: String
     ): VeryfiAnyDocExtractionResult = documentScanPipeline.processHybridDocument(context, userId, uri, sourceName)
+
+    override suspend fun extractHybridScannedDocument(
+        context: Context,
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): HybridScanPendingPersistence = documentScanPipeline.extractHybridDocument(context, userId, uri, sourceName)
+
+    override suspend fun persistHybridScannedDocument(
+        userId: String,
+        pending: HybridScanPendingPersistence,
+        sourceName: String,
+        targetFirestoreId: String?
+    ): VeryfiAnyDocExtractionResult = documentScanPipeline.persistHybridDocument(
+        userId = userId,
+        pending = pending,
+        sourceName = sourceName,
+        targetFirestoreId = targetFirestoreId
+    )
 
     override suspend fun uploadAndExtractDocument(
         context: Context,

@@ -7,6 +7,7 @@ import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.EobRecord
 import app.eob.me.data.ReceiptRecord
 import app.eob.me.data.DocumentUploadResult
+import app.eob.me.data.HybridScanPendingPersistence
 import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.util.EobDocumentOcrPreCheck
 import app.eob.me.data.FirebaseSyncStatus
@@ -85,6 +86,20 @@ interface EobRepository {
         userId: String,
         uri: Uri,
         sourceName: String
+    ): VeryfiAnyDocExtractionResult
+
+    suspend fun extractHybridScannedDocument(
+        context: Context,
+        userId: String,
+        uri: Uri,
+        sourceName: String
+    ): HybridScanPendingPersistence
+
+    suspend fun persistHybridScannedDocument(
+        userId: String,
+        pending: HybridScanPendingPersistence,
+        sourceName: String,
+        targetFirestoreId: String? = null
     ): VeryfiAnyDocExtractionResult
 
     suspend fun uploadAndExtractDocument(

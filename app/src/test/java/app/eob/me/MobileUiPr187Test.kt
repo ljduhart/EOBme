@@ -1,0 +1,68 @@
+package app.eob.me
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+class MobileUiPr187Test {
+    @Test
+    fun eobViewModelExposesDuplicateScanWarningStateAndActions() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(viewModelSource.contains("val duplicateEobWarningState: StateFlow<DuplicateEobWarningState?>"))
+        assertTrue(viewModelSource.contains("fun evaluateNewScan(newEobData: EobRecord"))
+        assertTrue(viewModelSource.contains("fun onDiscardDuplicateScan()"))
+        assertTrue(viewModelSource.contains("fun onOverwriteDuplicateScan()"))
+        assertTrue(viewModelSource.contains("extractHybridScannedDocument"))
+        assertTrue(viewModelSource.contains("persistHybridScannedDocument"))
+    }
+
+    @Test
+    fun homeScreenShowsDuplicateEobAlertDialog() {
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(homeSource.contains("duplicateEobWarningState: DuplicateEobWarningState?"))
+        assertTrue(homeSource.contains("AlertDialog"))
+        assertTrue(homeSource.contains("duplicateEobDialogTitle"))
+        assertTrue(homeSource.contains("onOverwriteDuplicateScan"))
+        assertTrue(homeSource.contains("onDiscardDuplicateScan"))
+        assertTrue(navSource.contains("duplicateEobWarningState.collectAsStateWithLifecycle()"))
+    }
+
+    @Test
+    fun eobHistoryShowsCopayDeductibleCoinsuranceAndChargeDetails() {
+        val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        assertTrue(historySource.contains("record.totalCopayAmount.asCurrency()"))
+        assertTrue(historySource.contains("record.totalDeductibleAmount.asCurrency()"))
+        assertTrue(historySource.contains("record.totalCoinsuranceAmount.asCurrency()"))
+        assertTrue(historySource.contains("ReceiptChargeDetailRows"))
+        assertTrue(historySource.contains("charge.copayAmount.asCurrency()"))
+        assertTrue(historySource.contains("charge.deductibleAmount.asCurrency()"))
+        assertTrue(historySource.contains("charge.coinsuranceAmount.asCurrency()"))
+    }
+
+    @Test
+    fun duplicateScanMatchUsesClaimIdOrProviderAndDate() {
+        val analyzerSource = readSource("data/EobAnalyzer.kt")
+        assertTrue(analyzerSource.contains("fun findDuplicateScanMatch"))
+        assertTrue(analyzerSource.contains("fun claimIdForRecord"))
+    }
+
+    @Test
+    fun protectedOpeningScreensAndPipelineRemainMinimalForPr187() {
+        val splashSource = readSource("ui/screens/SplashScreen.kt")
+        val introSource = readSource("ui/screens/IntroScreen.kt")
+        val ytdSource = readSource("ui/components/bento/YtdExpenseBentoCell.kt")
+        assertFalse(splashSource.contains("duplicateEobDialogTitle"))
+        assertFalse(introSource.contains("ReceiptChargeDetailRows"))
+        assertFalse(ytdSource.contains("DuplicateEobWarningState"))
+    }
+
+    private fun readSource(relativePath: String): String {
+        val candidates = listOf(
+            File("src/main/java/app/eob/me/$relativePath"),
+            File("app/src/main/java/app/eob/me/$relativePath")
+        )
+        return candidates.first { it.isFile }.readText()
+    }
+}
