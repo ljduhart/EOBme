@@ -37,7 +37,8 @@
          legacy premium_access_tier, Firestore users/{uid}.subscriptionTier
          with legacy isPremium, RevenueCat Purchases via EobApplication) + EobRepository;
          hub Scan EOB bottom tab → EobRoute.CameraCapture (CameraX 85/15) →
-         EobViewModel.processScannedDocument → Firebase Storage → Veryfi Cloud Function
+         EobViewModel.processScannedDocument → duplicate scan evaluation via evaluateNewScan
+         before persistHybridScannedDocument → Firebase Storage → Veryfi Cloud Function
          (health_insurance_eob blueprint; nested claims[] unpivoted via VeryfiInsuranceEobMapper
          into ServiceLine domain models before EobRecord bridge);
          Veryfi OCR/custom-field rules via VeryfiOcrFieldExtractor on hybrid stream payload;

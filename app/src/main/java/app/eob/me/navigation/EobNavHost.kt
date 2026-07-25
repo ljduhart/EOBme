@@ -95,6 +95,7 @@ import app.eob.me.data.BillingInterval
 import app.eob.me.data.SubscriptionTier
 import app.eob.me.ui.screens.ManageSubscriptionScreen
 import app.eob.me.ui.screens.PaywallDialog
+import app.eob.me.ui.components.DuplicateEobWarningDialog
 import app.eob.me.ui.screens.ProfileScreen
 import app.eob.me.ui.screens.ProviderDirectoryScreen
 import app.eob.me.ui.screens.YtdExpenseScreen
@@ -595,6 +596,7 @@ private fun MainHubNavHost(
 
     val accountProfileUiState by eobViewModel.accountProfileUiState.collectAsStateWithLifecycle()
     val expenseAnalyticsState by eobViewModel.expenseAnalyticsState.collectAsStateWithLifecycle()
+    val duplicateEobWarningState by eobViewModel.duplicateEobWarningState.collectAsStateWithLifecycle()
 
     val appVersionLabel = remember(language) {
         val packageInfo = runCatching {
@@ -738,7 +740,6 @@ private fun MainHubNavHost(
                     val hubTimeKey = eobViewModel.hubTimeKey()
                     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
                     val taxVaultVisibilityMode by eobViewModel.taxVaultVisibilityMode.collectAsStateWithLifecycle()
-                    val duplicateEobWarningState by eobViewModel.duplicateEobWarningState.collectAsStateWithLifecycle()
                     val historySnapshot = remember(
                         sortedEobRecords,
                         hubTimeKey,
@@ -947,15 +948,6 @@ private fun MainHubNavHost(
                                 doctorQuickNotes = notes,
                                 onProfileChanged = appViewModel::applyRemoteProfile
                             )
-                            onActivity()
-                        },
-                        duplicateEobWarningState = duplicateEobWarningState,
-                        onDiscardDuplicateScan = {
-                            eobViewModel.onDiscardDuplicateScan()
-                            onActivity()
-                        },
-                        onOverwriteDuplicateScan = {
-                            eobViewModel.onOverwriteDuplicateScan()
                             onActivity()
                         },
                         modifier = Modifier.fillMaxSize()
@@ -1599,6 +1591,18 @@ private fun MainHubNavHost(
                     }
                 )
             }
+            DuplicateEobWarningDialog(
+                language = language,
+                warningState = duplicateEobWarningState,
+                onDiscard = {
+                    eobViewModel.onDiscardDuplicateScan()
+                    onActivity()
+                },
+                onOverwrite = {
+                    eobViewModel.onOverwriteDuplicateScan()
+                    onActivity()
+                }
+            )
         }
     }
 }

@@ -18,14 +18,15 @@ class MobileUiPr187Test {
     }
 
     @Test
-    fun homeScreenShowsDuplicateEobAlertDialog() {
+    fun duplicateEobDialogIsHostedAtNavLevel() {
         val homeSource = readSource("ui/screens/HomeScreen.kt")
         val navSource = readSource("navigation/EobNavHost.kt")
-        assertTrue(homeSource.contains("duplicateEobWarningState: DuplicateEobWarningState?"))
-        assertTrue(homeSource.contains("AlertDialog"))
-        assertTrue(homeSource.contains("duplicateEobDialogTitle"))
-        assertTrue(homeSource.contains("onOverwriteDuplicateScan"))
-        assertTrue(homeSource.contains("onDiscardDuplicateScan"))
+        val dialogSource = readSource("ui/components/DuplicateEobWarningDialog.kt")
+        assertFalse(homeSource.contains("AlertDialog"))
+        assertFalse(homeSource.contains("duplicateEobWarningState"))
+        assertTrue(dialogSource.contains("DuplicateEobWarningDialog"))
+        assertTrue(dialogSource.contains("duplicateEobDialogTitle"))
+        assertTrue(navSource.contains("DuplicateEobWarningDialog("))
         assertTrue(navSource.contains("duplicateEobWarningState.collectAsStateWithLifecycle()"))
     }
 
