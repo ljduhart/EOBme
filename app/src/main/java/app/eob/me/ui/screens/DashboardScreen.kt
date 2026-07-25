@@ -314,12 +314,12 @@ private fun ClaimAllocationDetailedBarChart(
             .height(196.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        segments.forEach { (label, amount, color) ->
+        segments.forEachIndexed { index, (label, amount, color) ->
             val fraction = (amount / maxAmount).toFloat().coerceIn(0f, 1f)
             val animatedFraction by animateFloatAsState(
                 targetValue = fraction,
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                label = "claimAllocationBarHeight"
+                label = "claimAllocationBarHeight$index"
             )
             val percent = if (allocation.totalBilled <= 0.0) {
                 0
