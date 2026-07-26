@@ -35,7 +35,34 @@ class EobHistoryScreenTest {
         assertEquals(1, sections[0].rows.size)
         assertEquals(1, sections[1].rows.size)
         assertTrue(sections[0].rows.first().isFirstInMonth)
-        assertEquals(sections[0].lazySectionKey(), "section-${sections[0].monthSortKey}")
+        assertEquals(sections[0].lazySectionKey(), "section-month-${sections[0].monthSortKey}")
+    }
+
+    @Test
+    fun groupHistoryByProviderBuildsProviderSectionsSortedByBilledAmount() {
+        val alphaLow = sampleRecord(id = 1, rawText = "01/15/2026 billed \$50").copy(
+            providerName = "Alpha Clinic",
+            totalBilledAmount = 50.0
+        )
+        val alphaHigh = sampleRecord(id = 2, rawText = "02/10/2026 billed \$200").copy(
+            providerName = "Alpha Clinic",
+            totalBilledAmount = 200.0
+        )
+        val beta = sampleRecord(id = 3, rawText = "03/01/2026 billed \$90").copy(
+            providerName = "Beta Clinic",
+            totalBilledAmount = 90.0
+        )
+
+        val sections = EobAnalyzer.groupHistoryByProvider(
+            listOf(alphaLow, alphaHigh, beta),
+            app.eob.me.data.AppLanguage.English
+        )
+
+        assertEquals(2, sections.size)
+        assertEquals("Alpha Clinic", sections[0].header)
+        assertEquals(200.0, sections[0].rows.first().record.totalBilledAmount, 0.01)
+        assertEquals("Beta Clinic", sections[1].header)
+        assertTrue(sections[0].lazySectionKey().startsWith("section-provider-"))
     }
 
     @Test
@@ -196,11 +223,11 @@ class EobHistoryScreenTest {
     }
 
     @Test
-    fun historyAppealPillsStackVerticallyWithAppealLabels() {
+    fun historyAppealPillsLayOutHorizontallyWithAppealLabels() {
         val source = readSource("ui/screens/EobHistoryScreen.kt")
         val buttonsIndex = source.indexOf("private fun HistoryAppealPillButtons")
         val buttonsBlock = source.substring(buttonsIndex, buttonsIndex + 900)
-        assertTrue(buttonsBlock.contains("Column("))
+        assertTrue(buttonsBlock.contains("Row("))
         assertTrue(buttonsBlock.contains("historyAppealDoctorPill"))
         assertTrue(buttonsBlock.contains("historyAppealInsurancePill"))
         assertTrue(buttonsBlock.indexOf("historyAppealDoctorPill") < buttonsBlock.indexOf("historyAppealInsurancePill"))

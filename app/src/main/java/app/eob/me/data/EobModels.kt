@@ -441,13 +441,14 @@ data class HistoryTimelineRow(
     val isLastInMonth: Boolean
 )
 
-/** Month-grouped history section with stable LazyColumn keys (never key on header text alone). */
+/** Month- or provider-grouped history section with stable LazyColumn keys (never key on header text alone). */
 data class HistoryTimelineSection(
     val monthSortKey: Int,
     val header: String,
-    val rows: List<HistoryTimelineRow>
+    val rows: List<HistoryTimelineRow>,
+    val sectionIdentity: String = monthSortKey.toString()
 ) {
-    fun lazySectionKey(): String = "section-$monthSortKey"
+    fun lazySectionKey(): String = "section-$sectionIdentity"
 
     fun lazyItemKey(record: EobRecord): String = "${lazySectionKey()}-${record.historyListKey()}"
 }

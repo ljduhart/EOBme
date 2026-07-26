@@ -44,7 +44,8 @@
          Veryfi OCR/custom-field rules via VeryfiOcrFieldExtractor on hybrid stream payload;
          ML Kit document scanner helpers retained for hybrid pipeline utilities;
          care team dial uses ACTION_DIAL only
-         (no CALL_PHONE). Profile darkModeEnabled persisted in hubSettings. Runtime permissions in EobNavHost. -->
+         (no CALL_PHONE). Profile darkModeEnabled persisted in hubSettings. Runtime permissions in EobNavHost.
+         MainActivity is resizeable for tablets and large screens; no orientation lock on phones. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
@@ -66,6 +67,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:enableOnBackInvokedCallback="true"
+            android:resizeableActivity="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.EOBme"
             android:windowSoftInputMode="adjustResize">
