@@ -14,7 +14,9 @@ object InsuranceEobRecordBridge {
         rawText: String = ""
     ): EobRecord {
         val documentId = HybridDocumentRef.stableDocumentId(documentRefId)
-        val charges = document.allServiceLines.map { it.toEobCharge() }
+        val charges = EobAnalyzer.chargesWithBillableAmounts(
+            document.allServiceLines.map { it.toEobCharge() }
+        )
         val providers = document.claims.map { it.providerName }.filter { it.isNotBlank() }.distinct()
         val primaryProvider = providers.joinToString(" / ")
         val primaryDateIso = document.allServiceLines

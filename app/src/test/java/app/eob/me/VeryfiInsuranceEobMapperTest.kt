@@ -252,7 +252,9 @@ class VeryfiInsuranceEobMapperTest {
 
         assertEquals("BlueCross BlueShield of Texas", record.insuranceName)
         assertEquals("ALAMO FAMILY & COSMETIC D", record.providerName)
-        assertEquals(8, record.charges.size)
+        val billableCount = normalized.document.allServiceLines.count { it.billedAmount > 0.0 }
+        assertEquals(billableCount, record.charges.size)
+        assertTrue(record.charges.all { it.billedAmount > 0.0 })
         assertTrue(record.totalBilledAmount > 0.0)
         assertTrue(record.totalPatientResponsibility > 0.0)
         assertEquals("03/21/2026", record.charges.first().serviceDate)

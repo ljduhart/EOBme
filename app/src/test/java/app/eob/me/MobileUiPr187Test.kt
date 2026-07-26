@@ -31,15 +31,14 @@ class MobileUiPr187Test {
     }
 
     @Test
-    fun eobHistoryShowsCopayDeductibleCoinsuranceAndChargeDetails() {
+    fun eobHistoryShowsCopayDeductibleCoinsuranceAtRecordLevelWhenSelected() {
         val historySource = readSource("ui/screens/EobHistoryScreen.kt")
+        assertTrue(historySource.contains("HistoryReceiptAmountBreakdown"))
         assertTrue(historySource.contains("record.totalCopayAmount.asCurrency()"))
         assertTrue(historySource.contains("record.totalDeductibleAmount.asCurrency()"))
         assertTrue(historySource.contains("record.totalCoinsuranceAmount.asCurrency()"))
-        assertTrue(historySource.contains("ReceiptChargeDetailRows"))
-        assertTrue(historySource.contains("charge.copayAmount.asCurrency()"))
-        assertTrue(historySource.contains("charge.deductibleAmount.asCurrency()"))
-        assertTrue(historySource.contains("charge.coinsuranceAmount.asCurrency()"))
+        assertFalse(historySource.contains("ReceiptChargeDetailRows"))
+        assertFalse(historySource.contains("charge.copayAmount.asCurrency()"))
     }
 
     @Test

@@ -2388,9 +2388,9 @@ class EobFlowArchitectureTest {
             assertTrue("PR#132: history appeal pills missing $snippet", historySource.contains(snippet))
         }
         assertTrue(
-            "PR#132: appeal pills must sit between patient responsibility and CPT codes",
-            historySource.indexOf("emphasized = true") < historySource.indexOf("HistoryAppealPillButtons") &&
-                historySource.indexOf("HistoryAppealPillButtons") < historySource.indexOf("historyProcedureCodes")
+            "PR#132: appeal pills and amount breakdown must sit before CPT codes when selected",
+            historySource.indexOf("HistoryAppealPillButtons") < historySource.indexOf("HistoryReceiptAmountBreakdown") &&
+                historySource.indexOf("HistoryReceiptAmountBreakdown") < historySource.indexOf("historyProcedureCodes")
         )
         listOf(
             "openAppealForRecord",

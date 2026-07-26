@@ -199,7 +199,7 @@ class EobHistoryScreenTest {
     fun historyAppealPillsStackVerticallyWithAppealLabels() {
         val source = readSource("ui/screens/EobHistoryScreen.kt")
         val buttonsIndex = source.indexOf("private fun HistoryAppealPillButtons")
-        val buttonsBlock = source.substring(buttonsIndex, buttonsIndex + 700)
+        val buttonsBlock = source.substring(buttonsIndex, buttonsIndex + 900)
         assertTrue(buttonsBlock.contains("Column("))
         assertTrue(buttonsBlock.contains("historyAppealDoctorPill"))
         assertTrue(buttonsBlock.contains("historyAppealInsurancePill"))

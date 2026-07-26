@@ -18,7 +18,12 @@ object EobAnalyzer {
         val serviceDate = findServiceDate(cleanedText)
         val lines = cleanedText.lines().filter { it.isNotBlank() }
         val lineCharges = lines.mapNotNull { parseChargeLine(it, serviceDate) }
-        val charges = if (lineCharges.isNotEmpty()) lineCharges else parseDocumentLevelCharge(cleanedText, serviceDate)
+        val parsedCharges = if (lineCharges.isNotEmpty()) {
+            lineCharges
+        } else {
+            parseDocumentLevelCharge(cleanedText, serviceDate)
+        }
+        val charges = chargesWithBillableAmounts(parsedCharges)
         val warnings = duplicateWarnings(charges)
 
         // Independent Totals Extraction
@@ -119,6 +124,16 @@ object EobAnalyzer {
             .trim()
     }
 
+    /** CPT lines with no billed amount are omitted from storage and every UI surface. */
+    fun chargesWithBillableAmounts(charges: List<EobCharge>): List<EobCharge> =
+        charges.filter { it.billedAmount > 0.0 }
+
+    fun sanitizeRecordCharges(record: EobRecord): EobRecord =
+        record.copy(charges = chargesWithBillableAmounts(record.charges))
+
+    fun sanitizeRecordsCharges(records: List<EobRecord>): List<EobRecord> =
+        records.map(::sanitizeRecordCharges)
+
     fun findInsuranceName(text: String): String {
         return EobKnowledgeBase.insuranceNames
             .sortedByDescending { it.length }
@@ -164,7 +179,8 @@ object EobAnalyzer {
     fun cptUsage(records: List<EobRecord>, year: Int): List<CptUsage> {
         return records
             .flatMap { record ->
-                record.charges.filter { charge -> serviceYear(charge.serviceDate) == year }
+                chargesWithBillableAmounts(record.charges)
+                    .filter { charge -> serviceYear(charge.serviceDate) == year }
             }
             .groupingBy { it.cptCode }
             .eachCount()
@@ -651,7 +667,7 @@ object EobAnalyzer {
             }
             merged
         }
-        return compacted.distinctBy { it.historyListKey() }
+        return sanitizeRecordsCharges(compacted.distinctBy { it.historyListKey() })
     }
 
     private fun preferRicherEobRecord(existing: EobRecord, incoming: EobRecord): EobRecord {

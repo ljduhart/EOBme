@@ -364,6 +364,22 @@ class ExampleUnitTest {
                 "billed_amount" to "$310.00",
                 "insurance_paid" to "$130.00",
                 "contractual_adj" to "$105.00",
+                "charges" to listOf(
+                    mapOf(
+                        "cptCode" to "99215",
+                        "billedAmount" to 200.0,
+                        "insurancePaidAmount" to 80.0,
+                        "contractualAdjustmentAmount" to 70.0,
+                        "serviceDate" to "02/03/2026"
+                    ),
+                    mapOf(
+                        "cptCode" to "J3301",
+                        "billedAmount" to 110.0,
+                        "insurancePaidAmount" to 50.0,
+                        "contractualAdjustmentAmount" to 35.0,
+                        "serviceDate" to "02/03/2026"
+                    )
+                ),
                 "cptCodes" to listOf("99215", "J3301")
             ),
             documentId = "firebase-doc-2"

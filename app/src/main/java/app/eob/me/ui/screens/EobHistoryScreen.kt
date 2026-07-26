@@ -80,6 +80,7 @@ import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.data.CptGlobalPeriodAlert
 import app.eob.me.data.UpcodingVerificationAlert
+import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.EobRecord
@@ -648,7 +649,8 @@ private fun WalletReceiptCard(
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit
 ) {
-    val lineCount = record.charges.size.coerceAtLeast(1)
+    val billableCharges = remember(record) { EobAnalyzer.chargesWithBillableAmounts(record.charges) }
+    val lineCount = billableCharges.size.coerceAtLeast(1)
     val elevation = if (isExpanded) 12.dp else 3.dp
 
     Card(
@@ -738,49 +740,31 @@ private fun WalletReceiptCard(
             }
 
             if (isExpanded) {
-                Spacer(modifier = Modifier.height(14.dp))
-                ReceiptDashedDivider()
-                Spacer(modifier = Modifier.height(14.dp))
-                ReceiptAmountRow(
-                    label = EobStrings.t(language, "billed"),
-                    amount = record.totalBilledAmount.asCurrency()
-                )
-                ReceiptAmountRow(
-                    label = EobStrings.t(language, "contractualAdjustment"),
-                    amount = record.totalContractualAdjustmentAmount.asCurrency()
-                )
-                ReceiptAmountRow(
-                    label = EobStrings.t(language, "paid"),
-                    amount = record.totalInsurancePaidAmount.asCurrency()
-                )
-                ReceiptAmountRow(
-                    label = EobStrings.t(language, "copay"),
-                    amount = record.totalCopayAmount.asCurrency()
-                )
-                ReceiptAmountRow(
-                    label = EobStrings.t(language, "deductible"),
-                    amount = record.totalDeductibleAmount.asCurrency()
-                )
-                ReceiptAmountRow(
-                    label = EobStrings.t(language, "coinsurance"),
-                    amount = record.totalCoinsuranceAmount.asCurrency()
-                )
-                ReceiptAmountRow(
-                    label = EobStrings.t(language, "patientResponsibility"),
-                    amount = record.totalPatientResponsibility.asCurrency(),
-                    emphasized = true
-                )
-
                 if (isSelected) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    ReceiptDashedDivider()
                     Spacer(modifier = Modifier.height(12.dp))
-                    HistoryAppealPillButtons(
-                        language = language,
-                        onDoctorAppealRequested = onDoctorAppealRequested,
-                        onAppealInsurance = onAppealInsurance
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        HistoryAppealPillButtons(
+                            language = language,
+                            onDoctorAppealRequested = onDoctorAppealRequested,
+                            onAppealInsurance = onAppealInsurance,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        HistoryReceiptAmountBreakdown(
+                            language = language,
+                            record = record,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
 
-                if (record.charges.isNotEmpty()) {
+                if (billableCharges.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(14.dp))
                     ReceiptDashedDivider()
                     Spacer(modifier = Modifier.height(10.dp))
@@ -791,7 +775,7 @@ private fun WalletReceiptCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    record.charges.forEach { charge ->
+                    billableCharges.forEach { charge ->
                         ReceiptCptLine(
                             language = language,
                             charge = charge,
@@ -806,13 +790,71 @@ private fun WalletReceiptCard(
 }
 
 @Composable
+private fun HistoryReceiptAmountBreakdown(
+    language: AppLanguage,
+    record: EobRecord,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        if (record.totalBilledAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "billed"),
+                amount = record.totalBilledAmount.asCurrency()
+            )
+        }
+        if (record.totalContractualAdjustmentAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "contractualAdjustment"),
+                amount = record.totalContractualAdjustmentAmount.asCurrency()
+            )
+        }
+        if (record.totalInsurancePaidAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "paid"),
+                amount = record.totalInsurancePaidAmount.asCurrency()
+            )
+        }
+        if (record.totalCopayAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "copay"),
+                amount = record.totalCopayAmount.asCurrency()
+            )
+        }
+        if (record.totalDeductibleAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "deductible"),
+                amount = record.totalDeductibleAmount.asCurrency()
+            )
+        }
+        if (record.totalCoinsuranceAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "coinsurance"),
+                amount = record.totalCoinsuranceAmount.asCurrency()
+            )
+        }
+        if (record.totalPatientResponsibility > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "patientResponsibility"),
+                amount = record.totalPatientResponsibility.asCurrency(),
+                emphasized = true
+            )
+        }
+    }
+}
+
+@Composable
 private fun HistoryAppealPillButtons(
     language: AppLanguage,
     onDoctorAppealRequested: () -> Unit,
-    onAppealInsurance: () -> Unit
+    onAppealInsurance: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.Start
     ) {
@@ -972,37 +1014,26 @@ private fun ReceiptCptLine(
     upcodingVerification: UpcodingVerificationAlert?
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 3.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+                .padding(vertical = 3.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = EobStrings.tf(language, "cptCodeLabel", charge.cptCode),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (charge.cptDescription.isNotBlank()) {
-                    Text(
-                        text = charge.cptDescription,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = charge.billedAmount.asCurrency(),
+                text = EobStrings.tf(language, "cptCodeLabel", charge.cptCode),
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            if (charge.cptDescription.isNotBlank()) {
+                Text(
+                    text = charge.cptDescription,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
         if (upcodingVerification != null) {
             UpcodingVerificationBubble(
@@ -1016,80 +1047,6 @@ private fun ReceiptCptLine(
                 alert = globalPeriodAlert
             )
         }
-        ReceiptChargeDetailRows(language = language, charge = charge)
-    }
-}
-
-@Composable
-private fun ReceiptChargeDetailRows(
-    language: AppLanguage,
-    charge: EobCharge
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 4.dp, top = 2.dp, bottom = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        ReceiptMiniAmountRow(
-            label = EobStrings.t(language, "billed"),
-            amount = charge.billedAmount.asCurrency()
-        )
-        ReceiptMiniAmountRow(
-            label = EobStrings.t(language, "paid"),
-            amount = charge.insurancePaidAmount.asCurrency()
-        )
-        ReceiptMiniAmountRow(
-            label = EobStrings.t(language, "contractualAdjustment"),
-            amount = charge.contractualAdjustmentAmount.asCurrency()
-        )
-        ReceiptMiniAmountRow(
-            label = EobStrings.t(language, "copay"),
-            amount = charge.copayAmount.asCurrency()
-        )
-        ReceiptMiniAmountRow(
-            label = EobStrings.t(language, "deductible"),
-            amount = charge.deductibleAmount.asCurrency()
-        )
-        ReceiptMiniAmountRow(
-            label = EobStrings.t(language, "coinsurance"),
-            amount = charge.coinsuranceAmount.asCurrency()
-        )
-        val patientShare = charge.copayAmount + charge.deductibleAmount + charge.coinsuranceAmount
-        ReceiptMiniAmountRow(
-            label = EobStrings.t(language, "patientResponsibility"),
-            amount = patientShare.asCurrency(),
-            emphasized = true
-        )
-    }
-}
-
-@Composable
-private fun ReceiptMiniAmountRow(
-    label: String,
-    amount: String,
-    emphasized: Boolean = false
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = amount,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
-            color = if (emphasized) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            }
-        )
     }
 }
 

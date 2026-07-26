@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import androidx.compose.ui.text.font.FontWeight
+import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobStrings
 import app.eob.me.data.EobRecord
@@ -611,14 +612,15 @@ private fun VaultEvidenceEobPreviewContent(
                 fontWeight = FontWeight.SemiBold
             )
         }
-        if (record.charges.isNotEmpty()) {
+        val billableCharges = EobAnalyzer.chargesWithBillableAmounts(record.charges)
+        if (billableCharges.isNotEmpty()) {
             Text(
                 text = EobStrings.t(language, "historyProcedureCodes"),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF546E7A)
             )
-            record.charges.forEach { charge ->
+            billableCharges.forEach { charge ->
                 VaultEvidenceChargeLine(language = language, charge = charge)
             }
         }
