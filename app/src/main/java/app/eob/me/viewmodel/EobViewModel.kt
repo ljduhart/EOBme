@@ -1974,7 +1974,7 @@ class EobViewModel : ViewModel() {
     ): List<HistoryTimelineSection> {
         val filtered = historyRecordsForDisplay(bentoFilter, searchQuery)
         val paymentFiltered = EobAnalyzer.filterHistoryByPayment(filtered, paymentFilter)
-        return EobAnalyzer.groupHistoryByProvider(paymentFiltered, language)
+        return EobAnalyzer.groupHistoryByMonth(paymentFiltered, language)
     }
 
     fun totalBillingErrors(records: List<EobRecord>): Int {

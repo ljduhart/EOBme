@@ -10,30 +10,33 @@ import java.io.File
 
 class MobileUiPr189Test {
     @Test
-    fun historyGroupsByProviderAndBilledAmount() {
+    fun historyGroupsByMonthForAccurateTimeline() {
         val analyzerSource = readSource("data/EobAnalyzer.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
-        assertTrue(analyzerSource.contains("fun groupHistoryByProvider"))
-        assertTrue(analyzerSource.contains("compareByDescending<EobRecord> { it.totalBilledAmount }"))
-        assertTrue(viewModelSource.contains("groupHistoryByProvider"))
+        assertTrue(analyzerSource.contains("fun groupHistoryByMonth"))
+        assertTrue(analyzerSource.contains("groupBy { monthSortKeyFromServiceDate"))
+        assertTrue(viewModelSource.contains("groupHistoryByMonth"))
+        assertFalse(analyzerSource.contains("fun groupHistoryByProvider"))
+        assertFalse(viewModelSource.contains("groupHistoryByProvider"))
     }
 
     @Test
-    fun providerGroupingSortsHighestBilledFirstWithinProvider() {
-        val lowBilled = sampleRecord(id = 1, provider = "Alpha Clinic", billed = 120.0, sortKey = 20260101)
-        val highBilled = sampleRecord(id = 2, provider = "Alpha Clinic", billed = 480.0, sortKey = 20260201)
-        val otherProvider = sampleRecord(id = 3, provider = "Beta Clinic", billed = 900.0, sortKey = 20260301)
+    fun monthGroupingKeepsSameMonthEobsTogetherRegardlessOfProvider() {
+        val clinicA = sampleRecord(id = 1, provider = "Alpha Clinic", billed = 120.0, sortKey = 20260115)
+        val clinicB = sampleRecord(id = 2, provider = "Beta Clinic", billed = 480.0, sortKey = 20260128)
+        val otherMonth = sampleRecord(id = 3, provider = "Gamma Clinic", billed = 900.0, sortKey = 20260201)
 
-        val sections = EobAnalyzer.groupHistoryByProvider(
-            listOf(lowBilled, highBilled, otherProvider),
+        val sections = EobAnalyzer.groupHistoryByMonth(
+            listOf(clinicA, clinicB, otherMonth),
             app.eob.me.data.AppLanguage.English
         )
 
         assertEquals(2, sections.size)
-        assertEquals("Alpha Clinic", sections[0].header)
-        assertEquals(480.0, sections[0].rows[0].record.totalBilledAmount, 0.01)
-        assertEquals(120.0, sections[0].rows[1].record.totalBilledAmount, 0.01)
-        assertEquals("Beta Clinic", sections[1].header)
+        assertEquals(1, sections[0].rows.size)
+        assertEquals(2, sections[1].rows.size)
+        assertTrue(sections[0].header.contains("FEBRUARY"))
+        assertTrue(sections[1].header.contains("JANUARY"))
+        assertTrue(sections[1].sectionIdentity.startsWith("month-"))
     }
 
     @Test

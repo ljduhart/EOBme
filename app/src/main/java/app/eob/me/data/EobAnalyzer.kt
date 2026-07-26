@@ -839,45 +839,6 @@ object EobAnalyzer {
             }
     }
 
-    fun providerHistoryKey(providerName: String, language: AppLanguage): String {
-        return providerName.trim().lowercase(Locale.US).ifBlank {
-            EobStrings.t(language, "providerNameMissing").lowercase(Locale.US)
-        }
-    }
-
-    fun groupHistoryByProvider(
-        records: List<EobRecord>,
-        language: AppLanguage
-    ): List<HistoryTimelineSection> {
-        val distinct = records.distinctBy { it.historyListKey() }
-        return distinct
-            .groupBy { providerHistoryKey(it.providerName, language) }
-            .entries
-            .sortedBy { it.key }
-            .map { (providerKey, providerRecords) ->
-                val sortedRecords = providerRecords.sortedWith(
-                    compareByDescending<EobRecord> { it.totalBilledAmount }
-                        .thenByDescending { it.serviceDateSortKey }
-                )
-                val header = sortedRecords.first().providerName.ifBlank {
-                    EobStrings.t(language, "providerNameMissing")
-                }
-                val rows = sortedRecords.mapIndexed { index, record ->
-                    HistoryTimelineRow(
-                        record = record,
-                        isFirstInMonth = index == 0,
-                        isLastInMonth = index == sortedRecords.lastIndex
-                    )
-                }
-                HistoryTimelineSection(
-                    monthSortKey = providerKey.hashCode(),
-                    header = header,
-                    sectionIdentity = "provider-$providerKey",
-                    rows = rows
-                )
-            }
-    }
-
     private fun normalizeYear(year: String): String {
         return if (year.length == 2) "20$year" else year
     }
