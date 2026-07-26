@@ -650,7 +650,7 @@ private fun WalletReceiptCard(
     onAppealInsurance: () -> Unit
 ) {
     val billableCharges = remember(record) { EobAnalyzer.chargesWithBillableAmounts(record.charges) }
-    val lineCount = billableCharges.size.coerceAtLeast(1)
+    val lineCount = billableCharges.size
     val elevation = if (isExpanded) 12.dp else 3.dp
 
     Card(
@@ -685,17 +685,19 @@ private fun WalletReceiptCard(
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.secondaryContainer
-                ) {
-                    Text(
-                        text = EobStrings.tf(language, "historyReceiptLineCount", lineCount),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                if (lineCount > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = EobStrings.tf(language, "historyReceiptLineCount", lineCount),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                 }
             }
 
@@ -834,13 +836,6 @@ private fun HistoryReceiptAmountBreakdown(
             ReceiptAmountRow(
                 label = EobStrings.t(language, "coinsurance"),
                 amount = record.totalCoinsuranceAmount.asCurrency()
-            )
-        }
-        if (record.totalPatientResponsibility > 0.0) {
-            ReceiptAmountRow(
-                label = EobStrings.t(language, "patientResponsibility"),
-                amount = record.totalPatientResponsibility.asCurrency(),
-                emphasized = true
             )
         }
     }
