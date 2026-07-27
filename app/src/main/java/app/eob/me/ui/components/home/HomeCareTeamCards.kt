@@ -13,10 +13,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -222,19 +219,16 @@ private fun CareTeamSmartCard(
                 scaleX = pressScale
                 scaleY = pressScale
             }
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    isPressed = true
-                    waitForUpOrCancellation()
-                    isPressed = false
-                }
-            }
-            .pointerInput(cardState.isCompleteWithPhone, doctor.phone) {
+            .pointerInput(cardState.phoneDialUri, doctor.phone) {
                 detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
                     onTap = { isFlipped = !isFlipped },
                     onDoubleTap = {
-                        if (cardState.isCompleteWithPhone) {
+                        if (cardState.phoneDialUri != null) {
                             dialCareTeamPhone(context, language, doctor.phone)
                         }
                     },
