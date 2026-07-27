@@ -334,6 +334,7 @@ object EobStrings {
         "historyFilterFlagged" to "Flagged",
         "historyReceiptLineCount" to "%d lines",
         "historyProcedureCodes" to "Procedure Codes (CPT)",
+        "historyClaimTotal" to "Claim total",
         "historyGlobalPeriodAlert" to "Heads up! A %d-day global period started on %s. Routine follow-up care for this procedure is fully covered until %s.",
         "historyUpcodingVerification" to "Your provider billed for a high-complexity visit. This code requires them to spend %s on your care for this encounter. Did your appointment take this long and involve complex medical care?",
         "historyUpcodingYes" to "Yes, it did",

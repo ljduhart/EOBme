@@ -11,7 +11,7 @@ class MobileUiPr179Test {
         val careTeamSource = readSource("ui/components/home/HomeCareTeamCards.kt")
         assertTrue(careTeamSource.contains("onTap = { isFlipped = !isFlipped }"))
         assertTrue(careTeamSource.contains("onDoubleTap = {"))
-        assertTrue(careTeamSource.contains("cardState.isCompleteWithPhone"))
+        assertTrue(careTeamSource.contains("cardState.phoneDialUri != null"))
         assertTrue(careTeamSource.contains("dialCareTeamPhone(context, language, doctor.phone)"))
         assertFalse(careTeamSource.contains("onCall = cardState.phoneDialUri"))
     }

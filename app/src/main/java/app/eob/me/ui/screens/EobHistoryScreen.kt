@@ -759,6 +759,13 @@ private fun WalletReceiptCard(
                             upcodingVerification = upcodingVerificationForCharge(record, charge)
                         )
                     }
+                    if (record.totalBilledAmount > 0.0) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        HistoryClaimTotalRow(
+                            language = language,
+                            record = record
+                        )
+                    }
                 }
             }
         }
@@ -1048,6 +1055,18 @@ private fun DoctorAppealStrategyFloater(
 }
 
 @Composable
+private fun HistoryClaimTotalRow(
+    language: AppLanguage,
+    record: EobRecord
+) {
+    ReceiptAmountRow(
+        label = EobStrings.t(language, "historyClaimTotal"),
+        amount = record.totalBilledAmount.asCurrency(),
+        emphasized = true
+    )
+}
+
+@Composable
 private fun ReceiptCptLine(
     language: AppLanguage,
     charge: EobCharge,
@@ -1055,26 +1074,37 @@ private fun ReceiptCptLine(
     upcodingVerification: UpcodingVerificationAlert?
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 3.dp)
+                .padding(vertical = 3.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
+            Column(modifier = Modifier.weight(1f, fill = false)) {
+                Text(
+                    text = EobStrings.tf(language, "cptCodeLabel", charge.cptCode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (charge.cptDescription.isNotBlank()) {
+                    Text(
+                        text = charge.cptDescription,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
             Text(
-                text = EobStrings.tf(language, "cptCodeLabel", charge.cptCode),
+                text = charge.billedAmount.asCurrency(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.End
             )
-            if (charge.cptDescription.isNotBlank()) {
-                Text(
-                    text = charge.cptDescription,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
         }
         if (upcodingVerification != null) {
             UpcodingVerificationBubble(

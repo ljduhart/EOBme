@@ -56,7 +56,6 @@ class MobileUiPr188Test {
         assertTrue(historySource.contains("EobAnalyzer.chargesWithBillableAmounts(record.charges)"))
         assertTrue(historySource.contains("if (lineCount > 0)"))
         assertFalse(historySource.contains("ReceiptChargeDetailRows"))
-        assertFalse(historySource.contains("charge.billedAmount.asCurrency()"))
         assertFalse(historySource.contains("HistorySelectedDetailStrip"))
         assertFalse(historySource.contains("HistoryExteriorBilledAmount"))
     }
@@ -71,7 +70,7 @@ class MobileUiPr188Test {
     fun smartCardsRetainDoubleTapDialWhenCompleteWithPhone() {
         val careTeamSource = readSource("ui/components/home/HomeCareTeamCards.kt")
         assertTrue(careTeamSource.contains("onDoubleTap = {"))
-        assertTrue(careTeamSource.contains("cardState.isCompleteWithPhone"))
+        assertTrue(careTeamSource.contains("cardState.phoneDialUri != null"))
         assertTrue(careTeamSource.contains("DeviceCallingUtils.safelyDialNumber"))
         assertTrue(careTeamSource.contains("Intent.ACTION_DIAL").not())
         assertTrue(careTeamSource.contains("safelyDialNumber"))
