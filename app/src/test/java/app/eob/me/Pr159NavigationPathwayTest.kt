@@ -44,10 +44,10 @@ class Pr159NavigationPathwayTest {
         assertTrue(vaultRouteBlock.contains("taxVaultEvidenceThumbnails()"))
         assertTrue(vaultRouteBlock.contains("selectTaxVaultEvidencePreview"))
         assertTrue(vaultRouteBlock.contains("popBackStack(EobRoute.Home.route"))
-        assertTrue(screenSource.contains("showMiniatureEvidence = true"))
+        assertTrue(screenSource.contains("showMiniatureEvidence = filterState != TaxVaultFilterState.FSA"))
         assertTrue(screenSource.contains("onEvidenceSelected = onEvidenceSelected"))
         assertTrue(filterSource.contains("onEvidenceSelected = onEvidenceSelected"))
-        assertFalse(screenSource.contains("VaultEvidenceCarousel("))
+        assertTrue(screenSource.contains("VaultEvidenceCarousel("))
     }
 
     @Test

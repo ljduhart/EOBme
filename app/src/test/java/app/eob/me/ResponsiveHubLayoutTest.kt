@@ -24,12 +24,13 @@ class ResponsiveHubLayoutTest {
     }
 
     @Test
-    fun taxVaultDashboardEmbedsMiniatureEvidenceInsideFilterCard() {
+    fun taxVaultDashboardEmbedsMiniatureEvidenceInsideFilterCardExceptFsa() {
         val screenSource = readSource("ui/screens/TaxVaultScreen.kt")
         val filterSource = readSource("ui/components/home/TaxVaultVerticalFilterCard.kt")
-        assertTrue(screenSource.contains("showMiniatureEvidence = true"))
+        assertTrue(screenSource.contains("showMiniatureEvidence = filterState != TaxVaultFilterState.FSA"))
         assertTrue(screenSource.contains("evidenceThumbnails = evidenceThumbnails"))
-        assertFalse(screenSource.contains("VaultEvidenceCarousel("))
+        assertTrue(screenSource.contains("filterState == TaxVaultFilterState.FSA && evidenceThumbnails.isNotEmpty()"))
+        assertTrue(screenSource.contains("VaultEvidenceCarousel("))
         assertTrue(filterSource.contains("showMiniatureEvidence && evidenceThumbnails.isNotEmpty()"))
     }
 

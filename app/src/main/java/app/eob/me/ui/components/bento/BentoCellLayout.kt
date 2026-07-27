@@ -9,6 +9,4 @@ package app.eob.me.ui.components.bento
 object BentoCellLayout {
     const val LEGACY_ASPECT_RATIO = 1.35f
     const val ASPECT_RATIO = LEGACY_ASPECT_RATIO / 1.5f
-    /** PR#187 provider-directory hub tile height — slimmer than standard bento cells. */
-    const val PROVIDER_DIRECTORY_ASPECT_RATIO = LEGACY_ASPECT_RATIO
 }

@@ -2616,7 +2616,7 @@ class EobFlowArchitectureTest {
         listOf(
             "TaxVaultScreen",
             "FsaDoomsdayMonitorCard",
-            "showMiniatureEvidence = true",
+            "showMiniatureEvidence = filterState != TaxVaultFilterState.FSA",
             "AsyncImage",
             "VaultExportSection",
             "EobRoute.TaxVault"

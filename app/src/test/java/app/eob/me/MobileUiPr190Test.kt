@@ -34,11 +34,11 @@ class MobileUiPr190Test {
     }
 
     @Test
-    fun providerDirectoryBentoUsesPr187LegacyAspectRatio() {
+    fun providerDirectoryBentoUsesSharedHubAspectRatioAfterPr191() {
         val layoutSource = readSource("ui/components/bento/BentoCellLayout.kt")
         val gridSource = readSource("ui/components/bento/BentoGridCell.kt")
-        assertTrue(layoutSource.contains("PROVIDER_DIRECTORY_ASPECT_RATIO = LEGACY_ASPECT_RATIO"))
-        assertTrue(gridSource.contains("BentoCellLayout.PROVIDER_DIRECTORY_ASPECT_RATIO"))
+        assertFalse(layoutSource.contains("PROVIDER_DIRECTORY_ASPECT_RATIO"))
+        assertTrue(gridSource.contains("cellAspectRatio = cellAspectRatio"))
     }
 
     @Test
