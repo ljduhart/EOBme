@@ -147,7 +147,7 @@ private fun BentoGridCellContent(
                 language = language,
                 avatars = providerAvatars,
                 directoryAssurance = providerDirectoryAssurance,
-                cellAspectRatio = BentoCellLayout.PROVIDER_DIRECTORY_ASPECT_RATIO,
+                cellAspectRatio = cellAspectRatio,
                 onClick = onClick,
                 modifier = modifier
             )

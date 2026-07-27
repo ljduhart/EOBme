@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -72,6 +73,7 @@ import app.eob.me.data.VaultSubstantiationStatus
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
 import app.eob.me.ui.components.taxvault.VaultAddReceiptButton
+import app.eob.me.ui.components.taxvault.VaultEvidenceCarousel
 import coil.compose.AsyncImage
 
 private val VaultInteriorBackground = Brush.verticalGradient(
@@ -253,6 +255,19 @@ private fun TaxVaultDashboard(
                 color = Color.White
             )
             FsaDoomsdayMonitorCard(language = language, snapshot = fsaSnapshot)
+            if (filterState == TaxVaultFilterState.FSA && evidenceThumbnails.isNotEmpty()) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val miniatureCardWidth = (maxWidth / 3.2f).coerceIn(88.dp, 108.dp)
+                    VaultEvidenceCarousel(
+                        language = language,
+                        thumbnails = evidenceThumbnails,
+                        onEvidenceSelected = onEvidenceSelected,
+                        titleColor = Color.White,
+                        miniatureCardWidth = miniatureCardWidth,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
             TaxVaultVerticalFilterCard(
                 language = language,
                 darkModeEnabled = darkModeEnabled,
@@ -264,7 +279,7 @@ private fun TaxVaultDashboard(
                 onVisibilityModeSelected = onVisibilityModeSelected,
                 onVaultDoorUnlocked = {},
                 showTitaniumDoor = false,
-                showMiniatureEvidence = true,
+                showMiniatureEvidence = filterState != TaxVaultFilterState.FSA,
                 evidenceThumbnails = evidenceThumbnails,
                 onEvidenceSelected = onEvidenceSelected,
                 modifier = Modifier

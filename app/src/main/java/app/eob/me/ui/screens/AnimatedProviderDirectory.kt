@@ -63,6 +63,20 @@ import androidx.compose.ui.unit.sp
 import java.util.Locale
 import kotlinx.coroutines.delay
 
+private const val ProviderDirectoryVerticalScale = 0.85f
+
+private val ProviderListItemSpacing = (12 * ProviderDirectoryVerticalScale).dp
+private val ProviderCardPadding = (16 * ProviderDirectoryVerticalScale).dp
+private val ProviderAvatarSize = (48 * ProviderDirectoryVerticalScale).dp
+private val ProviderHeaderSpacerWidth = (16 * ProviderDirectoryVerticalScale).dp
+private val ProviderBadgeSpacerWidth = (8 * ProviderDirectoryVerticalScale).dp
+private val ProviderNameSpacerHeight = (4 * ProviderDirectoryVerticalScale).dp
+private val ProviderExpandedTopPadding = (16 * ProviderDirectoryVerticalScale).dp
+private val ProviderExpandedSectionSpacer = (16 * ProviderDirectoryVerticalScale).dp
+private val ProviderAssuranceIconSize = (16 * ProviderDirectoryVerticalScale).dp
+private val ProviderExpandIconSize = (18 * ProviderDirectoryVerticalScale).dp
+private val ProviderViewRecordsFontSize = (15 * ProviderDirectoryVerticalScale).sp
+
 enum class NetworkStatus(
     val label: String,
     val containerColor: Color,
@@ -134,7 +148,7 @@ fun AnimatedProviderDirectoryScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(ProviderListItemSpacing)
         ) {
             itemsIndexed(items = providers, key = { _, item -> item.id }) { index, provider ->
                 val visibleState = remember(provider.id) { MutableTransitionState(false) }
@@ -181,7 +195,7 @@ fun ExpandableProviderCard(
             .fillMaxWidth()
             .animateContentSize(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(ProviderCardPadding)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -190,7 +204,7 @@ fun ExpandableProviderCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(ProviderAvatarSize)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
@@ -203,7 +217,7 @@ fun ExpandableProviderCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(ProviderHeaderSpacerWidth))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -218,31 +232,36 @@ fun ExpandableProviderCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(ProviderNameSpacerHeight))
                     AssuranceBadge(status = provider.networkStatus)
                 }
 
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = ProviderBadgeSpacerWidth)
                 ) {
                     Text(
                         text = "${provider.eobCount} EOBs",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(
+                            horizontal = (10 * ProviderDirectoryVerticalScale).dp,
+                            vertical = (4 * ProviderDirectoryVerticalScale).dp
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(ProviderBadgeSpacerWidth))
 
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowDown,
                     contentDescription = "Expand",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.rotate(arrowRotationDegree)
+                    modifier = Modifier
+                        .size(ProviderExpandIconSize)
+                        .rotate(arrowRotationDegree)
                 )
             }
 
@@ -251,12 +270,12 @@ fun ExpandableProviderCard(
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
-                Column(modifier = Modifier.padding(top = 16.dp)) {
+                Column(modifier = Modifier.padding(top = ProviderExpandedTopPadding)) {
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         thickness = 1.dp
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(ProviderExpandedSectionSpacer))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -283,7 +302,7 @@ fun ExpandableProviderCard(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(ProviderExpandedSectionSpacer))
 
                     TextButton(
                         onClick = onViewEobsClicked,
@@ -295,13 +314,13 @@ fun ExpandableProviderCard(
                         Text(
                             text = "View Records",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
+                            fontSize = ProviderViewRecordsFontSize
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width((4 * ProviderDirectoryVerticalScale).dp))
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
                             contentDescription = "View",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(ProviderExpandIconSize)
                         )
                     }
                 }
@@ -334,22 +353,29 @@ fun AssuranceBadge(status: NetworkStatus) {
         shape = RoundedCornerShape(50),
         color = status.containerColor,
         border = BorderStroke(1.dp, status.borderColor),
-        modifier = Modifier.padding(top = 6.dp)
+        modifier = Modifier.padding(top = (6 * ProviderDirectoryVerticalScale).dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 6.dp, end = 10.dp, top = 4.dp, bottom = 4.dp)
+            modifier = Modifier.padding(
+                start = (6 * ProviderDirectoryVerticalScale).dp,
+                end = (10 * ProviderDirectoryVerticalScale).dp,
+                top = (4 * ProviderDirectoryVerticalScale).dp,
+                bottom = (4 * ProviderDirectoryVerticalScale).dp
+            )
         ) {
             Icon(
                 imageVector = status.icon,
                 contentDescription = status.label,
                 tint = status.contentColor,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(ProviderAssuranceIconSize)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width((6 * ProviderDirectoryVerticalScale).dp))
             Text(
                 text = status.label,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = (12 * ProviderDirectoryVerticalScale).sp
+                ),
                 color = status.contentColor,
                 fontWeight = FontWeight.SemiBold
             )
