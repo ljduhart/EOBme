@@ -224,11 +224,11 @@ class EobHistoryScreenTest {
     }
 
     @Test
-    fun historyAppealPillsLayOutHorizontallyWithAppealLabels() {
+    fun historyAppealPillsLayOutVerticallyWithAppealLabels() {
         val source = readSource("ui/screens/EobHistoryScreen.kt")
         val buttonsIndex = source.indexOf("private fun HistoryAppealPillButtons")
         val buttonsBlock = source.substring(buttonsIndex, buttonsIndex + 900)
-        assertTrue(buttonsBlock.contains("Row("))
+        assertTrue(buttonsBlock.contains("Column("))
         assertTrue(buttonsBlock.contains("historyAppealDoctorPill"))
         assertTrue(buttonsBlock.contains("historyAppealInsurancePill"))
         assertTrue(buttonsBlock.indexOf("historyAppealDoctorPill") < buttonsBlock.indexOf("historyAppealInsurancePill"))

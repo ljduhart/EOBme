@@ -45,10 +45,11 @@ class MobileUiPr188Test {
     }
 
     @Test
-    fun eobHistoryShowsConditionalAmountsBesideAppealButtons() {
+    fun eobHistoryShowsVerticalSelectedDetailsWithPatientResponsibilityHeader() {
         val historySource = readSource("ui/screens/EobHistoryScreen.kt")
-        assertTrue(historySource.contains("HistoryExteriorBilledAmount"))
-        assertTrue(historySource.contains("HistorySelectedDetailStrip"))
+        assertTrue(historySource.contains("HistoryPatientResponsibilityHeader"))
+        assertTrue(historySource.contains("HistoryReceiptAmountBreakdown"))
+        assertTrue(historySource.contains("ReceiptAmountRow"))
         assertTrue(historySource.contains("if (record.totalCopayAmount > 0.0)"))
         assertTrue(historySource.contains("if (record.totalDeductibleAmount > 0.0)"))
         assertTrue(historySource.contains("if (record.totalCoinsuranceAmount > 0.0)"))
@@ -56,11 +57,8 @@ class MobileUiPr188Test {
         assertTrue(historySource.contains("if (lineCount > 0)"))
         assertFalse(historySource.contains("ReceiptChargeDetailRows"))
         assertFalse(historySource.contains("charge.billedAmount.asCurrency()"))
-        assertFalse(
-            historySource.substringAfter("private fun HistorySelectedDetailStrip")
-                .substringBefore("private fun HistoryDetailAmountChip")
-                .contains("totalBilledAmount")
-        )
+        assertFalse(historySource.contains("HistorySelectedDetailStrip"))
+        assertFalse(historySource.contains("HistoryExteriorBilledAmount"))
     }
 
     @Test

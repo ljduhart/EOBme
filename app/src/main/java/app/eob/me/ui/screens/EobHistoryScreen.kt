@@ -718,7 +718,7 @@ private fun WalletReceiptCard(
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            HistoryExteriorBilledAmount(
+            HistoryPatientResponsibilityHeader(
                 language = language,
                 record = record
             )
@@ -728,20 +728,16 @@ private fun WalletReceiptCard(
                     Spacer(modifier = Modifier.height(14.dp))
                     ReceiptDashedDivider()
                     Spacer(modifier = Modifier.height(12.dp))
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        HistoryAppealPillButtons(
-                            language = language,
-                            onDoctorAppealRequested = onDoctorAppealRequested,
-                            onAppealInsurance = onAppealInsurance
-                        )
-                        HistorySelectedDetailStrip(
-                            language = language,
-                            record = record
-                        )
-                    }
+                    HistoryReceiptAmountBreakdown(
+                        language = language,
+                        record = record
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HistoryAppealPillButtons(
+                        language = language,
+                        onDoctorAppealRequested = onDoctorAppealRequested,
+                        onAppealInsurance = onAppealInsurance
+                    )
                 }
 
                 if (billableCharges.isNotEmpty()) {
@@ -770,7 +766,7 @@ private fun WalletReceiptCard(
 }
 
 @Composable
-private fun HistoryExteriorBilledAmount(
+private fun HistoryPatientResponsibilityHeader(
     language: AppLanguage,
     record: EobRecord
 ) {
@@ -780,121 +776,114 @@ private fun HistoryExteriorBilledAmount(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = EobStrings.t(language, "billed"),
+            text = EobStrings.t(language, "patientResponsibility"),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.SemiBold
         )
         Text(
-            text = record.totalBilledAmount.asCurrency(),
+            text = record.totalPatientResponsibility.asCurrency(),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary
+            color = if (record.totalPatientResponsibility > 0) {
+                Color(0xFFE53935)
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
         )
     }
 }
 
-private data class HistoryDetailAmount(
-    val label: String,
-    val amount: String,
-    val emphasized: Boolean = false
-)
-
 @Composable
-private fun HistorySelectedDetailStrip(
+private fun HistoryReceiptAmountBreakdown(
     language: AppLanguage,
-    record: EobRecord
+    record: EobRecord,
+    modifier: Modifier = Modifier
 ) {
-    val detailAmounts = buildList {
-        if (record.totalDeductibleAmount > 0.0) {
-            add(
-                HistoryDetailAmount(
-                    label = EobStrings.t(language, "deductible"),
-                    amount = record.totalDeductibleAmount.asCurrency()
-                )
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        if (record.totalBilledAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "billed"),
+                amount = record.totalBilledAmount.asCurrency()
             )
         }
         if (record.totalContractualAdjustmentAmount > 0.0) {
-            add(
-                HistoryDetailAmount(
-                    label = EobStrings.t(language, "contractualAdjustment"),
-                    amount = record.totalContractualAdjustmentAmount.asCurrency()
-                )
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "contractualAdjustment"),
+                amount = record.totalContractualAdjustmentAmount.asCurrency()
+            )
+        }
+        if (record.totalInsurancePaidAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "paid"),
+                amount = record.totalInsurancePaidAmount.asCurrency()
             )
         }
         if (record.totalCopayAmount > 0.0) {
-            add(
-                HistoryDetailAmount(
-                    label = EobStrings.t(language, "copay"),
-                    amount = record.totalCopayAmount.asCurrency()
-                )
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "copay"),
+                amount = record.totalCopayAmount.asCurrency()
+            )
+        }
+        if (record.totalDeductibleAmount > 0.0) {
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "deductible"),
+                amount = record.totalDeductibleAmount.asCurrency()
             )
         }
         if (record.totalCoinsuranceAmount > 0.0) {
-            add(
-                HistoryDetailAmount(
-                    label = EobStrings.t(language, "coinsurance"),
-                    amount = record.totalCoinsuranceAmount.asCurrency()
-                )
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "coinsurance"),
+                amount = record.totalCoinsuranceAmount.asCurrency()
             )
         }
         if (record.totalPatientResponsibility > 0.0) {
-            add(
-                HistoryDetailAmount(
-                    label = EobStrings.t(language, "patientResponsibility"),
-                    amount = record.totalPatientResponsibility.asCurrency(),
-                    emphasized = true
-                )
+            ReceiptAmountRow(
+                label = EobStrings.t(language, "patientResponsibility"),
+                amount = record.totalPatientResponsibility.asCurrency(),
+                emphasized = true
             )
-        }
-    }
-    if (detailAmounts.isEmpty()) return
-
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 2.dp)
-    ) {
-        items(detailAmounts, key = { it.label }) { detail ->
-            HistoryDetailAmountChip(detail = detail)
         }
     }
 }
 
 @Composable
-private fun HistoryDetailAmountChip(detail: HistoryDetailAmount) {
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = if (detail.emphasized) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        }
+private fun ReceiptAmountRow(
+    label: String,
+    amount: String,
+    emphasized: Boolean = false
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = detail.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = detail.amount,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (detail.emphasized) FontWeight.Bold else FontWeight.SemiBold,
-                color = if (detail.emphasized) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                maxLines = 1
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        Text(
+            text = amount,
+            style = if (emphasized) {
+                MaterialTheme.typography.titleSmall
+            } else {
+                MaterialTheme.typography.bodyMedium
+            },
+            fontWeight = if (emphasized) FontWeight.ExtraBold else FontWeight.SemiBold,
+            color = if (emphasized) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            textAlign = TextAlign.End
+        )
     }
 }
 
@@ -905,24 +894,22 @@ private fun HistoryAppealPillButtons(
     onAppealInsurance: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.Start
     ) {
         HistoryAppealPill(
             label = EobStrings.t(language, "historyAppealDoctorPill"),
             backgroundColor = Color(0xFF2979FF),
             contentDescription = EobStrings.t(language, "historyAppealDoctorPill"),
-            onClick = onDoctorAppealRequested,
-            modifier = Modifier.weight(1f)
+            onClick = onDoctorAppealRequested
         )
         HistoryAppealPill(
             label = EobStrings.t(language, "historyAppealInsurancePill"),
             backgroundColor = Color(0xFFE53935),
             contentDescription = EobStrings.t(language, "historyAppealInsurancePill"),
-            onClick = onAppealInsurance,
-            modifier = Modifier.weight(1f)
+            onClick = onAppealInsurance
         )
     }
 }
@@ -932,26 +919,20 @@ private fun HistoryAppealPill(
     label: String,
     backgroundColor: Color,
     contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(50),
         color = backgroundColor,
-        modifier = modifier.semantics { this.contentDescription = contentDescription }
+        modifier = Modifier.semantics { this.contentDescription = contentDescription }
     ) {
         Text(
             text = label,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            color = Color.White
         )
     }
 }

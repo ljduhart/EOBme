@@ -42,22 +42,27 @@ class MobileUiPr189Test {
     @Test
     fun eobHistoryShowsBilledOutsideAndHorizontalSelectedDetails() {
         val historySource = readSource("ui/screens/EobHistoryScreen.kt")
-        assertTrue(historySource.contains("HistoryExteriorBilledAmount"))
-        assertTrue(historySource.contains("HistorySelectedDetailStrip"))
-        assertTrue(historySource.contains("LazyRow"))
-        assertTrue(historySource.contains("HistoryDetailAmountChip"))
-        assertFalse(historySource.contains("HistoryReceiptAmountBreakdown"))
-        assertFalse(historySource.contains("private fun ReceiptAmountRow"))
+        assertTrue(historySource.contains("HistoryPatientResponsibilityHeader"))
+        assertTrue(historySource.contains("HistoryReceiptAmountBreakdown"))
+        assertTrue(historySource.contains("ReceiptAmountRow"))
+        assertTrue(historySource.contains("Arrangement.SpaceBetween"))
+        assertFalse(historySource.contains("HistoryExteriorBilledAmount"))
+        assertFalse(historySource.contains("HistorySelectedDetailStrip"))
+        assertFalse(historySource.contains("HistoryDetailAmountChip"))
     }
 
     @Test
     fun selectedDetailsHideZeroBalances() {
         val historySource = readSource("ui/screens/EobHistoryScreen.kt")
-        assertTrue(historySource.contains("if (record.totalDeductibleAmount > 0.0)"))
-        assertTrue(historySource.contains("if (record.totalContractualAdjustmentAmount > 0.0)"))
-        assertTrue(historySource.contains("if (record.totalCopayAmount > 0.0)"))
-        assertTrue(historySource.contains("if (record.totalCoinsuranceAmount > 0.0)"))
-        assertTrue(historySource.contains("if (record.totalPatientResponsibility > 0.0)"))
+        val breakdownBlock = historySource.substringAfter("private fun HistoryReceiptAmountBreakdown")
+            .substringBefore("private fun ReceiptAmountRow")
+        assertTrue(breakdownBlock.contains("if (record.totalDeductibleAmount > 0.0)"))
+        assertTrue(breakdownBlock.contains("if (record.totalContractualAdjustmentAmount > 0.0)"))
+        assertTrue(breakdownBlock.contains("if (record.totalCopayAmount > 0.0)"))
+        assertTrue(breakdownBlock.contains("if (record.totalCoinsuranceAmount > 0.0)"))
+        assertTrue(breakdownBlock.contains("if (record.totalPatientResponsibility > 0.0)"))
+        assertTrue(breakdownBlock.contains("if (record.totalBilledAmount > 0.0)"))
+        assertTrue(breakdownBlock.contains("if (record.totalInsurancePaidAmount > 0.0)"))
     }
 
     @Test

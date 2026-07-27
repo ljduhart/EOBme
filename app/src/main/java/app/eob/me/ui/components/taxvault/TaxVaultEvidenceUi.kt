@@ -66,8 +66,11 @@ private val MiniatureCardHeight = 148.dp
 private val MiniatureCardAspectRatio = MiniatureCardWidth / MiniatureCardHeight
 private val MiniatureCardMinWidth = 88.dp
 private val MiniatureCardMaxWidth = 108.dp
-private val AddReceiptButtonWidth = 96.dp
-private val AddReceiptButtonHeight = 108.dp
+private val AddReceiptButtonWidth = 81.6.dp
+private val AddReceiptButtonHeight = 91.8.dp
+private val AddReceiptIconWidth = 34.dp
+private val AddReceiptIconHeight = 37.4.dp
+private val AddReceiptLabelSize = 10.2.sp
 
 @Composable
 fun VaultEvidenceCarousel(
@@ -119,34 +122,29 @@ fun VaultAddReceiptButton(
         modifier = modifier
             .size(width = AddReceiptButtonWidth, height = AddReceiptButtonHeight)
             .vaultAddReceiptGlow()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(17.dp))
             .background(AddReceiptCyan)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 10.dp)
+            .padding(horizontal = 7.dp, vertical = 8.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .height(46.dp)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                VaultAddReceiptDocumentCameraIcon(
-                    modifier = Modifier.size(width = 40.dp, height = 44.dp)
-                )
-            }
+            VaultAddReceiptDocumentCameraIcon(
+                modifier = Modifier.size(width = AddReceiptIconWidth, height = AddReceiptIconHeight)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = EobStrings.t(language, "taxVaultAddReceipt"),
                 color = IconInk,
                 fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
+                fontSize = AddReceiptLabelSize,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
         }
         VaultSparkleAccent(
@@ -477,13 +475,13 @@ private fun Modifier.vaultAddReceiptGlow(): Modifier = drawBehind {
             AddReceiptGlow.toArgb()
         )
     }
-    drawContext.canvas.nativeCanvas.drawRoundRect(
+        drawContext.canvas.nativeCanvas.drawRoundRect(
         0f,
         0f,
         size.width,
         size.height,
-        20.dp.toPx(),
-        20.dp.toPx(),
+        17.dp.toPx(),
+        17.dp.toPx(),
         paint
     )
 }
