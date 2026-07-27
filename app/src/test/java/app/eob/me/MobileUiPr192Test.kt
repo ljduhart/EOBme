@@ -11,6 +11,8 @@ class MobileUiPr192Test {
         val careTeamSource = readSource("ui/components/home/HomeCareTeamCards.kt")
         assertTrue(careTeamSource.contains("onDoubleTap = {"))
         assertTrue(careTeamSource.contains("cardState.phoneDialUri != null"))
+        assertTrue(careTeamSource.contains("DeviceCallingUtils.hasDialablePhone(doctor.phone)"))
+        assertTrue(careTeamSource.contains("if (!DeviceCallingUtils.hasDialablePhone(phoneNumber)) return"))
         assertTrue(careTeamSource.contains("dialCareTeamPhone(context, language, doctor.phone)"))
         assertTrue(careTeamSource.contains("DeviceCallingUtils.safelyDialNumber"))
         assertFalse(careTeamSource.contains("awaitEachGesture"))

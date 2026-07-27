@@ -228,7 +228,10 @@ private fun CareTeamSmartCard(
                     },
                     onTap = { isFlipped = !isFlipped },
                     onDoubleTap = {
-                        if (cardState.phoneDialUri != null) {
+                        if (
+                            cardState.phoneDialUri != null &&
+                            DeviceCallingUtils.hasDialablePhone(doctor.phone)
+                        ) {
                             dialCareTeamPhone(context, language, doctor.phone)
                         }
                     },
@@ -553,6 +556,7 @@ private fun CareTeamDetailLine(
 }
 
 private fun dialCareTeamPhone(context: Context, language: AppLanguage, phoneNumber: String) {
+    if (!DeviceCallingUtils.hasDialablePhone(phoneNumber)) return
     when (DeviceCallingUtils.safelyDialNumber(context, phoneNumber)) {
         DeviceCallingUtils.DialOutcome.Dialed -> Unit
         DeviceCallingUtils.DialOutcome.NoTelephony,
