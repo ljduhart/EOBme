@@ -22,6 +22,12 @@ const {
   storageUploadReconciliationPatch,
   hybridFirestoreDocId
 } = require("./lib/hybridReconciliation");
+const {
+  createMailTransporter,
+  sendForgotUsernameReminder,
+  requestPasswordResetCode,
+  confirmPasswordResetCode
+} = require("./lib/authRecovery");
 const {extractWithVeryfi} = require("./lib/veryfiAnyDocClient");
 
 admin.initializeApp();
@@ -325,6 +331,96 @@ function computeServiceDateSortKey(dateStr) {
   if (!month || !day || !year) return 0;
   return year * 10000 + month * 100 + day;
 }
+
+// ----------------------------------------------------------------------
+// Account recovery (forgot username / password reset codes)
+// ----------------------------------------------------------------------
+exports.sendForgotUsernameReminder = onCall({
+  secrets: [smtpHost, smtpUser, smtpPass, smtpFrom],
+  timeoutSeconds: 60,
+  memory: "256MiB"
+}, async (request) => {
+  const { email } = request.data || {};
+  try {
+    if (!mailTransporter) {
+      mailTransporter = createMailTransporter(
+        smtpHost.value(),
+        smtpUser.value(),
+        smtpPass.value()
+      );
+    }
+    const result = await sendForgotUsernameReminder({
+      auth: admin.auth(),
+      transporter: mailTransporter,
+      fromAddress: smtpFrom.value(),
+      email
+    });
+    return result;
+  } catch (error) {
+    console.error("sendForgotUsernameReminder failed:", error);
+    mailTransporter = null;
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", "Could not send username reminder email.");
+  }
+});
+
+exports.requestPasswordResetCode = onCall({
+  secrets: [smtpHost, smtpUser, smtpPass, smtpFrom],
+  timeoutSeconds: 60,
+  memory: "256MiB"
+}, async (request) => {
+  const { email } = request.data || {};
+  try {
+    if (!mailTransporter) {
+      mailTransporter = createMailTransporter(
+        smtpHost.value(),
+        smtpUser.value(),
+        smtpPass.value()
+      );
+    }
+    const result = await requestPasswordResetCode({
+      db,
+      auth: admin.auth(),
+      transporter: mailTransporter,
+      fromAddress: smtpFrom.value(),
+      email,
+      FieldValue: admin.firestore.FieldValue,
+      Timestamp: admin.firestore.Timestamp
+    });
+    return result;
+  } catch (error) {
+    console.error("requestPasswordResetCode failed:", error);
+    mailTransporter = null;
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", "Could not send password reset code.");
+  }
+});
+
+exports.confirmPasswordResetCode = onCall({
+  timeoutSeconds: 60,
+  memory: "256MiB"
+}, async (request) => {
+  const { email, code, newPassword } = request.data || {};
+  try {
+    return await confirmPasswordResetCode({
+      db,
+      auth: admin.auth(),
+      email,
+      code,
+      newPassword
+    });
+  } catch (error) {
+    console.error("confirmPasswordResetCode failed:", error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", "Could not reset password.");
+  }
+});
 
 // ----------------------------------------------------------------------
 // External Communications Engine (Nodemailer)

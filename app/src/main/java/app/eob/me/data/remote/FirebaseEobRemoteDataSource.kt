@@ -124,6 +124,13 @@ class FirebaseEobRemoteDataSource(
         targetFirestoreId = targetFirestoreId
     )
 
+    override suspend fun discardPendingHybridScan(
+        userId: String,
+        pending: HybridScanPendingPersistence
+    ) {
+        firebase.discardPendingHybridScan(userId, pending)
+    }
+
     override suspend fun uploadAndExtractDocument(
         context: Context,
         userId: String,

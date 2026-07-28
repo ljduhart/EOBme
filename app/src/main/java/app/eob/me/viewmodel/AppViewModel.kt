@@ -280,6 +280,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         if (status.userId.isNotBlank()) {
                             auth?.currentUser?.sendEmailVerification()
+                                ?.addOnSuccessListener {
+                                    viewModelScope.launch {
+                                        withContext(Dispatchers.Main) {
+                                            _authMessage.value =
+                                                EobStrings.t(language, "verificationEmailSentSignup")
+                                        }
+                                    }
+                                }
+                                ?.addOnFailureListener { error ->
+                                    viewModelScope.launch {
+                                        withContext(Dispatchers.Main) {
+                                            _authMessage.value = error.localizedMessage
+                                                ?: EobStrings.t(language, "resendVerificationFailed")
+                                        }
+                                    }
+                                }
                             _awaitingEmailVerification.value = true
                             _registrationCredentials.value = RegistrationCredentials()
                         }

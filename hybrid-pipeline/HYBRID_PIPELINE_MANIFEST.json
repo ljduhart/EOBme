@@ -1,7 +1,7 @@
 {
   "version": 1,
   "authorizationRequired": true,
-  "updatedAt": "2026-07-03",
+  "updatedAt": "2026-07-28",
   "directive": "Protected files are READ-ONLY. Any change requires explicit owner authorization and updated sha256 entries in this manifest.",
   "immutableLaws": [
     "zero_client_side_veryfi_credentials",
@@ -56,7 +56,7 @@
     },
     {
       "path": "functions/index.js",
-      "sha256": "1289a1cf07cebfac447377231bd6010a82dce431cd9a251f91167286ae77d380",
+      "sha256": "9cc5b759b654f5b8329eeeac7ebe258ce876d1246e913ec5cb9ae907b49cc313",
       "tier": "hybrid-pipeline"
     },
     {

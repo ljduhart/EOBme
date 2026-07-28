@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
@@ -392,6 +393,31 @@ class FirebaseEobRepository(private val context: Context) {
             .addOnFailureListener { onComplete("EOB delete failed: ${it.localizedMessage}") }
     }
 
+    suspend fun discardPendingHybridScan(
+        userId: String,
+        pending: HybridScanPendingPersistence
+    ) {
+        if (!configured || userId.isBlank()) return
+        val stableDocId = HybridDocumentRef.stableDocumentId(pending.documentRefId)
+        val userRef = firestore().collection(USERS).document(userId)
+        val tombstone = mapOf(
+            "hybridReconciliationStatus" to "client_stream_committed",
+            "processedByClientStream" to "veryfi_hybrid",
+            "discardedPendingDuplicateScan" to true,
+            "updatedAt" to FieldValue.serverTimestamp()
+        )
+        val eobRef = userRef.collection(EOBS).document(stableDocId)
+        val legacyRef = userRef.collection(EOB_RECORDS).document(stableDocId)
+        awaitFirestoreSet(eobRef, tombstone)
+        awaitFirestoreSet(legacyRef, tombstone)
+
+        val storagePath = HybridDocumentRef.normalizeStoragePath(pending.storagePath)
+        awaitStorageDelete(storagePath)
+
+        awaitFirestoreDelete(eobRef)
+        awaitFirestoreDelete(legacyRef)
+    }
+
     fun uploadEobFile(userId: String, uri: Uri, sourceName: String, onComplete: (String) -> Unit) {
         if (!configured || userId.isBlank()) {
             onComplete("Please sign in before uploading an EOB.")
@@ -580,6 +606,56 @@ class FirebaseEobRepository(private val context: Context) {
     }
 
     private fun firestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+
+    private suspend fun awaitFirestoreSet(
+        documentRef: com.google.firebase.firestore.DocumentReference,
+        payload: Map<String, Any?>
+    ) {
+        suspendCancellableCoroutine { continuation ->
+            documentRef.set(payload, com.google.firebase.firestore.SetOptions.merge())
+                .addOnSuccessListener {
+                    if (continuation.isActive) continuation.resume(Unit)
+                }
+                .addOnFailureListener { error ->
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                }
+        }
+    }
+
+    private suspend fun awaitFirestoreDelete(
+        documentRef: com.google.firebase.firestore.DocumentReference
+    ) {
+        suspendCancellableCoroutine { continuation ->
+            documentRef.delete()
+                .addOnSuccessListener {
+                    if (continuation.isActive) continuation.resume(Unit)
+                }
+                .addOnFailureListener { error ->
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                }
+        }
+    }
+
+    private suspend fun awaitStorageDelete(storagePath: String) {
+        if (storagePath.isBlank()) return
+        val storageRef = FirebaseStorage.getInstance().reference.child(storagePath)
+        suspendCancellableCoroutine { continuation ->
+            storageRef.delete()
+                .addOnSuccessListener {
+                    if (continuation.isActive) continuation.resume(Unit)
+                }
+                .addOnFailureListener { error ->
+                    if (continuation.isActive) {
+                        val notFound = error.message?.contains("Object does not exist", ignoreCase = true) == true
+                        if (notFound) {
+                            continuation.resume(Unit)
+                        } else {
+                            continuation.resumeWithException(error)
+                        }
+                    }
+                }
+        }
+    }
 
     private fun ensureConfigured(): Boolean {
         return try {
