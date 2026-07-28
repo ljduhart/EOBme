@@ -31,6 +31,7 @@ import app.eob.me.data.CareTeamCardDisplayState
 import app.eob.me.data.CareTeamStateExtractor
 import app.eob.me.data.EobHistoryPaymentFilter
 import app.eob.me.data.HistoryBentoFilter
+import app.eob.me.data.HybridDocumentRef
 import app.eob.me.data.HistoryTimelineSection
 import app.eob.me.data.InsuranceCardDisplay
 import app.eob.me.data.InsuranceCardNotesMetadata
@@ -2432,9 +2433,30 @@ class EobViewModel : ViewModel() {
     }
 
     fun onDiscardDuplicateScan() {
+        val warning = _duplicateEobWarningState.value
         _duplicateEobWarningState.value = null
         dismissDocumentScanState()
         setLoadingInvoice(false)
+        if (warning == null) return
+        val repo = repository ?: return
+        val stableDocId = HybridDocumentRef.stableDocumentId(warning.pendingScan.documentRefId)
+        documentScanJob?.cancel()
+        val generation = ++documentScanGeneration
+        documentScanJob = viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                repo.discardPendingHybridScan(
+                    userId = warning.userId,
+                    pending = warning.pendingScan
+                )
+            }
+            withContext(Dispatchers.Main) {
+                if (generation != documentScanGeneration) return@withContext
+                _eobRecords.value = _eobRecords.value.filter { record ->
+                    record.firestoreId != stableDocId &&
+                        record.firestoreId != warning.pendingScan.documentRefId
+                }
+            }
+        }
     }
 
     fun onOverwriteDuplicateScan() {

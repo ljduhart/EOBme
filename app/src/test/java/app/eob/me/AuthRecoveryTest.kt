@@ -127,9 +127,13 @@ class AuthRecoveryTest {
     @Test
     fun authRecoveryClientMatchesDeployedCallableNames() {
         val source = readSource("network/AuthRecoveryClient.kt")
+        val functionsSource = readFunctionsSource("index.js")
         assertTrue(source.contains("sendForgotUsernameReminder"))
         assertTrue(source.contains("requestPasswordResetCode"))
         assertTrue(source.contains("confirmPasswordResetCode"))
+        assertTrue(functionsSource.contains("exports.sendForgotUsernameReminder"))
+        assertTrue(functionsSource.contains("exports.requestPasswordResetCode"))
+        assertTrue(functionsSource.contains("exports.confirmPasswordResetCode"))
     }
 
     @Test
@@ -143,6 +147,13 @@ class AuthRecoveryTest {
             .takeIf { it.exists() }
             ?.readText()
             ?: java.io.File(relativePath).readText()
+    }
+
+    private fun readFunctionsSource(relativePath: String): String {
+        return java.io.File("functions/$relativePath")
+            .takeIf { it.exists() }
+            ?.readText()
+            ?: java.io.File("../functions/$relativePath").readText()
     }
 
     private fun setAuthRecoveryFlow(viewModel: AppViewModel, flow: AuthRecoveryFlow) {

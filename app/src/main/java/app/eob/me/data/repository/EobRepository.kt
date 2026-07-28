@@ -102,6 +102,11 @@ interface EobRepository {
         targetFirestoreId: String? = null
     ): VeryfiAnyDocExtractionResult
 
+    suspend fun discardPendingHybridScan(
+        userId: String,
+        pending: HybridScanPendingPersistence
+    )
+
     suspend fun uploadAndExtractDocument(
         context: Context,
         userId: String,

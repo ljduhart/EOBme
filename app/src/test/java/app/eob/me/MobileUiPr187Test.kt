@@ -13,6 +13,7 @@ class MobileUiPr187Test {
         assertTrue(viewModelSource.contains("fun evaluateNewScan(newEobData: EobRecord"))
         assertTrue(viewModelSource.contains("fun onDiscardDuplicateScan()"))
         assertTrue(viewModelSource.contains("fun onOverwriteDuplicateScan()"))
+        assertTrue(viewModelSource.contains("discardPendingHybridScan"))
         assertTrue(viewModelSource.contains("extractHybridScannedDocument"))
         assertTrue(viewModelSource.contains("persistHybridScannedDocument"))
     }
