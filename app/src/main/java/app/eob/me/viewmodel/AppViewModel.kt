@@ -9,6 +9,7 @@ import app.eob.me.data.EobStrings
 import app.eob.me.data.FirebaseEobRepository
 import app.eob.me.data.remote.FirebaseEobRemoteDataSource
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.data.FirebasePasswordResetState
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.UserProfile
 import app.eob.me.navigation.Screen
@@ -92,6 +93,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _passwordResetDraft = MutableStateFlow("")
     val passwordResetDraft: StateFlow<String> = _passwordResetDraft.asStateFlow()
+
+    private val _forgotPasswordDialogVisible = MutableStateFlow(false)
+    val forgotPasswordDialogVisible: StateFlow<Boolean> = _forgotPasswordDialogVisible.asStateFlow()
+
+    private val _forgotPasswordDialogEmail = MutableStateFlow("")
+    val forgotPasswordDialogEmail: StateFlow<String> = _forgotPasswordDialogEmail.asStateFlow()
+
+    private val _firebasePasswordResetState =
+        MutableStateFlow<FirebasePasswordResetState>(FirebasePasswordResetState.Idle)
+    val firebasePasswordResetState: StateFlow<FirebasePasswordResetState> =
+        _firebasePasswordResetState.asStateFlow()
 
     private val _splashComplete = MutableStateFlow(false)
     val splashComplete: StateFlow<Boolean> = _splashComplete.asStateFlow()
@@ -327,11 +339,65 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onForgotPassword() {
-        _authRecoveryFlow.value = AuthRecoveryFlow.ForgotPasswordEmail
-        _passwordResetEmail.value = _registrationCredentials.value.email.ifBlank { _profile.value.email }
-        _passwordResetCode.value = ""
-        _passwordResetDraft.value = ""
-        clearAuthMessage()
+        _forgotPasswordDialogEmail.value =
+            _registrationCredentials.value.email.ifBlank { _profile.value.email }
+        _firebasePasswordResetState.value = FirebasePasswordResetState.Idle
+        _forgotPasswordDialogVisible.value = true
+    }
+
+    fun onDismissForgotPasswordDialog() {
+        _forgotPasswordDialogVisible.value = false
+        _firebasePasswordResetState.value = FirebasePasswordResetState.Idle
+    }
+
+    fun onForgotPasswordDialogEmailChanged(email: String) {
+        _forgotPasswordDialogEmail.value = email
+        if (email != _profile.value.email) {
+            _profile.update { it.copy(email = email) }
+        }
+        _registrationCredentials.update { it.copy(email = email) }
+    }
+
+    fun sendPasswordResetEmail() {
+        val language = _language.value ?: AppLanguage.English
+        val email = _forgotPasswordDialogEmail.value.trim()
+        if (email.isBlank()) {
+            _firebasePasswordResetState.value = FirebasePasswordResetState.Error(
+                EobStrings.t(language, "forgotPasswordResetEmailRequired")
+            )
+            return
+        }
+        val firebaseAuth = auth
+        if (firebaseAuth == null || !firebaseConfigured) {
+            _firebasePasswordResetState.value = FirebasePasswordResetState.Error(
+                EobStrings.firebaseConfigMessage(language)
+            )
+            return
+        }
+        _firebasePasswordResetState.value = FirebasePasswordResetState.Loading
+        firebaseAuth.sendPasswordResetEmail(email)
+            .addOnSuccessListener {
+                viewModelScope.launch {
+                    withContext(Dispatchers.Main) {
+                        _firebasePasswordResetState.value = FirebasePasswordResetState.Success(
+                            EobStrings.t(language, "passwordResetSent")
+                        )
+                    }
+                }
+            }
+            .addOnFailureListener { error ->
+                viewModelScope.launch {
+                    withContext(Dispatchers.Main) {
+                        _firebasePasswordResetState.value = FirebasePasswordResetState.Error(
+                            error.localizedMessage ?: EobStrings.t(language, "authErrorGeneric")
+                        )
+                    }
+                }
+            }
+    }
+
+    fun consumeFirebasePasswordResetState() {
+        _firebasePasswordResetState.value = FirebasePasswordResetState.Idle
     }
 
     fun onForgotUsername() {
@@ -618,6 +684,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _isSignUp.value = null
         _signupTermsAccepted.value = false
         clearAuthRecoveryState()
+        onDismissForgotPasswordDialog()
         _awaitingEmailVerification.value = false
         _registrationCredentials.value = RegistrationCredentials()
         updateActivityTime()
@@ -636,6 +703,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _isSignUp.value = false
         _signupTermsAccepted.value = false
         clearAuthRecoveryState()
+        onDismissForgotPasswordDialog()
         _registrationCredentials.value = RegistrationCredentials(email = _profile.value.email)
         updateActivityTime()
     }

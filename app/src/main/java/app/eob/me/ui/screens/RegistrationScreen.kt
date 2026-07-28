@@ -2,6 +2,7 @@ package app.eob.me.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +39,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.AuthRecoveryFlow
 import app.eob.me.data.EobLegalUrls
 import app.eob.me.data.EobStrings
+import app.eob.me.data.FirebasePasswordResetState
 import app.eob.me.data.RegistrationCredentials
 import app.eob.me.data.ProfileFieldErrors
 import app.eob.me.data.UserProfile
@@ -148,7 +152,14 @@ fun AuthScreen(
     onPasswordResetDraftChanged: (String) -> Unit = {},
     onConfirmPasswordReset: () -> Unit = {},
     onResendVerification: () -> Unit = {},
-    onRefreshVerification: () -> Unit = {}
+    onRefreshVerification: () -> Unit = {},
+    forgotPasswordDialogVisible: Boolean = false,
+    forgotPasswordDialogEmail: String = "",
+    firebasePasswordResetState: FirebasePasswordResetState = FirebasePasswordResetState.Idle,
+    onDismissForgotPasswordDialog: () -> Unit = {},
+    onForgotPasswordDialogEmailChanged: (String) -> Unit = {},
+    onSendPasswordResetEmail: () -> Unit = {},
+    onConsumeFirebasePasswordResetState: () -> Unit = {}
 ) {
     if (awaitingEmailVerification) {
         EmailVerificationScreen(
@@ -224,7 +235,14 @@ fun AuthScreen(
             onToggleMode = onToggleMode,
             onSubmit = onSubmit,
             onForgotPassword = onForgotPassword,
-            onForgotUsername = onForgotUsername
+            onForgotUsername = onForgotUsername,
+            forgotPasswordDialogVisible = forgotPasswordDialogVisible,
+            forgotPasswordDialogEmail = forgotPasswordDialogEmail,
+            firebasePasswordResetState = firebasePasswordResetState,
+            onDismissForgotPasswordDialog = onDismissForgotPasswordDialog,
+            onForgotPasswordDialogEmailChanged = onForgotPasswordDialogEmailChanged,
+            onSendPasswordResetEmail = onSendPasswordResetEmail,
+            onConsumeFirebasePasswordResetState = onConsumeFirebasePasswordResetState
         )
     }
 }
@@ -281,7 +299,14 @@ fun RegistrationScreen(
     onToggleMode: () -> Unit,
     onSubmit: () -> Unit,
     onForgotPassword: () -> Unit = {},
-    onForgotUsername: () -> Unit = {}
+    onForgotUsername: () -> Unit = {},
+    forgotPasswordDialogVisible: Boolean = false,
+    forgotPasswordDialogEmail: String = "",
+    firebasePasswordResetState: FirebasePasswordResetState = FirebasePasswordResetState.Idle,
+    onDismissForgotPasswordDialog: () -> Unit = {},
+    onForgotPasswordDialogEmailChanged: (String) -> Unit = {},
+    onSendPasswordResetEmail: () -> Unit = {},
+    onConsumeFirebasePasswordResetState: () -> Unit = {}
 ) {
     val signupFieldsEnabled = !isSignUp || signupTermsAccepted
     Column(
@@ -335,6 +360,16 @@ fun RegistrationScreen(
                     }
                 }
             )
+            TextButton(
+                onClick = onForgotPassword,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = EobStrings.t(language, "forgotPassword"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         if (credentials.password.isNotBlank() && !credentials.isPasswordValid) {
             Text(EobStrings.t(language, "passwordRule"), color = MaterialTheme.colorScheme.error)
@@ -364,14 +399,95 @@ fun RegistrationScreen(
             Text(if (isSignUp) EobStrings.t(language, "login") else EobStrings.t(language, "createAccount"))
         }
         if (!isSignUp) {
-            OutlinedButton(onClick = onForgotPassword, modifier = Modifier.fillMaxWidth()) {
-                Text(EobStrings.t(language, "forgotPassword"))
-            }
             OutlinedButton(onClick = onForgotUsername, modifier = Modifier.fillMaxWidth()) {
                 Text(EobStrings.t(language, "forgotUsername"))
             }
         }
+        ForgotPasswordResetDialog(
+            language = language,
+            visible = forgotPasswordDialogVisible,
+            email = forgotPasswordDialogEmail,
+            resetState = firebasePasswordResetState,
+            onEmailChanged = onForgotPasswordDialogEmailChanged,
+            onSendResetLink = onSendPasswordResetEmail,
+            onDismiss = onDismissForgotPasswordDialog,
+            onResetStateConsumed = onConsumeFirebasePasswordResetState
+        )
     }
+}
+
+@Composable
+private fun ForgotPasswordResetDialog(
+    language: AppLanguage,
+    visible: Boolean,
+    email: String,
+    resetState: FirebasePasswordResetState,
+    onEmailChanged: (String) -> Unit,
+    onSendResetLink: () -> Unit,
+    onDismiss: () -> Unit,
+    onResetStateConsumed: () -> Unit
+) {
+    val context = LocalContext.current
+    val isLoading = resetState is FirebasePasswordResetState.Loading
+    LaunchedEffect(resetState) {
+        when (resetState) {
+            is FirebasePasswordResetState.Success -> {
+                Toast.makeText(context, resetState.message, Toast.LENGTH_LONG).show()
+                onDismiss()
+                onResetStateConsumed()
+            }
+            is FirebasePasswordResetState.Error -> {
+                Toast.makeText(context, resetState.message, Toast.LENGTH_LONG).show()
+                onResetStateConsumed()
+            }
+            else -> Unit
+        }
+    }
+    if (!visible) return
+    AlertDialog(
+        onDismissRequest = {
+            if (!isLoading) {
+                onDismiss()
+            }
+        },
+        title = {
+            Text(text = EobStrings.t(language, "forgotPasswordTitle"))
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = EobStrings.t(language, "forgotPasswordResetLinkHelp"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = onEmailChanged,
+                    label = { Text(EobStrings.t(language, "email")) },
+                    singleLine = true,
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onSendResetLink,
+                enabled = !isLoading
+            ) {
+                Text(EobStrings.t(language, "sendResetLink"))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isLoading
+            ) {
+                Text(EobStrings.t(language, "cancel"))
+            }
+        }
+    )
 }
 
 @Composable

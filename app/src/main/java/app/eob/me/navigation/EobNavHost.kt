@@ -124,6 +124,9 @@ fun EobNavHost(
     val passwordResetEmail by viewModel.passwordResetEmail.collectAsStateWithLifecycle()
     val passwordResetCode by viewModel.passwordResetCode.collectAsStateWithLifecycle()
     val passwordResetDraft by viewModel.passwordResetDraft.collectAsStateWithLifecycle()
+    val forgotPasswordDialogVisible by viewModel.forgotPasswordDialogVisible.collectAsStateWithLifecycle()
+    val forgotPasswordDialogEmail by viewModel.forgotPasswordDialogEmail.collectAsStateWithLifecycle()
+    val firebasePasswordResetState by viewModel.firebasePasswordResetState.collectAsStateWithLifecycle()
 
     LaunchedEffect(currentScreen) {
         if (currentScreen != Screen.MainHub) {
@@ -207,7 +210,14 @@ fun EobNavHost(
                 onPasswordResetDraftChanged = viewModel::onPasswordResetDraftChanged,
                 onConfirmPasswordReset = viewModel::onConfirmPasswordReset,
                 onResendVerification = viewModel::onResendVerification,
-                onRefreshVerification = viewModel::onRefreshVerification
+                onRefreshVerification = viewModel::onRefreshVerification,
+                forgotPasswordDialogVisible = forgotPasswordDialogVisible,
+                forgotPasswordDialogEmail = forgotPasswordDialogEmail,
+                firebasePasswordResetState = firebasePasswordResetState,
+                onDismissForgotPasswordDialog = viewModel::onDismissForgotPasswordDialog,
+                onForgotPasswordDialogEmailChanged = viewModel::onForgotPasswordDialogEmailChanged,
+                onSendPasswordResetEmail = viewModel::sendPasswordResetEmail,
+                onConsumeFirebasePasswordResetState = viewModel::consumeFirebasePasswordResetState
             )
         }
         composable(Screen.MainHub.route) {

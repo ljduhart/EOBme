@@ -64,7 +64,7 @@ class AuthRecoveryTest {
     @Test
     fun backFromPasswordVerifyReturnsToEmailStep() {
         val viewModel = createViewModel()
-        viewModel.onForgotPassword()
+        setAuthRecoveryFlow(viewModel, AuthRecoveryFlow.ForgotPasswordEmail)
         viewModel.onPasswordResetEmailChanged("user@example.com")
         setAuthRecoveryFlow(viewModel, AuthRecoveryFlow.ForgotPasswordVerify)
         viewModel.onPasswordResetCodeChanged("12345")
@@ -79,7 +79,7 @@ class AuthRecoveryTest {
     @Test
     fun cancelAuthRecoveryClearsTransientResetState() {
         val viewModel = createViewModel()
-        viewModel.onForgotPassword()
+        setAuthRecoveryFlow(viewModel, AuthRecoveryFlow.ForgotPasswordEmail)
         viewModel.onPasswordResetEmailChanged("user@example.com")
         viewModel.onCancelAuthRecovery()
         assertEquals(AuthRecoveryFlow.None, viewModel.authRecoveryFlow.value)
