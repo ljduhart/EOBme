@@ -339,6 +339,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onForgotPassword() {
+        clearAuthRecoveryTransientState()
+        clearAuthMessage()
         _forgotPasswordDialogEmail.value =
             _registrationCredentials.value.email.ifBlank { _profile.value.email }
         _firebasePasswordResetState.value = FirebasePasswordResetState.Idle
@@ -401,14 +403,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onForgotUsername() {
+        onDismissForgotPasswordDialog()
         _authRecoveryFlow.value = AuthRecoveryFlow.ForgotUsername
-        _passwordResetEmail.value = _registrationCredentials.value.email.ifBlank { _profile.value.email }
+        _passwordResetEmail.value =
+            _registrationCredentials.value.email.ifBlank { _profile.value.email }
+        _forgotPasswordDialogEmail.value = _passwordResetEmail.value
         _passwordResetCode.value = ""
         _passwordResetDraft.value = ""
         clearAuthMessage()
     }
 
     fun onCancelAuthRecovery() {
+        onDismissForgotPasswordDialog()
         clearAuthRecoveryState()
     }
 
@@ -727,6 +733,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun clearAuthRecoveryState() {
         clearAuthRecoveryTransientState()
         _passwordResetEmail.value = ""
+        _forgotPasswordDialogEmail.value = ""
         clearAuthMessage()
     }
 

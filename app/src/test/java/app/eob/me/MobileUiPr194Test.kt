@@ -82,6 +82,50 @@ class MobileUiPr194Test {
     }
 
     @Test
+    fun forgotUsernameOpensRecoveryFlowAndSyncsSharedEmail() {
+        val viewModel = createViewModel()
+        viewModel.onSignInSelected()
+        viewModel.onCredentialsChanged(RegistrationCredentials(email = "user@example.com", password = "secret1"))
+        viewModel.onForgotUsername()
+        assertEquals(AuthRecoveryFlow.ForgotUsername, viewModel.authRecoveryFlow.value)
+        assertFalse(viewModel.forgotPasswordDialogVisible.value)
+        assertEquals("user@example.com", viewModel.passwordResetEmail.value)
+        assertEquals("user@example.com", viewModel.forgotPasswordDialogEmail.value)
+    }
+
+    @Test
+    fun forgotPasswordAndForgotUsernameShareEmailState() {
+        val viewModel = createViewModel()
+        viewModel.onSignInSelected()
+        viewModel.onForgotPassword()
+        viewModel.onForgotPasswordDialogEmailChanged("shared@example.com")
+        viewModel.onDismissForgotPasswordDialog()
+        viewModel.onForgotUsername()
+        assertEquals("shared@example.com", viewModel.passwordResetEmail.value)
+        assertEquals("shared@example.com", viewModel.registrationCredentials.value.email)
+    }
+
+    @Test
+    fun cancelAuthRecoveryDismissesForgotPasswordDialog() {
+        val viewModel = createViewModel()
+        viewModel.onForgotPassword()
+        assertTrue(viewModel.forgotPasswordDialogVisible.value)
+        viewModel.onCancelAuthRecovery()
+        assertFalse(viewModel.forgotPasswordDialogVisible.value)
+        assertEquals(AuthRecoveryFlow.None, viewModel.authRecoveryFlow.value)
+    }
+
+    @Test
+    fun forgotUsernameScreenWiringRemainsIntact() {
+        val source = readSource("ui/screens/RegistrationScreen.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(source.contains("ForgotUsernameScreen"))
+        assertTrue(source.contains("onSendForgotUsername"))
+        assertTrue(navSource.contains("onForgotUsername = viewModel::onForgotUsername"))
+        assertTrue(navSource.contains("onSendForgotUsername = viewModel::onSendForgotUsername"))
+    }
+
+    @Test
     fun protectedPipelineAndOpeningScreensRemainUntouchedForPr194() {
         val pipelineSource = readSource("data/DocumentScanPipelineRepository.kt")
         val splashSource = readSource("ui/screens/SplashScreen.kt")
