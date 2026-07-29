@@ -688,7 +688,7 @@ object EobStrings {
         "settingsHelpfulHint8" to "For Silver tier users, the EOB scan button will automatically be disabled once the EOB limit is reached for the monthly period.",
         "settingsHelpfulHint9" to "When scanning an EOB, if auto-edge detection does not encompass the entire EOB, you can manually adjust the edges to encompass the entire document by pressing the corners of the box and extending to the border of the document.",
         "settingsHelpfulHint10" to "You can toggle the top right corner of the Insurance card to reveal shortcuts to a medications list, allergy list, and digital notepad.",
-        "settingsHelpfulHint11" to "EOBme is design to detect and alert for possible Billing Errors, Upcoding, Unbundling, and Global Grace Period.",
+        "settingsHelpfulHint11" to "EOBme is designed to detect and alert for possible Billing Errors, Upcoding, Unbundling, and Global Grace Period.",
         "settingsProfileSaved" to "Profile updated.",
         "billingNotReady" to "Google Play Billing is not ready yet. Please try again.",
         "billingProductUnavailable" to "Subscription product is not available.",

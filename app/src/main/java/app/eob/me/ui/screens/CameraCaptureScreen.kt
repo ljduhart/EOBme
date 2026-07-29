@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Surface
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraInfoUnavailableException
@@ -141,6 +142,8 @@ fun CameraCaptureScreen(
         hasPermission = granted
         if (!granted) viewModel.onCaptureFailed(EobStrings.t(language, "cameraPermissionRequired"))
     }
+
+    BackHandler(onBack = onClose)
 
     LaunchedEffect(Unit) {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)

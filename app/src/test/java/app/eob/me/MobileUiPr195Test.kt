@@ -53,12 +53,12 @@ class MobileUiPr195Test {
         )
         assertTrue(
             stringsSource.contains(
-                "EOBme is design to detect and alert for possible Billing Errors, Upcoding, Unbundling, and Global Grace Period."
+                "EOBme is designed to detect and alert for possible Billing Errors, Upcoding, Unbundling, and Global Grace Period."
             )
         )
         assertTrue(settingsSource.contains("\"settingsHelpfulHint11\""))
         assertEquals(
-            "EOBme is design to detect and alert for possible Billing Errors, Upcoding, Unbundling, and Global Grace Period.",
+            "EOBme is designed to detect and alert for possible Billing Errors, Upcoding, Unbundling, and Global Grace Period.",
             EobStrings.t(AppLanguage.English, "settingsHelpfulHint11")
         )
     }
@@ -69,6 +69,23 @@ class MobileUiPr195Test {
         assertTrue(uiSource.contains("RX ${'$'}{thumbnail.rxNumber}"))
         assertFalse(uiSource.contains("ITEM .............."))
         assertTrue(uiSource.contains("TOTAL SALE"))
+    }
+
+    @Test
+    fun cameraCaptureSystemBackUsesOnCloseToClearReceiptScanState() {
+        val cameraSource = readSource("ui/screens/CameraCaptureScreen.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(cameraSource.contains("BackHandler(onBack = onClose)"))
+        assertTrue(navSource.contains("clearVaultReceiptScanPending()"))
+        assertTrue(navSource.contains("navController.popBackStack()"))
+    }
+
+    @Test
+    fun taxVaultEvidencePreviewSystemBackDismissesOverlayBeforeRouteExit() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("currentRoute == EobRoute.TaxVault.route"))
+        assertTrue(navSource.contains("uiState.taxVaultEvidencePreviewId != null"))
+        assertTrue(navSource.contains("dismissTaxVaultEvidencePreview()"))
     }
 
     @Test
