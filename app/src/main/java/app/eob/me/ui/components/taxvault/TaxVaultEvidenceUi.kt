@@ -371,11 +371,15 @@ private fun MiniatureReceiptPolaroidBody(thumbnail: VaultEvidenceThumbnail) {
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             MiniatureReceiptLine(text = thumbnail.serviceDate)
-            repeat(3) {
-                MiniatureReceiptLine(text = "ITEM ..............")
-            }
+            MiniatureReceiptLine(
+                text = if (thumbnail.rxNumber.isNotBlank()) {
+                    "RX ${thumbnail.rxNumber}"
+                } else {
+                    "RX —"
+                }
+            )
             Spacer(modifier = Modifier.weight(1f))
-            MiniatureReceiptLine(text = "TOTAL PAID", bold = true)
+            MiniatureReceiptLine(text = "TOTAL SALE", bold = true)
             Text(
                 text = thumbnail.amountDisplay,
                 color = Color.Black,

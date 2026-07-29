@@ -8,10 +8,15 @@ object VaultReceiptMapper {
     private val datePattern = Pattern.compile(
         """\b(0?[1-9]|1[0-2])[/-](0?[1-9]|[12][0-9]|3[01])[/-]((?:20)?[0-9]{2})\b"""
     )
+    private val rxPatterns = listOf(
+        Pattern.compile("""(?i)\b(?:rx|prescription)\s*#?\s*:?\s*([A-Z0-9-]{4,20})\b"""),
+        Pattern.compile("""(?i)\b(?:rx|prescription)\s+([0-9]{5,12})\b""")
+    )
 
     fun receiptToMap(record: ReceiptRecord): Map<String, Any?> {
         return mapOf(
             "providerName" to record.providerName,
+            "rxNumber" to record.rxNumber,
             "serviceDate" to record.serviceDate,
             "serviceDateSortKey" to record.serviceDateSortKey,
             "amount" to record.amount,
@@ -32,6 +37,7 @@ object VaultReceiptMapper {
         return ReceiptRecord(
             firestoreId = documentId,
             providerName = data.stringValue("providerName", "provider_name").ifBlank { "Pharmacy Receipt" },
+            rxNumber = data.stringValue("rxNumber", "rx_number", "prescriptionNumber", "prescription_number"),
             serviceDate = serviceDate,
             serviceDateSortKey = data.intValue("serviceDateSortKey", "service_date_sort_key")
                 .takeUnless { it == 0 }
@@ -46,11 +52,7 @@ object VaultReceiptMapper {
     }
 
     fun parseReceiptFromOcr(ocrText: String, fallbackProvider: String = "Pharmacy Receipt"): ReceiptOcrParseResult {
-        val amount = moneyPattern.matcher(ocrText).let { matcher ->
-            generateSequence { if (matcher.find()) matcher.group(1) else null }
-                .mapNotNull { it?.toDoubleOrNull() }
-                .maxOrNull()
-        } ?: 0.0
+        val amount = extractTotalSaleAmount(ocrText)
         val serviceDate = normalizeServiceDate(
             datePattern.matcher(ocrText).let { matcher ->
                 if (matcher.find()) matcher.group() else ""
@@ -61,18 +63,64 @@ object VaultReceiptMapper {
             .firstOrNull { line ->
                 line.length in 4..48 &&
                     !line.contains('$') &&
-                    !datePattern.matcher(line).find()
+                    !datePattern.matcher(line).find() &&
+                    !looksLikeRxLine(line)
             }
             ?: fallbackProvider
+        val rxNumber = extractRxNumber(ocrText)
         return ReceiptOcrParseResult(
             providerName = provider,
+            rxNumber = rxNumber,
             serviceDate = serviceDate,
             amount = amount
         )
     }
 
+    fun formatReceiptDateForDisplay(serviceDate: String): String {
+        val normalized = normalizeServiceDate(serviceDate)
+        if (normalized.isBlank()) return ""
+        val parts = normalized.split("/")
+        if (parts.size != 3) return normalized
+        return "${parts[0]}-${parts[1]}-${parts[2]}"
+    }
+
+    fun formatReceiptTotalForDisplay(amount: Double): String {
+        return String.format(Locale.US, "$%.2f", amount)
+    }
+
+    private fun extractTotalSaleAmount(ocrText: String): Double {
+        val labeledTotal = Regex("""(?i)(?:total|amount\s+due|sale)\s*[:\s]*\$?\s*([0-9]+\.[0-9]{2})""")
+            .find(ocrText)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toDoubleOrNull()
+        if (labeledTotal != null && labeledTotal > 0.0) {
+            return labeledTotal
+        }
+        return moneyPattern.matcher(ocrText).let { matcher ->
+            generateSequence { if (matcher.find()) matcher.group(1) else null }
+                .mapNotNull { it?.toDoubleOrNull() }
+                .maxOrNull()
+        } ?: 0.0
+    }
+
+    private fun extractRxNumber(ocrText: String): String {
+        rxPatterns.forEach { pattern ->
+            val matcher = pattern.matcher(ocrText)
+            if (matcher.find()) {
+                return matcher.group(1)?.trim().orEmpty().uppercase(Locale.US)
+            }
+        }
+        return ""
+    }
+
+    private fun looksLikeRxLine(line: String): Boolean {
+        return rxPatterns.any { it.matcher(line).find() }
+    }
+
     data class ReceiptOcrParseResult(
         val providerName: String,
+        val rxNumber: String,
         val serviceDate: String,
         val amount: Double
     )

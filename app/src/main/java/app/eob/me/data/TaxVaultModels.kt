@@ -20,6 +20,7 @@ data class FsaDoomsdaySnapshot(
 data class ReceiptRecord(
     val firestoreId: String,
     val providerName: String,
+    val rxNumber: String = "",
     val serviceDate: String,
     val serviceDateSortKey: Int = 0,
     val amount: Double,
@@ -43,6 +44,7 @@ data class VaultEvidenceThumbnail(
     val rotationDegrees: Float,
     val isReceipt: Boolean,
     val serviceDate: String = "",
+    val rxNumber: String = "",
     val amountDisplay: String = "",
     val chargePreviewLines: List<VaultEvidenceChargePreview> = emptyList()
 )

@@ -62,17 +62,25 @@ class TaxVaultPremiumFeaturesTest {
     }
 
     @Test
-    fun vaultReceiptOcrParserExtractsAmountAndDate() {
+    fun vaultReceiptOcrParserExtractsAmountDateAndRx() {
         val parsed = VaultReceiptMapper.parseReceiptFromOcr(
             """
                 CVS Pharmacy
+                RX # 12345678
                 03/15/2026
                 Total $50.00
             """.trimIndent()
         )
         assertEquals(50.0, parsed.amount, 0.01)
         assertEquals("03/15/2026", parsed.serviceDate)
+        assertEquals("12345678", parsed.rxNumber)
         assertTrue(parsed.providerName.contains("CVS"))
+    }
+
+    @Test
+    fun vaultReceiptDisplayFormattingUsesRequestedFormats() {
+        assertEquals("07-28-2026", VaultReceiptMapper.formatReceiptDateForDisplay("07/28/2026"))
+        assertEquals("$27.49", VaultReceiptMapper.formatReceiptTotalForDisplay(27.49))
     }
 
     @Test

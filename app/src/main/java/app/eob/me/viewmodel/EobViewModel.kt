@@ -1517,7 +1517,7 @@ class EobViewModel : ViewModel() {
     }
 
     fun beginVaultReceiptScan() {
-        if (!isTaxVaultGoldUnlocked()) return
+        if (!isTaxVaultActive() || !isTaxVaultGoldUnlocked()) return
         _uiState.update {
             it.copy(
                 cameraScanDocumentType = CameraScanDocumentType.Receipt,
@@ -1596,8 +1596,9 @@ class EobViewModel : ViewModel() {
                 providerName = resolveProviderDirectoryName(receipt.providerName),
                 rotationDegrees = polaroidRotation(index + eobThumbnails.size),
                 isReceipt = true,
-                serviceDate = receipt.serviceDate,
-                amountDisplay = receipt.amount.asCurrency()
+                serviceDate = VaultReceiptMapper.formatReceiptDateForDisplay(receipt.serviceDate),
+                rxNumber = receipt.rxNumber,
+                amountDisplay = VaultReceiptMapper.formatReceiptTotalForDisplay(receipt.amount)
             )
         }
         return eobThumbnails + receiptThumbnails
@@ -1738,6 +1739,12 @@ class EobViewModel : ViewModel() {
             )
             return
         }
+        if (!isTaxVaultActive() || !isTaxVaultGoldUnlocked()) {
+            _documentScanState.value = DocumentScanPipelineState.Error(
+                EobStrings.t(language, "taxVaultGoldLocked")
+            )
+            return
+        }
         documentScanJob?.cancel()
         val generation = ++documentScanGeneration
         documentScanJob = viewModelScope.launch(Dispatchers.IO) {
@@ -1799,6 +1806,7 @@ class EobViewModel : ViewModel() {
             val receipt = ReceiptRecord(
                 firestoreId = upload.documentRefId,
                 providerName = parsed.providerName,
+                rxNumber = parsed.rxNumber,
                 serviceDate = parsed.serviceDate,
                 serviceDateSortKey = EobAnalyzer.serviceDateSortKey(parsed.serviceDate),
                 amount = parsed.amount,

@@ -179,7 +179,8 @@ fun SettingsScreen(
                         "settingsHelpfulHint7",
                         "settingsHelpfulHint8",
                         "settingsHelpfulHint9",
-                        "settingsHelpfulHint10"
+                        "settingsHelpfulHint10",
+                        "settingsHelpfulHint11"
                     ).forEachIndexed { index, key ->
                         Text(
                             text = "${index + 1}. ${EobStrings.t(language, key)}",

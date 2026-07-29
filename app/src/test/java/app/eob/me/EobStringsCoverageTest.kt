@@ -470,7 +470,7 @@ class EobStringsCoverageTest {
         val keys = buildList {
             add("settingsHelpfulHintsTitle")
             add("settingsHelpfulHintsClose")
-            for (index in 1..10) {
+            for (index in 1..11) {
                 add("settingsHelpfulHint$index")
             }
         }

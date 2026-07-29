@@ -70,6 +70,7 @@ import app.eob.me.data.TaxVaultFilterState
 import app.eob.me.data.TaxVaultVisibilityMode
 import app.eob.me.data.VaultEvidenceThumbnail
 import app.eob.me.data.VaultSubstantiationStatus
+import app.eob.me.data.VaultReceiptMapper
 import app.eob.me.data.asCurrency
 import app.eob.me.ui.components.home.TaxVaultVerticalFilterCard
 import app.eob.me.ui.components.taxvault.VaultAddReceiptButton
@@ -288,6 +289,7 @@ private fun TaxVaultDashboard(
             )
             VaultExportSection(
                 language = language,
+                filterState = filterState,
                 eligibleEobs = eligibleEobs,
                 vaultReceipts = vaultReceipts,
                 selectedEobIds = selectedEobIds,
@@ -359,6 +361,7 @@ private fun FsaDoomsdayMonitorCard(
 @Composable
 private fun VaultExportSection(
     language: AppLanguage,
+    filterState: TaxVaultFilterState,
     eligibleEobs: List<EobRecord>,
     vaultReceipts: List<ReceiptRecord>,
     selectedEobIds: Set<String>,
@@ -435,8 +438,9 @@ private fun VaultExportSection(
                             text = EobStrings.tf(
                                 language,
                                 "taxVaultExportReceiptLine",
-                                receipt.serviceDate,
-                                receipt.amount.asCurrency()
+                                receipt.rxNumber.ifBlank { "—" },
+                                VaultReceiptMapper.formatReceiptDateForDisplay(receipt.serviceDate),
+                                VaultReceiptMapper.formatReceiptTotalForDisplay(receipt.amount)
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.78f)
@@ -466,14 +470,16 @@ private fun VaultExportSection(
                     color = Color(0xFF0B1F45)
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                VaultAddReceiptButton(
-                    language = language,
-                    onClick = onAddReceipt
-                )
+            if (filterState != TaxVaultFilterState.OFF) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    VaultAddReceiptButton(
+                        language = language,
+                        onClick = onAddReceipt
+                    )
+                }
             }
         }
     }
@@ -700,16 +706,20 @@ private fun VaultEvidenceReceiptPreviewContent(
             )
         }
         VaultEvidenceDetailLine(
-            label = EobStrings.t(language, "provider"),
+            label = EobStrings.t(language, "taxVaultReceiptStoreName"),
             value = receipt.providerName
         )
         VaultEvidenceDetailLine(
-            label = EobStrings.t(language, "appointmentDate"),
-            value = receipt.serviceDate
+            label = EobStrings.t(language, "taxVaultReceiptRxNumber"),
+            value = receipt.rxNumber.ifBlank { "—" }
         )
         VaultEvidenceDetailLine(
-            label = EobStrings.t(language, "patientResponsibility"),
-            value = receipt.amount.asCurrency()
+            label = EobStrings.t(language, "taxVaultReceiptDate"),
+            value = VaultReceiptMapper.formatReceiptDateForDisplay(receipt.serviceDate)
+        )
+        VaultEvidenceDetailLine(
+            label = EobStrings.t(language, "taxVaultReceiptTotalSale"),
+            value = VaultReceiptMapper.formatReceiptTotalForDisplay(receipt.amount)
         )
         Row(
             modifier = Modifier
