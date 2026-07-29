@@ -139,6 +139,27 @@ class TaxVaultFilterTest {
         assertFalse(viewModel.isTaxVaultHistoryGated())
     }
 
+    @Test
+    fun beginVaultReceiptScanRequiresActiveFilterAndGoldTier() {
+        val viewModel = EobViewModel()
+        assertFalse(viewModel.beginVaultReceiptScan())
+        assertFalse(viewModel.uiState.value.vaultReceiptScanPending)
+
+        viewModel.setSubscriptionTier(SubscriptionTier.Gold)
+        viewModel.setTaxVaultFilterState(TaxVaultFilterState.HSA)
+        assertTrue(viewModel.beginVaultReceiptScan())
+        assertTrue(viewModel.uiState.value.vaultReceiptScanPending)
+        assertEquals(
+            app.eob.me.data.CameraScanDocumentType.Receipt,
+            viewModel.uiState.value.cameraScanDocumentType
+        )
+
+        viewModel.clearVaultReceiptScanPending()
+        viewModel.setTaxVaultFilterState(TaxVaultFilterState.OFF)
+        assertFalse(viewModel.beginVaultReceiptScan())
+        assertFalse(viewModel.uiState.value.vaultReceiptScanPending)
+    }
+
     private fun waitForHubRecords(viewModel: EobViewModel, expectedCount: Int) {
         val deadlineMs = System.currentTimeMillis() + 10_000
         while (viewModel.eobRecords.value.size < expectedCount && System.currentTimeMillis() < deadlineMs) {

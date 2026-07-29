@@ -1516,14 +1516,15 @@ class EobViewModel : ViewModel() {
         _uiState.update { it.copy(taxVaultDoorAnimating = false) }
     }
 
-    fun beginVaultReceiptScan() {
-        if (!isTaxVaultActive() || !isTaxVaultGoldUnlocked()) return
+    fun beginVaultReceiptScan(): Boolean {
+        if (!isTaxVaultActive() || !isTaxVaultGoldUnlocked()) return false
         _uiState.update {
             it.copy(
                 cameraScanDocumentType = CameraScanDocumentType.Receipt,
                 vaultReceiptScanPending = true
             )
         }
+        return true
     }
 
     fun clearVaultReceiptScanPending() {
@@ -1739,7 +1740,13 @@ class EobViewModel : ViewModel() {
             )
             return
         }
-        if (!isTaxVaultActive() || !isTaxVaultGoldUnlocked()) {
+        if (!isTaxVaultActive()) {
+            _documentScanState.value = DocumentScanPipelineState.Error(
+                EobStrings.t(language, "taxVaultBudgetInactive")
+            )
+            return
+        }
+        if (!isTaxVaultGoldUnlocked()) {
             _documentScanState.value = DocumentScanPipelineState.Error(
                 EobStrings.t(language, "taxVaultGoldLocked")
             )

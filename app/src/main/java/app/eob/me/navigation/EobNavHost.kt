@@ -1076,8 +1076,9 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onAddReceipt = {
-                            eobViewModel.beginVaultReceiptScan()
-                            navController.navigate(EobRoute.CameraCapture.route) { launchSingleTop = true }
+                            if (eobViewModel.beginVaultReceiptScan()) {
+                                navController.navigate(EobRoute.CameraCapture.route) { launchSingleTop = true }
+                            }
                             onActivity()
                         },
                         onDoorAnimationComplete = {

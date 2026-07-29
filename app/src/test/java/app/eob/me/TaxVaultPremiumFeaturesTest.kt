@@ -84,6 +84,28 @@ class TaxVaultPremiumFeaturesTest {
     }
 
     @Test
+    fun vaultReceiptMapperRoundTripPreservesRxNumber() {
+        val receipt = app.eob.me.data.ReceiptRecord(
+            firestoreId = "receipt-1",
+            providerName = "Walgreens",
+            rxNumber = "RX123456",
+            serviceDate = "07/28/2026",
+            serviceDateSortKey = 20260728,
+            amount = 27.49,
+            thumbnailUrl = "https://example.com/receipt.jpg",
+            storagePath = "users/demo/receipt.jpg"
+        )
+        val restored = VaultReceiptMapper.receiptFromMap(
+            VaultReceiptMapper.receiptToMap(receipt),
+            receipt.firestoreId
+        )
+        assertEquals(receipt.providerName, restored.providerName)
+        assertEquals(receipt.rxNumber, restored.rxNumber)
+        assertEquals(receipt.serviceDate, restored.serviceDate)
+        assertEquals(receipt.amount, restored.amount, 0.01)
+    }
+
+    @Test
     fun vaultReceiptDateNormalizationHandlesIsoAndShortYear() {
         assertEquals("03/15/2026", VaultReceiptMapper.normalizeServiceDate("2026-03-15"))
         assertEquals("03/15/2026", VaultReceiptMapper.normalizeServiceDate("3/15/26"))

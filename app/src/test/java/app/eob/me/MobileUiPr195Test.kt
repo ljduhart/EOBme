@@ -24,11 +24,21 @@ class MobileUiPr195Test {
     }
 
     @Test
+    fun addReceiptNavigationOnlyStartsWhenVaultReceiptScanBegins() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(navSource.contains("if (eobViewModel.beginVaultReceiptScan())"))
+        assertTrue(viewModelSource.contains("fun beginVaultReceiptScan(): Boolean"))
+        assertTrue(viewModelSource.contains("taxVaultBudgetInactive"))
+    }
+
+    @Test
     fun addReceiptButtonRequiresActiveTaxVaultFilter() {
         val screenSource = readSource("ui/screens/TaxVaultScreen.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         assertTrue(screenSource.contains("if (filterState != TaxVaultFilterState.OFF)"))
-        assertTrue(viewModelSource.contains("if (!isTaxVaultActive() || !isTaxVaultGoldUnlocked()) return"))
+        assertTrue(viewModelSource.contains("fun beginVaultReceiptScan(): Boolean"))
+        assertTrue(viewModelSource.contains("taxVaultBudgetInactive"))
         assertTrue(viewModelSource.contains("rxNumber = parsed.rxNumber"))
     }
 
