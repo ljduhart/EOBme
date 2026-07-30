@@ -482,7 +482,10 @@ object EobAnalyzer {
             NcciBundlingCalculator.billingIssuesFor(record)
     }
 
-    fun historyBentoSnapshot(records: List<EobRecord>): HistoryBentoSnapshot {
+    fun historyBentoSnapshot(
+        records: List<EobRecord>,
+        allRecords: List<EobRecord> = records
+    ): HistoryBentoSnapshot {
         val monthlySpend = monthlyPatientSpendLastMonths(records, monthCount = 3)
         val rawQuadrants = listOf(
             records.sumOf { it.totalBilledAmount }.toFloat(),
@@ -495,7 +498,7 @@ object EobAnalyzer {
         return HistoryBentoSnapshot(
             monthlySpend = monthlySpend,
             cornerstoneQuadrants = cornerstoneQuadrants,
-            flaggedBillingErrorCount = flaggedBillingErrorCount(records)
+            flaggedBillingErrorCount = flaggedBillingErrorCount(records, allRecords)
         )
     }
 
@@ -513,17 +516,23 @@ object EobAnalyzer {
         }
     }
 
-    fun flaggedBillingErrorCount(records: List<EobRecord>): Int {
+    fun flaggedBillingErrorCount(
+        records: List<EobRecord>,
+        allRecords: List<EobRecord> = records
+    ): Int {
         return records.count { record ->
-            detectBillingIssuesForRecord(record, records).any { issue ->
+            detectBillingIssuesForRecord(record, allRecords).any { issue ->
                 issue.severity != BillingIssueSeverity.Info
             }
         }
     }
 
-    fun recordsWithFlaggedBillingErrors(records: List<EobRecord>): List<EobRecord> {
+    fun recordsWithFlaggedBillingErrors(
+        records: List<EobRecord>,
+        allRecords: List<EobRecord> = records
+    ): List<EobRecord> {
         return records.filter { record ->
-            detectBillingIssuesForRecord(record, records).any { issue ->
+            detectBillingIssuesForRecord(record, allRecords).any { issue ->
                 issue.severity != BillingIssueSeverity.Info
             }
         }

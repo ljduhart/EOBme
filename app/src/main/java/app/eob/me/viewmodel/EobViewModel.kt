@@ -1881,7 +1881,11 @@ class EobViewModel : ViewModel() {
     }
 
     fun historyBentoSnapshot(): HistoryBentoSnapshot {
-        return EobAnalyzer.historyBentoSnapshot(recordsForHistoryPipeline())
+        val pipelineRecords = recordsForHistoryPipeline()
+        return EobAnalyzer.historyBentoSnapshot(
+            records = pipelineRecords,
+            allRecords = _eobRecords.value
+        )
     }
 
     fun providerAvatarPreviews(language: AppLanguage): List<ProviderAvatarPreview> {
@@ -1971,9 +1975,10 @@ class EobViewModel : ViewModel() {
         searchQuery: String
     ): List<EobRecord> {
         val sorted = recordsForHistoryPipeline().sortedByDescending { it.serviceDateSortKey }
+        val hubRecords = _eobRecords.value
         val byFilter = when (filter) {
             HistoryBentoFilter.All -> sorted
-            HistoryBentoFilter.Flagged -> EobAnalyzer.recordsWithFlaggedBillingErrors(sorted)
+            HistoryBentoFilter.Flagged -> EobAnalyzer.recordsWithFlaggedBillingErrors(sorted, hubRecords)
         }
         if (searchQuery.isBlank()) return byFilter
         return byFilter.filter { record ->

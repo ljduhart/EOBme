@@ -106,6 +106,15 @@ class MobileUiPr196Test {
     }
 
     @Test
+    fun flaggedHistoryAndBentoUseFullHubCorpusForGlobalPeriod() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val analyzerSource = readSource("data/EobAnalyzer.kt")
+        assertTrue(viewModelSource.contains("recordsWithFlaggedBillingErrors(sorted, hubRecords)"))
+        assertTrue(viewModelSource.contains("allRecords = _eobRecords.value"))
+        assertTrue(analyzerSource.contains("allRecords: List<EobRecord> = records"))
+    }
+
+    @Test
     fun cameraSystemBackClearsReceiptScanState() {
         val cameraSource = readSource("ui/screens/CameraCaptureScreen.kt")
         assertTrue(cameraSource.contains("BackHandler(onBack = onClose)"))
