@@ -67,6 +67,9 @@ class MobileUiPr180Test {
         assertTrue(historySource.contains("historyUpcodingNo"))
         assertTrue(historySource.contains("OutlinedButton"))
         assertTrue(navSource.contains("upcodingVerificationForCharge = eobViewModel::upcodingVerificationForCharge"))
+        assertTrue(navSource.contains("recordUpcodingVerificationAffirmed"))
+        assertTrue(navSource.contains("recordUpcodingVerificationDisputed"))
+        assertFalse(historySource.contains("TODO: Persist upcoding"))
     }
 
     @Test

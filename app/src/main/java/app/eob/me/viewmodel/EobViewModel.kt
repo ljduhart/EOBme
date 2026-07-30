@@ -63,10 +63,12 @@ import app.eob.me.data.AppLockTimeout
 import app.eob.me.data.AccountProfileUiState
 import app.eob.me.data.BillingIssue
 import app.eob.me.data.BillingIssueSeverity
+import app.eob.me.data.BillingIssueType
 import app.eob.me.data.CptGlobalPeriodAlert
 import app.eob.me.data.CptGlobalPeriodCalculator
 import app.eob.me.data.NcciBundlingAlert
 import app.eob.me.data.NcciBundlingCalculator
+import app.eob.me.data.UpcodingUserResponse
 import app.eob.me.data.UpcodingVerificationAlert
 import app.eob.me.data.UpcodingVerificationCalculator
 import app.eob.me.data.CameraScanDocumentType
@@ -166,6 +168,7 @@ data class HubUiState(
     val taxVaultExportReceiptIds: Set<String> = emptySet(),
     val taxVaultEvidencePreviewId: String? = null,
     val taxVaultDoorAnimating: Boolean = false,
+    val upcodingVerificationResponses: Map<String, UpcodingUserResponse> = emptyMap(),
     val hubSettings: HubSettingsState = HubSettingsState()
 )
 
@@ -245,23 +248,30 @@ class EobViewModel : ViewModel() {
     private val _expenseAnalyticsSort = MutableStateFlow(ExpenseAnalyticsSort.HighestPatientShare)
     private val _expenseAnalyticsExpandedFacilityIds = MutableStateFlow<Set<String>>(emptySet())
     private val _expenseAnalyticsAppealedClaimIds = MutableStateFlow<Set<String>>(emptySet())
+    private val _hubLanguage = MutableStateFlow(AppLanguage.English)
 
     val expenseAnalyticsState: StateFlow<ExpenseAnalyticsState> = combine(
-        sortedEobRecords,
-        _uiState.map { state ->
-            state.isLoadingInvoice to state.firebaseSyncStatus.isConfigured
-        }.distinctUntilChanged(),
-        _expenseAnalyticsSort,
+        combine(
+            sortedEobRecords,
+            _uiState,
+            _expenseAnalyticsSort
+        ) { records, uiState, sort ->
+            Triple(records, uiState, sort)
+        },
         _expenseAnalyticsExpandedFacilityIds,
-        _expenseAnalyticsAppealedClaimIds
-    ) { records, loadingContext, sort, expandedFacilityIds, appealedClaimIds ->
-        val (isProcessingInvoice, syncConfigured) = loadingContext
+        _expenseAnalyticsAppealedClaimIds,
+        _hubLanguage
+    ) { core, expandedFacilityIds, appealedClaimIds, language ->
+        val (records, uiState, sort) = core
+        val isProcessingInvoice = uiState.isLoadingInvoice
+        val syncConfigured = uiState.firebaseSyncStatus.isConfigured
         ExpenseAnalyticsCalculator.buildState(
             records = records,
             sort = sort,
             expandedFacilityIds = expandedFacilityIds,
             appealedClaimIds = appealedClaimIds,
             issueDetector = { record -> detectBillingIssuesForRecord(record) },
+            language = language,
             isLoading = isProcessingInvoice && records.isEmpty() && syncConfigured
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExpenseAnalyticsState())
@@ -1914,6 +1924,35 @@ class EobViewModel : ViewModel() {
         _expenseAnalyticsSort.value = sort
     }
 
+    fun syncHubLanguage(language: AppLanguage) {
+        if (_hubLanguage.value != language) {
+            _hubLanguage.value = language
+        }
+    }
+
+    fun upcodingVerificationKey(record: EobRecord, charge: EobCharge): String {
+        return "${record.historyListKey()}:${charge.cptCode.trim().uppercase()}"
+    }
+
+    fun recordUpcodingVerificationAffirmed(record: EobRecord, charge: EobCharge) {
+        recordUpcodingVerificationResponse(record, charge, UpcodingUserResponse.AffirmedComplexity)
+    }
+
+    fun recordUpcodingVerificationDisputed(record: EobRecord, charge: EobCharge) {
+        recordUpcodingVerificationResponse(record, charge, UpcodingUserResponse.DisputedComplexity)
+    }
+
+    private fun recordUpcodingVerificationResponse(
+        record: EobRecord,
+        charge: EobCharge,
+        response: UpcodingUserResponse
+    ) {
+        val key = upcodingVerificationKey(record, charge)
+        _uiState.update { state ->
+            state.copy(upcodingVerificationResponses = state.upcodingVerificationResponses + (key to response))
+        }
+    }
+
     fun toggleExpenseAnalyticsFacilityExpanded(facilityId: String) {
         _expenseAnalyticsExpandedFacilityIds.update { expanded ->
             if (facilityId in expanded) expanded - facilityId else expanded + facilityId
@@ -2006,7 +2045,26 @@ class EobViewModel : ViewModel() {
 
     fun detectBillingIssuesForRecord(record: EobRecord): List<BillingIssue> {
         val allRecords = _eobRecords.value
-        return EobAnalyzer.detectBillingIssuesForRecord(record, allRecords)
+        return EobAnalyzer.detectBillingIssuesForRecord(record, allRecords) +
+            disputedUpcodingIssues(record)
+    }
+
+    private fun disputedUpcodingIssues(record: EobRecord): List<BillingIssue> {
+        val responses = _uiState.value.upcodingVerificationResponses
+        return record.charges.mapNotNull { charge ->
+            val key = upcodingVerificationKey(record, charge)
+            if (responses[key] != UpcodingUserResponse.DisputedComplexity) return@mapNotNull null
+            if (UpcodingVerificationCalculator.upcodingVerificationForCharge(charge) == null) {
+                return@mapNotNull null
+            }
+            BillingIssue(
+                type = BillingIssueType.SuspectedUpcoding,
+                severity = BillingIssueSeverity.Warning,
+                title = "Suspected E/M upcoding",
+                explanation = "You indicated the billed visit complexity may not match your encounter time.",
+                recommendedAction = "Consider disputing the code with your provider or insurer."
+            )
+        }
     }
 
     fun bundlingAlertForCharges(
@@ -2033,6 +2091,8 @@ class EobViewModel : ViewModel() {
         record: EobRecord,
         charge: EobCharge
     ): UpcodingVerificationAlert? {
+        val key = upcodingVerificationKey(record, charge)
+        if (_uiState.value.upcodingVerificationResponses.containsKey(key)) return null
         return UpcodingVerificationCalculator.upcodingVerificationForCharge(charge)
             ?.takeIf { alert -> alert.isActive }
     }

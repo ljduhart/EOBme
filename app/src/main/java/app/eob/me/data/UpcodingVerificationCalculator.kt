@@ -6,6 +6,11 @@ data class UpcodingVerificationAlert(
     val isActive: Boolean = true
 )
 
+enum class UpcodingUserResponse {
+    AffirmedComplexity,
+    DisputedComplexity
+}
+
 object UpcodingVerificationCalculator {
     fun upcodingVerificationForCharge(charge: EobCharge): UpcodingVerificationAlert? {
         val requiredTimeRange = UpcodingVerificationMap.requiredTimeFor(charge.cptCode) ?: return null

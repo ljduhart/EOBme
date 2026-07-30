@@ -587,7 +587,8 @@ enum class BillingIssueType {
     MissingCptCode,
     PossibleDenial,
     VisitDuringGlobalPeriod,
-    PossibleUnbundling
+    PossibleUnbundling,
+    SuspectedUpcoding
 }
 
 enum class BillingIssueSeverity {

@@ -9,6 +9,7 @@ object ExpenseAnalyticsCalculator {
         expandedFacilityIds: Set<String>,
         appealedClaimIds: Set<String>,
         issueDetector: (EobRecord) -> List<BillingIssue>,
+        language: AppLanguage,
         isLoading: Boolean
     ): ExpenseAnalyticsState {
         if (isLoading) {
@@ -23,7 +24,8 @@ object ExpenseAnalyticsCalculator {
             records = records,
             expandedFacilityIds = expandedFacilityIds,
             appealedClaimIds = appealedClaimIds,
-            issueDetector = issueDetector
+            issueDetector = issueDetector,
+            language = language
         )
         return ExpenseAnalyticsState(
             isLoading = false,
@@ -79,7 +81,8 @@ object ExpenseAnalyticsCalculator {
         records: List<EobRecord>,
         expandedFacilityIds: Set<String>,
         appealedClaimIds: Set<String>,
-        issueDetector: (EobRecord) -> List<BillingIssue>
+        issueDetector: (EobRecord) -> List<BillingIssue>,
+        language: AppLanguage
     ): List<FacilitySpending> {
         return records.groupBy { record -> record.providerName.ifBlank { "Unknown Provider" } }
             .map { (providerName, providerRecords) ->
@@ -104,7 +107,7 @@ object ExpenseAnalyticsCalculator {
                     carrierShare = carrierShare,
                     claims = providerRecords
                         .sortedByDescending { it.serviceDateSortKey }
-                        .map { record -> toMedicalClaim(record, issueDetector, appealedClaimIds) },
+                        .map { record -> toMedicalClaim(record, issueDetector, appealedClaimIds, language) },
                     isExpanded = facilityId in expandedFacilityIds
                 )
             }
@@ -113,7 +116,8 @@ object ExpenseAnalyticsCalculator {
     private fun toMedicalClaim(
         record: EobRecord,
         issueDetector: (EobRecord) -> List<BillingIssue>,
-        appealedClaimIds: Set<String>
+        appealedClaimIds: Set<String>,
+        language: AppLanguage
     ): MedicalClaim {
         val claimKey = record.historyListKey()
         val carrierCovered = record.totalInsurancePaidAmount.coerceAtLeast(0.0).let { paid ->
@@ -131,7 +135,7 @@ object ExpenseAnalyticsCalculator {
             dateOfService = record.serviceDate.ifBlank { "—" },
             totalBilled = record.totalBilledAmount,
             carrierCovered = carrierCovered,
-            status = resolveClaimStatus(record, issueDetector(record), appealedClaimIds),
+            status = resolveClaimStatus(record, issueDetector(record), appealedClaimIds, language),
             sourceName = record.sourceName,
             storageDownloadUrl = record.storageDownloadUrl
         )
@@ -148,7 +152,8 @@ object ExpenseAnalyticsCalculator {
     private fun resolveClaimStatus(
         record: EobRecord,
         issues: List<BillingIssue>,
-        appealedClaimIds: Set<String>
+        appealedClaimIds: Set<String>,
+        language: AppLanguage
     ): ClaimStatus {
         if (record.historyListKey() in appealedClaimIds) {
             return ClaimStatus.Appealed
@@ -157,7 +162,7 @@ object ExpenseAnalyticsCalculator {
         if (flaggedIssues.isEmpty()) {
             return ClaimStatus.AuditedCorrect
         }
-        val message = flaggedIssues.joinToString(separator = "; ") { issue -> issue.title }
+        val message = BillingIssueFormatter.expenseAnalyticsSummary(language, flaggedIssues)
         return ClaimStatus.PotentialError(message)
     }
 

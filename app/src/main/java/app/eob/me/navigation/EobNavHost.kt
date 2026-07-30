@@ -604,6 +604,10 @@ private fun MainHubNavHost(
         eobViewModel.syncAccountProfileSource(profile)
     }
 
+    LaunchedEffect(language) {
+        eobViewModel.syncHubLanguage(language)
+    }
+
     val accountProfileUiState by eobViewModel.accountProfileUiState.collectAsStateWithLifecycle()
     val expenseAnalyticsState by eobViewModel.expenseAnalyticsState.collectAsStateWithLifecycle()
     val duplicateEobWarningState by eobViewModel.duplicateEobWarningState.collectAsStateWithLifecycle()
@@ -1673,9 +1677,11 @@ private fun HistoryRoute(
         }
     }
 
-    val totalBillingErrors by remember(filteredRecords) {
+    val totalBillingErrors by remember(filteredRecords, uiState.upcodingVerificationResponses) {
         derivedStateOf { eobViewModel.totalBillingErrors(filteredRecords) }
     }
+
+    val billingIssuesRevision = uiState.upcodingVerificationResponses.size
 
     Column(modifier = Modifier.fillMaxSize()) {
         if (uiState.isLoadingInvoice) {
@@ -1731,6 +1737,17 @@ private fun HistoryRoute(
                 upcodingVerificationForCharge = eobViewModel::upcodingVerificationForCharge,
                 bundlingAlertForCharge = eobViewModel::bundlingAlertForCharge,
                 billingIssuesForRecord = eobViewModel::detectBillingIssuesForRecord,
+                billingIssuesRevision = billingIssuesRevision,
+                onUpcodingAffirmed = { record, charge ->
+                    eobViewModel.recordUpcodingVerificationAffirmed(record, charge)
+                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "historyUpcodingAffirmed"))
+                    onActivity()
+                },
+                onUpcodingDisputed = { record, charge ->
+                    eobViewModel.recordUpcodingVerificationDisputed(record, charge)
+                    eobViewModel.updateSettingsNotice(EobStrings.t(language, "historyUpcodingDisputed"))
+                    onActivity()
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }

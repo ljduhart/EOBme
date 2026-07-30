@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.BillingIssue
 import app.eob.me.data.BillingIssueSeverity
+import app.eob.me.data.BillingIssueFormatter
 import app.eob.me.data.BillingIssueType
 import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.InsuranceAppealStrategy
@@ -117,6 +118,9 @@ fun EobHistoryScreen(
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert? = { _, _ -> null },
     bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert? = { _, _ -> null },
     billingIssuesForRecord: (EobRecord) -> List<BillingIssue> = { emptyList() },
+    billingIssuesRevision: Int = 0,
+    onUpcodingAffirmed: (EobRecord, EobCharge) -> Unit = { _, _ -> },
+    onUpcodingDisputed: (EobRecord, EobCharge) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var expandedRecordKey by remember { mutableStateOf("") }
@@ -277,6 +281,9 @@ fun EobHistoryScreen(
                         upcodingVerificationForCharge = upcodingVerificationForCharge,
                         bundlingAlertForCharge = bundlingAlertForCharge,
                         billingIssuesForRecord = billingIssuesForRecord,
+                        billingIssuesRevision = billingIssuesRevision,
+                        onUpcodingAffirmed = onUpcodingAffirmed,
+                        onUpcodingDisputed = onUpcodingDisputed,
                         onExpandToggle = { record ->
                             val recordKey = record.historyListKey()
                             val collapsingSame = expandedRecordKey == recordKey
@@ -398,6 +405,9 @@ private fun LazyListScope.historyTimelineItems(
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
     bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert?,
     billingIssuesForRecord: (EobRecord) -> List<BillingIssue>,
+    billingIssuesRevision: Int,
+    onUpcodingAffirmed: (EobRecord, EobCharge) -> Unit,
+    onUpcodingDisputed: (EobRecord, EobCharge) -> Unit,
     onExpandToggle: (EobRecord) -> Unit,
     onDoctorAppealRequested: (EobRecord) -> Unit,
     onAppealInsurance: (EobRecord) -> Unit,
@@ -422,6 +432,9 @@ private fun LazyListScope.historyTimelineItems(
                 upcodingVerificationForCharge = upcodingVerificationForCharge,
                 bundlingAlertForCharge = bundlingAlertForCharge,
                 billingIssuesForRecord = billingIssuesForRecord,
+                billingIssuesRevision = billingIssuesRevision,
+                onUpcodingAffirmed = onUpcodingAffirmed,
+                onUpcodingDisputed = onUpcodingDisputed,
                 onExpandToggle = { onExpandToggle(row.record) },
                 onDoctorAppealRequested = { onDoctorAppealRequested(row.record) },
                 onAppealInsurance = { onAppealInsurance(row.record) },
@@ -461,6 +474,9 @@ private fun HistoryTimelineItemRow(
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
     bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert?,
     billingIssuesForRecord: (EobRecord) -> List<BillingIssue>,
+    billingIssuesRevision: Int,
+    onUpcodingAffirmed: (EobRecord, EobCharge) -> Unit,
+    onUpcodingDisputed: (EobRecord, EobCharge) -> Unit,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
@@ -478,6 +494,9 @@ private fun HistoryTimelineItemRow(
             upcodingVerificationForCharge = upcodingVerificationForCharge,
             bundlingAlertForCharge = bundlingAlertForCharge,
             billingIssuesForRecord = billingIssuesForRecord,
+            billingIssuesRevision = billingIssuesRevision,
+            onUpcodingAffirmed = onUpcodingAffirmed,
+            onUpcodingDisputed = onUpcodingDisputed,
             onExpandToggle = onExpandToggle,
             onDoctorAppealRequested = onDoctorAppealRequested,
             onAppealInsurance = onAppealInsurance,
@@ -499,6 +518,9 @@ private fun HistoryTimelineItemRowContent(
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
     bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert?,
     billingIssuesForRecord: (EobRecord) -> List<BillingIssue>,
+    billingIssuesRevision: Int,
+    onUpcodingAffirmed: (EobRecord, EobCharge) -> Unit,
+    onUpcodingDisputed: (EobRecord, EobCharge) -> Unit,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
@@ -602,6 +624,9 @@ private fun HistoryTimelineItemRowContent(
                     upcodingVerificationForCharge = upcodingVerificationForCharge,
                     bundlingAlertForCharge = bundlingAlertForCharge,
                     billingIssuesForRecord = billingIssuesForRecord,
+                    billingIssuesRevision = billingIssuesRevision,
+                    onUpcodingAffirmed = onUpcodingAffirmed,
+                    onUpcodingDisputed = onUpcodingDisputed,
                     onExpandToggle = onExpandToggle,
                     onDoctorAppealRequested = onDoctorAppealRequested,
                     onAppealInsurance = onAppealInsurance
@@ -667,6 +692,9 @@ private fun WalletReceiptCard(
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
     bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert?,
     billingIssuesForRecord: (EobRecord) -> List<BillingIssue>,
+    billingIssuesRevision: Int,
+    onUpcodingAffirmed: (EobRecord, EobCharge) -> Unit,
+    onUpcodingDisputed: (EobRecord, EobCharge) -> Unit,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit
@@ -674,7 +702,7 @@ private fun WalletReceiptCard(
     val billableCharges = remember(record) { EobAnalyzer.chargesWithBillableAmounts(record.charges) }
     val lineCount = billableCharges.size
     val elevation = if (isExpanded) 12.dp else 3.dp
-    val recordBillingAlerts = remember(record.historyListKey(), isExpanded) {
+    val recordBillingAlerts = remember(record.historyListKey(), isExpanded, billingIssuesRevision) {
         if (!isExpanded) {
             emptyList()
         } else {
@@ -757,7 +785,7 @@ private fun WalletReceiptCard(
 
             if (isExpanded && recordBillingAlerts.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
-                HistoryBillingIssuesBanner(issues = recordBillingAlerts)
+                HistoryBillingIssuesBanner(language = language, issues = recordBillingAlerts)
             }
 
             if (isExpanded) {
@@ -794,7 +822,9 @@ private fun WalletReceiptCard(
                             charge = charge,
                             globalPeriodAlert = globalPeriodAlertForCharge(record, charge),
                             upcodingVerification = upcodingVerificationForCharge(record, charge),
-                            bundlingAlert = bundlingAlertForCharge(record, charge)
+                            bundlingAlert = bundlingAlertForCharge(record, charge),
+                            onUpcodingAffirmed = { onUpcodingAffirmed(record, charge) },
+                            onUpcodingDisputed = { onUpcodingDisputed(record, charge) }
                         )
                     }
                     if (record.totalBilledAmount > 0.0) {
@@ -1110,7 +1140,9 @@ private fun ReceiptCptLine(
     charge: EobCharge,
     globalPeriodAlert: CptGlobalPeriodAlert?,
     upcodingVerification: UpcodingVerificationAlert?,
-    bundlingAlert: NcciBundlingAlert?
+    bundlingAlert: NcciBundlingAlert?,
+    onUpcodingAffirmed: () -> Unit,
+    onUpcodingDisputed: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1148,7 +1180,9 @@ private fun ReceiptCptLine(
         if (upcodingVerification != null) {
             UpcodingVerificationBubble(
                 language = language,
-                alert = upcodingVerification
+                alert = upcodingVerification,
+                onAffirmed = onUpcodingAffirmed,
+                onDisputed = onUpcodingDisputed
             )
         }
         if (globalPeriodAlert != null) {
@@ -1167,7 +1201,10 @@ private fun ReceiptCptLine(
 }
 
 @Composable
-private fun HistoryBillingIssuesBanner(issues: List<BillingIssue>) {
+private fun HistoryBillingIssuesBanner(
+    language: AppLanguage,
+    issues: List<BillingIssue>
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -1193,7 +1230,7 @@ private fun HistoryBillingIssuesBanner(issues: List<BillingIssue>) {
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = issue.title,
+                            text = BillingIssueFormatter.title(language, issue),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onErrorContainer
@@ -1259,7 +1296,9 @@ private fun NcciUnbundlingAlertBubble(
 @Composable
 private fun UpcodingVerificationBubble(
     language: AppLanguage,
-    alert: UpcodingVerificationAlert
+    alert: UpcodingVerificationAlert,
+    onAffirmed: () -> Unit,
+    onDisputed: () -> Unit
 ) {
     AnimatedVisibility(
         visible = alert.isActive,
@@ -1302,9 +1341,7 @@ private fun UpcodingVerificationBubble(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
-                        onClick = {
-                            // TODO: Persist upcoding verification affirmative response.
-                        },
+                        onClick = onAffirmed,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
@@ -1314,9 +1351,7 @@ private fun UpcodingVerificationBubble(
                         )
                     }
                     OutlinedButton(
-                        onClick = {
-                            // TODO: Persist upcoding verification negative response.
-                        },
+                        onClick = onDisputed,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(

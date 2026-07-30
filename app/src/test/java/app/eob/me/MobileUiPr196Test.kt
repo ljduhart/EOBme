@@ -42,6 +42,10 @@ class MobileUiPr196Test {
         assertTrue(historySource.contains("HistoryBillingIssuesBanner"))
         assertTrue(navSource.contains("bundlingAlertForCharge = eobViewModel::bundlingAlertForCharge"))
         assertTrue(navSource.contains("billingIssuesForRecord = eobViewModel::detectBillingIssuesForRecord"))
+        assertTrue(navSource.contains("syncHubLanguage"))
+        assertTrue(historySource.contains("BillingIssueFormatter.title"))
+        assertTrue(navSource.contains("recordUpcodingVerificationAffirmed"))
+        assertTrue(navSource.contains("recordUpcodingVerificationDisputed"))
     }
 
     @Test

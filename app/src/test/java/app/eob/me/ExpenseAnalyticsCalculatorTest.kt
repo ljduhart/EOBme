@@ -7,6 +7,7 @@ import app.eob.me.data.ClaimStatus
 import app.eob.me.data.CptCategory
 import app.eob.me.data.EobCharge
 import app.eob.me.data.EobRecord
+import app.eob.me.data.AppLanguage
 import app.eob.me.data.ExpenseAnalyticsCalculator
 import app.eob.me.data.ExpenseAnalyticsSort
 import org.junit.Assert.assertEquals
@@ -41,6 +42,7 @@ class ExpenseAnalyticsCalculatorTest {
             expandedFacilityIds = emptySet(),
             appealedClaimIds = emptySet(),
             issueDetector = { emptyList() },
+            language = AppLanguage.English,
             isLoading = false
         )
         assertEquals(300.0, state.totalBilled, 0.01)
@@ -63,6 +65,7 @@ class ExpenseAnalyticsCalculatorTest {
             expandedFacilityIds = emptySet(),
             appealedClaimIds = emptySet(),
             issueDetector = { emptyList() },
+            language = AppLanguage.English,
             isLoading = false
         )
         assertEquals("Beta", state.facilities.first().providerName)
@@ -87,6 +90,7 @@ class ExpenseAnalyticsCalculatorTest {
                     )
                 )
             },
+            language = AppLanguage.English,
             isLoading = false
         )
         val status = state.facilities.first().claims.first().status
@@ -102,6 +106,7 @@ class ExpenseAnalyticsCalculatorTest {
             expandedFacilityIds = emptySet(),
             appealedClaimIds = setOf(record.historyListKey()),
             issueDetector = { emptyList() },
+            language = AppLanguage.English,
             isLoading = false
         )
         assertEquals(ClaimStatus.Appealed, state.facilities.first().claims.first().status)
@@ -120,6 +125,7 @@ class ExpenseAnalyticsCalculatorTest {
             expandedFacilityIds = emptySet(),
             appealedClaimIds = emptySet(),
             issueDetector = { emptyList() },
+            language = AppLanguage.English,
             isLoading = true
         )
         assertTrue(state.isLoading)
