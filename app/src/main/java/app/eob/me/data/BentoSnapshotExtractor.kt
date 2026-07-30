@@ -177,7 +177,9 @@ object BentoSnapshotExtractor {
         val tickerHeadlines = releases.map { it.headline }.filter { it.isNotBlank() }
         val featured = releases.firstOrNull()
         val flaggedCount = records.sumOf { record ->
-            EobAnalyzer.detectBillingIssues(record).count { it.severity != BillingIssueSeverity.Info }
+            EobAnalyzer.detectBillingIssuesForRecord(record, records).count { issue ->
+                issue.severity != BillingIssueSeverity.Info
+            }
         }
         val criticalRelease = releases.firstOrNull { isCriticalNewsRelease(it) }
         val criticalAlertActive = criticalRelease != null || flaggedCount > 0

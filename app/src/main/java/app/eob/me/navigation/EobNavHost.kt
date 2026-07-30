@@ -1729,6 +1729,8 @@ private fun HistoryRoute(
                 taxVaultFilterState = taxVaultFilterState,
                 globalPeriodAlertForCharge = eobViewModel::globalPeriodAlertForCharge,
                 upcodingVerificationForCharge = eobViewModel::upcodingVerificationForCharge,
+                bundlingAlertForCharge = eobViewModel::bundlingAlertForCharge,
+                billingIssuesForRecord = eobViewModel::detectBillingIssuesForRecord,
                 modifier = Modifier.fillMaxSize()
             )
         }

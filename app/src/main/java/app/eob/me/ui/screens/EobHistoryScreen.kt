@@ -76,9 +76,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
+import app.eob.me.data.BillingIssue
+import app.eob.me.data.BillingIssueSeverity
+import app.eob.me.data.BillingIssueType
 import app.eob.me.data.DoctorDisputeStrategy
 import app.eob.me.data.InsuranceAppealStrategy
 import app.eob.me.data.CptGlobalPeriodAlert
+import app.eob.me.data.NcciBundlingAlert
 import app.eob.me.data.UpcodingVerificationAlert
 import app.eob.me.data.EobAnalyzer
 import app.eob.me.data.EobCharge
@@ -111,6 +115,8 @@ fun EobHistoryScreen(
     taxVaultFilterState: TaxVaultFilterState = TaxVaultFilterState.OFF,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert? = { _, _ -> null },
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert? = { _, _ -> null },
+    bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert? = { _, _ -> null },
+    billingIssuesForRecord: (EobRecord) -> List<BillingIssue> = { emptyList() },
     modifier: Modifier = Modifier
 ) {
     var expandedRecordKey by remember { mutableStateOf("") }
@@ -155,7 +161,7 @@ fun EobHistoryScreen(
                         )
                         if (totalBillingErrors > 0) {
                             Text(
-                                text = "$totalBillingErrors ${EobStrings.t(language, "analysis")}",
+                                text = EobStrings.tf(language, "historyBillingIssuesDetected", totalBillingErrors),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.error,
                                 maxLines = 1
@@ -269,6 +275,8 @@ fun EobHistoryScreen(
                         showVaultFilterBanner = showVaultFilterBanner,
                         globalPeriodAlertForCharge = globalPeriodAlertForCharge,
                         upcodingVerificationForCharge = upcodingVerificationForCharge,
+                        bundlingAlertForCharge = bundlingAlertForCharge,
+                        billingIssuesForRecord = billingIssuesForRecord,
                         onExpandToggle = { record ->
                             val recordKey = record.historyListKey()
                             val collapsingSame = expandedRecordKey == recordKey
@@ -388,6 +396,8 @@ private fun LazyListScope.historyTimelineItems(
     showVaultFilterBanner: Boolean,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
+    bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert?,
+    billingIssuesForRecord: (EobRecord) -> List<BillingIssue>,
     onExpandToggle: (EobRecord) -> Unit,
     onDoctorAppealRequested: (EobRecord) -> Unit,
     onAppealInsurance: (EobRecord) -> Unit,
@@ -410,6 +420,8 @@ private fun LazyListScope.historyTimelineItems(
                 showVaultFilterBanner = showVaultFilterBanner,
                 globalPeriodAlertForCharge = globalPeriodAlertForCharge,
                 upcodingVerificationForCharge = upcodingVerificationForCharge,
+                bundlingAlertForCharge = bundlingAlertForCharge,
+                billingIssuesForRecord = billingIssuesForRecord,
                 onExpandToggle = { onExpandToggle(row.record) },
                 onDoctorAppealRequested = { onDoctorAppealRequested(row.record) },
                 onAppealInsurance = { onAppealInsurance(row.record) },
@@ -447,6 +459,8 @@ private fun HistoryTimelineItemRow(
     showVaultFilterBanner: Boolean,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
+    bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert?,
+    billingIssuesForRecord: (EobRecord) -> List<BillingIssue>,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
@@ -462,6 +476,8 @@ private fun HistoryTimelineItemRow(
             showVaultFilterBanner = showVaultFilterBanner,
             globalPeriodAlertForCharge = globalPeriodAlertForCharge,
             upcodingVerificationForCharge = upcodingVerificationForCharge,
+            bundlingAlertForCharge = bundlingAlertForCharge,
+            billingIssuesForRecord = billingIssuesForRecord,
             onExpandToggle = onExpandToggle,
             onDoctorAppealRequested = onDoctorAppealRequested,
             onAppealInsurance = onAppealInsurance,
@@ -481,6 +497,8 @@ private fun HistoryTimelineItemRowContent(
     showVaultFilterBanner: Boolean,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
+    bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert?,
+    billingIssuesForRecord: (EobRecord) -> List<BillingIssue>,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit,
@@ -582,6 +600,8 @@ private fun HistoryTimelineItemRowContent(
                     showVaultFilterBanner = showVaultFilterBanner,
                     globalPeriodAlertForCharge = globalPeriodAlertForCharge,
                     upcodingVerificationForCharge = upcodingVerificationForCharge,
+                    bundlingAlertForCharge = bundlingAlertForCharge,
+                    billingIssuesForRecord = billingIssuesForRecord,
                     onExpandToggle = onExpandToggle,
                     onDoctorAppealRequested = onDoctorAppealRequested,
                     onAppealInsurance = onAppealInsurance
@@ -645,6 +665,8 @@ private fun WalletReceiptCard(
     showVaultFilterBanner: Boolean,
     globalPeriodAlertForCharge: (EobRecord, EobCharge) -> CptGlobalPeriodAlert?,
     upcodingVerificationForCharge: (EobRecord, EobCharge) -> UpcodingVerificationAlert?,
+    bundlingAlertForCharge: (EobRecord, EobCharge) -> NcciBundlingAlert?,
+    billingIssuesForRecord: (EobRecord) -> List<BillingIssue>,
     onExpandToggle: () -> Unit,
     onDoctorAppealRequested: () -> Unit,
     onAppealInsurance: () -> Unit
@@ -652,6 +674,16 @@ private fun WalletReceiptCard(
     val billableCharges = remember(record) { EobAnalyzer.chargesWithBillableAmounts(record.charges) }
     val lineCount = billableCharges.size
     val elevation = if (isExpanded) 12.dp else 3.dp
+    val recordBillingAlerts = remember(record.historyListKey(), isExpanded) {
+        if (!isExpanded) {
+            emptyList()
+        } else {
+            billingIssuesForRecord(record).filter { issue ->
+                issue.severity != BillingIssueSeverity.Info &&
+                    issue.type != BillingIssueType.PossibleUnbundling
+            }
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -723,6 +755,11 @@ private fun WalletReceiptCard(
                 record = record
             )
 
+            if (isExpanded && recordBillingAlerts.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                HistoryBillingIssuesBanner(issues = recordBillingAlerts)
+            }
+
             if (isExpanded) {
                 if (isSelected) {
                     Spacer(modifier = Modifier.height(14.dp))
@@ -756,7 +793,8 @@ private fun WalletReceiptCard(
                             language = language,
                             charge = charge,
                             globalPeriodAlert = globalPeriodAlertForCharge(record, charge),
-                            upcodingVerification = upcodingVerificationForCharge(record, charge)
+                            upcodingVerification = upcodingVerificationForCharge(record, charge),
+                            bundlingAlert = bundlingAlertForCharge(record, charge)
                         )
                     }
                     if (record.totalBilledAmount > 0.0) {
@@ -1071,7 +1109,8 @@ private fun ReceiptCptLine(
     language: AppLanguage,
     charge: EobCharge,
     globalPeriodAlert: CptGlobalPeriodAlert?,
-    upcodingVerification: UpcodingVerificationAlert?
+    upcodingVerification: UpcodingVerificationAlert?,
+    bundlingAlert: NcciBundlingAlert?
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1117,6 +1156,102 @@ private fun ReceiptCptLine(
                 language = language,
                 alert = globalPeriodAlert
             )
+        }
+        if (bundlingAlert != null) {
+            NcciUnbundlingAlertBubble(
+                language = language,
+                alert = bundlingAlert
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryBillingIssuesBanner(issues: List<BillingIssue>) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        issues.forEach { issue ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = issue.title,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                    if (issue.explanation.isNotBlank()) {
+                        Text(
+                            text = issue.explanation,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NcciUnbundlingAlertBubble(
+    language: AppLanguage,
+    alert: NcciBundlingAlert
+) {
+    AnimatedVisibility(
+        visible = alert.isActive,
+        enter = expandVertically(animationSpec = tween(280)) + fadeIn(animationSpec = tween(280)),
+        exit = shrinkVertically(animationSpec = tween(220)) + fadeOut(animationSpec = tween(220))
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp, bottom = 6.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.errorContainer
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = EobStrings.tf(
+                        language,
+                        "historyNcciUnbundlingAlert",
+                        alert.columnOneCode,
+                        alert.columnTwoCode,
+                        alert.serviceDate
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
         }
     }
 }

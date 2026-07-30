@@ -343,6 +343,8 @@ object EobStrings {
         "historyProcedureCodes" to "Procedure Codes (CPT)",
         "historyClaimTotal" to "Claim total",
         "historyGlobalPeriodAlert" to "Heads up! A %d-day global period started on %s. Routine follow-up care for this procedure is fully covered until %s.",
+        "historyNcciUnbundlingAlert" to "Possible NCCI unbundling: CPT %s and %s may not be separately billable on %s.",
+        "historyBillingIssuesDetected" to "%d billing issue(s) detected",
         "historyUpcodingVerification" to "Your provider billed for a high-complexity visit. This code requires them to spend %s on your care for this encounter. Did your appointment take this long and involve complex medical care?",
         "historyUpcodingYes" to "Yes, it did",
         "historyUpcodingNo" to "No, it was quick.",

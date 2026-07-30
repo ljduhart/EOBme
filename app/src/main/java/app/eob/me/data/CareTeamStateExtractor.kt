@@ -22,7 +22,7 @@ object CareTeamStateExtractor {
                     it.providerType == type && it.providerName.isNotBlank()
                 },
                 flaggedIssueCount = relatedRecords.count { record ->
-                    EobAnalyzer.detectBillingIssues(record).any { issue ->
+                    EobAnalyzer.detectBillingIssuesForRecord(record, records).any { issue ->
                         issue.severity != BillingIssueSeverity.Info
                     }
                 }

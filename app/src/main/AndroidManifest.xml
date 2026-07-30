@@ -4,6 +4,8 @@
     <!-- INTERNET — Firebase Auth, Firestore, Storage; EOB upload/sync (EobRepository / EobViewModel);
          live insurance RSS via RetrofitClient / fetchLiveInsuranceNews in EobViewModel;
          Insurance Intelligence rotation (3 Becker's + 4 Healthcare Dive / 2h) via InsuranceNewsRotation -->
+    <!-- On-device billing error analysis (upcoding, NCCI unbundling, global period, math mismatch)
+         runs in EobViewModel / EobAnalyzer without additional permissions. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- ACCESS_NETWORK_STATE — connectivity checks before remote operations -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

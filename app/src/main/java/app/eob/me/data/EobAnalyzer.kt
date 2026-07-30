@@ -476,6 +476,12 @@ object EobAnalyzer {
         return first.trim().equals(second.trim(), ignoreCase = true)
     }
 
+    fun detectBillingIssuesForRecord(record: EobRecord, allRecords: List<EobRecord>): List<BillingIssue> {
+        return detectBillingIssues(record) +
+            CptGlobalPeriodCalculator.billingIssuesFor(record, allRecords) +
+            NcciBundlingCalculator.billingIssuesFor(record)
+    }
+
     fun historyBentoSnapshot(records: List<EobRecord>): HistoryBentoSnapshot {
         val monthlySpend = monthlyPatientSpendLastMonths(records, monthCount = 3)
         val rawQuadrants = listOf(
@@ -509,13 +515,17 @@ object EobAnalyzer {
 
     fun flaggedBillingErrorCount(records: List<EobRecord>): Int {
         return records.count { record ->
-            detectBillingIssues(record).any { issue -> issue.severity != BillingIssueSeverity.Info }
+            detectBillingIssuesForRecord(record, records).any { issue ->
+                issue.severity != BillingIssueSeverity.Info
+            }
         }
     }
 
     fun recordsWithFlaggedBillingErrors(records: List<EobRecord>): List<EobRecord> {
         return records.filter { record ->
-            detectBillingIssues(record).any { issue -> issue.severity != BillingIssueSeverity.Info }
+            detectBillingIssuesForRecord(record, records).any { issue ->
+                issue.severity != BillingIssueSeverity.Info
+            }
         }
     }
 

@@ -36,7 +36,8 @@ class MobileUiPr181Test {
         val calculatorSource = readSource("data/NcciBundlingCalculator.kt")
         assertTrue(viewModelSource.contains("fun bundlingAlertForCharges"))
         assertTrue(viewModelSource.contains("fun bundlingAlertsForRecord"))
-        assertTrue(viewModelSource.contains("NcciBundlingCalculator.billingIssuesFor(record)"))
+        assertTrue(viewModelSource.contains("fun bundlingAlertForCharge"))
+        assertTrue(viewModelSource.contains("EobAnalyzer.detectBillingIssuesForRecord(record, allRecords)"))
         assertTrue(calculatorSource.contains("object NcciBundlingCalculator"))
         assertTrue(calculatorSource.contains("BillingIssueType.PossibleUnbundling"))
     }

@@ -2000,9 +2000,8 @@ class EobViewModel : ViewModel() {
     }
 
     fun detectBillingIssuesForRecord(record: EobRecord): List<BillingIssue> {
-        return EobAnalyzer.detectBillingIssues(record) +
-            CptGlobalPeriodCalculator.billingIssuesFor(record, _eobRecords.value) +
-            NcciBundlingCalculator.billingIssuesFor(record)
+        val allRecords = _eobRecords.value
+        return EobAnalyzer.detectBillingIssuesForRecord(record, allRecords)
     }
 
     fun bundlingAlertForCharges(
@@ -2016,6 +2015,13 @@ class EobViewModel : ViewModel() {
 
     fun bundlingAlertsForRecord(record: EobRecord): List<NcciBundlingAlert> {
         return NcciBundlingCalculator.bundlingAlertsForRecord(record)
+    }
+
+    fun bundlingAlertForCharge(record: EobRecord, charge: EobCharge): NcciBundlingAlert? {
+        return bundlingAlertsForRecord(record).firstOrNull { alert ->
+            charge.cptCode.equals(alert.columnOneCode, ignoreCase = true) ||
+                charge.cptCode.equals(alert.columnTwoCode, ignoreCase = true)
+        }?.takeIf { it.isActive }
     }
 
     fun upcodingVerificationForCharge(
