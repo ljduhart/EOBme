@@ -103,6 +103,9 @@ import app.eob.me.scanner.GmsDocumentScannerLauncher
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.HubUiState
+import app.eob.me.viewmodel.RxVaultViewModel
+import app.eob.me.ui.components.rx.SmartRxVaultBottomSheet
+import androidx.compose.material3.ExperimentalMaterial3Api
 
 @Composable
 fun EobNavHost(
@@ -260,6 +263,9 @@ private fun MainHubNavHost(
     val sortedEobRecords by eobViewModel.sortedEobRecords.collectAsStateWithLifecycle()
     val personalizedNewsFeed by eobViewModel.personalizedNewsFeed.collectAsStateWithLifecycle()
     val firebaseUser by appViewModel.firebaseUser.collectAsStateWithLifecycle()
+
+    var rxVaultEngaged by remember { mutableStateOf(false) }
+    var smartRxVaultVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.hubSettings.darkModeEnabled) {
         onHubDarkModeChanged(uiState.hubSettings.darkModeEnabled)
@@ -964,6 +970,11 @@ private fun MainHubNavHost(
                             )
                             onActivity()
                         },
+                        onOpenSmartRxVault = {
+                            rxVaultEngaged = true
+                            smartRxVaultVisible = true
+                            onActivity()
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -1618,8 +1629,47 @@ private fun MainHubNavHost(
                     onActivity()
                 }
             )
+            if (rxVaultEngaged) {
+                SmartRxVaultSessionOverlay(
+                    language = language,
+                    visible = smartRxVaultVisible,
+                    onDismiss = { smartRxVaultVisible = false }
+                )
+            }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SmartRxVaultSessionOverlay(
+    language: AppLanguage,
+    visible: Boolean,
+    onDismiss: () -> Unit
+) {
+    val rxVaultViewModel: RxVaultViewModel = viewModel()
+    val rxVaultUiState by rxVaultViewModel.uiState.collectAsStateWithLifecycle()
+    val rxFsaLedgerYtd by rxVaultViewModel.fsaLedgerYtdTotal.collectAsStateWithLifecycle()
+    LaunchedEffect(visible) {
+        if (visible) {
+            rxVaultViewModel.refreshDayBoundary()
+        }
+    }
+    SmartRxVaultBottomSheet(
+        language = language,
+        visible = visible,
+        state = rxVaultUiState,
+        fsaYtdTotal = rxFsaLedgerYtd,
+        onDismiss = onDismiss,
+        onToggleDose = rxVaultViewModel::toggleDose,
+        onShowAddForm = rxVaultViewModel::setShowAddForm,
+        onDraftName = rxVaultViewModel::updateDraftName,
+        onDraftDosage = rxVaultViewModel::updateDraftDosage,
+        onDraftQuantity = rxVaultViewModel::updateDraftQuantity,
+        onDraftCopay = rxVaultViewModel::updateDraftCopay,
+        onDraftFsaEligible = rxVaultViewModel::updateDraftFsaEligible,
+        onSaveMedication = rxVaultViewModel::saveDraftMedication
+    )
 }
 
 @Composable

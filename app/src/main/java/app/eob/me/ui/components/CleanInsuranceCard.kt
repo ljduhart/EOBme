@@ -36,6 +36,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -111,6 +114,7 @@ fun CleanInsuranceCard(
     onMedicationDosageScheduleChange: (String) -> Unit,
     onMedicationAllergiesChange: (String) -> Unit,
     onDoctorQuickNotesChange: (String) -> Unit,
+    onOpenSmartRxVault: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var flipped by remember { mutableStateOf(false) }
@@ -192,6 +196,7 @@ fun CleanInsuranceCard(
                         localAllergies = updated
                         onMedicationAllergiesChange(updated)
                     },
+                    onOpenSmartRxVault = onOpenSmartRxVault,
                     onDoctorQuickNotesChange = { updated ->
                         localDoctorNotes = updated
                         onDoctorQuickNotesChange(updated)
@@ -353,6 +358,7 @@ private fun InsuranceCardBackFace(
     onCurrentPrescriptionsChange: (String) -> Unit,
     onMedicationDosageScheduleChange: (String) -> Unit,
     onMedicationAllergiesChange: (String) -> Unit,
+    onOpenSmartRxVault: () -> Unit,
     onDoctorQuickNotesChange: (String) -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
@@ -410,6 +416,7 @@ private fun InsuranceCardBackFace(
             when (activeMode) {
                 InsuranceCardBackMode.Hub -> InsuranceCardBackHub(
                     language = language,
+                    onOpenSmartRxVault = onOpenSmartRxVault,
                     onOpenMedications = { onModeChange(InsuranceCardBackMode.Medications) },
                     onOpenNotepad = { onModeChange(InsuranceCardBackMode.Notepad) }
                 )
@@ -420,7 +427,8 @@ private fun InsuranceCardBackFace(
                     medicationAllergies = medicationAllergies,
                     onCurrentPrescriptionsChange = onCurrentPrescriptionsChange,
                     onMedicationDosageScheduleChange = onMedicationDosageScheduleChange,
-                    onMedicationAllergiesChange = onMedicationAllergiesChange
+                    onMedicationAllergiesChange = onMedicationAllergiesChange,
+                    onOpenSmartRxVault = onOpenSmartRxVault
                 )
                 InsuranceCardBackMode.Notepad -> InsuranceCardDigitalNotepadPanel(
                     language = language,
@@ -435,6 +443,7 @@ private fun InsuranceCardBackFace(
 @Composable
 private fun InsuranceCardBackHub(
     language: AppLanguage,
+    onOpenSmartRxVault: () -> Unit,
     onOpenMedications: () -> Unit,
     onOpenNotepad: () -> Unit
 ) {
@@ -458,7 +467,7 @@ private fun InsuranceCardBackHub(
             InsuranceCardBackLauncher(
                 label = EobStrings.t(language, "insuranceCardMedicationsLauncher"),
                 contentDescription = EobStrings.t(language, "insuranceCardMedicationsLauncherDescription"),
-                onClick = onOpenMedications
+                onClick = onOpenSmartRxVault
             ) {
                 InsuranceCardPillBottleIcon()
             }
@@ -469,6 +478,12 @@ private fun InsuranceCardBackHub(
             ) {
                 InsuranceCardNotepadIcon()
             }
+        }
+        TextButton(onClick = onOpenMedications) {
+            Text(
+                text = EobStrings.t(language, "insuranceCardMedicationsNotesLink"),
+                color = NotesSecondaryText
+            )
         }
     }
 }
@@ -508,7 +523,8 @@ private fun InsuranceCardMedicationsPanel(
     medicationAllergies: String,
     onCurrentPrescriptionsChange: (String) -> Unit,
     onMedicationDosageScheduleChange: (String) -> Unit,
-    onMedicationAllergiesChange: (String) -> Unit
+    onMedicationAllergiesChange: (String) -> Unit,
+    onOpenSmartRxVault: () -> Unit
 ) {
     val keyboardOptions = notesKeyboardOptions()
     val textStyle = notesTextStyle()
@@ -553,6 +569,13 @@ private fun InsuranceCardMedicationsPanel(
             keyboardOptions = keyboardOptions,
             minHeight = 72.dp
         )
+        Button(
+            onClick = onOpenSmartRxVault,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = EobBrandBlue)
+        ) {
+            Text(EobStrings.t(language, "rxVaultOpenLauncher"))
+        }
     }
 }
 
