@@ -638,8 +638,14 @@ private fun MainHubNavHost(
         }
     }
 
+    BackHandler(enabled = smartRxVaultVisible) {
+        smartRxVaultVisible = false
+        onActivity()
+    }
+
     BackHandler(
         enabled = currentRoute == EobRoute.Home.route &&
+            !smartRxVaultVisible &&
             !uiState.paywallVisible &&
             !uiState.hubSettings.appLocked
     ) {

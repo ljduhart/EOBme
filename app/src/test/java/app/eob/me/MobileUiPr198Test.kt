@@ -61,6 +61,41 @@ class MobileUiPr198Test {
     }
 
     @Test
+    fun deleteMedicationCleansLedgerAndDoseLogs() {
+        val repoSource = readSource("data/repository/RxVaultRepository.kt")
+        val ledgerDaoSource = readSource("data/local/dao/TaxVaultExpenseLedgerDao.kt")
+        val doseDaoSource = readSource("data/local/dao/MedicationDoseLogDao.kt")
+        assertTrue(ledgerDaoSource.contains("deleteForMedication"))
+        assertTrue(doseDaoSource.contains("deleteForMedication"))
+        assertTrue(repoSource.contains("ledgerDao.deleteForMedication"))
+        assertTrue(repoSource.contains("doseLogDao.deleteForMedication"))
+    }
+
+    @Test
+    fun refillAlertUsesStableNotificationId() {
+        val refillSource = readSource("work/RefillAlertWorker.kt")
+        assertTrue(refillSource.contains("notificationId(medicationId)"))
+        assertFalse(refillSource.contains("medicationId.toInt()"))
+    }
+
+    @Test
+    fun rxVaultValidationUsesLocalizedKey() {
+        val vmSource = readSource("viewmodel/RxVaultViewModel.kt")
+        val stringsSource = readSource("data/EobStrings.kt")
+        val sheetSource = readSource("ui/components/rx/SmartRxVaultBottomSheet.kt")
+        assertTrue(vmSource.contains("rxVaultInvalidMedication"))
+        assertTrue(stringsSource.contains("rxVaultInvalidMedication"))
+        assertTrue(sheetSource.contains("state.errorMessage"))
+    }
+
+    @Test
+    fun rxVaultBackHandlerDismissesSheetBeforeHubExit() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("BackHandler(enabled = smartRxVaultVisible)"))
+        assertTrue(navSource.contains("!smartRxVaultVisible"))
+    }
+
+    @Test
     fun protectedVeryfiPipelineUntouchedForPr198() {
         val pipelineSource = readSource("data/DocumentScanPipelineRepository.kt")
         assertFalse(pipelineSource.contains("MedicationRecord"))
