@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -415,6 +416,7 @@ private fun InsuranceCardBackFace(
             when (activeMode) {
                 InsuranceCardBackMode.Hub -> InsuranceCardBackHub(
                     language = language,
+                    onOpenSmartRxVault = onOpenSmartRxVault,
                     onOpenMedications = { onModeChange(InsuranceCardBackMode.Medications) },
                     onOpenNotepad = { onModeChange(InsuranceCardBackMode.Notepad) }
                 )
@@ -441,6 +443,7 @@ private fun InsuranceCardBackFace(
 @Composable
 private fun InsuranceCardBackHub(
     language: AppLanguage,
+    onOpenSmartRxVault: () -> Unit,
     onOpenMedications: () -> Unit,
     onOpenNotepad: () -> Unit
 ) {
@@ -464,7 +467,7 @@ private fun InsuranceCardBackHub(
             InsuranceCardBackLauncher(
                 label = EobStrings.t(language, "insuranceCardMedicationsLauncher"),
                 contentDescription = EobStrings.t(language, "insuranceCardMedicationsLauncherDescription"),
-                onClick = onOpenMedications
+                onClick = onOpenSmartRxVault
             ) {
                 InsuranceCardPillBottleIcon()
             }
@@ -475,6 +478,12 @@ private fun InsuranceCardBackHub(
             ) {
                 InsuranceCardNotepadIcon()
             }
+        }
+        TextButton(onClick = onOpenMedications) {
+            Text(
+                text = EobStrings.t(language, "insuranceCardMedicationsNotesLink"),
+                color = NotesSecondaryText
+            )
         }
     }
 }

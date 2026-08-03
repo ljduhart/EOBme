@@ -71,6 +71,17 @@ class MobileUiPr197Test {
     }
 
     @Test
+    fun smartRxVaultOriginatesFromInsuranceCardPillBottleQuickAccess() {
+        val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(cardSource.contains("InsuranceCardPillBottleIcon"))
+        assertTrue(cardSource.contains("onClick = onOpenSmartRxVault"))
+        assertTrue(cardSource.contains("insuranceCardMedicationsNotesLink"))
+        assertTrue(navSource.contains("smartRxVaultVisible = true"))
+        assertFalse(navSource.contains("EobRoute.RxVault"))
+    }
+
+    @Test
     fun protectedVeryfiPipelineUntouchedForPr197() {
         val pipelineSource = readSource("data/DocumentScanPipelineRepository.kt")
         assertFalse(pipelineSource.contains("MedicationRecord"))
