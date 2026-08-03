@@ -28,6 +28,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.RotateLeft
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -111,6 +113,7 @@ fun CleanInsuranceCard(
     onMedicationDosageScheduleChange: (String) -> Unit,
     onMedicationAllergiesChange: (String) -> Unit,
     onDoctorQuickNotesChange: (String) -> Unit,
+    onOpenSmartRxVault: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var flipped by remember { mutableStateOf(false) }
@@ -192,6 +195,7 @@ fun CleanInsuranceCard(
                         localAllergies = updated
                         onMedicationAllergiesChange(updated)
                     },
+                    onOpenSmartRxVault = onOpenSmartRxVault,
                     onDoctorQuickNotesChange = { updated ->
                         localDoctorNotes = updated
                         onDoctorQuickNotesChange(updated)
@@ -353,6 +357,7 @@ private fun InsuranceCardBackFace(
     onCurrentPrescriptionsChange: (String) -> Unit,
     onMedicationDosageScheduleChange: (String) -> Unit,
     onMedicationAllergiesChange: (String) -> Unit,
+    onOpenSmartRxVault: () -> Unit,
     onDoctorQuickNotesChange: (String) -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
@@ -420,7 +425,8 @@ private fun InsuranceCardBackFace(
                     medicationAllergies = medicationAllergies,
                     onCurrentPrescriptionsChange = onCurrentPrescriptionsChange,
                     onMedicationDosageScheduleChange = onMedicationDosageScheduleChange,
-                    onMedicationAllergiesChange = onMedicationAllergiesChange
+                    onMedicationAllergiesChange = onMedicationAllergiesChange,
+                    onOpenSmartRxVault = onOpenSmartRxVault
                 )
                 InsuranceCardBackMode.Notepad -> InsuranceCardDigitalNotepadPanel(
                     language = language,
@@ -508,7 +514,8 @@ private fun InsuranceCardMedicationsPanel(
     medicationAllergies: String,
     onCurrentPrescriptionsChange: (String) -> Unit,
     onMedicationDosageScheduleChange: (String) -> Unit,
-    onMedicationAllergiesChange: (String) -> Unit
+    onMedicationAllergiesChange: (String) -> Unit,
+    onOpenSmartRxVault: () -> Unit
 ) {
     val keyboardOptions = notesKeyboardOptions()
     val textStyle = notesTextStyle()
@@ -553,6 +560,13 @@ private fun InsuranceCardMedicationsPanel(
             keyboardOptions = keyboardOptions,
             minHeight = 72.dp
         )
+        Button(
+            onClick = onOpenSmartRxVault,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = EobBrandBlue)
+        ) {
+            Text(EobStrings.t(language, "rxVaultOpenLauncher"))
+        }
     }
 }
 

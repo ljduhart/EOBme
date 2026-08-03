@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextField
@@ -237,6 +238,7 @@ fun EobNavHost(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainHubNavHost(
     appViewModel: AppViewModel,
@@ -253,6 +255,10 @@ private fun MainHubNavHost(
     val context = LocalContext.current
     val navController = rememberNavController()
     val eobViewModel: EobViewModel = viewModel()
+    val rxVaultViewModel: app.eob.me.viewmodel.RxVaultViewModel = viewModel()
+    var smartRxVaultVisible by remember { mutableStateOf(false) }
+    val rxVaultUiState by rxVaultViewModel.uiState.collectAsStateWithLifecycle()
+    val rxFsaLedgerYtd by rxVaultViewModel.fsaLedgerYtdTotal.collectAsStateWithLifecycle()
     val eobRepository: EobRepository = appViewModel.eobRepository
 
     val uiState by eobViewModel.uiState.collectAsStateWithLifecycle()
@@ -964,6 +970,11 @@ private fun MainHubNavHost(
                             )
                             onActivity()
                         },
+                        onOpenSmartRxVault = {
+                            rxVaultViewModel.refreshDayBoundary()
+                            smartRxVaultVisible = true
+                            onActivity()
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -1617,6 +1628,21 @@ private fun MainHubNavHost(
                     eobViewModel.onOverwriteDuplicateScan()
                     onActivity()
                 }
+            )
+            app.eob.me.ui.components.rx.SmartRxVaultBottomSheet(
+                language = language,
+                visible = smartRxVaultVisible,
+                state = rxVaultUiState,
+                fsaYtdTotal = rxFsaLedgerYtd,
+                onDismiss = { smartRxVaultVisible = false },
+                onToggleDose = rxVaultViewModel::toggleDose,
+                onShowAddForm = rxVaultViewModel::setShowAddForm,
+                onDraftName = rxVaultViewModel::updateDraftName,
+                onDraftDosage = rxVaultViewModel::updateDraftDosage,
+                onDraftQuantity = rxVaultViewModel::updateDraftQuantity,
+                onDraftCopay = rxVaultViewModel::updateDraftCopay,
+                onDraftFsaEligible = rxVaultViewModel::updateDraftFsaEligible,
+                onSaveMedication = rxVaultViewModel::saveDraftMedication
             )
         }
     }
