@@ -23,4 +23,7 @@ interface TaxVaultExpenseLedgerDao {
             "ORDER BY recordedAtMillis DESC"
     )
     fun observeEntriesForYear(year: Int): Flow<List<TaxVaultExpenseLedgerEntity>>
+
+    @Query("DELETE FROM tax_vault_expense_ledger WHERE medicationId = :medicationId")
+    suspend fun deleteForMedication(medicationId: Long)
 }

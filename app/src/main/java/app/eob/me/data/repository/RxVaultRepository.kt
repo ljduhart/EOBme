@@ -8,7 +8,6 @@ import app.eob.me.data.local.entity.MedicationRecord
 import app.eob.me.data.local.entity.TaxVaultExpenseLedgerEntity
 import app.eob.me.work.RxReminderScheduler
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -45,6 +44,10 @@ class RxVaultRepository(context: Context) {
     }
 
     suspend fun deleteMedication(record: MedicationRecord) {
+        if (record.id > 0L) {
+            ledgerDao.deleteForMedication(record.id)
+            doseLogDao.deleteForMedication(record.id)
+        }
         medicationDao.delete(record)
         RxReminderScheduler.cancelRefillAlert(appContext, record.id)
     }

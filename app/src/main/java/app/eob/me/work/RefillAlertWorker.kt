@@ -33,7 +33,7 @@ class RefillAlertWorker(
             .setAutoCancel(true)
             .build()
         applicationContext.getSystemService(NotificationManager::class.java)
-            ?.notify(medicationId.toInt(), notification)
+            ?.notify(notificationId(medicationId), notification)
         return Result.success()
     }
 
@@ -54,5 +54,10 @@ class RefillAlertWorker(
         const val CHANNEL_ID = "rx_refill_alerts"
 
         fun uniqueWorkName(medicationId: Long): String = "rx_refill_alert_$medicationId"
+
+        /** Stable positive notification id for long Room primary keys. */
+        fun notificationId(medicationId: Long): Int {
+            return (medicationId xor (medicationId ushr 32)).toInt() and 0x7FFFFFFF
+        }
     }
 }

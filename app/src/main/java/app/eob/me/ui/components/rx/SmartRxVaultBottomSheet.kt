@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
@@ -224,13 +225,16 @@ private fun RxDailyTimelineRow(
                 FilterChip(
                     selected = anyTaken,
                     onClick = {
+                        val targetTaken = !anyTaken
                         medications.forEach { med ->
                             val current = when (slot) {
                                 MedicationDoseSlot.Morning -> med.morningTaken
                                 MedicationDoseSlot.Afternoon -> med.afternoonTaken
                                 MedicationDoseSlot.Evening -> med.eveningTaken
                             }
-                            onToggleDose(med.id, slot, !current)
+                            if (current != targetTaken) {
+                                onToggleDose(med.id, slot, targetTaken)
+                            }
                         }
                     },
                     label = { Text(EobStrings.t(language, labelKey)) },
@@ -361,6 +365,13 @@ private fun RxAddMedicationForm(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        if (state.errorMessage.isNotBlank()) {
+            Text(
+                text = EobStrings.t(language, state.errorMessage),
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.Medium
+            )
+        }
         OutlinedTextField(
             value = state.draftName,
             onValueChange = onDraftName,

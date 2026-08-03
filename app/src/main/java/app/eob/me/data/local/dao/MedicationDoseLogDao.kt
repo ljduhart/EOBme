@@ -28,4 +28,7 @@ interface MedicationDoseLogDao {
             "AND dayStartMillis = :dayStartMillis AND slot = :slot LIMIT 1"
     )
     suspend fun isDoseTaken(medicationId: Long, dayStartMillis: Long, slot: String): Boolean?
+
+    @Query("DELETE FROM medication_dose_logs WHERE medicationId = :medicationId")
+    suspend fun deleteForMedication(medicationId: Long)
 }

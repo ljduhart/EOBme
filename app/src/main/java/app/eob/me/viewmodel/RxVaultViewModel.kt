@@ -120,7 +120,7 @@ class RxVaultViewModel(application: Application) : AndroidViewModel(application)
         val quantity = draft.draftQuantity.trim().toIntOrNull()
         val copay = draft.draftCopay.trim().replace("$", "").toDoubleOrNull() ?: 0.0
         if (name.isBlank() || dosage.isBlank() || quantity == null || quantity <= 0) {
-            draftState.update { it.copy(errorMessage = "invalid_medication") }
+            draftState.update { it.copy(errorMessage = "rxVaultInvalidMedication") }
             return
         }
         val refillDate = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(quantity.toLong())

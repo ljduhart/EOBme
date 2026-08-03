@@ -587,6 +587,7 @@ object EobStrings {
         "rxVaultRefillAlertTitle" to "Refill reminder",
         "rxVaultRefillAlertBody" to "%s is running low — request a refill soon.",
         "rxVaultRefillAlertChannel" to "Refill alerts",
+        "rxVaultInvalidMedication" to "Enter a medication name, dosage, and a valid days supply.",
         "pcpCopayField" to "PCP copay",
         "specialistCopayField" to "Specialist copay",
         "valueNotSet" to "—",
