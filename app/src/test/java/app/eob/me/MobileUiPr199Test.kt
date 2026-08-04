@@ -42,6 +42,16 @@ class MobileUiPr199Test {
         assertTrue(navSource.contains("setShowAddForm(false)"))
     }
 
+    @Test
+    fun pr199PreservesLazyRxVaultEngagementAndProtectedPipeline() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val pipelineSource = readSource("data/DocumentScanPipelineRepository.kt")
+        assertTrue(navSource.contains("if (rxVaultEngaged)"))
+        assertTrue(navSource.contains("BackHandler(enabled = smartRxVaultVisible)"))
+        assertFalse(pipelineSource.contains("RxVaultRepository"))
+        assertFalse(pipelineSource.contains("MedicationRecord"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             File("src/main/java/app/eob/me/$relativePath"),
