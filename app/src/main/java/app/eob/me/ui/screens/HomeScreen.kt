@@ -110,6 +110,7 @@ fun HomeScreen(
     onInsuranceAllergiesChange: (String) -> Unit,
     onInsuranceDoctorNotesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit = {},
+    blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var appointmentPrefillDate by remember { mutableStateOf("") }
@@ -180,6 +181,7 @@ fun HomeScreen(
                         onMedicationAllergiesChange = onInsuranceAllergiesChange,
                         onDoctorQuickNotesChange = onInsuranceDoctorNotesChange,
                         onOpenSmartRxVault = onOpenSmartRxVault,
+                        blockInsuranceCardBackNavigation = blockInsuranceCardBackNavigation,
                         modifier = Modifier.fillMaxWidth(0.98f)
                     )
                 }

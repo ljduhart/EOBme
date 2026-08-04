@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
 import app.eob.me.data.MedicationDoseSlot
@@ -406,6 +408,7 @@ private fun RxAddMedicationForm(
             onValueChange = onDraftQuantity,
             label = { Text(EobStrings.t(language, "rxVaultFieldQuantity")) },
             colors = fieldColors,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
@@ -413,6 +416,7 @@ private fun RxAddMedicationForm(
             onValueChange = onDraftCopay,
             label = { Text(EobStrings.t(language, "rxVaultFieldCopay")) },
             colors = fieldColors,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth()
         )
         Row(

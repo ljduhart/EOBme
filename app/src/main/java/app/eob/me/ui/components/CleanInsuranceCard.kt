@@ -114,6 +114,7 @@ fun CleanInsuranceCard(
     onMedicationAllergiesChange: (String) -> Unit,
     onDoctorQuickNotesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit = {},
+    blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var flipped by remember { mutableStateOf(false) }
@@ -150,7 +151,7 @@ fun CleanInsuranceCard(
     )
     val density = LocalDensity.current
 
-    BackHandler(enabled = flipped) {
+    BackHandler(enabled = flipped && !blockInsuranceCardBackNavigation) {
         when (backMode) {
             InsuranceCardBackMode.Medications, InsuranceCardBackMode.Notepad -> backMode = InsuranceCardBackMode.Hub
             InsuranceCardBackMode.Hub -> flipped = false

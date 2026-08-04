@@ -75,7 +75,7 @@ class InsuranceCardFlipTest {
     @Test
     fun cleanInsuranceCardBackHandlerFlipsToFrontBeforeHubExit() {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
-        assertTrue(source.contains("BackHandler(enabled = flipped)"))
+        assertTrue(source.contains("BackHandler(enabled = flipped && !blockInsuranceCardBackNavigation)"))
         assertTrue(source.contains("InsuranceCardBackMode.Hub"))
     }
 

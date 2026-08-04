@@ -24,6 +24,24 @@ class MobileUiPr199Test {
         assertFalse(sheetSource.contains(".height(320.dp)"))
     }
 
+    @Test
+    fun insuranceCardBackDeferredWhileSmartRxVaultVisible() {
+        val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(cardSource.contains("blockInsuranceCardBackNavigation"))
+        assertTrue(cardSource.contains("flipped && !blockInsuranceCardBackNavigation"))
+        assertTrue(homeSource.contains("blockInsuranceCardBackNavigation"))
+        assertTrue(navSource.contains("blockInsuranceCardBackNavigation = smartRxVaultVisible"))
+    }
+
+    @Test
+    fun smartRxVaultDismissResetsAddFormState() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("closeVault"))
+        assertTrue(navSource.contains("setShowAddForm(false)"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             File("src/main/java/app/eob/me/$relativePath"),

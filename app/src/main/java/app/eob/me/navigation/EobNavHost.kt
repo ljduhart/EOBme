@@ -981,6 +981,7 @@ private fun MainHubNavHost(
                             smartRxVaultVisible = true
                             onActivity()
                         },
+                        blockInsuranceCardBackNavigation = smartRxVaultVisible,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -1656,17 +1657,26 @@ private fun SmartRxVaultSessionOverlay(
     val rxVaultViewModel: RxVaultViewModel = viewModel()
     val rxVaultUiState by rxVaultViewModel.uiState.collectAsStateWithLifecycle()
     val rxFsaLedgerYtd by rxVaultViewModel.fsaLedgerYtdTotal.collectAsStateWithLifecycle()
+
+    val closeVault = {
+        rxVaultViewModel.setShowAddForm(false)
+        onDismiss()
+    }
+
     LaunchedEffect(visible) {
         if (visible) {
             rxVaultViewModel.refreshDayBoundary()
+        } else {
+            rxVaultViewModel.setShowAddForm(false)
         }
     }
+
     SmartRxVaultBottomSheet(
         language = language,
         visible = visible,
         state = rxVaultUiState,
         fsaYtdTotal = rxFsaLedgerYtd,
-        onDismiss = onDismiss,
+        onDismiss = closeVault,
         onToggleDose = rxVaultViewModel::toggleDose,
         onShowAddForm = rxVaultViewModel::setShowAddForm,
         onDraftName = rxVaultViewModel::updateDraftName,

@@ -56,7 +56,7 @@ class InsuranceCardMetadataTest {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
         assertTrue(source.contains("InsuranceCardBackMode"))
         assertTrue(source.contains("AnimatedContent"))
-        assertTrue(source.contains("BackHandler(enabled = flipped)"))
+        assertTrue(source.contains("BackHandler(enabled = flipped && !blockInsuranceCardBackNavigation)"))
     }
 
     @Test
