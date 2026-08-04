@@ -114,6 +114,7 @@ fun CleanInsuranceCard(
     onMedicationAllergiesChange: (String) -> Unit,
     onDoctorQuickNotesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit = {},
+    onOpenClinicalNotes: () -> Unit = {},
     blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -197,6 +198,7 @@ fun CleanInsuranceCard(
                         onMedicationAllergiesChange(updated)
                     },
                     onOpenSmartRxVault = onOpenSmartRxVault,
+                    onOpenClinicalNotes = onOpenClinicalNotes,
                     onDoctorQuickNotesChange = { updated ->
                         localDoctorNotes = updated
                         onDoctorQuickNotesChange(updated)
@@ -359,6 +361,7 @@ private fun InsuranceCardBackFace(
     onMedicationDosageScheduleChange: (String) -> Unit,
     onMedicationAllergiesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit,
+    onOpenClinicalNotes: () -> Unit,
     onDoctorQuickNotesChange: (String) -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
@@ -417,7 +420,7 @@ private fun InsuranceCardBackFace(
                 InsuranceCardBackMode.Hub -> InsuranceCardBackHub(
                     language = language,
                     onOpenSmartRxVault = onOpenSmartRxVault,
-                    onOpenNotepad = { onModeChange(InsuranceCardBackMode.Notepad) }
+                    onOpenClinicalNotes = onOpenClinicalNotes
                 )
                 InsuranceCardBackMode.Medications -> InsuranceCardMedicationsPanel(
                     language = language,
@@ -443,7 +446,7 @@ private fun InsuranceCardBackFace(
 private fun InsuranceCardBackHub(
     language: AppLanguage,
     onOpenSmartRxVault: () -> Unit,
-    onOpenNotepad: () -> Unit
+    onOpenClinicalNotes: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -472,7 +475,7 @@ private fun InsuranceCardBackHub(
             InsuranceCardBackLauncher(
                 label = EobStrings.t(language, "insuranceCardNotepadLauncher"),
                 contentDescription = EobStrings.t(language, "insuranceCardNotepadLauncherDescription"),
-                onClick = onOpenNotepad
+                onClick = onOpenClinicalNotes
             ) {
                 InsuranceCardNotepadIcon()
             }
