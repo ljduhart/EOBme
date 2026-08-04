@@ -1,10 +1,12 @@
 package app.eob.me.navigation
 
+import android.content.pm.PackageManager
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
@@ -103,7 +105,9 @@ import app.eob.me.scanner.GmsDocumentScannerLauncher
 import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.HubUiState
+import app.eob.me.viewmodel.ClinicalNotesViewModel
 import app.eob.me.viewmodel.RxVaultViewModel
+import app.eob.me.ui.components.clinical.ClinicalNotesBottomSheet
 import app.eob.me.ui.components.rx.SmartRxVaultBottomSheet
 import androidx.compose.material3.ExperimentalMaterial3Api
 
@@ -266,6 +270,8 @@ private fun MainHubNavHost(
 
     var rxVaultEngaged by remember { mutableStateOf(false) }
     var smartRxVaultVisible by remember { mutableStateOf(false) }
+    var clinicalNotesEngaged by remember { mutableStateOf(false) }
+    var clinicalNotesVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.hubSettings.darkModeEnabled) {
         onHubDarkModeChanged(uiState.hubSettings.darkModeEnabled)
@@ -643,9 +649,15 @@ private fun MainHubNavHost(
         onActivity()
     }
 
+    BackHandler(enabled = clinicalNotesVisible) {
+        clinicalNotesVisible = false
+        onActivity()
+    }
+
     BackHandler(
         enabled = currentRoute == EobRoute.Home.route &&
             !smartRxVaultVisible &&
+            !clinicalNotesVisible &&
             !uiState.paywallVisible &&
             !uiState.hubSettings.appLocked
     ) {
@@ -968,20 +980,19 @@ private fun MainHubNavHost(
                             )
                             onActivity()
                         },
-                        onInsuranceDoctorNotesChange = { notes ->
-                            eobViewModel.updateInsuranceCardDoctorNotes(
-                                userId = userId,
-                                doctorQuickNotes = notes,
-                                onProfileChanged = appViewModel::applyRemoteProfile
-                            )
-                            onActivity()
-                        },
                         onOpenSmartRxVault = {
+                            clinicalNotesVisible = false
                             rxVaultEngaged = true
                             smartRxVaultVisible = true
                             onActivity()
                         },
-                        blockInsuranceCardBackNavigation = smartRxVaultVisible,
+                        onOpenClinicalNotes = {
+                            smartRxVaultVisible = false
+                            clinicalNotesEngaged = true
+                            clinicalNotesVisible = true
+                            onActivity()
+                        },
+                        blockInsuranceCardBackNavigation = smartRxVaultVisible || clinicalNotesVisible,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -1643,6 +1654,15 @@ private fun MainHubNavHost(
                     onDismiss = { smartRxVaultVisible = false }
                 )
             }
+            if (clinicalNotesEngaged) {
+                ClinicalNotesSessionOverlay(
+                    language = language,
+                    visible = clinicalNotesVisible,
+                    preferredDoctors = uiState.preferredDoctors,
+                    providerSummaries = eobViewModel.providerDirectory(),
+                    onDismiss = { clinicalNotesVisible = false }
+                )
+            }
         }
     }
 }
@@ -1685,6 +1705,73 @@ private fun SmartRxVaultSessionOverlay(
         onDraftCopay = rxVaultViewModel::updateDraftCopay,
         onDraftFsaEligible = rxVaultViewModel::updateDraftFsaEligible,
         onSaveMedication = rxVaultViewModel::saveDraftMedication
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClinicalNotesSessionOverlay(
+    language: AppLanguage,
+    visible: Boolean,
+    preferredDoctors: Map<app.eob.me.data.CareTeamProviderType, app.eob.me.data.PreferredDoctor>,
+    providerSummaries: List<app.eob.me.data.ProviderSummary>,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val clinicalNotesViewModel: ClinicalNotesViewModel = viewModel()
+    val clinicalUiState by clinicalNotesViewModel.uiState.collectAsStateWithLifecycle()
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            clinicalNotesViewModel.toggleSpeechRecognition()
+        }
+    }
+
+    val closeNotes = {
+        clinicalNotesViewModel.clearSessionDrafts()
+        onDismiss()
+    }
+
+    LaunchedEffect(visible, language, preferredDoctors, providerSummaries) {
+        if (visible) {
+            clinicalNotesViewModel.bootstrapProviderDirectory(
+                language = language,
+                preferredDoctors = preferredDoctors,
+                providerSummaries = providerSummaries
+            )
+        } else {
+            clinicalNotesViewModel.clearSessionDrafts()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            clinicalNotesViewModel.clearSessionDrafts()
+        }
+    }
+
+    ClinicalNotesBottomSheet(
+        language = language,
+        visible = visible,
+        state = clinicalUiState,
+        onDismiss = closeNotes,
+        onSelectProvider = clinicalNotesViewModel::selectProvider,
+        onQuestionsChange = clinicalNotesViewModel::updateQuestions,
+        onAnswersChange = clinicalNotesViewModel::updateAnswers,
+        onToggleSpeech = {
+            val granted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                clinicalNotesViewModel.toggleSpeechRecognition()
+            } else {
+                recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        },
+        onSaveNote = clinicalNotesViewModel::saveClinicalNote
     )
 }
 

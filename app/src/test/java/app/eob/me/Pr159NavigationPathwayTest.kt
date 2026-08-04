@@ -70,11 +70,11 @@ class Pr159NavigationPathwayTest {
         val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
 
         assertTrue(homeSource.contains("onInsurancePrescriptionsChange"))
-        assertTrue(homeSource.contains("onInsuranceDoctorNotesChange"))
+        assertTrue(homeSource.contains("onOpenClinicalNotes"))
         assertTrue(navSource.contains("updateInsuranceCardPrescriptions"))
-        assertTrue(navSource.contains("updateInsuranceCardDoctorNotes"))
+        assertTrue(navSource.contains("ClinicalNotesSessionOverlay"))
         assertTrue(cardSource.contains("onCurrentPrescriptionsChange"))
-        assertTrue(cardSource.contains("onDoctorQuickNotesChange"))
+        assertTrue(cardSource.contains("onOpenClinicalNotes"))
         assertFalse(cardSource.contains("placeholder = {"))
     }
 

@@ -97,8 +97,7 @@ private val InsuranceCardSectionSpacing = 9.dp
 
 private enum class InsuranceCardBackMode {
     Hub,
-    Medications,
-    Notepad
+    Medications
 }
 
 @Composable
@@ -108,12 +107,11 @@ fun CleanInsuranceCard(
     currentPrescriptions: String,
     medicationDosageSchedule: String,
     medicationAllergies: String,
-    doctorQuickNotes: String,
     onCurrentPrescriptionsChange: (String) -> Unit,
     onMedicationDosageScheduleChange: (String) -> Unit,
     onMedicationAllergiesChange: (String) -> Unit,
-    onDoctorQuickNotesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit = {},
+    onOpenClinicalNotes: () -> Unit = {},
     blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -122,14 +120,12 @@ fun CleanInsuranceCard(
     var localPrescriptions by remember { mutableStateOf(currentPrescriptions) }
     var localDosageSchedule by remember { mutableStateOf(medicationDosageSchedule) }
     var localAllergies by remember { mutableStateOf(medicationAllergies) }
-    var localDoctorNotes by remember { mutableStateOf(doctorQuickNotes) }
 
-    LaunchedEffect(currentPrescriptions, medicationDosageSchedule, medicationAllergies, doctorQuickNotes) {
+    LaunchedEffect(currentPrescriptions, medicationDosageSchedule, medicationAllergies) {
         if (!flipped || backMode == InsuranceCardBackMode.Hub) {
             localPrescriptions = currentPrescriptions
             localDosageSchedule = medicationDosageSchedule
             localAllergies = medicationAllergies
-            localDoctorNotes = doctorQuickNotes
         }
     }
 
@@ -138,7 +134,6 @@ fun CleanInsuranceCard(
             localPrescriptions = currentPrescriptions
             localDosageSchedule = medicationDosageSchedule
             localAllergies = medicationAllergies
-            localDoctorNotes = doctorQuickNotes
         } else {
             backMode = InsuranceCardBackMode.Hub
         }
@@ -153,7 +148,7 @@ fun CleanInsuranceCard(
 
     BackHandler(enabled = flipped && !blockInsuranceCardBackNavigation) {
         when (backMode) {
-            InsuranceCardBackMode.Medications, InsuranceCardBackMode.Notepad -> backMode = InsuranceCardBackMode.Hub
+            InsuranceCardBackMode.Medications -> backMode = InsuranceCardBackMode.Hub
             InsuranceCardBackMode.Hub -> flipped = false
         }
     }
@@ -182,7 +177,6 @@ fun CleanInsuranceCard(
                     currentPrescriptions = localPrescriptions,
                     medicationDosageSchedule = localDosageSchedule,
                     medicationAllergies = localAllergies,
-                    doctorQuickNotes = localDoctorNotes,
                     onModeChange = { backMode = it },
                     onCurrentPrescriptionsChange = { updated ->
                         localPrescriptions = updated
@@ -197,10 +191,7 @@ fun CleanInsuranceCard(
                         onMedicationAllergiesChange(updated)
                     },
                     onOpenSmartRxVault = onOpenSmartRxVault,
-                    onDoctorQuickNotesChange = { updated ->
-                        localDoctorNotes = updated
-                        onDoctorQuickNotesChange(updated)
-                    },
+                    onOpenClinicalNotes = onOpenClinicalNotes,
                     onFlip = { flipped = false },
                     modifier = Modifier.graphicsLayer { rotationY = 180f }
                 )
@@ -353,13 +344,12 @@ private fun InsuranceCardBackFace(
     currentPrescriptions: String,
     medicationDosageSchedule: String,
     medicationAllergies: String,
-    doctorQuickNotes: String,
     onModeChange: (InsuranceCardBackMode) -> Unit,
     onCurrentPrescriptionsChange: (String) -> Unit,
     onMedicationDosageScheduleChange: (String) -> Unit,
     onMedicationAllergiesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit,
-    onDoctorQuickNotesChange: (String) -> Unit,
+    onOpenClinicalNotes: () -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -400,9 +390,6 @@ private fun InsuranceCardBackFace(
                     initialState == InsuranceCardBackMode.Hub && targetState == InsuranceCardBackMode.Medications ->
                         (fadeIn(tween(220)) + expandVertically(expandFrom = Alignment.Top))
                             .togetherWith(fadeOut(tween(180)))
-                    initialState == InsuranceCardBackMode.Hub && targetState == InsuranceCardBackMode.Notepad ->
-                        (fadeIn(tween(220)) + slideInHorizontally { it / 2 })
-                            .togetherWith(fadeOut(tween(180)))
                     initialState != InsuranceCardBackMode.Hub && targetState == InsuranceCardBackMode.Hub ->
                         fadeIn(tween(220)).togetherWith(
                             fadeOut(tween(180)) + shrinkVertically(shrinkTowards = Alignment.Top)
@@ -417,7 +404,7 @@ private fun InsuranceCardBackFace(
                 InsuranceCardBackMode.Hub -> InsuranceCardBackHub(
                     language = language,
                     onOpenSmartRxVault = onOpenSmartRxVault,
-                    onOpenNotepad = { onModeChange(InsuranceCardBackMode.Notepad) }
+                    onOpenClinicalNotes = onOpenClinicalNotes
                 )
                 InsuranceCardBackMode.Medications -> InsuranceCardMedicationsPanel(
                     language = language,
@@ -429,11 +416,6 @@ private fun InsuranceCardBackFace(
                     onMedicationAllergiesChange = onMedicationAllergiesChange,
                     onOpenSmartRxVault = onOpenSmartRxVault
                 )
-                InsuranceCardBackMode.Notepad -> InsuranceCardDigitalNotepadPanel(
-                    language = language,
-                    doctorQuickNotes = doctorQuickNotes,
-                    onDoctorQuickNotesChange = onDoctorQuickNotesChange
-                )
             }
         }
     }
@@ -443,7 +425,7 @@ private fun InsuranceCardBackFace(
 private fun InsuranceCardBackHub(
     language: AppLanguage,
     onOpenSmartRxVault: () -> Unit,
-    onOpenNotepad: () -> Unit
+    onOpenClinicalNotes: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -472,7 +454,7 @@ private fun InsuranceCardBackHub(
             InsuranceCardBackLauncher(
                 label = EobStrings.t(language, "insuranceCardNotepadLauncher"),
                 contentDescription = EobStrings.t(language, "insuranceCardNotepadLauncherDescription"),
-                onClick = onOpenNotepad
+                onClick = onOpenClinicalNotes
             ) {
                 InsuranceCardNotepadIcon()
             }
@@ -567,58 +549,6 @@ private fun InsuranceCardMedicationsPanel(
             colors = ButtonDefaults.buttonColors(containerColor = EobBrandBlue)
         ) {
             Text(EobStrings.t(language, "rxVaultOpenLauncher"))
-        }
-    }
-}
-
-@Composable
-private fun InsuranceCardDigitalNotepadPanel(
-    language: AppLanguage,
-    doctorQuickNotes: String,
-    onDoctorQuickNotesChange: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            InsuranceCardNotepadIcon(modifier = Modifier.size(40.dp))
-            Text(
-                text = EobStrings.t(language, "insuranceCardDigitalNotepadTitle"),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = NotesPrimaryText
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 160.dp)
-                .background(Color(0xFFFFF8E1), RoundedCornerShape(12.dp))
-                .padding(horizontal = 12.dp, vertical = 10.dp)
-        ) {
-            OutlinedTextField(
-                value = doctorQuickNotes,
-                onValueChange = onDoctorQuickNotesChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 140.dp),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF263238)),
-                shape = RoundedCornerShape(8.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedBorderColor = Color(0xFFB0BEC5),
-                    unfocusedBorderColor = Color(0xFFCFD8DC),
-                    cursorColor = EobBrandBlue
-                ),
-                keyboardOptions = notesKeyboardOptions(),
-                singleLine = false,
-                maxLines = 8
-            )
         }
     }
 }

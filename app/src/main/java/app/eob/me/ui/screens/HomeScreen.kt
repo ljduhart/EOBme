@@ -108,8 +108,8 @@ fun HomeScreen(
     onInsurancePrescriptionsChange: (String) -> Unit,
     onInsuranceDosageScheduleChange: (String) -> Unit,
     onInsuranceAllergiesChange: (String) -> Unit,
-    onInsuranceDoctorNotesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit = {},
+    onOpenClinicalNotes: () -> Unit = {},
     blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -175,12 +175,11 @@ fun HomeScreen(
                         currentPrescriptions = profile.currentPrescriptions,
                         medicationDosageSchedule = profile.medicationDosageSchedule,
                         medicationAllergies = profile.medicationAllergies,
-                        doctorQuickNotes = profile.doctorQuickNotes,
                         onCurrentPrescriptionsChange = onInsurancePrescriptionsChange,
                         onMedicationDosageScheduleChange = onInsuranceDosageScheduleChange,
                         onMedicationAllergiesChange = onInsuranceAllergiesChange,
-                        onDoctorQuickNotesChange = onInsuranceDoctorNotesChange,
                         onOpenSmartRxVault = onOpenSmartRxVault,
+                        onOpenClinicalNotes = onOpenClinicalNotes,
                         blockInsuranceCardBackNavigation = blockInsuranceCardBackNavigation,
                         modifier = Modifier.fillMaxWidth(0.98f)
                     )

@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- CAMERA — hub Scan EOB → EobRoute.CameraCapture (CameraX); runtime request in EobNavHost -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- POST_NOTIFICATIONS — EobFirebaseMessagingService; runtime request API 33+ in EobNavHost -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- BILLING — Google Play Billing Library (BillingRepository / SubscriptionViewModel),
