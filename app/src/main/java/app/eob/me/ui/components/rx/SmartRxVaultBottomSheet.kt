@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +30,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,7 +107,9 @@ fun SmartRxVaultBottomSheet(
             onDraftCopay = onDraftCopay,
             onDraftFsaEligible = onDraftFsaEligible,
             onSaveMedication = onSaveMedication,
-            modifier = Modifier.padding(bottom = 28.dp)
+            modifier = Modifier
+                .fillMaxHeight(0.92f)
+                .padding(bottom = 8.dp)
         )
     }
 }
@@ -124,71 +129,81 @@ private fun SmartRxVaultSheetContent(
     onSaveMedication: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    val listState = rememberLazyListState()
+    val addFormListIndex = 4
+
+    LaunchedEffect(state.showAddForm) {
+        if (state.showAddForm) {
+            listState.animateScrollToItem(addFormListIndex)
+        }
+    }
+
+    LazyColumn(
+        state = listState,
         modifier = modifier
             .fillMaxWidth()
+            .imePadding()
             .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = EobStrings.t(language, "rxVaultSheetTitle"),
-            color = EobCyberTextPrimary,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = EobStrings.tf(language, "rxVaultFsaYtdTotal", formatCurrency(fsaYtdTotal)),
-            color = EobCyberTextSecondary,
-            fontWeight = FontWeight.Medium
-        )
-
-        RxDailyTimelineRow(
-            language = language,
-            medications = state.medications,
-            onToggleDose = onToggleDose
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        item(key = "rx_vault_title") {
             Text(
-                text = EobStrings.t(language, "rxVaultMedicationListTitle"),
+                text = EobStrings.t(language, "rxVaultSheetTitle"),
                 color = EobCyberTextPrimary,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
-            Button(onClick = { onShowAddForm(!state.showAddForm) }) {
-                Text(EobStrings.t(language, if (state.showAddForm) "cancel" else "rxVaultAddMedication"))
+        }
+        item(key = "rx_vault_ytd") {
+            Text(
+                text = EobStrings.tf(language, "rxVaultFsaYtdTotal", formatCurrency(fsaYtdTotal)),
+                color = EobCyberTextSecondary,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        item(key = "rx_vault_timeline") {
+            RxDailyTimelineRow(
+                language = language,
+                medications = state.medications,
+                onToggleDose = onToggleDose
+            )
+        }
+        item(key = "rx_vault_list_header") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = EobStrings.t(language, "rxVaultMedicationListTitle"),
+                    color = EobCyberTextPrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Button(onClick = { onShowAddForm(!state.showAddForm) }) {
+                    Text(EobStrings.t(language, if (state.showAddForm) "cancel" else "rxVaultAddMedication"))
+                }
             }
         }
-
         if (state.showAddForm) {
-            RxAddMedicationForm(
-                language = language,
-                state = state,
-                onDraftName = onDraftName,
-                onDraftDosage = onDraftDosage,
-                onDraftQuantity = onDraftQuantity,
-                onDraftCopay = onDraftCopay,
-                onDraftFsaEligible = onDraftFsaEligible,
-                onSaveMedication = onSaveMedication
-            )
-        }
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(320.dp),
-            contentPadding = PaddingValues(bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(state.medications, key = { it.id }) { medication ->
-                RxVaultBentoCard(
+            item(key = "rx_vault_add_form") {
+                RxAddMedicationForm(
                     language = language,
-                    medication = medication,
-                    onToggleDose = onToggleDose
+                    state = state,
+                    onDraftName = onDraftName,
+                    onDraftDosage = onDraftDosage,
+                    onDraftQuantity = onDraftQuantity,
+                    onDraftCopay = onDraftCopay,
+                    onDraftFsaEligible = onDraftFsaEligible,
+                    onSaveMedication = onSaveMedication
                 )
             }
+        }
+        items(state.medications, key = { it.id }) { medication ->
+            RxVaultBentoCard(
+                language = language,
+                medication = medication,
+                onToggleDose = onToggleDose
+            )
         }
     }
 }
