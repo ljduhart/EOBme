@@ -980,20 +980,14 @@ private fun MainHubNavHost(
                             )
                             onActivity()
                         },
-                        onInsuranceDoctorNotesChange = { notes ->
-                            eobViewModel.updateInsuranceCardDoctorNotes(
-                                userId = userId,
-                                doctorQuickNotes = notes,
-                                onProfileChanged = appViewModel::applyRemoteProfile
-                            )
-                            onActivity()
-                        },
                         onOpenSmartRxVault = {
+                            clinicalNotesVisible = false
                             rxVaultEngaged = true
                             smartRxVaultVisible = true
                             onActivity()
                         },
                         onOpenClinicalNotes = {
+                            smartRxVaultVisible = false
                             clinicalNotesEngaged = true
                             clinicalNotesVisible = true
                             onActivity()

@@ -1,5 +1,6 @@
 package app.eob.me
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,6 +42,22 @@ class MobileUiPr200Test {
         assertTrue(navSource.contains("clinicalNotesEngaged"))
         assertTrue(cardSource.contains("onOpenClinicalNotes"))
         assertTrue(cardSource.contains("onClick = onOpenClinicalNotes"))
+        assertFalse(cardSource.contains("InsuranceCardDigitalNotepadPanel"))
+        assertFalse(cardSource.contains("InsuranceCardBackMode.Notepad"))
+        val hubBlock = cardSource.substringAfter("private fun InsuranceCardBackHub")
+            .substringBefore("private fun InsuranceCardBackLauncher")
+        assertEquals(2, hubBlock.split("InsuranceCardBackLauncher").size - 1)
+    }
+
+    @Test
+    fun openingClinicalNotesOrRxVaultMutuallyExcludesOtherSheet() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val openVault = navSource.substringAfter("onOpenSmartRxVault = {")
+            .substringBefore("onOpenClinicalNotes = {")
+        val openNotes = navSource.substringAfter("onOpenClinicalNotes = {")
+            .substringBefore("blockInsuranceCardBackNavigation")
+        assertTrue(openVault.contains("clinicalNotesVisible = false"))
+        assertTrue(openNotes.contains("smartRxVaultVisible = false"))
     }
 
     @Test

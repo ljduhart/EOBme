@@ -26,14 +26,17 @@ class InsuranceCardFlipTest {
     }
 
     @Test
-    fun insuranceCardBackUsesPillBottleAndNotepadPanels() {
+    fun insuranceCardBackUsesPillBottleAndClinicalNotesLaunchers() {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
         assertTrue(source.contains("InsuranceCardBackHub"))
         assertTrue(source.contains("InsuranceCardMedicationsPanel"))
-        assertTrue(source.contains("InsuranceCardDigitalNotepadPanel"))
+        assertFalse(source.contains("InsuranceCardDigitalNotepadPanel"))
         assertTrue(source.contains("onMedicationDosageScheduleChange"))
         assertTrue(source.contains("onMedicationAllergiesChange"))
-        assertTrue(source.contains("onDoctorQuickNotesChange"))
+        assertTrue(source.contains("onOpenClinicalNotes"))
+        val hubBlock = source.substringAfter("private fun InsuranceCardBackHub")
+            .substringBefore("private fun InsuranceCardBackLauncher")
+        assertEquals(2, hubBlock.split("InsuranceCardBackLauncher").size - 1)
     }
 
     @Test
@@ -59,15 +62,16 @@ class InsuranceCardFlipTest {
         val navSource = readSource("navigation/EobNavHost.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         assertTrue(homeSource.contains("onInsurancePrescriptionsChange"))
-        assertTrue(homeSource.contains("onInsuranceDoctorNotesChange"))
+        assertFalse(homeSource.contains("onInsuranceDoctorNotesChange"))
         assertTrue(homeSource.contains("profile.currentPrescriptions"))
         assertTrue(homeSource.contains("profile.medicationDosageSchedule"))
         assertTrue(homeSource.contains("profile.medicationAllergies"))
-        assertTrue(homeSource.contains("profile.doctorQuickNotes"))
+        assertFalse(homeSource.contains("profile.doctorQuickNotes"))
+        assertTrue(homeSource.contains("onOpenClinicalNotes"))
         assertTrue(navSource.contains("updateInsuranceCardPrescriptions"))
         assertTrue(navSource.contains("updateInsuranceCardDosageSchedule"))
         assertTrue(navSource.contains("updateInsuranceCardAllergies"))
-        assertTrue(navSource.contains("updateInsuranceCardDoctorNotes"))
+        assertTrue(navSource.contains("ClinicalNotesSessionOverlay"))
         assertTrue(viewModelSource.contains("observeInsuranceCardMetadata"))
         assertTrue(viewModelSource.contains("scheduleInsuranceCardNotesPersist"))
     }

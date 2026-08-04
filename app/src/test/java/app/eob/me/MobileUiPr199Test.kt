@@ -32,7 +32,7 @@ class MobileUiPr199Test {
         assertTrue(cardSource.contains("blockInsuranceCardBackNavigation"))
         assertTrue(cardSource.contains("flipped && !blockInsuranceCardBackNavigation"))
         assertTrue(homeSource.contains("blockInsuranceCardBackNavigation"))
-        assertTrue(navSource.contains("blockInsuranceCardBackNavigation = smartRxVaultVisible"))
+        assertTrue(navSource.contains("blockInsuranceCardBackNavigation = smartRxVaultVisible || clinicalNotesVisible"))
     }
 
     @Test
