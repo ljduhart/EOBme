@@ -49,6 +49,26 @@ class MobileUiPr202Test {
     }
 
     @Test
+    fun allInsuranceCardSheetsMutuallyExcludeOnOpen() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val openVault = navSource.substringAfter("onOpenSmartRxVault = {")
+            .substringBefore("onOpenClinicalNotes = {")
+        val openNotes = navSource.substringAfter("onOpenClinicalNotes = {")
+            .substringBefore("onOpenReverseDxLookup = {")
+        val openReverseDx = navSource.substringAfter("onOpenReverseDxLookup = {")
+            .substringBefore("blockInsuranceCardBackNavigation")
+        assertTrue(openVault.contains("clinicalNotesVisible = false"))
+        assertTrue(openVault.contains("reverseDxLookupVisible = false"))
+        assertTrue(openNotes.contains("smartRxVaultVisible = false"))
+        assertTrue(openNotes.contains("reverseDxLookupVisible = false"))
+        assertTrue(openReverseDx.contains("smartRxVaultVisible = false"))
+        assertTrue(openReverseDx.contains("clinicalNotesVisible = false"))
+        assertTrue(navSource.contains("blockInsuranceCardBackNavigation = smartRxVaultVisible ||"))
+        assertTrue(navSource.contains("clinicalNotesVisible ||"))
+        assertTrue(navSource.contains("reverseDxLookupVisible"))
+    }
+
+    @Test
     fun protectedVeryfiPipelineUntouchedForPr202() {
         val pipelineSource = readSource("data/DocumentScanPipelineRepository.kt")
         assertFalse(pipelineSource.contains("DxCptRepository"))

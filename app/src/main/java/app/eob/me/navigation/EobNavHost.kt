@@ -1707,6 +1707,7 @@ private fun MainHubNavHost(
                     onLaunchScannerClicked = {
                         reverseDxLookupVisible = false
                         launchEobScannerFromHub()
+                        onActivity()
                     }
                 )
             }
