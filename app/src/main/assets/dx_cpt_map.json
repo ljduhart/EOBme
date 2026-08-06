@@ -1,0 +1,384 @@
+{
+  "I10": {
+    "description": "Essential hypertension (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99215"
+      },
+      {
+        "name": "EKGs",
+        "range": "93000 - 93010"
+      },
+      {
+        "name": "Labs",
+        "range": "80050 - 80061"
+      }
+    ],
+    "totalPotentialMatches": 127
+  },
+  "E11.9": {
+    "description": "Type 2 diabetes without complications (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99215"
+      },
+      {
+        "name": "A1C/Glucose Labs",
+        "range": "82947 - 83036"
+      }
+    ],
+    "totalPotentialMatches": 85
+  },
+  "E03.9": {
+    "description": "Hypothyroidism, unspecified (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99215"
+      },
+      {
+        "name": "Thyroid Panels",
+        "range": "84436 - 84443"
+      }
+    ],
+    "totalPotentialMatches": 22
+  },
+  "Z00.00": {
+    "description": "General adult medical exam (Primary Care)",
+    "categories": [
+      {
+        "name": "Preventive Exams",
+        "range": "99385 - 99397"
+      },
+      {
+        "name": "Routine Labs",
+        "range": "80050 - 80061"
+      }
+    ],
+    "totalPotentialMatches": 62
+  },
+  "M54.5": {
+    "description": "Low back pain (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99214"
+      },
+      {
+        "name": "Radiology",
+        "range": "72100 - 72148"
+      }
+    ],
+    "totalPotentialMatches": 38
+  },
+  "A41.9": {
+    "description": "Sepsis, unspecified (Hospital/Inpatient)",
+    "categories": [
+      {
+        "name": "Inpatient E&M",
+        "range": "99221 - 99223"
+      },
+      {
+        "name": "Critical Care",
+        "range": "99291 - 99292"
+      },
+      {
+        "name": "Blood Cultures",
+        "range": "87040"
+      }
+    ],
+    "totalPotentialMatches": 145
+  },
+  "J18.9": {
+    "description": "Pneumonia, unspecified organism (Hospital/Inpatient)",
+    "categories": [
+      {
+        "name": "Inpatient/Obs Visits",
+        "range": "99221 - 99233"
+      },
+      {
+        "name": "Chest X-Ray",
+        "range": "71045 - 71048"
+      }
+    ],
+    "totalPotentialMatches": 78
+  },
+  "I21.9": {
+    "description": "Acute myocardial infarction (Hospital/Inpatient)",
+    "categories": [
+      {
+        "name": "Critical Care",
+        "range": "99291 - 99292"
+      },
+      {
+        "name": "Cardiac Catheterization",
+        "range": "93451 - 93462"
+      }
+    ],
+    "totalPotentialMatches": 112
+  },
+  "N17.9": {
+    "description": "Acute kidney failure (Hospital/Inpatient)",
+    "categories": [
+      {
+        "name": "Inpatient Consults",
+        "range": "99252 - 99255"
+      },
+      {
+        "name": "Renal Panels",
+        "range": "80069"
+      }
+    ],
+    "totalPotentialMatches": 41
+  },
+  "I63.9": {
+    "description": "Cerebral infarction / Stroke (Hospital/Inpatient)",
+    "categories": [
+      {
+        "name": "Critical Care",
+        "range": "99291 - 99292"
+      },
+      {
+        "name": "CT/MRI Head",
+        "range": "70450 - 70553"
+      }
+    ],
+    "totalPotentialMatches": 88
+  },
+  "I48.91": {
+    "description": "Unspecified atrial fibrillation (Cardiology)",
+    "categories": [
+      {
+        "name": "Cardiology Consult",
+        "range": "99242 - 99245"
+      },
+      {
+        "name": "Echocardiography",
+        "range": "93303 - 93355"
+      }
+    ],
+    "totalPotentialMatches": 45
+  },
+  "I50.9": {
+    "description": "Heart failure, unspecified (Cardiology)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "Echocardiography",
+        "range": "93306"
+      },
+      {
+        "name": "BNP Labs",
+        "range": "83880"
+      }
+    ],
+    "totalPotentialMatches": 64
+  },
+  "I25.10": {
+    "description": "CAD without angina (Cardiology)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "Stress Testing",
+        "range": "93015 - 93018"
+      }
+    ],
+    "totalPotentialMatches": 39
+  },
+  "R07.9": {
+    "description": "Chest pain, unspecified (Cardiology)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "EKG/ECG",
+        "range": "93000"
+      },
+      {
+        "name": "Stress Testing",
+        "range": "93015"
+      }
+    ],
+    "totalPotentialMatches": 71
+  },
+  "I34.0": {
+    "description": "Nonrheumatic mitral valve insufficiency (Cardiology)",
+    "categories": [
+      {
+        "name": "Specialist Visit",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "Doppler Echo",
+        "range": "93320 - 93325"
+      }
+    ],
+    "totalPotentialMatches": 28
+  },
+  "J44.9": {
+    "description": "COPD, unspecified (Pulmonology)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "Spirometry/PFTs",
+        "range": "94010 - 94060"
+      }
+    ],
+    "totalPotentialMatches": 42
+  },
+  "J45.909": {
+    "description": "Unspecified asthma, uncomplicated (Pulmonology)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99214"
+      },
+      {
+        "name": "Nebulizer Treatment",
+        "range": "94640"
+      }
+    ],
+    "totalPotentialMatches": 34
+  },
+  "J96.00": {
+    "description": "Acute respiratory failure (Pulmonology)",
+    "categories": [
+      {
+        "name": "Critical Care",
+        "range": "99291 - 99292"
+      },
+      {
+        "name": "Ventilation Management",
+        "range": "94002 - 94004"
+      }
+    ],
+    "totalPotentialMatches": 55
+  },
+  "R06.02": {
+    "description": "Shortness of breath (Pulmonology)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "Chest X-Ray",
+        "range": "71045"
+      },
+      {
+        "name": "Oximetry",
+        "range": "94760"
+      }
+    ],
+    "totalPotentialMatches": 68
+  },
+  "G47.33": {
+    "description": "Obstructive sleep apnea (Pulmonology)",
+    "categories": [
+      {
+        "name": "Specialist Visit",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "Polysomnography (Sleep Study)",
+        "range": "95808 - 95811"
+      }
+    ],
+    "totalPotentialMatches": 19
+  },
+  "R51.9": {
+    "description": "Headache, unspecified (Emergency Room)",
+    "categories": [
+      {
+        "name": "ED Visits",
+        "range": "99281 - 99285"
+      },
+      {
+        "name": "CT Head",
+        "range": "70450"
+      }
+    ],
+    "totalPotentialMatches": 52
+  },
+  "S93.401A": {
+    "description": "Sprain of right ankle (Emergency Room)",
+    "categories": [
+      {
+        "name": "ED Visits",
+        "range": "99281 - 99283"
+      },
+      {
+        "name": "X-Ray Ankle",
+        "range": "73600 - 73610"
+      },
+      {
+        "name": "Strapping",
+        "range": "29540"
+      }
+    ],
+    "totalPotentialMatches": 24
+  },
+  "R10.9": {
+    "description": "Unspecified abdominal pain (Emergency Room)",
+    "categories": [
+      {
+        "name": "ED Visits",
+        "range": "99283 - 99285"
+      },
+      {
+        "name": "CT Abdomen",
+        "range": "74150 - 74178"
+      },
+      {
+        "name": "Comprehensive Labs",
+        "range": "80053"
+      }
+    ],
+    "totalPotentialMatches": 94
+  },
+  "T14.8": {
+    "description": "Other injury of unspecified body region (Emergency Room)",
+    "categories": [
+      {
+        "name": "ED Visits",
+        "range": "99281 - 99285"
+      },
+      {
+        "name": "Wound Repair",
+        "range": "12001 - 12007"
+      }
+    ],
+    "totalPotentialMatches": 81
+  },
+  "R55": {
+    "description": "Syncope and collapse (Emergency Room)",
+    "categories": [
+      {
+        "name": "ED Visits",
+        "range": "99283 - 99285"
+      },
+      {
+        "name": "EKG",
+        "range": "93000"
+      },
+      {
+        "name": "Cardiac Monitor",
+        "range": "93224"
+      }
+    ],
+    "totalPotentialMatches": 48
+  }
+}
