@@ -1143,6 +1143,8 @@ class EobFlowArchitectureTest {
         assertTrue(cardSource.contains("rotationY"))
         assertTrue(cardSource.contains("insuranceCardActiveMedicationsLabel"))
         assertTrue(cardSource.contains("onOpenClinicalNotes"))
+        assertTrue(cardSource.contains("onOpenReverseDxLookup"))
+        assertTrue(cardSource.contains("InsuranceCardDxReverseLookupIcon"))
         assertFalse(cardSource.contains("InsuranceCardDigitalNotepadPanel"))
         assertTrue(cardSource.contains("InsuranceCardPillBottleIcon"))
         assertTrue(cardSource.contains("InsuranceCardNotepadIcon"))
