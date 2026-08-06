@@ -72,8 +72,10 @@ fun ReverseDxCptBottomSheet(
 ) {
     if (!visible) return
 
-    LaunchedEffect(Unit) {
-        sheetState.expand()
+    LaunchedEffect(visible) {
+        if (visible) {
+            sheetState.expand()
+        }
     }
 
     ModalBottomSheet(
@@ -142,7 +144,10 @@ fun ReverseDxCptBottomSheet(
                             .heightIn(max = 260.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(searchState.entry.categories, key = { it.name }) { category ->
+                        items(
+                            searchState.entry.categories,
+                            key = { category -> "${category.name}|${category.range}" }
+                        ) { category ->
                             CptCategoryBentoCard(language, category)
                         }
                     }

@@ -3,11 +3,14 @@ package app.eob.me.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.eob.me.data.dx.ReverseDxRules
 import app.eob.me.data.dx.ReverseDxSearchState
 import app.eob.me.data.dx.ReverseDxUiState
 import app.eob.me.data.repository.DxCptRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,18 +38,22 @@ class ReverseDxViewModel(application: Application) : AndroidViewModel(applicatio
         }
         searchJob = viewModelScope.launch {
             _uiState.update { it.copy(searchState = ReverseDxSearchState.Loading) }
-            delay(SEARCH_DEBOUNCE_MS)
-            val entry = repository.getDxDetails(trimmed)
-            _uiState.update { current ->
-                if (current.query.trim() != trimmed) {
-                    current
-                } else if (entry == null) {
-                    current.copy(searchState = ReverseDxSearchState.NotFound(trimmed))
-                } else if (entry.totalPotentialMatches < MATCH_THRESHOLD) {
-                    current.copy(searchState = ReverseDxSearchState.Results(entry))
-                } else {
-                    current.copy(searchState = ReverseDxSearchState.ThresholdExceeded(entry))
+            try {
+                delay(SEARCH_DEBOUNCE_MS)
+                ensureActive()
+                val entry = repository.getDxDetails(trimmed)
+                ensureActive()
+                _uiState.update { current ->
+                    if (current.query.trim() != trimmed) {
+                        current
+                    } else {
+                        current.copy(
+                            searchState = ReverseDxRules.resolveSearchState(trimmed, entry)
+                        )
+                    }
                 }
+            } catch (_: CancellationException) {
+                // A newer query or clearSession owns the next UI update.
             }
         }
     }
@@ -57,7 +64,7 @@ class ReverseDxViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     companion object {
-        const val MATCH_THRESHOLD = 50
+        val MATCH_THRESHOLD: Int get() = ReverseDxRules.MATCH_THRESHOLD
         private const val SEARCH_DEBOUNCE_MS = 220L
     }
 }

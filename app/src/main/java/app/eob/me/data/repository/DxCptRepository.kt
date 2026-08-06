@@ -35,36 +35,38 @@ class DxCptRepository(context: Context) {
     }
 
     private fun parseAssetMap(): Map<String, DxCptEntry> {
-        val jsonText = appContext.assets.open(ASSET_FILE).bufferedReader().use { it.readText() }
-        val root = JSONObject(jsonText)
-        val result = linkedMapOf<String, DxCptEntry>()
-        val keys = root.keys()
-        while (keys.hasNext()) {
-            val dxCode = keys.next()
-            val entryObject = root.getJSONObject(dxCode)
-            val description = entryObject.getString("description")
-            val totalMatches = entryObject.getInt("totalPotentialMatches")
-            val categoriesArray = entryObject.getJSONArray("categories")
-            val categories = buildList {
-                for (index in 0 until categoriesArray.length()) {
-                    val categoryObject = categoriesArray.getJSONObject(index)
-                    add(
-                        CptCategory(
-                            name = categoryObject.getString("name"),
-                            range = categoryObject.getString("range")
+        return runCatching {
+            val jsonText = appContext.assets.open(ASSET_FILE).bufferedReader().use { it.readText() }
+            val root = JSONObject(jsonText)
+            val result = linkedMapOf<String, DxCptEntry>()
+            val keys = root.keys()
+            while (keys.hasNext()) {
+                val dxCode = keys.next()
+                val entryObject = root.getJSONObject(dxCode)
+                val description = entryObject.getString("description")
+                val totalMatches = entryObject.getInt("totalPotentialMatches")
+                val categoriesArray = entryObject.getJSONArray("categories")
+                val categories = buildList {
+                    for (index in 0 until categoriesArray.length()) {
+                        val categoryObject = categoriesArray.getJSONObject(index)
+                        add(
+                            CptCategory(
+                                name = categoryObject.getString("name"),
+                                range = categoryObject.getString("range")
+                            )
                         )
-                    )
+                    }
                 }
+                val entry = DxCptEntry(
+                    dxCode = dxCode,
+                    description = description,
+                    categories = categories,
+                    totalPotentialMatches = totalMatches
+                )
+                result[normalizeDxCode(dxCode)] = entry
             }
-            val entry = DxCptEntry(
-                dxCode = dxCode,
-                description = description,
-                categories = categories,
-                totalPotentialMatches = totalMatches
-            )
-            result[normalizeDxCode(dxCode)] = entry
-        }
-        return result
+            result
+        }.getOrElse { emptyMap() }
     }
 
     private fun normalizeDxCode(raw: String): String = raw.trim().uppercase(Locale.US)
