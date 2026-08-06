@@ -1,12 +1,15 @@
 package app.eob.me.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -156,5 +159,118 @@ fun InsuranceCardNotepadIcon(
             radius = width * 0.018f,
             center = Offset(padLeft + padWidth * 0.91f, padTop + padHeight * 0.31f)
         )
+    }
+}
+
+private val DxBentoMidnight = Color(0xFF0A1628)
+private val DxBentoGlow = Color(0xFF4FC3F7)
+private val DxSilver = Color(0xFFD0D8E4)
+private val DxSilverDark = Color(0xFF8A96A8)
+
+@Composable
+fun InsuranceCardDxReverseLookupIcon(
+    modifier: Modifier = Modifier
+) {
+    Canvas(
+        modifier = modifier
+            .size(72.dp)
+            .shadow(12.dp, RoundedCornerShape(16.dp), ambientColor = DxBentoGlow, spotColor = DxBentoGlow)
+    ) {
+        val width = size.width
+        val height = size.height
+        val corner = width * 0.14f
+        val inset = width * 0.06f
+
+        drawRoundRect(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFF142A45), DxBentoMidnight),
+                center = Offset(width * 0.5f, height * 0.35f),
+                radius = width * 0.75f
+            ),
+            topLeft = Offset(inset, inset),
+            size = Size(width - inset * 2f, height - inset * 2f),
+            cornerRadius = CornerRadius(corner, corner)
+        )
+        drawRoundRect(
+            color = DxSilver,
+            topLeft = Offset(inset, inset),
+            size = Size(width - inset * 2f, height - inset * 2f),
+            cornerRadius = CornerRadius(corner, corner),
+            style = Stroke(width = width * 0.028f)
+        )
+
+        val crossLeft = width * 0.16f
+        val crossTop = height * 0.2f
+        val crossSize = width * 0.22f
+        drawRoundRect(
+            color = DxSilver,
+            topLeft = Offset(crossLeft, crossTop),
+            size = Size(crossSize, crossSize),
+            cornerRadius = CornerRadius(width * 0.03f, width * 0.03f)
+        )
+        drawRoundRect(
+            color = DxSilverDark,
+            topLeft = Offset(crossLeft + crossSize * 0.32f, crossTop + crossSize * 0.12f),
+            size = Size(crossSize * 0.36f, crossSize * 0.76f),
+            cornerRadius = CornerRadius(width * 0.02f, width * 0.02f)
+        )
+        drawRoundRect(
+            color = DxSilverDark,
+            topLeft = Offset(crossLeft + crossSize * 0.12f, crossTop + crossSize * 0.32f),
+            size = Size(crossSize * 0.76f, crossSize * 0.36f),
+            cornerRadius = CornerRadius(width * 0.02f, width * 0.02f)
+        )
+
+        val gearCenter = Offset(width * 0.46f, height * 0.48f)
+        drawCircle(color = DxSilver, radius = width * 0.07f, center = gearCenter)
+        repeat(6) { index ->
+            rotate(degrees = index * 60f, pivot = gearCenter) {
+                drawRoundRect(
+                    color = DxSilver,
+                    topLeft = Offset(gearCenter.x - width * 0.018f, gearCenter.y - width * 0.11f),
+                    size = Size(width * 0.036f, width * 0.05f),
+                    cornerRadius = CornerRadius(width * 0.01f, width * 0.01f)
+                )
+            }
+        }
+
+        val cptLeft = width * 0.58f
+        val cptTop = height * 0.22f
+        drawRoundRect(
+            color = DxSilver.copy(alpha = 0.35f),
+            topLeft = Offset(cptLeft, cptTop),
+            size = Size(width * 0.3f, height * 0.14f),
+            cornerRadius = CornerRadius(width * 0.02f, width * 0.02f)
+        )
+        repeat(5) { index ->
+            val cell = width * 0.05f
+            val x = cptLeft + width * 0.02f + index * (cell + width * 0.008f)
+            drawRoundRect(
+                color = DxSilver,
+                topLeft = Offset(x, cptTop + height * 0.04f),
+                size = Size(cell, height * 0.05f),
+                cornerRadius = CornerRadius(width * 0.008f, width * 0.008f)
+            )
+        }
+        val gridTop = cptTop + height * 0.11f
+        val colors = listOf(
+            Color(0xFFE57373),
+            Color(0xFF81C784),
+            Color(0xFF64B5F6),
+            Color(0xFFFFD54F)
+        )
+        repeat(4) { row ->
+            repeat(4) { col ->
+                val cell = width * 0.045f
+                val x = cptLeft + width * 0.02f + col * (cell + width * 0.006f)
+                val y = gridTop + row * (cell + width * 0.006f)
+                drawRoundRect(
+                    color = colors[(row + col) % colors.size],
+                    topLeft = Offset(x, y),
+                    size = Size(cell, cell),
+                    cornerRadius = CornerRadius(width * 0.006f, width * 0.006f)
+                )
+            }
+        }
     }
 }

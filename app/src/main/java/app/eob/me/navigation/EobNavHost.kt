@@ -106,6 +106,8 @@ import app.eob.me.viewmodel.AppViewModel
 import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.HubUiState
 import app.eob.me.viewmodel.ClinicalNotesViewModel
+import app.eob.me.viewmodel.ReverseDxViewModel
+import app.eob.me.ui.components.dx.ReverseDxCptBottomSheet
 import app.eob.me.viewmodel.RxVaultViewModel
 import app.eob.me.ui.components.clinical.ClinicalNotesBottomSheet
 import app.eob.me.ui.components.rx.SmartRxVaultBottomSheet
@@ -272,6 +274,8 @@ private fun MainHubNavHost(
     var smartRxVaultVisible by remember { mutableStateOf(false) }
     var clinicalNotesEngaged by remember { mutableStateOf(false) }
     var clinicalNotesVisible by remember { mutableStateOf(false) }
+    var reverseDxEngaged by remember { mutableStateOf(false) }
+    var reverseDxLookupVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.hubSettings.darkModeEnabled) {
         onHubDarkModeChanged(uiState.hubSettings.darkModeEnabled)
@@ -365,6 +369,21 @@ private fun MainHubNavHost(
             onActivity()
         } else {
             Toast.makeText(context, EobStrings.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun launchEobScannerFromHub() {
+        when {
+            firebaseUser?.uid.isNullOrBlank() -> {
+                Toast.makeText(context, EobStrings.t(language, "signInBeforeUpload"), Toast.LENGTH_SHORT).show()
+            }
+            eobViewModel.isEobScanLimitReached() -> {
+                eobViewModel.showPaywall(eobViewModel.eobScanLimitMessage(language))
+                onActivity()
+            }
+            else -> {
+                customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
     }
 
@@ -654,10 +673,16 @@ private fun MainHubNavHost(
         onActivity()
     }
 
+    BackHandler(enabled = reverseDxLookupVisible) {
+        reverseDxLookupVisible = false
+        onActivity()
+    }
+
     BackHandler(
         enabled = currentRoute == EobRoute.Home.route &&
             !smartRxVaultVisible &&
             !clinicalNotesVisible &&
+            !reverseDxLookupVisible &&
             !uiState.paywallVisible &&
             !uiState.hubSettings.appLocked
     ) {
@@ -982,17 +1007,28 @@ private fun MainHubNavHost(
                         },
                         onOpenSmartRxVault = {
                             clinicalNotesVisible = false
+                            reverseDxLookupVisible = false
                             rxVaultEngaged = true
                             smartRxVaultVisible = true
                             onActivity()
                         },
                         onOpenClinicalNotes = {
                             smartRxVaultVisible = false
+                            reverseDxLookupVisible = false
                             clinicalNotesEngaged = true
                             clinicalNotesVisible = true
                             onActivity()
                         },
-                        blockInsuranceCardBackNavigation = smartRxVaultVisible || clinicalNotesVisible,
+                        onOpenReverseDxLookup = {
+                            smartRxVaultVisible = false
+                            clinicalNotesVisible = false
+                            reverseDxEngaged = true
+                            reverseDxLookupVisible = true
+                            onActivity()
+                        },
+                        blockInsuranceCardBackNavigation = smartRxVaultVisible ||
+                            clinicalNotesVisible ||
+                            reverseDxLookupVisible,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -1663,6 +1699,17 @@ private fun MainHubNavHost(
                     onDismiss = { clinicalNotesVisible = false }
                 )
             }
+            if (reverseDxEngaged) {
+                ReverseDxLookupSessionOverlay(
+                    language = language,
+                    visible = reverseDxLookupVisible,
+                    onDismiss = { reverseDxLookupVisible = false },
+                    onLaunchScannerClicked = {
+                        reverseDxLookupVisible = false
+                        launchEobScannerFromHub()
+                    }
+                )
+            }
         }
     }
 }
@@ -1772,6 +1819,41 @@ private fun ClinicalNotesSessionOverlay(
             }
         },
         onSaveNote = clinicalNotesViewModel::saveClinicalNote
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReverseDxLookupSessionOverlay(
+    language: AppLanguage,
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    onLaunchScannerClicked: () -> Unit
+) {
+    val reverseDxViewModel: ReverseDxViewModel = viewModel()
+    val reverseDxUiState by reverseDxViewModel.uiState.collectAsStateWithLifecycle()
+
+    val closeLookup = {
+        reverseDxViewModel.clearSession()
+        onDismiss()
+    }
+
+    LaunchedEffect(visible) {
+        if (!visible) {
+            reverseDxViewModel.clearSession()
+        }
+    }
+
+    ReverseDxCptBottomSheet(
+        language = language,
+        visible = visible,
+        state = reverseDxUiState,
+        onDismiss = closeLookup,
+        onQueryChange = reverseDxViewModel::updateQuery,
+        onLaunchScannerClicked = {
+            reverseDxViewModel.clearSession()
+            onLaunchScannerClicked()
+        }
     )
 }
 

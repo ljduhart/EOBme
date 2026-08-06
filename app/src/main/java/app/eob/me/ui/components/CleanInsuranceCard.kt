@@ -91,7 +91,7 @@ private val NotesCardBackground = Color(0xFF121A24)
 private val NotesFieldBackground = Color(0xFF1B2430)
 private val NotesPrimaryText = Color(0xFFF2F6FA)
 private val NotesSecondaryText = Color(0xFFB8C4D0)
-private val InsuranceCardMinHeight = 176.dp
+private val InsuranceCardMinHeight = 228.dp
 private val InsuranceCardContentPadding = 13.dp
 private val InsuranceCardSectionSpacing = 9.dp
 
@@ -112,6 +112,7 @@ fun CleanInsuranceCard(
     onMedicationAllergiesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit = {},
     onOpenClinicalNotes: () -> Unit = {},
+    onOpenReverseDxLookup: () -> Unit = {},
     blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -192,6 +193,7 @@ fun CleanInsuranceCard(
                     },
                     onOpenSmartRxVault = onOpenSmartRxVault,
                     onOpenClinicalNotes = onOpenClinicalNotes,
+                    onOpenReverseDxLookup = onOpenReverseDxLookup,
                     onFlip = { flipped = false },
                     modifier = Modifier.graphicsLayer { rotationY = 180f }
                 )
@@ -350,6 +352,7 @@ private fun InsuranceCardBackFace(
     onMedicationAllergiesChange: (String) -> Unit,
     onOpenSmartRxVault: () -> Unit,
     onOpenClinicalNotes: () -> Unit,
+    onOpenReverseDxLookup: () -> Unit,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -404,7 +407,8 @@ private fun InsuranceCardBackFace(
                 InsuranceCardBackMode.Hub -> InsuranceCardBackHub(
                     language = language,
                     onOpenSmartRxVault = onOpenSmartRxVault,
-                    onOpenClinicalNotes = onOpenClinicalNotes
+                    onOpenClinicalNotes = onOpenClinicalNotes,
+                    onOpenReverseDxLookup = onOpenReverseDxLookup
                 )
                 InsuranceCardBackMode.Medications -> InsuranceCardMedicationsPanel(
                     language = language,
@@ -425,11 +429,14 @@ private fun InsuranceCardBackFace(
 private fun InsuranceCardBackHub(
     language: AppLanguage,
     onOpenSmartRxVault: () -> Unit,
-    onOpenClinicalNotes: () -> Unit
+    onOpenClinicalNotes: () -> Unit,
+    onOpenReverseDxLookup: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -437,10 +444,13 @@ private fun InsuranceCardBackHub(
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             color = NotesPrimaryText,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -459,6 +469,45 @@ private fun InsuranceCardBackHub(
                 InsuranceCardNotepadIcon()
             }
         }
+        InsuranceCardDxReverseLookupLauncher(
+            language = language,
+            onClick = onOpenReverseDxLookup
+        )
+    }
+}
+
+@Composable
+private fun InsuranceCardDxReverseLookupLauncher(
+    language: AppLanguage,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp)
+            .semantics {
+                contentDescription = EobStrings.t(language, "insuranceCardReverseDxLauncherDescription")
+            }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        InsuranceCardDxReverseLookupIcon()
+        Text(
+            text = EobStrings.t(language, "insuranceCardReverseDxLauncherLine1"),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = NotesPrimaryText,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = EobStrings.t(language, "insuranceCardReverseDxLauncherLine2"),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = NotesSecondaryText,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
