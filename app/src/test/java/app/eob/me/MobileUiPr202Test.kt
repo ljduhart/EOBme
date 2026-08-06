@@ -5,21 +5,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-class MobileUiPr201Test {
+class MobileUiPr202Test {
     @Test
-    fun dxCptAssetRepositoryAndViewModelPresent() {
+    fun dxCptAssetUsesNativeOrgJsonOnly() {
         val assetCandidates = listOf(
             File("src/main/assets/dx_cpt_map.json"),
             File("app/src/main/assets/dx_cpt_map.json")
         )
         assertTrue(assetCandidates.any { it.isFile })
-        assertTrue(readSource("data/repository/DxCptRepository.kt").contains("dx_cpt_map.json"))
+        val repoSource = readSource("data/repository/DxCptRepository.kt")
+        assertTrue(repoSource.contains("org.json.JSONObject"))
+        assertFalse(repoSource.contains("gson", ignoreCase = true))
+        assertFalse(repoSource.contains("moshi", ignoreCase = true))
+        assertFalse(repoSource.contains("kotlinx.serialization", ignoreCase = true))
         assertTrue(readSource("viewmodel/ReverseDxViewModel.kt").contains("ReverseDxRules"))
         assertTrue(readSource("data/dx/ReverseDxRules.kt").contains("MATCH_THRESHOLD"))
     }
 
     @Test
-    fun reverseDxBottomSheetWiredFromInsuranceCardHub() {
+    fun reverseDxBottomSheetUsesMaterial3ModalBottomSheet() {
         val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
         val navSource = readSource("navigation/EobNavHost.kt")
         val sheetSource = readSource("ui/components/dx/ReverseDxCptBottomSheet.kt")
@@ -31,7 +35,7 @@ class MobileUiPr201Test {
             .substringBefore("@Composable\nprivate fun HistoryRoute")
         assertTrue(overlayBlock.contains("DisposableEffect(Unit)"))
         assertTrue(navSource.contains("reverseDxEngaged"))
-        assertTrue(sheetSource.contains("ModalBottomSheet"))
+        assertTrue(sheetSource.contains("import androidx.compose.material3.ModalBottomSheet"))
         assertTrue(sheetSource.contains("onLaunchScannerClicked"))
     }
 
@@ -45,7 +49,7 @@ class MobileUiPr201Test {
     }
 
     @Test
-    fun protectedVeryfiPipelineUntouchedForPr201() {
+    fun protectedVeryfiPipelineUntouchedForPr202() {
         val pipelineSource = readSource("data/DocumentScanPipelineRepository.kt")
         assertFalse(pipelineSource.contains("DxCptRepository"))
         assertFalse(pipelineSource.contains("ReverseDxViewModel"))
