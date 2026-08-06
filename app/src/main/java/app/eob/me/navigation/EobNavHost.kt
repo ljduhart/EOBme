@@ -1844,6 +1844,12 @@ private fun ReverseDxLookupSessionOverlay(
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            reverseDxViewModel.clearSession()
+        }
+    }
+
     ReverseDxCptBottomSheet(
         language = language,
         visible = visible,

@@ -14,8 +14,8 @@ class MobileUiPr201Test {
         )
         assertTrue(assetCandidates.any { it.isFile })
         assertTrue(readSource("data/repository/DxCptRepository.kt").contains("dx_cpt_map.json"))
-        assertTrue(readSource("viewmodel/ReverseDxViewModel.kt").contains("ReverseDxSearchState"))
-        assertTrue(readSource("viewmodel/ReverseDxViewModel.kt").contains("MATCH_THRESHOLD"))
+        assertTrue(readSource("viewmodel/ReverseDxViewModel.kt").contains("ReverseDxRules"))
+        assertTrue(readSource("data/dx/ReverseDxRules.kt").contains("MATCH_THRESHOLD"))
     }
 
     @Test
@@ -27,6 +27,9 @@ class MobileUiPr201Test {
         assertTrue(cardSource.contains("onOpenReverseDxLookup"))
         assertTrue(cardSource.contains("InsuranceCardDxReverseLookupIcon"))
         assertTrue(navSource.contains("ReverseDxLookupSessionOverlay"))
+        val overlayBlock = navSource.substringAfter("private fun ReverseDxLookupSessionOverlay")
+            .substringBefore("@Composable\nprivate fun HistoryRoute")
+        assertTrue(overlayBlock.contains("DisposableEffect(Unit)"))
         assertTrue(navSource.contains("reverseDxEngaged"))
         assertTrue(sheetSource.contains("ModalBottomSheet"))
         assertTrue(sheetSource.contains("onLaunchScannerClicked"))
@@ -37,7 +40,7 @@ class MobileUiPr201Test {
         val navSource = readSource("navigation/EobNavHost.kt")
         assertTrue(navSource.contains("fun launchEobScannerFromHub()"))
         assertTrue(navSource.contains("EobRoute.CameraCapture.route"))
-        assertTrue(navSource.contains("reverseDxLookupVisible = false"))
+        assertTrue(navSource.contains("BackHandler(enabled = reverseDxLookupVisible)"))
         assertTrue(navSource.contains("launchEobScannerFromHub()"))
     }
 

@@ -3,6 +3,7 @@ package app.eob.me
 import app.eob.me.data.repository.DxCptRepository
 import app.eob.me.viewmodel.ReverseDxViewModel
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -16,6 +17,15 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class DxCptRepositoryTest {
+    @Test
+    fun assetContainsTwentyFiveDxCodes() {
+        val jsonText = RuntimeEnvironment.getApplication().assets
+            .open("dx_cpt_map.json")
+            .bufferedReader()
+            .use { it.readText() }
+        assertEquals(25, JSONObject(jsonText).length())
+    }
+
     @Test
     fun loadsDxEntryFromAssetMap() = runBlocking {
         val repository = DxCptRepository(RuntimeEnvironment.getApplication())

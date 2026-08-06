@@ -55,9 +55,15 @@ class MobileUiPr200Test {
         val openVault = navSource.substringAfter("onOpenSmartRxVault = {")
             .substringBefore("onOpenClinicalNotes = {")
         val openNotes = navSource.substringAfter("onOpenClinicalNotes = {")
+            .substringBefore("onOpenReverseDxLookup = {")
+        val openReverseDx = navSource.substringAfter("onOpenReverseDxLookup = {")
             .substringBefore("blockInsuranceCardBackNavigation")
         assertTrue(openVault.contains("clinicalNotesVisible = false"))
+        assertTrue(openVault.contains("reverseDxLookupVisible = false"))
         assertTrue(openNotes.contains("smartRxVaultVisible = false"))
+        assertTrue(openNotes.contains("reverseDxLookupVisible = false"))
+        assertTrue(openReverseDx.contains("smartRxVaultVisible = false"))
+        assertTrue(openReverseDx.contains("clinicalNotesVisible = false"))
     }
 
     @Test
