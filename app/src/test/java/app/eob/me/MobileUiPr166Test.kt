@@ -11,7 +11,7 @@ class MobileUiPr166Test {
         val homeSource = readSource("ui/screens/HomeScreen.kt")
         assertFalse(cardSource.contains("cleanInsuranceMemberIdSectionLabel"))
         assertFalse(cardSource.contains("cleanInsuranceGroupSectionLabel"))
-        assertTrue(cardSource.contains("InsuranceCardMinHeight = 228.dp"))
+        assertTrue(cardSource.contains("InsuranceCardMinHeight = 248.dp"))
         assertTrue(cardSource.contains("cleanInsuranceGroupNumberLabel"))
         assertTrue(cardSource.contains("cleanInsuranceCopaySectionDetail"))
         assertTrue(homeSource.contains("fillMaxWidth(0.98f)"))

@@ -91,7 +91,7 @@ private val NotesCardBackground = Color(0xFF121A24)
 private val NotesFieldBackground = Color(0xFF1B2430)
 private val NotesPrimaryText = Color(0xFFF2F6FA)
 private val NotesSecondaryText = Color(0xFFB8C4D0)
-private val InsuranceCardMinHeight = 228.dp
+private val InsuranceCardMinHeight = 248.dp
 private val InsuranceCardContentPadding = 13.dp
 private val InsuranceCardSectionSpacing = 9.dp
 
@@ -493,21 +493,7 @@ private fun InsuranceCardDxReverseLookupLauncher(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        InsuranceCardDxReverseLookupIcon()
-        Text(
-            text = EobStrings.t(language, "insuranceCardReverseDxLauncherLine1"),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = NotesPrimaryText,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = EobStrings.t(language, "insuranceCardReverseDxLauncherLine2"),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = NotesSecondaryText,
-            textAlign = TextAlign.Center
-        )
+        InsuranceCardDxReverseLookupIcon(language = language)
     }
 }
 

@@ -1,8 +1,12 @@
 package app.eob.me.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -12,9 +16,19 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import android.graphics.Paint
+import android.graphics.Typeface
+import app.eob.me.data.AppLanguage
+import app.eob.me.data.EobStrings
 
 private val PillBottleAmber = Color(0xFFF9A825)
 private val PillBottleAmberDark = Color(0xFFE68A00)
@@ -162,115 +176,223 @@ fun InsuranceCardNotepadIcon(
     }
 }
 
-private val DxBentoMidnight = Color(0xFF0A1628)
-private val DxBentoGlow = Color(0xFF4FC3F7)
-private val DxSilver = Color(0xFFD0D8E4)
-private val DxSilverDark = Color(0xFF8A96A8)
+private val DxBentoMidnight = Color(0xFF001A3F)
+private val DxBentoMidnightLight = Color(0xFF0D2B52)
+private val DxNeonCyan = Color(0xFF00E5FF)
+private val DxNeonCyanSoft = Color(0x664FC3F7)
+private val DxSilver = Color(0xFFE0E6EE)
+private val DxSilverEdge = Color(0xFFB8C4D4)
+private val DxSilverDark = Color(0xFF5A6578)
+private val DxCrossFill = Color(0xFF0A2540)
 
 @Composable
 fun InsuranceCardDxReverseLookupIcon(
+    language: AppLanguage,
     modifier: Modifier = Modifier
 ) {
-    Canvas(
-        modifier = modifier
-            .size(72.dp)
-            .shadow(12.dp, RoundedCornerShape(16.dp), ambientColor = DxBentoGlow, spotColor = DxBentoGlow)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
     ) {
-        val width = size.width
-        val height = size.height
-        val corner = width * 0.14f
-        val inset = width * 0.06f
-
-        drawRoundRect(
-            brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF142A45), DxBentoMidnight),
-                center = Offset(width * 0.5f, height * 0.35f),
-                radius = width * 0.75f
-            ),
-            topLeft = Offset(inset, inset),
-            size = Size(width - inset * 2f, height - inset * 2f),
-            cornerRadius = CornerRadius(corner, corner)
-        )
-        drawRoundRect(
-            color = DxSilver,
-            topLeft = Offset(inset, inset),
-            size = Size(width - inset * 2f, height - inset * 2f),
-            cornerRadius = CornerRadius(corner, corner),
-            style = Stroke(width = width * 0.028f)
-        )
-
-        val crossLeft = width * 0.16f
-        val crossTop = height * 0.2f
-        val crossSize = width * 0.22f
-        drawRoundRect(
-            color = DxSilver,
-            topLeft = Offset(crossLeft, crossTop),
-            size = Size(crossSize, crossSize),
-            cornerRadius = CornerRadius(width * 0.03f, width * 0.03f)
-        )
-        drawRoundRect(
-            color = DxSilverDark,
-            topLeft = Offset(crossLeft + crossSize * 0.32f, crossTop + crossSize * 0.12f),
-            size = Size(crossSize * 0.36f, crossSize * 0.76f),
-            cornerRadius = CornerRadius(width * 0.02f, width * 0.02f)
-        )
-        drawRoundRect(
-            color = DxSilverDark,
-            topLeft = Offset(crossLeft + crossSize * 0.12f, crossTop + crossSize * 0.32f),
-            size = Size(crossSize * 0.76f, crossSize * 0.36f),
-            cornerRadius = CornerRadius(width * 0.02f, width * 0.02f)
-        )
-
-        val gearCenter = Offset(width * 0.46f, height * 0.48f)
-        drawCircle(color = DxSilver, radius = width * 0.07f, center = gearCenter)
-        repeat(6) { index ->
-            rotate(degrees = index * 60f, pivot = gearCenter) {
-                drawRoundRect(
-                    color = DxSilver,
-                    topLeft = Offset(gearCenter.x - width * 0.018f, gearCenter.y - width * 0.11f),
-                    size = Size(width * 0.036f, width * 0.05f),
-                    cornerRadius = CornerRadius(width * 0.01f, width * 0.01f)
+        Canvas(
+            modifier = Modifier
+                .size(width = 88.dp, height = 80.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(18.dp),
+                    ambientColor = DxNeonCyan,
+                    spotColor = DxNeonCyan
                 )
-            }
-        }
+        ) {
+            val width = size.width
+            val height = size.height
+            val corner = width * 0.16f
+            val inset = width * 0.05f
+            val cardLeft = inset
+            val cardTop = inset * 0.6f
+            val cardWidth = width - inset * 2f
+            val cardHeight = height - inset * 1.8f
 
-        val cptLeft = width * 0.58f
-        val cptTop = height * 0.22f
-        drawRoundRect(
-            color = DxSilver.copy(alpha = 0.35f),
-            topLeft = Offset(cptLeft, cptTop),
-            size = Size(width * 0.3f, height * 0.14f),
-            cornerRadius = CornerRadius(width * 0.02f, width * 0.02f)
-        )
-        repeat(5) { index ->
-            val cell = width * 0.05f
-            val x = cptLeft + width * 0.02f + index * (cell + width * 0.008f)
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(DxNeonCyanSoft, Color.Transparent),
+                    startY = cardTop + cardHeight * 0.55f,
+                    endY = cardTop + cardHeight + width * 0.12f
+                ),
+                topLeft = Offset(cardLeft - width * 0.04f, cardTop + cardHeight * 0.4f),
+                size = Size(cardWidth + width * 0.08f, width * 0.2f),
+                cornerRadius = CornerRadius(corner, corner)
+            )
+
+            drawRoundRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(DxBentoMidnightLight, DxBentoMidnight),
+                    center = Offset(width * 0.5f, cardTop + cardHeight * 0.35f),
+                    radius = width * 0.85f
+                ),
+                topLeft = Offset(cardLeft, cardTop),
+                size = Size(cardWidth, cardHeight),
+                cornerRadius = CornerRadius(corner, corner)
+            )
+            drawRoundRect(
+                color = DxSilverEdge,
+                topLeft = Offset(cardLeft, cardTop),
+                size = Size(cardWidth, cardHeight),
+                cornerRadius = CornerRadius(corner, corner),
+                style = Stroke(width = width * 0.022f)
+            )
             drawRoundRect(
                 color = DxSilver,
-                topLeft = Offset(x, cptTop + height * 0.04f),
-                size = Size(cell, height * 0.05f),
-                cornerRadius = CornerRadius(width * 0.008f, width * 0.008f)
+                topLeft = Offset(cardLeft + width * 0.012f, cardTop + width * 0.012f),
+                size = Size(cardWidth - width * 0.024f, cardHeight - width * 0.024f),
+                cornerRadius = CornerRadius(corner * 0.9f, corner * 0.9f),
+                style = Stroke(width = width * 0.01f)
             )
-        }
-        val gridTop = cptTop + height * 0.11f
-        val colors = listOf(
-            Color(0xFFE57373),
-            Color(0xFF81C784),
-            Color(0xFF64B5F6),
-            Color(0xFFFFD54F)
-        )
-        repeat(4) { row ->
-            repeat(4) { col ->
-                val cell = width * 0.045f
-                val x = cptLeft + width * 0.02f + col * (cell + width * 0.006f)
-                val y = gridTop + row * (cell + width * 0.006f)
-                drawRoundRect(
-                    color = colors[(row + col) % colors.size],
-                    topLeft = Offset(x, y),
-                    size = Size(cell, cell),
-                    cornerRadius = CornerRadius(width * 0.006f, width * 0.006f)
-                )
+
+            val crossLeft = cardLeft + cardWidth * 0.08f
+            val crossTop = cardTop + cardHeight * 0.14f
+            val crossSize = cardWidth * 0.26f
+            drawRoundRect(
+                color = DxSilver,
+                topLeft = Offset(crossLeft, crossTop),
+                size = Size(crossSize, crossSize),
+                cornerRadius = CornerRadius(width * 0.025f, width * 0.025f)
+            )
+            drawRoundRect(
+                color = DxCrossFill,
+                topLeft = Offset(crossLeft + crossSize * 0.3f, crossTop + crossSize * 0.1f),
+                size = Size(crossSize * 0.4f, crossSize * 0.8f),
+                cornerRadius = CornerRadius(width * 0.015f, width * 0.015f)
+            )
+            drawRoundRect(
+                color = DxCrossFill,
+                topLeft = Offset(crossLeft + crossSize * 0.1f, crossTop + crossSize * 0.3f),
+                size = Size(crossSize * 0.8f, crossSize * 0.4f),
+                cornerRadius = CornerRadius(width * 0.015f, width * 0.015f)
+            )
+            drawDxIconLabel(
+                text = "DX",
+                centerX = crossLeft + crossSize * 0.5f,
+                centerY = crossTop + crossSize * 0.58f,
+                textSizePx = crossSize * 0.28f,
+                color = DxCrossFill,
+                bold = true
+            )
+
+            val gearOne = Offset(cardLeft + cardWidth * 0.44f, cardTop + cardHeight * 0.52f)
+            val gearTwo = Offset(cardLeft + cardWidth * 0.54f, cardTop + cardHeight * 0.46f)
+            drawNeonGear(center = gearOne, radius = width * 0.055f)
+            drawNeonGear(center = gearTwo, radius = width * 0.042f)
+
+            val circuitPath = Path().apply {
+                moveTo(crossLeft + crossSize, crossTop + crossSize * 0.5f)
+                lineTo(gearOne.x - width * 0.04f, gearOne.y)
+                lineTo(gearTwo.x + width * 0.03f, gearTwo.y)
+                lineTo(cardLeft + cardWidth * 0.62f, cardTop + cardHeight * 0.38f)
+            }
+            drawPath(
+                path = circuitPath,
+                color = DxNeonCyan,
+                style = Stroke(width = width * 0.012f)
+            )
+            repeat(3) { index ->
+                val nodeX = cardLeft + cardWidth * (0.58f + index * 0.06f)
+                val nodeY = cardTop + cardHeight * 0.36f
+                drawCircle(color = DxNeonCyan, radius = width * 0.012f, center = Offset(nodeX, nodeY))
+            }
+
+            val cptLeft = cardLeft + cardWidth * 0.58f
+            val cptTop = cardTop + cardHeight * 0.12f
+            drawDxIconLabel(
+                text = "CPT",
+                centerX = cptLeft + cardWidth * 0.2f,
+                centerY = cptTop + cardHeight * 0.1f,
+                textSizePx = width * 0.065f,
+                color = DxSilver,
+                bold = true
+            )
+            drawDxIconLabel(
+                text = "[9|9|2|1|4]",
+                centerX = cptLeft + cardWidth * 0.2f,
+                centerY = cptTop + cardHeight * 0.22f,
+                textSizePx = width * 0.042f,
+                color = DxSilver,
+                bold = false
+            )
+
+            val gridTop = cptTop + cardHeight * 0.28f
+            val bentoColors = listOf(
+                Color(0xFFE57373),
+                Color(0xFF81C784),
+                Color(0xFF64B5F6),
+                Color(0xFFFFB74D),
+                Color(0xFFBA68C8),
+                Color(0xFF4DD0E1)
+            )
+            repeat(4) { row ->
+                repeat(4) { col ->
+                    val cell = width * 0.038f
+                    val x = cptLeft + col * (cell + width * 0.008f)
+                    val y = gridTop + row * (cell + width * 0.008f)
+                    drawRoundRect(
+                        color = bentoColors[(row + col) % bentoColors.size],
+                        topLeft = Offset(x, y),
+                        size = Size(cell, cell),
+                        cornerRadius = CornerRadius(width * 0.008f, width * 0.008f)
+                    )
+                }
             }
         }
+        Text(
+            text = EobStrings.t(language, "insuranceCardReverseDxProcessingCaption"),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.6.sp,
+                fontSize = 9.sp
+            ),
+            color = DxNeonCyan,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
+}
+
+private fun DrawScope.drawDxIconLabel(
+    text: String,
+    centerX: Float,
+    centerY: Float,
+    textSizePx: Float,
+    color: Color,
+    bold: Boolean
+) {
+    drawContext.canvas.nativeCanvas.apply {
+        val paint = Paint().apply {
+            this.color = color.toArgb()
+            this.textSize = textSizePx
+            this.textAlign = Paint.Align.CENTER
+            isAntiAlias = true
+            typeface = if (bold) {
+                Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            } else {
+                Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            }
+        }
+        drawText(text, centerX, centerY, paint)
+    }
+}
+
+private fun DrawScope.drawNeonGear(center: Offset, radius: Float) {
+    drawCircle(color = DxNeonCyan.copy(alpha = 0.35f), radius = radius * 1.35f, center = center)
+    drawCircle(color = DxSilver, radius = radius, center = center)
+    repeat(6) { index ->
+        rotate(degrees = index * 60f, pivot = center) {
+            drawRoundRect(
+                color = DxNeonCyan,
+                topLeft = Offset(center.x - radius * 0.22f, center.y - radius * 1.45f),
+                size = Size(radius * 0.44f, radius * 0.55f),
+                cornerRadius = CornerRadius(radius * 0.12f, radius * 0.12f)
+            )
+        }
+    }
+    drawCircle(color = DxBentoMidnight, radius = radius * 0.38f, center = center)
 }
