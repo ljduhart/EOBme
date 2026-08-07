@@ -620,6 +620,7 @@ object EobStrings {
         "reverseDxNotFoundWarning" to "This specific diagnosis code is not in the offline quick-reference library.",
         "reverseDxScannerCtaTitle" to "To Pinpoint Exact Services, tap to use EOB Scanner.",
         "reverseDxScannerCtaSubtitle" to "Scan your physical bill to instantly match your exact CPT codes against this diagnosis.",
+        "insuranceCardReverseDxProcessingCaption" to "ACTIVE SEARCH / PROCESSING",
         "pcpCopayField" to "PCP copay",
         "specialistCopayField" to "Specialist copay",
         "valueNotSet" to "—",

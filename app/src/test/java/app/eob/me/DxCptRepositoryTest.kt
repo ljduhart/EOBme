@@ -23,7 +23,7 @@ class DxCptRepositoryTest {
             .open("dx_cpt_map.json")
             .bufferedReader()
             .use { it.readText() }
-        assertEquals(25, JSONObject(jsonText).length())
+        assertEquals(35, JSONObject(jsonText).length())
     }
 
     @Test
@@ -39,6 +39,15 @@ class DxCptRepositoryTest {
     fun returnsNullForUnknownDxCode() = runBlocking {
         val repository = DxCptRepository(RuntimeEnvironment.getApplication())
         assertNull(repository.getDxDetails("ZZZ.999"))
+    }
+
+    @Test
+    fun loadsAppendedPrimaryCareCodeE785() = runBlocking {
+        val repository = DxCptRepository(RuntimeEnvironment.getApplication())
+        val entry = repository.getDxDetails("E78.5")
+        assertNotNull(entry)
+        assertEquals(24, entry!!.totalPotentialMatches)
+        assertTrue(entry.description.contains("Hyperlipidemia"))
     }
 
     @Test

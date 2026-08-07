@@ -380,5 +380,161 @@
       }
     ],
     "totalPotentialMatches": 48
+  },
+  "E78.5": {
+    "description": "Hyperlipidemia, unspecified (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99215"
+      },
+      {
+        "name": "Lipid Panels",
+        "range": "80061"
+      }
+    ],
+    "totalPotentialMatches": 24
+  },
+  "K21.9": {
+    "description": "Gastro-esophageal reflux disease (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99215"
+      },
+      {
+        "name": "GI Consults",
+        "range": "99242 - 99244"
+      }
+    ],
+    "totalPotentialMatches": 18
+  },
+  "F32.A": {
+    "description": "Depression, unspecified (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "Psychotherapy",
+        "range": "90832 - 90838"
+      }
+    ],
+    "totalPotentialMatches": 68
+  },
+  "J01.90": {
+    "description": "Acute sinusitis, unspecified (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99214"
+      },
+      {
+        "name": "Allergy Testing",
+        "range": "95004 - 95024"
+      }
+    ],
+    "totalPotentialMatches": 34
+  },
+  "N39.0": {
+    "description": "Urinary tract infection, unspecified (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99214"
+      },
+      {
+        "name": "Urinalysis",
+        "range": "81000 - 81003"
+      },
+      {
+        "name": "Urine Culture",
+        "range": "87086 - 87088"
+      }
+    ],
+    "totalPotentialMatches": 42
+  },
+  "J02.9": {
+    "description": "Acute pharyngitis, unspecified (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99214"
+      },
+      {
+        "name": "Rapid Strep Test",
+        "range": "87880"
+      },
+      {
+        "name": "Throat Culture",
+        "range": "87081"
+      }
+    ],
+    "totalPotentialMatches": 12
+  },
+  "M25.561": {
+    "description": "Pain in right knee (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99215"
+      },
+      {
+        "name": "X-Ray Knee",
+        "range": "73560 - 73564"
+      },
+      {
+        "name": "Joint Injection",
+        "range": "20610"
+      }
+    ],
+    "totalPotentialMatches": 55
+  },
+  "G43.909": {
+    "description": "Migraine, unspecified, not intractable (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99213 - 99215"
+      },
+      {
+        "name": "Neurology Consult",
+        "range": "99243 - 99245"
+      }
+    ],
+    "totalPotentialMatches": 27
+  },
+  "L20.9": {
+    "description": "Atopic dermatitis, unspecified (Primary Care)",
+    "categories": [
+      {
+        "name": "E&M Visits",
+        "range": "99212 - 99214"
+      },
+      {
+        "name": "Dermatology Consult",
+        "range": "99242 - 99244"
+      }
+    ],
+    "totalPotentialMatches": 21
+  },
+  "Z01.419": {
+    "description": "Routine gynecological exam (Primary Care)",
+    "categories": [
+      {
+        "name": "Preventive Exams",
+        "range": "99385 - 99397"
+      },
+      {
+        "name": "Pap Smear",
+        "range": "88141 - 88150"
+      },
+      {
+        "name": "Routine Labs",
+        "range": "80050 - 80061"
+      }
+    ],
+    "totalPotentialMatches": 73
   }
 }
