@@ -38,6 +38,27 @@ class MobileUiPr203Test {
         assertTrue(cardSource.contains("InsuranceCardDxReverseLookupIcon(language = language)"))
     }
 
+    @Test
+    fun reverseDxNavigationBackAndSheetExclusionUnchangedAfterPr203() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("BackHandler(enabled = reverseDxLookupVisible)"))
+        assertTrue(navSource.contains("onOpenReverseDxLookup = {"))
+        assertTrue(navSource.contains("launchEobScannerFromHub()"))
+        assertTrue(navSource.contains("blockInsuranceCardBackNavigation = smartRxVaultVisible ||"))
+        assertTrue(navSource.contains("reverseDxLookupVisible"))
+        assertTrue(navSource.contains("ReverseDxLookupSessionOverlay"))
+    }
+
+    @Test
+    fun appendedPrimaryCareDepressionCodeUsesThresholdPath() {
+        val jsonText = RuntimeEnvironment.getApplication().assets
+            .open("dx_cpt_map.json")
+            .bufferedReader()
+            .use { it.readText() }
+        val matches = JSONObject(jsonText).getJSONObject("F32.A").getInt("totalPotentialMatches")
+        assertTrue(matches >= 50)
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             File("src/main/java/app/eob/me/$relativePath"),

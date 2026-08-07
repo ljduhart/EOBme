@@ -486,7 +486,11 @@ private fun InsuranceCardDxReverseLookupLauncher(
             .fillMaxWidth()
             .padding(top = 10.dp)
             .semantics {
-                contentDescription = EobStrings.t(language, "insuranceCardReverseDxLauncherDescription")
+                contentDescription = buildString {
+                    append(EobStrings.t(language, "insuranceCardReverseDxLauncherDescription"))
+                    append(". ")
+                    append(EobStrings.t(language, "insuranceCardReverseDxProcessingCaption"))
+                }
             }
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 4.dp),
