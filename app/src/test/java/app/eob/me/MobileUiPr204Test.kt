@@ -85,6 +85,31 @@ class MobileUiPr204Test {
     }
 
     @Test
+    fun paywallGateDoesNotEngageInsuranceCardOverlays() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val openVault = navSource.substringAfter("onOpenSmartRxVault = {")
+            .substringBefore("onOpenClinicalNotes = {")
+        val openNotes = navSource.substringAfter("onOpenClinicalNotes = {")
+            .substringBefore("onOpenReverseDxLookup = {")
+        val openReverseDx = navSource.substringAfter("onOpenReverseDxLookup = {")
+            .substringBefore("blockInsuranceCardBackNavigation")
+
+        val vaultUnlock = openVault.substringAfter("} else {")
+            .substringBefore("},")
+        val notesUnlock = openNotes.substringAfter("} else {")
+            .substringBefore("},")
+        val reverseDxUnlock = openReverseDx.substringAfter("} else {")
+            .substringBefore("},")
+
+        assertFalse(openVault.substringBefore("} else {").contains("rxVaultEngaged = true"))
+        assertFalse(openNotes.substringBefore("} else {").contains("clinicalNotesEngaged = true"))
+        assertFalse(openReverseDx.substringBefore("} else {").contains("reverseDxEngaged = true"))
+        assertTrue(vaultUnlock.contains("rxVaultEngaged = true"))
+        assertTrue(notesUnlock.contains("clinicalNotesEngaged = true"))
+        assertTrue(reverseDxUnlock.contains("reverseDxEngaged = true"))
+    }
+
+    @Test
     fun veryfiPipelineUntouchedByTierGating() {
         val pipelineSource = readSource("data/DocumentScanPipelineRepository.kt")
         assertFalse(pipelineSource.contains("InsuranceCardPremiumFeature"))
