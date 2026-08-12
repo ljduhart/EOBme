@@ -31,9 +31,18 @@ object EobmeFeatureGate {
     fun hasYtdExpenseTracker(tier: SubscriptionTier): Boolean = tier != SubscriptionTier.Free
     fun hasTaxVaultFilter(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
     fun hasTaxVaultClaimPackager(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
+    fun hasMedicationListReminder(tier: SubscriptionTier): Boolean = tier != SubscriptionTier.Free
+    fun hasSmartNotepad(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
+    fun hasDxCptReverseLookup(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
 
     // Universal Features
     fun hasCptTracker(): Boolean = true
     fun hasAppointmentCalendar(): Boolean = true
     fun hasCareTeamSmartCards(): Boolean = true
+}
+
+enum class InsuranceCardPremiumFeature {
+    MedicationListReminder,
+    SmartNotepad,
+    DxCptReverseLookup
 }

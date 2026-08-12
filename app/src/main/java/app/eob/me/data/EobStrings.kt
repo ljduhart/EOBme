@@ -840,7 +840,10 @@ object EobStrings {
         "paywallUnlockYtdExpense" to "Upgrade to unlock the Y-T-D Expense Tracker. Compare Free, Silver, and Gold plans below.",
         "paywallUnlockInsuranceNews" to "Upgrade to unlock Real Time Insurance News. Compare Free, Silver, and Gold plans below.",
         "paywallUnlockAppealGenerator" to "Upgrade to unlock the Appeal Generator. Compare Free, Silver, and Gold plans below.",
-        "paywallUnlockBillingErrors" to "Upgrade to unlock Billing Error Detection. Compare Free, Silver, and Gold plans below."
+        "paywallUnlockBillingErrors" to "Upgrade to unlock Billing Error Detection. Compare Free, Silver, and Gold plans below.",
+        "paywallUnlockMedicationReminder" to "Upgrade to unlock Medication List & Reminder. Compare Free, Silver, and Gold plans below.",
+        "paywallUnlockSmartNotepad" to "Upgrade to Gold to unlock Smart Notepad. Compare Free, Silver, and Gold plans below.",
+        "paywallUnlockDxCptLookup" to "Upgrade to Gold to unlock the DX/CPT reverse lookup tool. Compare Free, Silver, and Gold plans below."
     )
 
     private val exactRepositoryMessages = mapOf(
@@ -1174,7 +1177,10 @@ object EobStrings {
         "paywallUnlockYtdExpense" to "Mejora para desbloquear el rastreador de gastos Y-T-D. Compare los planes Gratis, Plata y Oro a continuación.",
         "paywallUnlockInsuranceNews" to "Mejora para desbloquear noticias de seguros en tiempo real. Compare los planes Gratis, Plata y Oro a continuación.",
         "paywallUnlockAppealGenerator" to "Mejora para desbloquear el generador de apelaciones. Compare los planes Gratis, Plata y Oro a continuación.",
-        "paywallUnlockBillingErrors" to "Mejora para desbloquear la detección de errores de facturación. Compare los planes Gratis, Plata y Oro a continuación."
+        "paywallUnlockBillingErrors" to "Mejora para desbloquear la detección de errores de facturación. Compare los planes Gratis, Plata y Oro a continuación.",
+        "paywallUnlockMedicationReminder" to "Mejora para desbloquear la lista de medicamentos y recordatorios. Compare los planes Gratis, Plata y Oro a continuación.",
+        "paywallUnlockSmartNotepad" to "Mejora a Oro para desbloquear el bloc de notas inteligente. Compare los planes Gratis, Plata y Oro a continuación.",
+        "paywallUnlockDxCptLookup" to "Mejora a Oro para desbloquear la herramienta de búsqueda inversa DX/CPT. Compare los planes Gratis, Plata y Oro a continuación."
     )
 
     private val french = english + mapOf(
@@ -1464,7 +1470,10 @@ object EobStrings {
         "paywallUnlockYtdExpense" to "Mettez à niveau pour déverrouiller le suivi des dépenses Y-T-D. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
         "paywallUnlockInsuranceNews" to "Mettez à niveau pour déverrouiller les actualités d'assurance en temps réel. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
         "paywallUnlockAppealGenerator" to "Mettez à niveau pour déverrouiller le générateur d'appels. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
-        "paywallUnlockBillingErrors" to "Mettez à niveau pour déverrouiller la détection d'erreurs de facturation. Comparez les forfaits Gratuit, Argent et Or ci-dessous."
+        "paywallUnlockBillingErrors" to "Mettez à niveau pour déverrouiller la détection d'erreurs de facturation. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
+        "paywallUnlockMedicationReminder" to "Mettez à niveau pour déverrouiller la liste de médicaments et les rappels. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
+        "paywallUnlockSmartNotepad" to "Passez à l'Or pour déverrouiller le bloc-notes intelligent. Comparez les forfaits Gratuit, Argent et Or ci-dessous.",
+        "paywallUnlockDxCptLookup" to "Passez à l'Or pour déverrouiller l'outil de recherche inverse DX/CPT. Comparez les forfaits Gratuit, Argent et Or ci-dessous."
     )
 
     private val chinese = english + mapOf(
@@ -1754,7 +1763,10 @@ object EobStrings {
         "paywallUnlockYtdExpense" to "升级以解锁年度费用跟踪器。请在下方比较免费、银级和金级计划。",
         "paywallUnlockInsuranceNews" to "升级以解锁实时保险新闻。请在下方比较免费、银级和金级计划。",
         "paywallUnlockAppealGenerator" to "升级以解锁申诉生成器。请在下方比较免费、银级和金级计划。",
-        "paywallUnlockBillingErrors" to "升级以解锁账单错误检测。请在下方比较免费、银级和金级计划。"
+        "paywallUnlockBillingErrors" to "升级以解锁账单错误检测。请在下方比较免费、银级和金级计划。",
+        "paywallUnlockMedicationReminder" to "升级以解锁用药清单和提醒。请在下方比较免费、银级和金级计划。",
+        "paywallUnlockSmartNotepad" to "升级至金级以解锁智能记事本。请在下方比较免费、银级和金级计划。",
+        "paywallUnlockDxCptLookup" to "升级至金级以解锁 DX/CPT 反向查询工具。请在下方比较免费、银级和金级计划。"
     )
 
     private val localized = mapOf(

@@ -65,6 +65,7 @@ import app.eob.me.data.AppLanguage
 import app.eob.me.data.CameraScanDocumentType
 import app.eob.me.data.DocumentScanPipelineState
 import app.eob.me.data.EobmeFeatureGate
+import app.eob.me.data.InsuranceCardPremiumFeature
 import app.eob.me.data.FeatureAccess
 import app.eob.me.data.HistoryBentoFilter
 import app.eob.me.data.EobKnowledgeBase
@@ -1006,25 +1007,55 @@ private fun MainHubNavHost(
                             onActivity()
                         },
                         onOpenSmartRxVault = {
-                            clinicalNotesVisible = false
-                            reverseDxLookupVisible = false
-                            rxVaultEngaged = true
-                            smartRxVaultVisible = true
-                            onActivity()
+                            if (!EobmeFeatureGate.hasMedicationListReminder(uiState.hubSettings.subscriptionTier)) {
+                                eobViewModel.showPaywall(
+                                    eobViewModel.paywallMessageForInsuranceCardFeature(
+                                        language,
+                                        InsuranceCardPremiumFeature.MedicationListReminder
+                                    )
+                                )
+                                onActivity()
+                            } else {
+                                clinicalNotesVisible = false
+                                reverseDxLookupVisible = false
+                                rxVaultEngaged = true
+                                smartRxVaultVisible = true
+                                onActivity()
+                            }
                         },
                         onOpenClinicalNotes = {
-                            smartRxVaultVisible = false
-                            reverseDxLookupVisible = false
-                            clinicalNotesEngaged = true
-                            clinicalNotesVisible = true
-                            onActivity()
+                            if (!EobmeFeatureGate.hasSmartNotepad(uiState.hubSettings.subscriptionTier)) {
+                                eobViewModel.showPaywall(
+                                    eobViewModel.paywallMessageForInsuranceCardFeature(
+                                        language,
+                                        InsuranceCardPremiumFeature.SmartNotepad
+                                    )
+                                )
+                                onActivity()
+                            } else {
+                                smartRxVaultVisible = false
+                                reverseDxLookupVisible = false
+                                clinicalNotesEngaged = true
+                                clinicalNotesVisible = true
+                                onActivity()
+                            }
                         },
                         onOpenReverseDxLookup = {
-                            smartRxVaultVisible = false
-                            clinicalNotesVisible = false
-                            reverseDxEngaged = true
-                            reverseDxLookupVisible = true
-                            onActivity()
+                            if (!EobmeFeatureGate.hasDxCptReverseLookup(uiState.hubSettings.subscriptionTier)) {
+                                eobViewModel.showPaywall(
+                                    eobViewModel.paywallMessageForInsuranceCardFeature(
+                                        language,
+                                        InsuranceCardPremiumFeature.DxCptReverseLookup
+                                    )
+                                )
+                                onActivity()
+                            } else {
+                                smartRxVaultVisible = false
+                                clinicalNotesVisible = false
+                                reverseDxEngaged = true
+                                reverseDxLookupVisible = true
+                                onActivity()
+                            }
                         },
                         blockInsuranceCardBackNavigation = smartRxVaultVisible ||
                             clinicalNotesVisible ||

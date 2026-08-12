@@ -19,10 +19,10 @@ class FeatureGateTest {
                 "Billing Error Detection",
                 "2 Automated Appeal Letters per month",
                 "CPT Tracker",
-                "Appointment Calendar",
                 "4 Smart Cards (CareTeam)",
                 "Real Time Insurance News",
-                "Y-T-D Expense Tracker"
+                "Y-T-D Expense Tracker",
+                "Medication List & Reminder"
             ),
             SubscriptionCatalog.features(SubscriptionTier.Silver)
         )
@@ -39,26 +39,29 @@ class FeatureGateTest {
                 "Billing Error Detection",
                 "Real Time Insurance News",
                 "CPT Tracker",
-                "Appointment Calendar",
-                "4 Smart Cards (CareTeam)",
                 "Smart Card Summaries",
                 "Y-T-D Expense Tracker",
-                "Tax Vault Filter",
-                "Tax Vault Claim Packager"
+                "Tax Vault Filter (HSA/FSA)",
+                "Tax Vault Claim Packager",
+                "Medication List & Reminder",
+                "Smart Notepad",
+                "DX/CPT reverse lookup tool"
             ),
             SubscriptionCatalog.features(SubscriptionTier.Gold)
         )
-        assertEquals(12, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
+        assertEquals(13, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
         assertEquals(
             listOf(
                 "Smart Card Summaries",
-                "Tax Vault Filter",
-                "Tax Vault Claim Packager"
+                "Tax Vault Filter (HSA/FSA)",
+                "Tax Vault Claim Packager",
+                "Smart Notepad",
+                "DX/CPT reverse lookup tool"
             ),
             SubscriptionCatalog.goldHighlightFeatures()
         )
-        assertEquals(3, SubscriptionCatalog.goldHighlightFeatures().size)
-        assertEquals(9, SubscriptionCatalog.goldStandardFeatures().size)
+        assertEquals(5, SubscriptionCatalog.goldHighlightFeatures().size)
+        assertEquals(8, SubscriptionCatalog.goldStandardFeatures().size)
         assertTrue(SubscriptionCatalog.goldStandardFeatures().contains("Y-T-D Expense Tracker"))
     }
 
@@ -66,7 +69,7 @@ class FeatureGateTest {
     fun goldHighlightFeaturesAreGoldGatedInFeatureGate() {
         SubscriptionCatalog.goldHighlightFeatures().forEach { feature ->
             when (feature) {
-                "Tax Vault Filter" -> {
+                "Tax Vault Filter (HSA/FSA)" -> {
                     assertFalse(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Silver))
                     assertTrue(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Gold))
                 }
@@ -77,6 +80,14 @@ class FeatureGateTest {
                 "Smart Card Summaries" -> {
                     assertFalse(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Silver))
                     assertTrue(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Gold))
+                }
+                "Smart Notepad" -> {
+                    assertFalse(EobmeFeatureGate.hasSmartNotepad(SubscriptionTier.Silver))
+                    assertTrue(EobmeFeatureGate.hasSmartNotepad(SubscriptionTier.Gold))
+                }
+                "DX/CPT reverse lookup tool" -> {
+                    assertFalse(EobmeFeatureGate.hasDxCptReverseLookup(SubscriptionTier.Silver))
+                    assertTrue(EobmeFeatureGate.hasDxCptReverseLookup(SubscriptionTier.Gold))
                 }
                 else -> throw AssertionError("Unexpected gold highlight feature: $feature")
             }
@@ -93,8 +104,11 @@ class FeatureGateTest {
         assertTrue(features.any { it.contains("Billing Error Detection") })
         assertTrue(features.any { it.contains("Real Time Insurance News") })
         assertTrue(features.any { it.contains("Y-T-D Expense Tracker") })
+        assertTrue(features.any { it.contains("Medication List & Reminder") })
         assertFalse(features.any { it.contains("Tax Vault") })
         assertFalse(features.any { it.contains("Smart Card Summaries") })
+        assertFalse(features.any { it.contains("Smart Notepad") })
+        assertFalse(features.any { it.contains("DX/CPT") })
     }
 
     @Test
@@ -106,6 +120,9 @@ class FeatureGateTest {
         assertTrue(features.any { it.contains("Tax Vault Filter") })
         assertTrue(features.any { it.contains("Tax Vault Claim Packager") })
         assertTrue(features.any { it.contains("Smart Card Summaries") })
+        assertTrue(features.any { it.contains("Medication List & Reminder") })
+        assertTrue(features.any { it.contains("Smart Notepad") })
+        assertTrue(features.any { it.contains("DX/CPT reverse lookup tool") })
     }
 
     @Test
@@ -130,6 +147,23 @@ class FeatureGateTest {
     }
 
     @Test
+    fun medicationListReminderUnlocksForSilverAndGold() {
+        assertFalse(EobmeFeatureGate.hasMedicationListReminder(SubscriptionTier.Free))
+        assertTrue(EobmeFeatureGate.hasMedicationListReminder(SubscriptionTier.Silver))
+        assertTrue(EobmeFeatureGate.hasMedicationListReminder(SubscriptionTier.Gold))
+    }
+
+    @Test
+    fun smartNotepadAndDxLookupAreGoldOnly() {
+        assertFalse(EobmeFeatureGate.hasSmartNotepad(SubscriptionTier.Free))
+        assertFalse(EobmeFeatureGate.hasSmartNotepad(SubscriptionTier.Silver))
+        assertTrue(EobmeFeatureGate.hasSmartNotepad(SubscriptionTier.Gold))
+        assertFalse(EobmeFeatureGate.hasDxCptReverseLookup(SubscriptionTier.Free))
+        assertFalse(EobmeFeatureGate.hasDxCptReverseLookup(SubscriptionTier.Silver))
+        assertTrue(EobmeFeatureGate.hasDxCptReverseLookup(SubscriptionTier.Gold))
+    }
+
+    @Test
     fun silverTierCodedFeaturesMatchManageSubscriptionList() {
         val tier = SubscriptionTier.Silver
         assertEquals(9, SubscriptionCatalog.features(tier).size)
@@ -139,17 +173,20 @@ class FeatureGateTest {
         assertTrue(EobmeFeatureGate.hasBillingErrorDetection(tier))
         assertTrue(EobmeFeatureGate.hasRealTimeNews(tier))
         assertTrue(EobmeFeatureGate.hasYtdExpenseTracker(tier))
+        assertTrue(EobmeFeatureGate.hasMedicationListReminder(tier))
         assertTrue(EobmeFeatureGate.hasCptTracker())
         assertTrue(EobmeFeatureGate.hasCareTeamSmartCards())
         assertFalse(EobmeFeatureGate.hasSmartCardSummaries(tier))
         assertFalse(EobmeFeatureGate.hasTaxVaultFilter(tier))
         assertFalse(EobmeFeatureGate.hasTaxVaultClaimPackager(tier))
+        assertFalse(EobmeFeatureGate.hasSmartNotepad(tier))
+        assertFalse(EobmeFeatureGate.hasDxCptReverseLookup(tier))
     }
 
     @Test
     fun goldTierCodedFeaturesMatchManageSubscriptionList() {
         val tier = SubscriptionTier.Gold
-        assertEquals(12, SubscriptionCatalog.features(tier).size)
+        assertEquals(13, SubscriptionCatalog.features(tier).size)
         assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getEobScanLimit(tier))
         assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getProviderStorageLimit(tier))
         assertEquals(FeatureAccess.Unlimited, EobmeFeatureGate.getAppealLetterLimit(tier))
@@ -159,6 +196,9 @@ class FeatureGateTest {
         assertTrue(EobmeFeatureGate.hasSmartCardSummaries(tier))
         assertTrue(EobmeFeatureGate.hasTaxVaultFilter(tier))
         assertTrue(EobmeFeatureGate.hasTaxVaultClaimPackager(tier))
+        assertTrue(EobmeFeatureGate.hasMedicationListReminder(tier))
+        assertTrue(EobmeFeatureGate.hasSmartNotepad(tier))
+        assertTrue(EobmeFeatureGate.hasDxCptReverseLookup(tier))
         assertTrue(EobmeFeatureGate.hasCptTracker())
     }
 
@@ -167,9 +207,13 @@ class FeatureGateTest {
         assertFalse(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Silver))
         assertFalse(EobmeFeatureGate.hasTaxVaultClaimPackager(SubscriptionTier.Silver))
         assertFalse(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Silver))
+        assertFalse(EobmeFeatureGate.hasSmartNotepad(SubscriptionTier.Silver))
+        assertFalse(EobmeFeatureGate.hasDxCptReverseLookup(SubscriptionTier.Silver))
         assertTrue(EobmeFeatureGate.hasTaxVaultFilter(SubscriptionTier.Gold))
         assertTrue(EobmeFeatureGate.hasTaxVaultClaimPackager(SubscriptionTier.Gold))
         assertTrue(EobmeFeatureGate.hasSmartCardSummaries(SubscriptionTier.Gold))
+        assertTrue(EobmeFeatureGate.hasSmartNotepad(SubscriptionTier.Gold))
+        assertTrue(EobmeFeatureGate.hasDxCptReverseLookup(SubscriptionTier.Gold))
     }
 
     @Test

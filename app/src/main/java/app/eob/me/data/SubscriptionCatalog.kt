@@ -95,10 +95,10 @@ object SubscriptionCatalog {
             "Billing Error Detection",
             "2 Automated Appeal Letters per month",
             "CPT Tracker",
-            "Appointment Calendar",
             "4 Smart Cards (CareTeam)",
             "Real Time Insurance News",
-            "Y-T-D Expense Tracker"
+            "Y-T-D Expense Tracker",
+            "Medication List & Reminder"
         )
         SubscriptionTier.Gold -> listOf(
             "Unlimited EOB Scans",
@@ -107,19 +107,22 @@ object SubscriptionCatalog {
             "Billing Error Detection",
             "Real Time Insurance News",
             "CPT Tracker",
-            "Appointment Calendar",
-            "4 Smart Cards (CareTeam)",
             "Smart Card Summaries",
             "Y-T-D Expense Tracker",
-            "Tax Vault Filter",
-            "Tax Vault Claim Packager"
+            "Tax Vault Filter (HSA/FSA)",
+            "Tax Vault Claim Packager",
+            "Medication List & Reminder",
+            "Smart Notepad",
+            "DX/CPT reverse lookup tool"
         )
     }
 
     private val goldHighlightFeatureNames = setOf(
-        "Tax Vault Filter",
+        "Tax Vault Filter (HSA/FSA)",
         "Tax Vault Claim Packager",
-        "Smart Card Summaries"
+        "Smart Card Summaries",
+        "Smart Notepad",
+        "DX/CPT reverse lookup tool"
     )
 
     fun goldHighlightFeatures(): List<String> = features(SubscriptionTier.Gold).filter { it in goldHighlightFeatureNames }

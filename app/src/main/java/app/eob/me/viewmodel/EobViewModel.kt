@@ -50,6 +50,7 @@ import app.eob.me.data.VeryfiExtractedData
 import app.eob.me.data.VeryfiAnyDocExtractionResult
 import app.eob.me.data.toVeryfiExtractedData
 import app.eob.me.data.EobmeFeatureGate
+import app.eob.me.data.InsuranceCardPremiumFeature
 import app.eob.me.data.EobKnowledgeBase
 import app.eob.me.data.FeatureAccess
 import app.eob.me.data.NewsRelease
@@ -653,6 +654,21 @@ class EobViewModel : ViewModel() {
     fun paywallMessageForBillingErrorGate(language: AppLanguage): String {
         return billingNoticeForPaywall(language).ifBlank {
             EobStrings.t(language, "paywallUnlockBillingErrors")
+        }
+    }
+
+    fun paywallMessageForInsuranceCardFeature(
+        language: AppLanguage,
+        feature: InsuranceCardPremiumFeature
+    ): String {
+        billingNoticeForPaywall(language).takeIf { it.isNotBlank() }?.let { return it }
+        return when (feature) {
+            InsuranceCardPremiumFeature.MedicationListReminder ->
+                EobStrings.t(language, "paywallUnlockMedicationReminder")
+            InsuranceCardPremiumFeature.SmartNotepad ->
+                EobStrings.t(language, "paywallUnlockSmartNotepad")
+            InsuranceCardPremiumFeature.DxCptReverseLookup ->
+                EobStrings.t(language, "paywallUnlockDxCptLookup")
         }
     }
 

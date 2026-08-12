@@ -30,11 +30,13 @@ class MobileUiPr185Test {
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         assertTrue(navSource.contains("paywallMessageForBentoDestination"))
         assertTrue(navSource.contains("paywallMessageForBillingErrorGate"))
+        assertTrue(navSource.contains("paywallMessageForInsuranceCardFeature"))
         assertTrue(navSource.contains("HubBentoDestination.YtdExpense"))
         assertTrue(navSource.contains("HubBentoDestination.InsuranceNews"))
         assertTrue(navSource.contains("HubBentoDestination.AppealGenerator"))
         assertTrue(viewModelSource.contains("fun paywallMessageForBentoDestination"))
         assertTrue(viewModelSource.contains("fun paywallMessageForBillingErrorGate"))
+        assertTrue(viewModelSource.contains("fun paywallMessageForInsuranceCardFeature"))
     }
 
     @Test

@@ -267,11 +267,12 @@ class SubscriptionBillingTest {
     @Test
     fun pr146ManageSubscriptionTierFeatureCountsAndGoldMonthlyPrice() {
         assertEquals(9, SubscriptionCatalog.features(SubscriptionTier.Silver).size)
-        assertEquals(12, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
-        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Silver).contains("Appointment Calendar"))
+        assertEquals(13, SubscriptionCatalog.features(SubscriptionTier.Gold).size)
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Silver).contains("Medication List & Reminder"))
         assertTrue(SubscriptionCatalog.features(SubscriptionTier.Silver).contains("Y-T-D Expense Tracker"))
-        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("4 Smart Cards (CareTeam)"))
-        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Tax Vault Filter"))
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Smart Notepad"))
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("DX/CPT reverse lookup tool"))
+        assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Tax Vault Filter (HSA/FSA)"))
         assertTrue(SubscriptionCatalog.features(SubscriptionTier.Gold).contains("Tax Vault Claim Packager"))
         assertEquals("$5.49/mo", SubscriptionCatalog.displayPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
         assertEquals("$5.49", SubscriptionCatalog.checkoutPrice(SubscriptionTier.Gold, BillingInterval.MONTHLY))
@@ -546,8 +547,10 @@ class SubscriptionBillingTest {
         assertEquals(
             listOf(
                 "Smart Card Summaries",
-                "Tax Vault Filter",
-                "Tax Vault Claim Packager"
+                "Tax Vault Filter (HSA/FSA)",
+                "Tax Vault Claim Packager",
+                "Smart Notepad",
+                "DX/CPT reverse lookup tool"
             ),
             SubscriptionCatalog.goldHighlightFeatures()
         )
