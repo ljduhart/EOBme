@@ -64,7 +64,7 @@ class AnimatedProviderDirectoryTest {
     }
 
     @Test
-    fun eobViewModelOpenProviderRecordHistoryPrefillsAndClearsSearch() {
+    fun eobViewModelOpenProviderRecordHistoryStoresSilentProviderFilter() {
         val viewModel = EobViewModel()
         viewModel.openProviderRecordHistory("Regional Clinic")
         assertEquals("Regional Clinic", viewModel.uiState.value.historyProviderSearch)

@@ -937,6 +937,7 @@ private fun MainHubNavHost(
                                 onActivity()
                             } else {
                                 eobViewModel.setHistoryBentoFilter(filter)
+                                eobViewModel.clearHistoryProviderSearch()
                                 navController.navigate(EobRoute.History.route) { launchSingleTop = true }
                                 onActivity()
                             }
@@ -955,6 +956,9 @@ private fun MainHubNavHost(
                                 true
                             }
                             if (canNavigate) {
+                                if (destination == HubBentoDestination.EobHistory) {
+                                    eobViewModel.clearHistoryProviderSearch()
+                                }
                                 navController.navigate(destination.route) { launchSingleTop = true }
                             }
                             onActivity()
@@ -1006,6 +1010,7 @@ private fun MainHubNavHost(
                             )
                             onActivity()
                         },
+                        insuranceCardBackIconsBlurred = uiState.hubSettings.subscriptionTier == SubscriptionTier.Free,
                         onOpenSmartRxVault = {
                             if (!EobmeFeatureGate.hasMedicationListReminder(uiState.hubSettings.subscriptionTier)) {
                                 eobViewModel.showPaywall(
@@ -1909,13 +1914,7 @@ private fun HistoryRoute(
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    LaunchedEffect(uiState.historyProviderSearch) {
-        if (uiState.historyProviderSearch.isNotBlank()) {
-            searchQuery = uiState.historyProviderSearch
-            eobViewModel.clearHistoryProviderSearch()
-        }
-    }
-
+    val providerFilter = uiState.historyProviderSearch
     val historyBentoFilter = uiState.historyBentoFilter
     val historyPaymentFilter = uiState.historyPaymentFilter
     val taxVaultFilterState by eobViewModel.taxVaultFilterState.collectAsStateWithLifecycle()
@@ -1923,17 +1922,23 @@ private fun HistoryRoute(
     val filteredRecords by remember(
         sortedEobRecords,
         searchQuery,
+        providerFilter,
         historyBentoFilter,
         taxVaultFilterState,
         taxVaultVisibilityMode
     ) {
         derivedStateOf {
-            eobViewModel.historyRecordsForDisplay(historyBentoFilter, searchQuery)
+            eobViewModel.historyRecordsForDisplay(
+                historyBentoFilter,
+                searchQuery,
+                providerFilter
+            )
         }
     }
 
     val timelineSections by remember(
         searchQuery,
+        providerFilter,
         historyBentoFilter,
         historyPaymentFilter,
         taxVaultFilterState,
@@ -1945,7 +1950,8 @@ private fun HistoryRoute(
                 bentoFilter = historyBentoFilter,
                 searchQuery = searchQuery,
                 paymentFilter = historyPaymentFilter,
-                language = language
+                language = language,
+                providerFilter = providerFilter
             )
         }
     }
@@ -1975,7 +1981,12 @@ private fun HistoryRoute(
                     onActivity()
                 },
                 searchQuery = searchQuery,
-                onSearchQueryChange = { searchQuery = it },
+                onSearchQueryChange = { query ->
+                    searchQuery = query
+                    if (query.isNotBlank() && providerFilter.isNotBlank()) {
+                        eobViewModel.clearHistoryProviderSearch()
+                    }
+                },
                 totalBillingErrors = totalBillingErrors,
                 selectedRecord = uiState.selectedRecord,
                 onAppealDoctorWithStrategy = { record, strategy ->

@@ -2027,7 +2027,8 @@ class EobViewModel : ViewModel() {
 
     fun historyRecordsForDisplay(
         filter: HistoryBentoFilter,
-        searchQuery: String
+        searchQuery: String,
+        providerFilter: String = ""
     ): List<EobRecord> {
         val sorted = recordsForHistoryPipeline().sortedByDescending { it.serviceDateSortKey }
         val hubRecords = _eobRecords.value
@@ -2035,10 +2036,17 @@ class EobViewModel : ViewModel() {
             HistoryBentoFilter.All -> sorted
             HistoryBentoFilter.Flagged -> EobAnalyzer.recordsWithFlaggedBillingErrors(sorted, hubRecords)
         }
-        if (searchQuery.isBlank()) return byFilter
-        return byFilter.filter { record ->
-            record.providerName.contains(searchQuery, ignoreCase = true) ||
-                record.insuranceCompany.contains(searchQuery, ignoreCase = true)
+        val trimmedSearch = searchQuery.trim()
+        val trimmedProvider = providerFilter.trim()
+        return when {
+            trimmedSearch.isNotBlank() -> byFilter.filter { record ->
+                record.providerName.contains(trimmedSearch, ignoreCase = true) ||
+                    record.insuranceCompany.contains(trimmedSearch, ignoreCase = true)
+            }
+            trimmedProvider.isNotBlank() -> byFilter.filter { record ->
+                record.providerName.contains(trimmedProvider, ignoreCase = true)
+            }
+            else -> byFilter
         }
     }
 
@@ -2046,9 +2054,10 @@ class EobViewModel : ViewModel() {
         bentoFilter: HistoryBentoFilter,
         searchQuery: String,
         paymentFilter: EobHistoryPaymentFilter,
-        language: AppLanguage
+        language: AppLanguage,
+        providerFilter: String = ""
     ): List<HistoryTimelineSection> {
-        val filtered = historyRecordsForDisplay(bentoFilter, searchQuery)
+        val filtered = historyRecordsForDisplay(bentoFilter, searchQuery, providerFilter)
         val paymentFiltered = EobAnalyzer.filterHistoryByPayment(filtered, paymentFilter)
         return EobAnalyzer.groupHistoryByMonth(paymentFiltered, language)
     }

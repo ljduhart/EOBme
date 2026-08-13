@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -113,6 +114,7 @@ fun CleanInsuranceCard(
     onOpenSmartRxVault: () -> Unit = {},
     onOpenClinicalNotes: () -> Unit = {},
     onOpenReverseDxLookup: () -> Unit = {},
+    insuranceCardBackIconsBlurred: Boolean = false,
     blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -194,6 +196,7 @@ fun CleanInsuranceCard(
                     onOpenSmartRxVault = onOpenSmartRxVault,
                     onOpenClinicalNotes = onOpenClinicalNotes,
                     onOpenReverseDxLookup = onOpenReverseDxLookup,
+                    insuranceCardBackIconsBlurred = insuranceCardBackIconsBlurred,
                     onFlip = { flipped = false },
                     modifier = Modifier.graphicsLayer { rotationY = 180f }
                 )
@@ -353,6 +356,7 @@ private fun InsuranceCardBackFace(
     onOpenSmartRxVault: () -> Unit,
     onOpenClinicalNotes: () -> Unit,
     onOpenReverseDxLookup: () -> Unit,
+    insuranceCardBackIconsBlurred: Boolean,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -406,6 +410,7 @@ private fun InsuranceCardBackFace(
             when (activeMode) {
                 InsuranceCardBackMode.Hub -> InsuranceCardBackHub(
                     language = language,
+                    insuranceCardBackIconsBlurred = insuranceCardBackIconsBlurred,
                     onOpenSmartRxVault = onOpenSmartRxVault,
                     onOpenClinicalNotes = onOpenClinicalNotes,
                     onOpenReverseDxLookup = onOpenReverseDxLookup
@@ -428,6 +433,7 @@ private fun InsuranceCardBackFace(
 @Composable
 private fun InsuranceCardBackHub(
     language: AppLanguage,
+    insuranceCardBackIconsBlurred: Boolean,
     onOpenSmartRxVault: () -> Unit,
     onOpenClinicalNotes: () -> Unit,
     onOpenReverseDxLookup: () -> Unit
@@ -457,6 +463,7 @@ private fun InsuranceCardBackHub(
             InsuranceCardBackLauncher(
                 label = EobStrings.t(language, "insuranceCardMedicationsLauncher"),
                 contentDescription = EobStrings.t(language, "insuranceCardMedicationsLauncherDescription"),
+                iconsBlurred = insuranceCardBackIconsBlurred,
                 onClick = onOpenSmartRxVault
             ) {
                 InsuranceCardPillBottleIcon()
@@ -464,6 +471,7 @@ private fun InsuranceCardBackHub(
             InsuranceCardBackLauncher(
                 label = EobStrings.t(language, "insuranceCardNotepadLauncher"),
                 contentDescription = EobStrings.t(language, "insuranceCardNotepadLauncherDescription"),
+                iconsBlurred = insuranceCardBackIconsBlurred,
                 onClick = onOpenClinicalNotes
             ) {
                 InsuranceCardNotepadIcon()
@@ -471,6 +479,7 @@ private fun InsuranceCardBackHub(
         }
         InsuranceCardDxReverseLookupLauncher(
             language = language,
+            iconsBlurred = insuranceCardBackIconsBlurred,
             onClick = onOpenReverseDxLookup
         )
     }
@@ -479,6 +488,7 @@ private fun InsuranceCardBackHub(
 @Composable
 private fun InsuranceCardDxReverseLookupLauncher(
     language: AppLanguage,
+    iconsBlurred: Boolean,
     onClick: () -> Unit
 ) {
     Column(
@@ -497,7 +507,9 @@ private fun InsuranceCardDxReverseLookupLauncher(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        InsuranceCardDxReverseLookupIcon(language = language)
+        InsuranceCardBackIconContent(iconsBlurred = iconsBlurred) {
+            InsuranceCardDxReverseLookupIcon(language = language)
+        }
     }
 }
 
@@ -505,6 +517,7 @@ private fun InsuranceCardDxReverseLookupLauncher(
 private fun InsuranceCardBackLauncher(
     label: String,
     contentDescription: String,
+    iconsBlurred: Boolean,
     onClick: () -> Unit,
     icon: @Composable () -> Unit
 ) {
@@ -516,15 +529,29 @@ private fun InsuranceCardBackLauncher(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            icon()
-        }
+        InsuranceCardBackIconContent(iconsBlurred = iconsBlurred, icon = icon)
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             color = NotesSecondaryText,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+private fun InsuranceCardBackIconContent(
+    iconsBlurred: Boolean,
+    icon: @Composable () -> Unit
+) {
+    Box(contentAlignment = Alignment.Center) {
+        if (iconsBlurred) {
+            Box(modifier = Modifier.blur(16.dp)) {
+                icon()
+            }
+        } else {
+            icon()
+        }
     }
 }
 
