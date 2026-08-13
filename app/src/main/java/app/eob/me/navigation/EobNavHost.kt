@@ -303,6 +303,7 @@ private fun MainHubNavHost(
             language = language,
             scanType = CameraScanDocumentType.Eob
         )
+        eobViewModel.clearHistoryProviderSearch()
         navController.navigate(EobRoute.History.route) { launchSingleTop = true }
         onActivity()
     }
@@ -332,6 +333,7 @@ private fun MainHubNavHost(
                     sourceName = EobStrings.t(language, "documentScannerSource"),
                     language = language
                 )
+                eobViewModel.clearHistoryProviderSearch()
                 navController.navigate(EobRoute.History.route) { launchSingleTop = true }
             }
             onActivity()
@@ -1222,6 +1224,7 @@ private fun MainHubNavHost(
                                         Intent(Intent.ACTION_VIEW, Uri.parse(claim.storageDownloadUrl))
                                     )
                                 } else {
+                                    eobViewModel.clearHistoryProviderSearch()
                                     navController.navigate(EobRoute.History.route) {
                                         launchSingleTop = true
                                     }
@@ -1350,6 +1353,7 @@ private fun MainHubNavHost(
                                     sourceName = eobViewModel.cameraScanSourceLabel(language),
                                     language = language
                                 )
+                                eobViewModel.clearHistoryProviderSearch()
                                 navController.navigate(EobRoute.History.route) {
                                     popUpTo(EobRoute.CameraCapture.route) { inclusive = true }
                                     launchSingleTop = true

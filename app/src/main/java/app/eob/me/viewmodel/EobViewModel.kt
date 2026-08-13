@@ -1511,6 +1511,7 @@ class EobViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 historyProviderSearch = providerName.trim(),
+                historyBentoFilter = HistoryBentoFilter.All,
                 historyPage = 0
             )
         }

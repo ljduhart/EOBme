@@ -75,8 +75,10 @@ class MobileUiPr205Test {
     @Test
     fun openProviderRecordHistoryStoresSilentProviderFilter() {
         val viewModel = EobViewModel()
+        viewModel.setHistoryBentoFilter(HistoryBentoFilter.Flagged)
         viewModel.openProviderRecordHistory("Regional Clinic")
         assertEquals("Regional Clinic", viewModel.uiState.value.historyProviderSearch)
+        assertEquals(HistoryBentoFilter.All, viewModel.uiState.value.historyBentoFilter)
         assertEquals(0, viewModel.uiState.value.historyPage)
     }
 
@@ -102,6 +104,15 @@ class MobileUiPr205Test {
         val navSource = readSource("navigation/EobNavHost.kt")
         assertTrue(navSource.contains("HubBentoDestination.EobHistory"))
         assertTrue(navSource.contains("clearHistoryProviderSearch()"))
+    }
+
+    @Test
+    fun scanAndUploadNavigationClearsSilentProviderFilter() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("eobViewModel.clearHistoryProviderSearch()"))
+        val afterProcessScan = navSource.substringAfter("scanType = CameraScanDocumentType.Eob")
+            .substringBefore("onActivity()")
+        assertTrue(afterProcessScan.contains("clearHistoryProviderSearch()"))
     }
 
     @Test
