@@ -78,6 +78,28 @@ class MobileUiPr206Test {
         assertFalse(pipelineSource.contains("isAppointmentDateAllowed"))
     }
 
+    @Test
+    fun forwardAndBackwardNavigationPathsRemainWired() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("eobScanOnly = !uiState.vaultReceiptScanPending"))
+        assertTrue(navSource.contains("eobViewModel.clearVaultReceiptScanPending()"))
+        assertTrue(navSource.contains("navController.popBackStack()"))
+        assertTrue(navSource.contains("popUpTo(EobRoute.CameraCapture.route) { inclusive = true }"))
+        assertTrue(navSource.contains("eobViewModel.clearHistoryProviderSearch()"))
+        assertTrue(navSource.contains("eobViewModel.openProviderRecordHistory(providerName)"))
+        assertTrue(navSource.contains("customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)"))
+        assertTrue(navSource.contains("navController.navigate(EobRoute.Home.route)"))
+        assertFalse(navSource.contains("searchQuery = uiState.historyProviderSearch"))
+    }
+
+    @Test
+    fun updateAppointmentAllowsMetadataEditsForExistingPastDates() {
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        val appointmentsSource = readSource("ui/components/home/HomeAppointmentsSection.kt")
+        assertTrue(viewModelSource.contains("date != existing.date && !isAppointmentDateAllowed(date)"))
+        assertTrue(appointmentsSource.contains("selectedDate == originalEditingDate"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             File("src/main/java/app/eob/me/$relativePath"),

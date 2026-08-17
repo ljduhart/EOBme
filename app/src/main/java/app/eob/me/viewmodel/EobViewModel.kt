@@ -1393,7 +1393,8 @@ class EobViewModel : ViewModel() {
         notes: String,
         providerType: CareTeamProviderType
     ) {
-        if (!isAppointmentDateAllowed(date)) return
+        val existing = _uiState.value.appointments.firstOrNull { it.id == appointmentId } ?: return
+        if (date != existing.date && !isAppointmentDateAllowed(date)) return
         _uiState.update { state ->
             state.copy(
                 appointments = state.appointments.map { existing ->

@@ -245,6 +245,31 @@ class EobViewModelCareTeamTest {
     }
 
     @Test
+    fun updateAppointmentAllowsNotesEditWithoutChangingPastDate() {
+        val viewModel = EobViewModel()
+        val yesterday = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US)
+            .format(java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, -1) }.time)
+        val futureDate = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US)
+            .format(java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, 7) }.time)
+        viewModel.addAppointment(futureDate, "Dr. Lee", "10:00", "Checkup", CareTeamProviderType.Pcp)
+        val appointmentId = viewModel.uiState.value.appointments.single().id
+        viewModel.updateAppointment(appointmentId, yesterday, "Dr. Lee", "10:00", "Checkup", CareTeamProviderType.Pcp)
+        assertEquals(futureDate, viewModel.uiState.value.appointments.single().date)
+
+        viewModel.updateAppointment(
+            appointmentId,
+            futureDate,
+            "Dr. Lee",
+            "10:30",
+            "Bring meds",
+            CareTeamProviderType.Pcp
+        )
+        val updated = viewModel.uiState.value.appointments.single()
+        assertEquals("10:30", updated.time)
+        assertEquals("Bring meds", updated.notes)
+    }
+
+    @Test
     fun setLoadingInvoiceSetsProcessingPhase() {
         val viewModel = EobViewModel()
         viewModel.setLoadingInvoice(true)

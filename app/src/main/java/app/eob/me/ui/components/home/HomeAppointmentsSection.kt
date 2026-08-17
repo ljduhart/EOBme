@@ -52,7 +52,14 @@ fun HomeAppointmentsSection(
     var selectedProviderType by remember { mutableStateOf(CareTeamProviderType.Pcp) }
 
     val isEditing = editingAppointmentId != null
-    val dateAllowed = selectedDate.isBlank() || isAppointmentDateAllowed(selectedDate)
+    val originalEditingDate = remember(editingAppointmentId, appointments) {
+        editingAppointmentId?.let { id ->
+            appointments.firstOrNull { it.id == id }?.date
+        }.orEmpty()
+    }
+    val dateAllowed = selectedDate.isBlank() ||
+        isAppointmentDateAllowed(selectedDate) ||
+        (isEditing && selectedDate == originalEditingDate)
 
     fun openEditDialog(appointment: DoctorAppointment) {
         editingAppointmentId = appointment.id
