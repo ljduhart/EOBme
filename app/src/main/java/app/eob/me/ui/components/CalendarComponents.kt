@@ -35,6 +35,7 @@ fun CalendarPicker(
     appointments: List<DoctorAppointment>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    isDateSelectable: (String) -> Boolean = { true },
     onDateSelected: (String) -> Unit
 ) {
     val displayLocale = language.locale()
@@ -85,6 +86,7 @@ fun CalendarPicker(
                             isToday -> MaterialTheme.colorScheme.onPrimary
                             else -> MaterialTheme.colorScheme.onSurface
                         }
+                        val dateSelectable = isDateSelectable(dateLabel)
                         Card(
                             modifier = Modifier
                                 .weight(1f)
@@ -100,11 +102,18 @@ fun CalendarPicker(
                                         Modifier
                                     }
                                 )
-                                .clickable { onDateSelected(dateLabel) },
+                                .then(
+                                    if (dateSelectable) {
+                                        Modifier.clickable { onDateSelected(dateLabel) }
+                                    } else {
+                                        Modifier
+                                    }
+                                ),
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
                                     hasAppointment -> Color.Transparent
                                     isToday -> MaterialTheme.colorScheme.primary
+                                    !dateSelectable -> MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
                                     else -> MaterialTheme.colorScheme.surface
                                 }
                             )
@@ -119,7 +128,11 @@ fun CalendarPicker(
                                 CalendarDayCellContent(
                                     dayNumber = displayDay,
                                     hasAppointmentMarker = hasAppointment,
-                                    textColor = cellTextColor
+                                    textColor = if (dateSelectable) {
+                                        cellTextColor
+                                    } else {
+                                        cellTextColor.copy(alpha = 0.4f)
+                                    }
                                 )
                             }
                         }

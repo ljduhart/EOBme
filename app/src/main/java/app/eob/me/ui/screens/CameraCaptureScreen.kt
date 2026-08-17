@@ -117,6 +117,7 @@ fun CameraCaptureScreen(
     imageCompression: ImageCompressionLevel = ImageCompressionLevel.Medium,
     selectedScanType: CameraScanDocumentType = CameraScanDocumentType.Eob,
     onScanTypeSelected: (CameraScanDocumentType) -> Unit = {},
+    eobScanOnly: Boolean = false,
     onImageCaptured: (Uri) -> Unit,
     onClose: () -> Unit,
     viewModel: CameraCaptureViewModel = viewModel()
@@ -169,8 +170,9 @@ fun CameraCaptureScreen(
         }
     }
 
-    LaunchedEffect(uiState.autoCaptureActive, isCameraReady) {
-        if (isCameraReady && viewModel.shouldTriggerAutoCapture()) {
+    LaunchedEffect(uiState.autoCaptureActive, isCameraReady, eobScanOnly, uiState.edgesStable) {
+        val documentReady = uiState.edgesStable && uiState.detectedCorners != null
+        if (isCameraReady && viewModel.shouldTriggerAutoCapture() && (!eobScanOnly || documentReady)) {
             viewModel.markAutoCaptureTriggered()
             viewModel.onManualCaptureRequested()
             captureImage(
@@ -327,15 +329,24 @@ fun CameraCaptureScreen(
                         )
                     }
 
+                    val documentReady = uiState.edgesStable && uiState.detectedCorners != null
                     CameraScanDock(
                         language = language,
                         selectedScanType = selectedScanType,
                         onScanTypeSelected = onScanTypeSelected,
+                        eobScanOnly = eobScanOnly,
+                        documentReady = documentReady,
                         lastCaptureThumbnail = uiState.lastCaptureThumbnail,
                         autoCaptureActive = uiState.autoCaptureActive,
                         isCapturing = uiState.isCapturing,
                         isCameraReady = isCameraReady,
                         onCapture = {
+                            if (eobScanOnly && !documentReady) {
+                                viewModel.onCaptureFailed(
+                                    EobStrings.t(language, "cameraEobDocumentRequired")
+                                )
+                                return@CameraScanDock
+                            }
                             viewModel.onManualCaptureRequested()
                             captureImage(
                                 context = context,
@@ -420,6 +431,8 @@ private fun CameraScanDock(
     language: AppLanguage,
     selectedScanType: CameraScanDocumentType,
     onScanTypeSelected: (CameraScanDocumentType) -> Unit,
+    eobScanOnly: Boolean,
+    documentReady: Boolean,
     lastCaptureThumbnail: Bitmap?,
     autoCaptureActive: Boolean,
     isCapturing: Boolean,
@@ -427,16 +440,19 @@ private fun CameraScanDock(
     onCapture: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val captureEnabled = isCameraReady && !isCapturing && (!eobScanOnly || documentReady)
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        CameraScanTypeSelector(
-            language = language,
-            selectedScanType = selectedScanType,
-            onScanTypeSelected = onScanTypeSelected
-        )
+        if (!eobScanOnly) {
+            CameraScanTypeSelector(
+                language = language,
+                selectedScanType = selectedScanType,
+                onScanTypeSelected = onScanTypeSelected
+            )
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -447,8 +463,8 @@ private fun CameraScanDock(
             )
             Spacer(modifier = Modifier.width(28.dp))
             CaptureButton(
-                enabled = isCameraReady && !isCapturing,
-                autoCaptureActive = autoCaptureActive,
+                enabled = captureEnabled,
+                autoCaptureActive = autoCaptureActive && (!eobScanOnly || documentReady),
                 onClick = onCapture
             )
             Spacer(modifier = Modifier.width(84.dp))

@@ -1,5 +1,7 @@
 package app.eob.me.data
 
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
@@ -796,6 +798,15 @@ object EobAnalyzer {
         val day = parts[1].toIntOrNull() ?: return Int.MAX_VALUE
         val year = parts[2].toIntOrNull() ?: return Int.MAX_VALUE
         return year * 10000 + month * 100 + day
+    }
+
+    fun isAppointmentDateOnOrAfterToday(date: String): Boolean {
+        val key = serviceDateSortKey(date.trim())
+        if (key == Int.MAX_VALUE) return false
+        val todayKey = serviceDateSortKey(
+            SimpleDateFormat("MM/dd/yyyy", Locale.US).format(Date())
+        )
+        return key >= todayKey
     }
 
     fun serviceYear(date: String): Int {

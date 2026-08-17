@@ -1363,6 +1363,7 @@ class EobViewModel : ViewModel() {
         notes: String,
         providerType: CareTeamProviderType
     ) {
+        if (!isAppointmentDateAllowed(date)) return
         _uiState.update { state ->
             val nextId = (state.appointments.maxOfOrNull { it.id } ?: 0) + 1
             state.copy(
@@ -1392,6 +1393,7 @@ class EobViewModel : ViewModel() {
         notes: String,
         providerType: CareTeamProviderType
     ) {
+        if (!isAppointmentDateAllowed(date)) return
         _uiState.update { state ->
             state.copy(
                 appointments = state.appointments.map { existing ->
@@ -1519,6 +1521,10 @@ class EobViewModel : ViewModel() {
 
     fun clearHistoryProviderSearch() {
         _uiState.update { it.copy(historyProviderSearch = "") }
+    }
+
+    fun isAppointmentDateAllowed(date: String): Boolean {
+        return EobAnalyzer.isAppointmentDateOnOrAfterToday(date)
     }
 
     fun setTaxVaultFilterState(state: TaxVaultFilterState) {

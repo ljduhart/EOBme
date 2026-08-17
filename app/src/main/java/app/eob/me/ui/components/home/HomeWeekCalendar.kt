@@ -39,6 +39,7 @@ fun HomeWeekCalendar(
     appointments: List<DoctorAppointment>,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
+    isDateSelectable: (String) -> Boolean = { true },
     onDateSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -108,6 +109,7 @@ fun HomeWeekCalendar(
                             add(Calendar.MONTH, 1)
                         }
                     },
+                    isDateSelectable = isDateSelectable,
                     onDateSelected = onDateSelected
                 )
             } else {
@@ -131,6 +133,7 @@ fun HomeWeekCalendar(
                             isToday -> MaterialTheme.colorScheme.onPrimary
                             else -> MaterialTheme.colorScheme.onSurface
                         }
+                        val dateSelectable = isDateSelectable(dateLabel)
 
                         Card(
                             modifier = Modifier
@@ -147,11 +150,18 @@ fun HomeWeekCalendar(
                                         Modifier
                                     }
                                 )
-                                .clickable { onDateSelected(dateLabel) },
+                                .then(
+                                    if (dateSelectable) {
+                                        Modifier.clickable { onDateSelected(dateLabel) }
+                                    } else {
+                                        Modifier
+                                    }
+                                ),
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
                                     hasAppointment -> Color.Transparent
                                     isToday -> MaterialTheme.colorScheme.primary
+                                    !dateSelectable -> MaterialTheme.colorScheme.background.copy(alpha = 0.45f)
                                     else -> MaterialTheme.colorScheme.background
                                 }
                             )
@@ -176,7 +186,11 @@ fun HomeWeekCalendar(
                                     CalendarDayCellContent(
                                         dayNumber = dayOfMonth,
                                         hasAppointmentMarker = hasAppointment,
-                                        textColor = cellTextColor
+                                        textColor = if (dateSelectable) {
+                                            cellTextColor
+                                        } else {
+                                            cellTextColor.copy(alpha = 0.4f)
+                                        }
                                     )
                                 }
                             }

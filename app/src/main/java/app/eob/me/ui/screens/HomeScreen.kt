@@ -87,6 +87,7 @@ fun HomeScreen(
     onAddAppointment: (String, String, String, String, CareTeamProviderType) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
     onUpdateAppointment: (Int, String, String, String, String, CareTeamProviderType) -> Unit,
+    isAppointmentDateAllowed: (String) -> Boolean,
     historySnapshot: HistoryBentoSnapshot,
     processingPhase: InvoiceProcessingPhase,
     isLoadingInvoice: Boolean,
@@ -280,6 +281,7 @@ fun HomeScreen(
                     appointments = appointments,
                     expanded = calendarExpanded,
                     onExpandedChange = onCalendarExpandedChange,
+                    isDateSelectable = isAppointmentDateAllowed,
                     onDateSelected = { date ->
                         appointmentPrefillDate = date
                         openAppointmentDialog = true
@@ -324,6 +326,7 @@ fun HomeScreen(
                     },
                     onRemoveAppointment = onRemoveAppointment,
                     onUpdateAppointment = onUpdateAppointment,
+                    isAppointmentDateAllowed = isAppointmentDateAllowed,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

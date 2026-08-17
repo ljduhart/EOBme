@@ -155,9 +155,7 @@ fun EobHistoryScreen(
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = onSearchQueryChange,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 48.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             textStyle = MaterialTheme.typography.bodyMedium,
                             label = { Text(EobStrings.t(language, "provider")) },
                             placeholder = { Text(EobStrings.t(language, "provider")) },

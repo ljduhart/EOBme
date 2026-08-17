@@ -215,8 +215,10 @@ class EobViewModelCareTeamTest {
     @Test
     fun addAppointmentStoresProviderType() {
         val viewModel = EobViewModel()
+        val futureDate = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US)
+            .format(java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, 7) }.time)
         viewModel.addAppointment(
-            date = "01/15/2026",
+            date = futureDate,
             provider = "Dr. Lee",
             time = "10:00",
             notes = "Checkup",
@@ -225,6 +227,21 @@ class EobViewModelCareTeamTest {
         val appointment = viewModel.uiState.value.appointments.single()
         assertEquals(CareTeamProviderType.Specialist, appointment.providerType)
         assertTrue(appointment.providerName.isNotBlank())
+    }
+
+    @Test
+    fun addAppointmentRejectsPastDates() {
+        val viewModel = EobViewModel()
+        val yesterday = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US)
+            .format(java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, -1) }.time)
+        viewModel.addAppointment(
+            date = yesterday,
+            provider = "Dr. Lee",
+            time = "10:00",
+            notes = "Checkup",
+            providerType = CareTeamProviderType.Pcp
+        )
+        assertTrue(viewModel.uiState.value.appointments.isEmpty())
     }
 
     @Test
@@ -260,7 +277,14 @@ class EobViewModelCareTeamTest {
                 name = "Dr. Jones"
             )
         )
-        viewModel.addAppointment("01/01/2026", "Dr. Jones", "9:00", "", CareTeamProviderType.Pcp)
+        viewModel.addAppointment(
+            java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US)
+                .format(java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, 3) }.time),
+            "Dr. Jones",
+            "9:00",
+            "",
+            CareTeamProviderType.Pcp
+        )
         viewModel.resetHubState()
         assertTrue(viewModel.uiState.value.appointments.isEmpty())
         assertEquals("", viewModel.uiState.value.preferredDoctors[CareTeamProviderType.Pcp]?.name)

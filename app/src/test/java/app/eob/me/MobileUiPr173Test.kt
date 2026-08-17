@@ -45,11 +45,13 @@ class MobileUiPr173Test {
     }
 
     @Test
-    fun appointmentSectionRemainsUnchangedOnHomeScreen() {
+    fun appointmentSectionKeepsProviderChipsInEditDialogOnly() {
         val homeSource = readSource("ui/screens/HomeScreen.kt")
         val appointmentsSource = readSource("ui/components/home/HomeAppointmentsSection.kt")
         assertTrue(homeSource.contains("HomeAppointmentsSection"))
         assertTrue(appointmentsSource.contains("ProviderTypeChipBar"))
+        val cardSection = appointmentsSource.substringAfter("appointments.sortedBy")
+        assertFalse(cardSection.substringBefore("if (showDialog)").contains("ProviderTypeChipBar"))
         assertTrue(appointmentsSource.contains("addAppointment"))
         assertTrue(appointmentsSource.contains("saveAppointment"))
     }

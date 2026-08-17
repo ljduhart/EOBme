@@ -926,6 +926,7 @@ private fun MainHubNavHost(
                             eobViewModel.updateAppointment(id, date, provider, time, notes, providerType)
                             onActivity()
                         },
+                        isAppointmentDateAllowed = eobViewModel::isAppointmentDateAllowed,
                         historySnapshot = historySnapshot,
                         processingPhase = uiState.invoiceProcessingPhase,
                         isLoadingInvoice = uiState.isLoadingInvoice,
@@ -1334,6 +1335,7 @@ private fun MainHubNavHost(
                             eobViewModel.setCameraScanDocumentType(it)
                             onActivity()
                         },
+                        eobScanOnly = !uiState.vaultReceiptScanPending,
                         onImageCaptured = { uri ->
                             if (uiState.vaultReceiptScanPending) {
                                 eobViewModel.processVaultReceiptScannedDocument(

@@ -1,14 +1,10 @@
 package app.eob.me.ui.components.home
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -26,7 +22,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
@@ -45,6 +40,7 @@ fun HomeAppointmentsSection(
     onAddAppointment: (String, String, String, String, CareTeamProviderType) -> Unit,
     onUpdateAppointment: (Int, String, String, String, String, CareTeamProviderType) -> Unit,
     onRemoveAppointment: (DoctorAppointment) -> Unit,
+    isAppointmentDateAllowed: (String) -> Boolean,
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
@@ -56,6 +52,7 @@ fun HomeAppointmentsSection(
     var selectedProviderType by remember { mutableStateOf(CareTeamProviderType.Pcp) }
 
     val isEditing = editingAppointmentId != null
+    val dateAllowed = selectedDate.isBlank() || isAppointmentDateAllowed(selectedDate)
 
     fun openEditDialog(appointment: DoctorAppointment) {
         editingAppointmentId = appointment.id
@@ -127,46 +124,18 @@ fun HomeAppointmentsSection(
                         modifier = Modifier.padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(10.dp)
-                                    .background(
-                                        CareTeamColors.colorFor(appointment.providerType),
-                                        CircleShape
-                                    )
-                            )
-                            Text(
-                                text = "${appointment.date} • ${appointment.providerName}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        Text(
+                            text = "${appointment.date} • ${appointment.providerName}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         if (appointment.time.isNotBlank()) {
                             Text(appointment.time, style = MaterialTheme.typography.bodySmall)
                         }
                         if (appointment.notes.isNotBlank()) {
                             Text(appointment.notes, style = MaterialTheme.typography.bodySmall)
                         }
-                        ProviderTypeChipBar(
-                            language = language,
-                            selected = appointment.providerType,
-                            onSelected = { type ->
-                                onUpdateAppointment(
-                                    appointment.id,
-                                    appointment.date,
-                                    appointment.providerName,
-                                    appointment.time,
-                                    appointment.notes,
-                                    type
-                                )
-                            }
-                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -217,7 +186,13 @@ fun HomeAppointmentsSection(
                         label = { Text(EobStrings.t(language, "appointmentDate")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text(EobStrings.t(language, "datePlaceholder")) }
+                        placeholder = { Text(EobStrings.t(language, "datePlaceholder")) },
+                        isError = selectedDate.isNotBlank() && !dateAllowed,
+                        supportingText = {
+                            if (selectedDate.isNotBlank() && !dateAllowed) {
+                                Text(EobStrings.t(language, "appointmentDatePastNotAllowed"))
+                            }
+                        }
                     )
                     OutlinedTextField(
                         value = time,
@@ -262,7 +237,7 @@ fun HomeAppointmentsSection(
                         }
                         closeDialog()
                     },
-                    enabled = selectedDate.isNotBlank() && provider.isNotBlank()
+                    enabled = selectedDate.isNotBlank() && provider.isNotBlank() && dateAllowed
                 ) {
                     Text(
                         if (isEditing) {
