@@ -35,6 +35,26 @@ class MobileUiPr208Test {
         assertFalse(pipelineSource.contains("ExpandableProviderCard"))
     }
 
+    @Test
+    fun providerDirectoryForwardAndBackwardNavigationRemainsWired() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val routesSource = readProjectFile("app/src/main/java/app/eob/me/navigation/EobRoutes.kt")
+        assertTrue(routesSource.contains("EobRoute.ProviderDirectory.route"))
+        assertTrue(routesSource.contains("hubBackRoutes"))
+        assertTrue(navSource.contains("composable(EobRoute.ProviderDirectory.route)"))
+        assertTrue(navSource.contains("eobViewModel.openProviderRecordHistory(providerName)"))
+        assertTrue(navSource.contains("navController.navigate(EobRoute.History.route)"))
+        assertFalse(navSource.contains("searchQuery = uiState.historyProviderSearch"))
+    }
+
+    private fun readProjectFile(relativePath: String): String {
+        val candidates = listOf(
+            File(relativePath),
+            File("../$relativePath")
+        )
+        return candidates.first { it.isFile }.readText()
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             File("src/main/java/app/eob/me/$relativePath"),
