@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import coil.imageLoader
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import java.io.File
@@ -26,6 +27,8 @@ object CoilBitmapLoader {
             .data(data)
             .size(maxDimension)
             .allowHardware(false)
+            .memoryCachePolicy(CachePolicy.DISABLED)
+            .diskCachePolicy(CachePolicy.DISABLED)
             .build()
         return when (val result = context.imageLoader.execute(request)) {
             is SuccessResult -> (result.drawable as? BitmapDrawable)?.bitmap

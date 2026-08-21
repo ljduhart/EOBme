@@ -52,6 +52,27 @@ class MobileUiPr207Test {
         assertFalse(pipelineSource.contains("TaxVaultClaimPackager"))
     }
 
+    @Test
+    fun navigationPathsRemainSyncedForCameraAndTaxVaultExport() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val cameraSource = readSource("ui/screens/CameraCaptureScreen.kt")
+        assertTrue(navSource.contains("exportTaxVaultClaimPackage(context)"))
+        assertTrue(navSource.contains("onExportClaimPackage"))
+        assertTrue(navSource.contains("eobViewModel.clearVaultReceiptScanPending()"))
+        assertTrue(navSource.contains("navController.popBackStack()"))
+        assertTrue(navSource.contains("popUpTo(EobRoute.CameraCapture.route) { inclusive = true }"))
+        assertTrue(navSource.contains("EobRoute.TaxVault.route"))
+        assertTrue(navSource.contains("EobRoute.History.route"))
+        assertTrue(cameraSource.contains("viewModel.handleCapturedFile"))
+    }
+
+    @Test
+    fun coilLoaderDisablesCacheSoRecycledBitmapsStaySafe() {
+        val loaderSource = readSource("util/CoilBitmapLoader.kt")
+        assertTrue(loaderSource.contains("memoryCachePolicy(CachePolicy.DISABLED)"))
+        assertTrue(loaderSource.contains("diskCachePolicy(CachePolicy.DISABLED)"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             File("src/main/java/app/eob/me/$relativePath"),
