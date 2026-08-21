@@ -2,7 +2,6 @@ package app.eob.me.viewmodel
 
 import android.app.Application
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.PointF
 import android.net.Uri
 import androidx.compose.ui.geometry.Offset
@@ -14,6 +13,7 @@ import app.eob.me.scanner.DocumentCorners
 import app.eob.me.scanner.DocumentEdgeDetector
 import app.eob.me.scanner.DocumentScanProcessor
 import app.eob.me.scanner.ScanFilterMode
+import app.eob.me.util.CoilBitmapLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -169,7 +169,11 @@ class CameraCaptureViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch {
             val decoded = runCatching {
                 withContext(Dispatchers.IO) {
-                    BitmapFactory.decodeFile(filePath) ?: error("Unable to decode captured image.")
+                    CoilBitmapLoader.loadBitmapFromFile(
+                        context = getApplication(),
+                        filePath = filePath,
+                        maxDimension = compression.maxDimension
+                    ) ?: error("Unable to decode captured image.")
                 }
             }.getOrElse { error ->
                 _uiState.update {

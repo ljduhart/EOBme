@@ -2,7 +2,6 @@ package app.eob.me.data
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -10,23 +9,28 @@ import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import androidx.core.content.FileProvider
+import app.eob.me.util.CoilBitmapLoader
 import java.io.File
 import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 
 object TaxVaultClaimPackager {
     private const val PAGE_WIDTH = 612
     private const val PAGE_HEIGHT = 792
     private const val MARGIN = 48
 
-    fun buildClaimPackage(
+    suspend fun buildClaimPackage(
         context: Context,
         coverRows: List<TaxVaultExportRow>,
         evidenceImageUrls: List<String>
     ): Result<Uri> {
         return runCatching {
-            val bitmaps = evidenceImageUrls.mapNotNull { url -> downloadBitmap(url) }
+            val bitmaps = evidenceImageUrls.mapNotNull { url ->
+                CoilBitmapLoader.loadBitmapFromUrl(
+                    context = context,
+                    url = url,
+                    maxDimension = CoilBitmapLoader.DEFAULT_MAX_DIMENSION
+                )
+            }
             val pdfFile = writePdf(context, coverRows, bitmaps)
             FileProvider.getUriForFile(
                 context,
@@ -108,21 +112,5 @@ object TaxVaultClaimPackager {
         val top = MARGIN + (availableHeight - height) / 2
         val dest = Rect(left, top, left + width, top + height)
         canvas.drawBitmap(bitmap, null, dest, null)
-    }
-
-    private fun downloadBitmap(url: String): Bitmap? {
-        if (url.isBlank()) return null
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 12_000
-            readTimeout = 12_000
-            instanceFollowRedirects = true
-        }
-        return try {
-            connection.inputStream.use { stream ->
-                BitmapFactory.decodeStream(stream)
-            }
-        } finally {
-            connection.disconnect()
-        }
     }
 }
