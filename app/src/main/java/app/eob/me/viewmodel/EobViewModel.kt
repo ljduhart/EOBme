@@ -1725,13 +1725,16 @@ class EobViewModel : ViewModel() {
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
-            val result = runCatching { buildTaxVaultClaimPackage(context) }
-                .fold(onSuccess = { Result.success(it) }, onFailure = { Result.failure(it) })
+            val result = try {
+                Result.success(buildTaxVaultClaimPackage(context))
+            } catch (error: Throwable) {
+                Result.failure(error)
+            }
             withContext(Dispatchers.Main) { onResult(result) }
         }
     }
 
-    private fun buildTaxVaultClaimPackage(context: Context): Uri {
+    private suspend fun buildTaxVaultClaimPackage(context: Context): Uri {
         val exportRows = buildTaxVaultExportRows()
         if (exportRows.isEmpty()) {
             throw IllegalStateException("Select at least one EOB for export.")
