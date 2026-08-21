@@ -1,9 +1,9 @@
 package app.eob.me.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -64,6 +64,11 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 
 private const val ProviderDirectoryVerticalScale = 0.85f
+private const val ProviderExpandDurationMillis = 200
+private val ProviderExpandAnimationSpec = tween<Float>(
+    durationMillis = ProviderExpandDurationMillis,
+    easing = FastOutSlowInEasing
+)
 
 private val ProviderListItemSpacing = (12 * ProviderDirectoryVerticalScale).dp
 private val ProviderCardPadding = (16 * ProviderDirectoryVerticalScale).dp
@@ -183,17 +188,20 @@ fun ExpandableProviderCard(
 
     val arrowRotationDegree by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = ProviderExpandAnimationSpec,
         label = "arrowRotation"
+    )
+    val cardElevation by animateDpAsState(
+        targetValue = if (expanded) 8.dp else 2.dp,
+        animationSpec = tween(durationMillis = ProviderExpandDurationMillis, easing = FastOutSlowInEasing),
+        label = "cardElevation"
     )
 
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (expanded) 8.dp else 2.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing))
+        elevation = CardDefaults.cardElevation(defaultElevation = cardElevation),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(ProviderCardPadding)) {
             Row(
@@ -267,8 +275,30 @@ fun ExpandableProviderCard(
 
             AnimatedVisibility(
                 visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                enter = expandVertically(
+                    animationSpec = tween(
+                        durationMillis = ProviderExpandDurationMillis,
+                        easing = FastOutSlowInEasing
+                    ),
+                    expandFrom = Alignment.Top
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = ProviderExpandDurationMillis,
+                        easing = FastOutSlowInEasing
+                    )
+                ),
+                exit = shrinkVertically(
+                    animationSpec = tween(
+                        durationMillis = ProviderExpandDurationMillis,
+                        easing = FastOutSlowInEasing
+                    ),
+                    shrinkTowards = Alignment.Top
+                ) + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = ProviderExpandDurationMillis,
+                        easing = FastOutSlowInEasing
+                    )
+                )
             ) {
                 Column(modifier = Modifier.padding(top = ProviderExpandedTopPadding)) {
                     HorizontalDivider(
