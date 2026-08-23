@@ -73,7 +73,7 @@ class TaxVaultMiniatureEvidenceTest {
         assertFalse(screenSource.contains("floatingActionButton"))
         assertTrue(screenSource.contains("onEvidenceSelected"))
         assertTrue(navSource.contains("beginVaultReceiptScan"))
-        assertTrue(navSource.contains("EobRoute.CameraCapture.route"))
+        assertTrue(navSource.contains("launchDocumentScanner()"))
         assertTrue(uiSource.contains("MiniatureEobPolaroidBody"))
         assertTrue(uiSource.contains("MiniatureReceiptPolaroidBody"))
         assertTrue(uiSource.contains("MiniatureCardMinWidth"))

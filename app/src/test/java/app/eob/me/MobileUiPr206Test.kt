@@ -87,7 +87,7 @@ class MobileUiPr206Test {
         assertTrue(navSource.contains("popUpTo(EobRoute.CameraCapture.route) { inclusive = true }"))
         assertTrue(navSource.contains("eobViewModel.clearHistoryProviderSearch()"))
         assertTrue(navSource.contains("eobViewModel.openProviderRecordHistory(providerName)"))
-        assertTrue(navSource.contains("customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)"))
+        assertTrue(navSource.contains("launchDocumentScanner()"))
         assertTrue(navSource.contains("navController.navigate(EobRoute.Home.route)"))
         assertFalse(navSource.contains("searchQuery = uiState.historyProviderSearch"))
     }

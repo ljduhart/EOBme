@@ -40,10 +40,10 @@ class MobileUiPr202Test {
     }
 
     @Test
-    fun reverseDxScannerRoutesToCameraCaptureFlow() {
+    fun reverseDxScannerRoutesToGmsDocumentScanner() {
         val navSource = readSource("navigation/EobNavHost.kt")
         assertTrue(navSource.contains("fun launchEobScannerFromHub()"))
-        assertTrue(navSource.contains("EobRoute.CameraCapture.route"))
+        assertTrue(navSource.contains("launchDocumentScanner()"))
         assertTrue(navSource.contains("BackHandler(enabled = reverseDxLookupVisible)"))
         assertTrue(navSource.contains("launchEobScannerFromHub()"))
     }

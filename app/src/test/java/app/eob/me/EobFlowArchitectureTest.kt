@@ -341,8 +341,8 @@ class EobFlowArchitectureTest {
             "libraryUploadLauncher",
             "processScannedDocument",
             "CameraScanDocumentType.Eob",
-            "EobRoute.CameraCapture.route",
-            "customCameraPermissionLauncher",
+            "launchDocumentScanner",
+            "GmsDocumentScannerLauncher",
             "acknowledgeInvoiceFileDropAnimation",
             "canUploadOnCurrentNetwork",
             "imageCompressionLevel",
@@ -873,10 +873,11 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun hubBottomBarScanOpensCameraPermissionPath() {
+    fun hubBottomBarScanOpensGmsDocumentScanner() {
         assertEquals(HubBottomTab.ScanEob, HubBottomTab.entries[1])
-        assertTrue(navHostSource.contains("customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)"))
-        assertTrue(navHostSource.contains("EobRoute.CameraCapture.route"))
+        assertTrue(navHostSource.contains("launchEobScannerFromHub()"))
+        assertTrue(navHostSource.contains("launchDocumentScanner()"))
+        assertTrue(navHostSource.contains("GmsDocumentScannerLauncher"))
         assertTrue(navHostSource.contains("DocumentProcessingOverlay"))
         assertTrue(navHostSource.contains("showHubHeader"))
         assertTrue(EobRoute.CameraCapture.route in hubRoutesWithoutBottomBar)
@@ -885,19 +886,18 @@ class EobFlowArchitectureTest {
     }
 
     @Test
-    fun cameraCaptureRouteUsesHybridDocumentPipeline() {
+    fun gmsDocumentScannerRoutesUseHybridDocumentPipeline() {
         val cameraScreenSource = readSource("ui/screens/CameraCaptureScreen.kt")
         val viewModelSource = readSource("viewmodel/EobViewModel.kt")
         assertTrue(cameraScreenSource.contains("CameraCaptureViewModel"))
-        assertTrue(cameraScreenSource.contains("weight(0.85f)"))
-        assertTrue(cameraScreenSource.contains("weight(0.15f)"))
-        assertTrue(navHostSource.contains("EobRoute.CameraCapture.route"))
         assertTrue(navHostSource.contains("processScannedDocument"))
-        assertTrue(navHostSource.contains("imageCompressionLevel()"))
-        assertTrue(navHostSource.contains("customCameraPermissionLauncher"))
+        assertTrue(navHostSource.contains("processVaultReceiptScannedDocument"))
+        assertTrue(navHostSource.contains("launchDocumentScanner()"))
+        assertTrue(navHostSource.contains("GmsDocumentScannerLauncher.parseScanResult"))
+        assertTrue(navHostSource.contains("cameraScanSourceLabel(language)"))
         assertFalse(navHostSource.contains("onCameraScan"))
         assertFalse(
-            "Camera capture must not bypass hybrid pipeline via prepareAndUpload",
+            "GMS scanner must not bypass hybrid pipeline via prepareAndUpload",
             navHostSource.contains("prepareAndUpload(uri, EobStrings.t(language, \"cameraScan\"))")
         )
         assertTrue(
@@ -1329,7 +1329,7 @@ class EobFlowArchitectureTest {
             "processScannedDocument",
             "CameraScanDocumentType.Eob",
             "DocumentProcessingOverlay",
-            "customCameraPermissionLauncher"
+            "launchDocumentScanner"
         ).forEach { snippet ->
             assertTrue("PR#104 audit: upload navigation barrier missing $snippet", navHostSource.contains(snippet))
         }
