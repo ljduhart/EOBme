@@ -54,6 +54,34 @@ class MobileUiPr210Test {
     }
 
     @Test
+    fun gmsScannerResultResetsStateWhenPaywallBlocksProcessing() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val resultBlock = navSource.substringAfter("val documentScannerLauncher = rememberLauncherForActivityResult")
+            .substringBefore("fun launchDocumentScanner()")
+        assertTrue(resultBlock.contains("} else if (eobViewModel.requestEobScanOrPaywall(language)) {"))
+        assertTrue(resultBlock.contains("} else {\n                eobViewModel.onDocumentScanCancelled()"))
+        assertTrue(resultBlock.contains("userId.isBlank()"))
+    }
+
+    @Test
+    fun gmsScannerNavigationPathwaysRemainWiredForwardAndBackward() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        assertTrue(navSource.contains("HubBottomTab.ScanEob ->"))
+        assertTrue(navSource.contains("launchEobScannerFromHub()"))
+        assertTrue(navSource.contains("onAddReceipt = {"))
+        assertTrue(navSource.contains("beginVaultReceiptScan()"))
+        assertTrue(navSource.contains("navController.navigate(EobRoute.TaxVault.route)"))
+        assertTrue(navSource.contains("navController.navigate(EobRoute.History.route)"))
+        assertTrue(navSource.contains("eobViewModel.clearVaultReceiptScanPending()"))
+        assertTrue(navSource.contains("eobViewModel.onDocumentScanCancelled()"))
+        assertTrue(navSource.contains("DocumentProcessingOverlay"))
+        assertTrue(navSource.contains("onLaunchScannerClicked = {"))
+        assertTrue(navSource.contains("BackHandler(enabled = reverseDxLookupVisible)"))
+        assertTrue(navSource.contains("navController.popBackStack()"))
+        assertTrue(navSource.contains("eobViewModel.clearHistoryProviderSearch()"))
+    }
+
+    @Test
     fun protectedVeryfiPipelineUntouchedForPr210() {
         val pipelineSource = readSource("data/DocumentScanPipelineRepository.kt")
         assertFalse(pipelineSource.contains("GmsDocumentScannerLauncher"))

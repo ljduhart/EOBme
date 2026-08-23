@@ -332,7 +332,10 @@ private fun MainHubNavHost(
         if (scannedUri != null) {
             val userId = firebaseUser?.uid.orEmpty()
             val sourceName = eobViewModel.cameraScanSourceLabel(language)
-            if (eobViewModel.uiState.value.vaultReceiptScanPending) {
+            if (userId.isBlank()) {
+                eobViewModel.onDocumentScanCancelled()
+                Toast.makeText(context, EobStrings.t(language, "signInBeforeUpload"), Toast.LENGTH_SHORT).show()
+            } else if (eobViewModel.uiState.value.vaultReceiptScanPending) {
                 eobViewModel.processVaultReceiptScannedDocument(
                     userId = userId,
                     uri = scannedUri,
@@ -349,6 +352,8 @@ private fun MainHubNavHost(
                 )
                 eobViewModel.clearHistoryProviderSearch()
                 navController.navigate(EobRoute.History.route) { launchSingleTop = true }
+            } else {
+                eobViewModel.onDocumentScanCancelled()
             }
             onActivity()
         } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) {
