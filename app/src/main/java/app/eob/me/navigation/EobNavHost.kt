@@ -324,13 +324,27 @@ private fun MainHubNavHost(
     val documentScannerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
-        val scannedUri = GmsDocumentScannerLauncher.parseScanResult(result.resultCode, result.data)
+        val scannedUri = GmsDocumentScannerLauncher.parseScanResult(
+            context = context,
+            resultCode = result.resultCode,
+            data = result.data
+        )
         if (scannedUri != null) {
-            if (eobViewModel.requestEobScanOrPaywall(language)) {
-                eobViewModel.processScannedDocument(
-                    userId = firebaseUser?.uid.orEmpty(),
+            val userId = firebaseUser?.uid.orEmpty()
+            val sourceName = eobViewModel.cameraScanSourceLabel(language)
+            if (eobViewModel.uiState.value.vaultReceiptScanPending) {
+                eobViewModel.processVaultReceiptScannedDocument(
+                    userId = userId,
                     uri = scannedUri,
-                    sourceName = EobStrings.t(language, "documentScannerSource"),
+                    sourceName = sourceName,
+                    language = language
+                )
+                navController.navigate(EobRoute.TaxVault.route) { launchSingleTop = true }
+            } else if (eobViewModel.requestEobScanOrPaywall(language)) {
+                eobViewModel.processScannedDocument(
+                    userId = userId,
+                    uri = scannedUri,
+                    sourceName = sourceName,
                     language = language
                 )
                 eobViewModel.clearHistoryProviderSearch()
@@ -338,6 +352,7 @@ private fun MainHubNavHost(
             }
             onActivity()
         } else if (result.resultCode != android.app.Activity.RESULT_CANCELED) {
+            eobViewModel.clearVaultReceiptScanPending()
             eobViewModel.onDocumentScanLaunchFailed(
                 language = language,
                 message = EobStrings.t(language, "documentScanNoResult")
@@ -356,23 +371,13 @@ private fun MainHubNavHost(
                 documentScannerLauncher.launch(request)
             },
             onFailure = { error ->
+                eobViewModel.clearVaultReceiptScanPending()
                 eobViewModel.onDocumentScanLaunchFailed(
                     language = language,
                     message = error.localizedMessage.orEmpty()
                 )
             }
         )
-    }
-
-    val customCameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            navController.navigate(EobRoute.CameraCapture.route) {
-                launchSingleTop = true
-            }
-            onActivity()
-        } else {
-            Toast.makeText(context, EobStrings.t(language, "cameraPermissionRequired"), Toast.LENGTH_SHORT).show()
-        }
     }
 
     fun launchEobScannerFromHub() {
@@ -385,7 +390,7 @@ private fun MainHubNavHost(
                 onActivity()
             }
             else -> {
-                customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                launchDocumentScanner()
             }
         }
     }
@@ -754,7 +759,7 @@ private fun MainHubNavHost(
                                         onActivity()
                                     }
                                     else -> {
-                                        customCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                        launchEobScannerFromHub()
                                     }
                                 }
                             }
@@ -1185,7 +1190,7 @@ private fun MainHubNavHost(
                         },
                         onAddReceipt = {
                             if (eobViewModel.beginVaultReceiptScan()) {
-                                navController.navigate(EobRoute.CameraCapture.route) { launchSingleTop = true }
+                                launchDocumentScanner()
                             }
                             onActivity()
                         },

@@ -2535,6 +2535,7 @@ class EobViewModel : ViewModel() {
     fun onDocumentScanCancelled() {
         documentScanJob?.cancel()
         documentScanGeneration++
+        clearVaultReceiptScanPending()
         _documentScanState.value = DocumentScanPipelineState.Idle
         _veryfiAnyDocExtractionState.value = VeryfiAnyDocExtractionState.Idle
     }

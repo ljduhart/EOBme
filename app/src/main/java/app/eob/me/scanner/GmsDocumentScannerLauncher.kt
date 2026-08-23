@@ -1,6 +1,7 @@
 package app.eob.me.scanner
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.IntentSenderRequest
@@ -36,10 +37,26 @@ object GmsDocumentScannerLauncher {
             .addOnFailureListener(onFailure)
     }
 
-    fun parseScanResult(resultCode: Int, data: Intent?): Uri? {
-        if (resultCode != Activity.RESULT_OK) return null
+    fun parseScanResult(context: Context, resultCode: Int, data: Intent?): Uri? {
+        if (resultCode != Activity.RESULT_OK || data == null) return null
         val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(data) ?: return null
-        scanResult.pdf?.uri?.let { return it }
-        return scanResult.pages?.firstOrNull()?.imageUri
+        val uri = scanResult.pdf?.uri ?: scanResult.pages?.firstOrNull()?.imageUri ?: return null
+        retainReadPermission(context, data, uri)
+        return uri
+    }
+
+    private fun retainReadPermission(context: Context, data: Intent, uri: Uri) {
+        val readFlag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(uri, readFlag)
+        }
+        data.clipData?.let { clip ->
+            for (index in 0 until clip.itemCount) {
+                val clipUri = clip.getItemAt(index).uri ?: continue
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(clipUri, readFlag)
+                }
+            }
+        }
     }
 }
