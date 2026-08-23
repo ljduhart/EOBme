@@ -39,6 +39,21 @@ class MobileUiPr209Test {
         assertTrue(navSource.contains("HomeScreen("))
     }
 
+    @Test
+    fun appointmentCalendarAndQuickActionsNavigationRemainsWired() {
+        val homeSource = readSource("ui/screens/HomeScreen.kt")
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val viewModelSource = readSource("viewmodel/EobViewModel.kt")
+        assertTrue(homeSource.contains("onExpandedChange = onCalendarExpandedChange"))
+        assertTrue(homeSource.contains("appointmentPrefillDate = date"))
+        assertTrue(homeSource.contains("openAppointmentDialog = true"))
+        assertTrue(navSource.contains("eobViewModel::setCalendarExpanded"))
+        assertTrue(navSource.contains("eobViewModel.addAppointment"))
+        assertTrue(navSource.contains("eobViewModel.removeAppointment"))
+        assertTrue(viewModelSource.contains("fun setCalendarExpanded"))
+        assertTrue(viewModelSource.contains("fun removeAppointment"))
+    }
+
     private fun readSource(relativePath: String): String {
         val candidates = listOf(
             File("src/main/java/app/eob/me/$relativePath"),
