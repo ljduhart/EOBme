@@ -42,7 +42,10 @@ class MobileUiPr210Test {
         assertTrue(launcherSource.contains("GmsDocumentScanningResult.fromActivityResultIntent"))
         assertTrue(launcherSource.contains("SCANNER_MODE_FULL"))
         assertTrue(launcherSource.contains("RESULT_FORMAT_JPEG"))
-        assertTrue(launcherSource.contains("RESULT_FORMAT_PDF"))
+        assertFalse(launcherSource.contains("RESULT_FORMAT_PDF"))
+        assertTrue(launcherSource.contains("setPageLimit(1)"))
+        assertTrue(launcherSource.contains("pages?.firstOrNull()?.imageUri"))
+        assertFalse(launcherSource.contains("pdf?.uri"))
     }
 
     @Test

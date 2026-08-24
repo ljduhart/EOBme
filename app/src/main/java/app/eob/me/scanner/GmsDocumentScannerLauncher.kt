@@ -14,11 +14,8 @@ object GmsDocumentScannerLauncher {
         return GmsDocumentScannerOptions.Builder()
             .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
             .setGalleryImportAllowed(true)
-            .setPageLimit(5)
-            .setResultFormats(
-                GmsDocumentScannerOptions.RESULT_FORMAT_JPEG,
-                GmsDocumentScannerOptions.RESULT_FORMAT_PDF
-            )
+            .setPageLimit(1)
+            .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
             .build()
     }
 
@@ -40,9 +37,9 @@ object GmsDocumentScannerLauncher {
     fun parseScanResult(context: Context, resultCode: Int, data: Intent?): Uri? {
         if (resultCode != Activity.RESULT_OK || data == null) return null
         val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(data) ?: return null
-        val uri = scanResult.pdf?.uri ?: scanResult.pages?.firstOrNull()?.imageUri ?: return null
-        retainReadPermission(context, data, uri)
-        return uri
+        val imageUri = scanResult.pages?.firstOrNull()?.imageUri ?: return null
+        retainReadPermission(context, data, imageUri)
+        return imageUri
     }
 
     private fun retainReadPermission(context: Context, data: Intent, uri: Uri) {
