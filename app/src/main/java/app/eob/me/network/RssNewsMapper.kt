@@ -39,9 +39,11 @@ object RssNewsMapper {
 
     fun mapXmlFeed(company: String, xml: String): List<NewsRelease> {
         if (xml.isBlank()) return emptyList()
-        return parseRssItems(xml).mapNotNull { item ->
-            mapParsedItem(company, item)
-        }
+        return runCatching {
+            parseRssItems(xml).mapNotNull { item ->
+                mapParsedItem(company, item)
+            }
+        }.getOrElse { emptyList() }
     }
 
     fun isWithinLiveNewsWindow(sortableDate: String): Boolean {
@@ -71,7 +73,7 @@ object RssNewsMapper {
     )
 
     private fun mapParsedItem(company: String, item: ParsedRssItem): NewsRelease? {
-        val headline = item.title?.trim().orEmpty()
+        val headline = decodeHtmlEntities(item.title?.trim().orEmpty())
         if (headline.isBlank()) return null
         val parsedDate = parsePubDate(item.pubDate) ?: return null
         if (!isWithinLiveNewsWindow(parsedDate)) return null
@@ -155,7 +157,7 @@ object RssNewsMapper {
     private fun readTagText(parser: XmlPullParser): String {
         return buildString {
             var event = parser.next()
-            while (event != XmlPullParser.END_TAG) {
+            while (event != XmlPullParser.END_TAG && event != XmlPullParser.END_DOCUMENT) {
                 when (event) {
                     XmlPullParser.TEXT, XmlPullParser.CDSECT, XmlPullParser.ENTITY_REF -> {
                         append(parser.text.orEmpty())
@@ -192,9 +194,30 @@ object RssNewsMapper {
 
     private fun stripHtml(value: String?): String {
         if (value.isNullOrBlank()) return ""
-        return value
+        return decodeHtmlEntities(value)
             .replace(Regex("<[^>]+>"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
+    }
+
+    private fun decodeHtmlEntities(value: String): String {
+        return value
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#039;", "'")
+            .replace("&apos;", "'")
+            .replace(Regex("&#(\\d+);")) { match ->
+                match.groupValues[1].toIntOrNull()?.let { codePoint ->
+                    codePoint.toChar().toString()
+                } ?: match.value
+            }
+            .replace(Regex("&#x([0-9a-fA-F]+);")) { match ->
+                match.groupValues[1].toIntOrNull(16)?.let { codePoint ->
+                    codePoint.toChar().toString()
+                } ?: match.value
+            }
     }
 }
