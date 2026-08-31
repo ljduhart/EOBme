@@ -352,17 +352,13 @@ class EobViewModel : ViewModel() {
     fun fetchLiveInsuranceNews() {
         viewModelScope.launch(Dispatchers.IO) {
             val beckersNews = runCatching {
-                RssNewsMapper.mapResponse(
-                    company = RssNewsMapper.BECKERS_COMPANY,
-                    response = RetrofitClient.api.getFeed(RssNewsMapper.BECKERS_RSS_URL)
-                )
+                val xml = RetrofitClient.api.getFeed(RssNewsMapper.BECKERS_RSS_URL).use { it.string() }
+                RssNewsMapper.mapXmlFeed(RssNewsMapper.BECKERS_COMPANY, xml)
             }.getOrElse { emptyList() }
 
             val diveNews = runCatching {
-                RssNewsMapper.mapResponse(
-                    company = RssNewsMapper.HEALTHCARE_DIVE_COMPANY,
-                    response = RetrofitClient.api.getFeed(RssNewsMapper.HEALTHCARE_DIVE_RSS_URL)
-                )
+                val xml = RetrofitClient.api.getFeed(RssNewsMapper.HEALTHCARE_DIVE_RSS_URL).use { it.string() }
+                RssNewsMapper.mapXmlFeed(RssNewsMapper.HEALTHCARE_DIVE_COMPANY, xml)
             }.getOrElse { emptyList() }
 
             if (beckersNews.isNotEmpty()) {

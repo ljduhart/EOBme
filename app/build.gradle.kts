@@ -161,6 +161,8 @@ dependencies {
     implementation(libs.coil)
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    testImplementation("net.sf.kxml:kxml2:2.3.0")
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")

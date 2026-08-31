@@ -1,8 +1,6 @@
 package app.eob.me
 
-import app.eob.me.network.RssItem
 import app.eob.me.network.RssNewsMapper
-import app.eob.me.network.RssResponse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -10,29 +8,28 @@ import org.junit.Test
 
 class RssNewsMapperTest {
     @Test
-    fun mapResponseBuildsNewsReleaseWithCompanyAndSortedDate() {
-        val response = RssResponse(
-            status = "ok",
-            feed = null,
-            items = listOf(
-                RssItem(
-                    title = "Older item",
-                    pubDate = "Wed, 14 Jan 2026 12:00:00 GMT",
-                    link = "https://example.com/older",
-                    content = "<p>Older summary</p>",
-                    description = null
-                ),
-                RssItem(
-                    title = "Newer item",
-                    pubDate = "Tue, 02 Jun 2026 08:30:00 GMT",
-                    link = "https://example.com/newer",
-                    content = "<p>Newer summary</p>",
-                    description = null
-                )
-            )
-        )
+    fun mapXmlFeedBuildsNewsReleaseWithCompanyAndSortedDate() {
+        val xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <rss version="2.0">
+              <channel>
+                <item>
+                  <title>Older item</title>
+                  <link>https://example.com/older</link>
+                  <pubDate>Wed, 14 Jan 2026 12:00:00 GMT</pubDate>
+                  <description><![CDATA[<p>Older summary</p>]]></description>
+                </item>
+                <item>
+                  <title>Newer item</title>
+                  <link>https://example.com/newer</link>
+                  <pubDate>Tue, 02 Jun 2026 08:30:00 GMT</pubDate>
+                  <description><![CDATA[<p>Newer summary</p>]]></description>
+                </item>
+              </channel>
+            </rss>
+        """.trimIndent()
 
-        val mapped = RssNewsMapper.mapResponse(RssNewsMapper.BECKERS_COMPANY, response)
+        val mapped = RssNewsMapper.mapXmlFeed(RssNewsMapper.BECKERS_COMPANY, xml)
         assertEquals(2, mapped.size)
         assertEquals(
             setOf("Older item", "Newer item"),
@@ -45,50 +42,50 @@ class RssNewsMapperTest {
     }
 
     @Test
-    fun mapResponseRejectsItemsOutsideLiveWindow() {
-        val response = RssResponse(
-            status = "ok",
-            feed = null,
-            items = listOf(
-                RssItem(
-                    title = "Legacy headline",
-                    pubDate = "Mon, 15 Dec 2025 09:00:00 GMT",
-                    link = "https://example.com/legacy",
-                    content = "Legacy",
-                    description = null
-                )
-            )
-        )
+    fun mapXmlFeedRejectsItemsOutsideLiveWindow() {
+        val xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <rss version="2.0">
+              <channel>
+                <item>
+                  <title>Legacy headline</title>
+                  <link>https://example.com/legacy</link>
+                  <pubDate>Mon, 15 Dec 2025 09:00:00 GMT</pubDate>
+                  <description>Legacy</description>
+                </item>
+              </channel>
+            </rss>
+        """.trimIndent()
 
-        assertTrue(RssNewsMapper.mapResponse(RssNewsMapper.HEALTHCARE_DIVE_COMPANY, response).isEmpty())
+        assertTrue(RssNewsMapper.mapXmlFeed(RssNewsMapper.HEALTHCARE_DIVE_COMPANY, xml).isEmpty())
     }
 
     @Test
-    fun mapResponseReturnsEmptyWhenStatusIsNotOk() {
-        val response = RssResponse(status = "error", feed = null, items = emptyList())
-        assertTrue(RssNewsMapper.mapResponse(RssNewsMapper.BECKERS_COMPANY, response).isEmpty())
+    fun mapXmlFeedReturnsEmptyForBlankXml() {
+        assertTrue(RssNewsMapper.mapXmlFeed(RssNewsMapper.BECKERS_COMPANY, "").isEmpty())
     }
 
     @Test
-    fun mapResponseParsesRss2JsonPubDateFormat() {
-        val response = RssResponse(
-            status = "ok",
-            feed = null,
-            items = listOf(
-                RssItem(
-                    title = "Live payer headline",
-                    pubDate = "2026-06-16 15:23:00",
-                    link = "https://example.com/live",
-                    content = "<p>Live summary</p>",
-                    description = null
-                )
-            )
-        )
+    fun mapXmlFeedParsesContentEncodedSummary() {
+        val xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+              <channel>
+                <item>
+                  <title>Live payer headline</title>
+                  <link>https://example.com/live</link>
+                  <pubDate>2026-06-16 15:23:00</pubDate>
+                  <content:encoded><![CDATA[<p>Live summary</p>]]></content:encoded>
+                </item>
+              </channel>
+            </rss>
+        """.trimIndent()
 
-        val mapped = RssNewsMapper.mapResponse(RssNewsMapper.HEALTHCARE_DIVE_COMPANY, response)
+        val mapped = RssNewsMapper.mapXmlFeed(RssNewsMapper.HEALTHCARE_DIVE_COMPANY, xml)
         assertEquals(1, mapped.size)
         assertEquals("Live payer headline", mapped.first().headline)
         assertEquals("06/16/2026", mapped.first().date)
+        assertEquals("Live summary", mapped.first().summary)
     }
 
     @Test

@@ -1,6 +1,9 @@
 package app.eob.me.network
 
 import app.eob.me.data.NewsRelease
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
+import java.io.StringReader
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -34,28 +37,11 @@ object RssNewsMapper {
         set(Calendar.MILLISECOND, 0)
     }
 
-    fun mapResponse(company: String, response: RssResponse): List<NewsRelease> {
-        if (!response.status.equals("ok", ignoreCase = true)) return emptyList()
-        return response.items.orEmpty().mapNotNull { item ->
-            mapItem(company, item)
+    fun mapXmlFeed(company: String, xml: String): List<NewsRelease> {
+        if (xml.isBlank()) return emptyList()
+        return parseRssItems(xml).mapNotNull { item ->
+            mapParsedItem(company, item)
         }
-    }
-
-    fun mapItem(company: String, item: RssItem): NewsRelease? {
-        val headline = item.title?.trim().orEmpty()
-        if (headline.isBlank()) return null
-        val parsedDate = parsePubDate(item.pubDate) ?: return null
-        if (!isWithinLiveNewsWindow(parsedDate)) return null
-        val summary = buildSummaryBody(item)
-        val articleUrl = item.link?.trim().orEmpty()
-        return NewsRelease(
-            company = company,
-            headline = headline,
-            summary = summary,
-            date = formatDisplayDate(parsedDate),
-            targetTags = emptyList(),
-            articleUrl = articleUrl
-        )
     }
 
     fun isWithinLiveNewsWindow(sortableDate: String): Boolean {
@@ -76,6 +62,110 @@ object RssNewsMapper {
         }.getOrNull() ?: date
     }
 
+    private data class ParsedRssItem(
+        val title: String?,
+        val pubDate: String?,
+        val link: String?,
+        val description: String?,
+        val contentEncoded: String?
+    )
+
+    private fun mapParsedItem(company: String, item: ParsedRssItem): NewsRelease? {
+        val headline = item.title?.trim().orEmpty()
+        if (headline.isBlank()) return null
+        val parsedDate = parsePubDate(item.pubDate) ?: return null
+        if (!isWithinLiveNewsWindow(parsedDate)) return null
+        val summary = buildSummaryBody(item)
+        val articleUrl = item.link?.trim().orEmpty()
+        return NewsRelease(
+            company = company,
+            headline = headline,
+            summary = summary,
+            date = formatDisplayDate(parsedDate),
+            targetTags = emptyList(),
+            articleUrl = articleUrl
+        )
+    }
+
+    private fun parseRssItems(xml: String): List<ParsedRssItem> {
+        val factory = XmlPullParserFactory.newInstance().apply {
+            isNamespaceAware = true
+        }
+        val parser = factory.newPullParser()
+        parser.setInput(StringReader(xml))
+
+        val items = mutableListOf<ParsedRssItem>()
+        var inItem = false
+        var title: String? = null
+        var link: String? = null
+        var pubDate: String? = null
+        var description: String? = null
+        var contentEncoded: String? = null
+
+        var eventType = parser.eventType
+        while (eventType != XmlPullParser.END_DOCUMENT) {
+            when (eventType) {
+                XmlPullParser.START_TAG -> {
+                    when (tagName(parser)) {
+                        "item" -> {
+                            inItem = true
+                            title = null
+                            link = null
+                            pubDate = null
+                            description = null
+                            contentEncoded = null
+                        }
+                        "title" -> if (inItem) title = readTagText(parser)
+                        "link" -> if (inItem) link = readTagText(parser)
+                        "pubdate" -> if (inItem) pubDate = readTagText(parser)
+                        "description" -> if (inItem) description = readTagText(parser)
+                        "content:encoded" -> if (inItem) contentEncoded = readTagText(parser)
+                    }
+                }
+                XmlPullParser.END_TAG -> {
+                    if (inItem && tagName(parser) == "item") {
+                        items.add(
+                            ParsedRssItem(
+                                title = title,
+                                pubDate = pubDate,
+                                link = link,
+                                description = description,
+                                contentEncoded = contentEncoded
+                            )
+                        )
+                        inItem = false
+                    }
+                }
+            }
+            eventType = parser.next()
+        }
+        return items
+    }
+
+    private fun tagName(parser: XmlPullParser): String {
+        val prefix = parser.prefix
+        val localName = parser.name?.lowercase(Locale.US).orEmpty()
+        return if (!prefix.isNullOrBlank()) {
+            "$prefix:$localName"
+        } else {
+            localName
+        }
+    }
+
+    private fun readTagText(parser: XmlPullParser): String {
+        return buildString {
+            var event = parser.next()
+            while (event != XmlPullParser.END_TAG) {
+                when (event) {
+                    XmlPullParser.TEXT, XmlPullParser.CDSECT, XmlPullParser.ENTITY_REF -> {
+                        append(parser.text.orEmpty())
+                    }
+                }
+                event = parser.next()
+            }
+        }.trim()
+    }
+
     private fun parsePubDate(pubDate: String?): String? {
         val raw = pubDate?.trim().orEmpty()
         if (raw.isBlank()) return null
@@ -94,8 +184,8 @@ object RssNewsMapper {
         return displayDateFormat.format(parsed)
     }
 
-    private fun buildSummaryBody(item: RssItem): String {
-        return stripHtml(item.content)
+    private fun buildSummaryBody(item: ParsedRssItem): String {
+        return stripHtml(item.contentEncoded)
             .ifBlank { stripHtml(item.description) }
             .trim()
     }
