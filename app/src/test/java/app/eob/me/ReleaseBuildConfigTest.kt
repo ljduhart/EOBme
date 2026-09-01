@@ -31,6 +31,7 @@ class ReleaseBuildConfigTest {
         assertTrue(rules.contains("-dontwarn okhttp3.**"))
         assertTrue(rules.contains("-dontwarn retrofit2.**"))
         assertTrue(rules.contains("-dontwarn coil.**"))
+        assertTrue(rules.contains("-keep class * extends androidx.work.CoroutineWorker"))
     }
 
     @Test
@@ -38,7 +39,7 @@ class ReleaseBuildConfigTest {
         val ruleFile = File(".cursor/rules/r8-firebase-veryfi.mdc")
         val parentRuleFile = File("../.cursor/rules/r8-firebase-veryfi.mdc")
         assertFalse(
-            "R8 cursor rule must not exist when shrinking is permanently disabled",
+            "Legacy R8 cursor rule file must not be checked in",
             ruleFile.isFile || parentRuleFile.isFile
         )
     }
