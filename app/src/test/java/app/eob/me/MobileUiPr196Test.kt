@@ -49,10 +49,11 @@ class MobileUiPr196Test {
     }
 
     @Test
-    fun releaseBuildKeepsR8Disabled() {
+    fun releaseBuildEnablesMinimalR8Shrinking() {
         val gradleSource = readProjectFile("app/build.gradle.kts")
-        assertTrue(gradleSource.contains("isMinifyEnabled = false"))
-        assertTrue(gradleSource.contains("isShrinkResources = false"))
+        assertTrue(gradleSource.contains("isMinifyEnabled = true"))
+        assertTrue(gradleSource.contains("isShrinkResources = true"))
+        assertTrue(gradleSource.contains("proguard-rules.pro"))
     }
 
     @Test

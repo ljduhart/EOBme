@@ -6,31 +6,32 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Locks release builds to production-grade non-shrinking configuration.
+ * Locks release builds to the minimal R8 shrinking configuration.
  */
 class ReleaseBuildConfigTest {
 
     @Test
-    fun releaseBuildTypeDisablesR8AndProGuard() {
+    fun releaseBuildTypeEnablesR8AndProGuard() {
         val buildScript = readAppBuildGradle()
         val releaseBlockStart = buildScript.indexOf("release {")
         val releaseBlockEnd = buildScript.indexOf("\n        }", releaseBlockStart)
         val releaseBlock = buildScript.substring(releaseBlockStart, releaseBlockEnd)
 
-        assertTrue(releaseBlock.contains("isMinifyEnabled = false"))
-        assertTrue(releaseBlock.contains("isShrinkResources = false"))
-        assertFalse(releaseBlock.contains("isMinifyEnabled = true"))
-        assertFalse(releaseBlock.contains("proguardFiles("))
+        assertTrue(releaseBlock.contains("isMinifyEnabled = true"))
+        assertTrue(releaseBlock.contains("isShrinkResources = true"))
+        assertTrue(releaseBlock.contains("proguardFiles("))
+        assertTrue(releaseBlock.contains("proguard-rules.pro"))
     }
 
     @Test
-    fun proGuardRulesFileIsNotCheckedIn() {
-        val proguardFile = File("app/proguard-rules.pro")
-        val parentProguardFile = File("../app/proguard-rules.pro")
-        assertFalse(
-            "proguard-rules.pro must not exist when R8 shrinking is disabled",
-            proguardFile.isFile || parentProguardFile.isFile
-        )
+    fun proGuardRulesFileProtectsEntireApplicationPackage() {
+        val proguardFile = resolveProguardFile()
+        val rules = proguardFile.readText()
+        assertTrue(rules.contains("-keep class app.eob.me.** { *; }"))
+        assertTrue(rules.contains("-dontwarn okhttp3.**"))
+        assertTrue(rules.contains("-dontwarn retrofit2.**"))
+        assertTrue(rules.contains("-dontwarn coil.**"))
+        assertTrue(rules.contains("-keep class * extends androidx.work.CoroutineWorker"))
     }
 
     @Test
@@ -38,7 +39,7 @@ class ReleaseBuildConfigTest {
         val ruleFile = File(".cursor/rules/r8-firebase-veryfi.mdc")
         val parentRuleFile = File("../.cursor/rules/r8-firebase-veryfi.mdc")
         assertFalse(
-            "R8 cursor rule must not exist when shrinking is permanently disabled",
+            "Legacy R8 cursor rule file must not be checked in",
             ruleFile.isFile || parentRuleFile.isFile
         )
     }
@@ -49,5 +50,13 @@ class ReleaseBuildConfigTest {
             File("../app/build.gradle.kts")
         )
         return candidates.first { it.isFile }.readText()
+    }
+
+    private fun resolveProguardFile(): File {
+        val candidates = listOf(
+            File("app/proguard-rules.pro"),
+            File("../app/proguard-rules.pro")
+        )
+        return candidates.first { it.isFile }
     }
 }
