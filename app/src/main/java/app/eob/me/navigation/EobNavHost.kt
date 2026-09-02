@@ -108,6 +108,7 @@ import app.eob.me.viewmodel.EobViewModel
 import app.eob.me.viewmodel.HubUiState
 import app.eob.me.viewmodel.ClinicalNotesViewModel
 import app.eob.me.viewmodel.ReverseDxViewModel
+import app.eob.me.ui.components.dictionary.MedicalDictionaryBottomSheet
 import app.eob.me.ui.components.dx.ReverseDxCptBottomSheet
 import app.eob.me.viewmodel.RxVaultViewModel
 import app.eob.me.ui.components.clinical.ClinicalNotesBottomSheet
@@ -277,6 +278,8 @@ private fun MainHubNavHost(
     var clinicalNotesVisible by remember { mutableStateOf(false) }
     var reverseDxEngaged by remember { mutableStateOf(false) }
     var reverseDxLookupVisible by remember { mutableStateOf(false) }
+    var medicalDictionaryEngaged by remember { mutableStateOf(false) }
+    var medicalDictionaryVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.hubSettings.darkModeEnabled) {
         onHubDarkModeChanged(uiState.hubSettings.darkModeEnabled)
@@ -691,11 +694,18 @@ private fun MainHubNavHost(
         onActivity()
     }
 
+    BackHandler(enabled = medicalDictionaryVisible) {
+        medicalDictionaryVisible = false
+        eobViewModel.clearMedicalDictSession()
+        onActivity()
+    }
+
     BackHandler(
         enabled = currentRoute == EobRoute.Home.route &&
             !smartRxVaultVisible &&
             !clinicalNotesVisible &&
             !reverseDxLookupVisible &&
+            !medicalDictionaryVisible &&
             !uiState.paywallVisible &&
             !uiState.hubSettings.appLocked
     ) {
@@ -1036,6 +1046,7 @@ private fun MainHubNavHost(
                             } else {
                                 clinicalNotesVisible = false
                                 reverseDxLookupVisible = false
+                                medicalDictionaryVisible = false
                                 rxVaultEngaged = true
                                 smartRxVaultVisible = true
                                 onActivity()
@@ -1053,6 +1064,7 @@ private fun MainHubNavHost(
                             } else {
                                 smartRxVaultVisible = false
                                 reverseDxLookupVisible = false
+                                medicalDictionaryVisible = false
                                 clinicalNotesEngaged = true
                                 clinicalNotesVisible = true
                                 onActivity()
@@ -1070,14 +1082,34 @@ private fun MainHubNavHost(
                             } else {
                                 smartRxVaultVisible = false
                                 clinicalNotesVisible = false
+                                medicalDictionaryVisible = false
                                 reverseDxEngaged = true
                                 reverseDxLookupVisible = true
                                 onActivity()
                             }
                         },
+                        onOpenMedicalDictionary = {
+                            if (!EobmeFeatureGate.hasMedicalDictionary(uiState.hubSettings.subscriptionTier)) {
+                                eobViewModel.showPaywall(
+                                    eobViewModel.paywallMessageForInsuranceCardFeature(
+                                        language,
+                                        InsuranceCardPremiumFeature.MedicalDictionary
+                                    )
+                                )
+                                onActivity()
+                            } else {
+                                smartRxVaultVisible = false
+                                clinicalNotesVisible = false
+                                reverseDxLookupVisible = false
+                                medicalDictionaryEngaged = true
+                                medicalDictionaryVisible = true
+                                onActivity()
+                            }
+                        },
                         blockInsuranceCardBackNavigation = smartRxVaultVisible ||
                             clinicalNotesVisible ||
-                            reverseDxLookupVisible,
+                            reverseDxLookupVisible ||
+                            medicalDictionaryVisible,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -1763,6 +1795,17 @@ private fun MainHubNavHost(
                     }
                 )
             }
+            if (medicalDictionaryEngaged) {
+                MedicalDictionarySessionOverlay(
+                    language = language,
+                    visible = medicalDictionaryVisible,
+                    eobViewModel = eobViewModel,
+                    onDismiss = {
+                        medicalDictionaryVisible = false
+                        eobViewModel.clearMedicalDictSession()
+                    }
+                )
+            }
         }
     }
 }
@@ -1913,6 +1956,44 @@ private fun ReverseDxLookupSessionOverlay(
             reverseDxViewModel.clearSession()
             onLaunchScannerClicked()
         }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MedicalDictionarySessionOverlay(
+    language: AppLanguage,
+    visible: Boolean,
+    eobViewModel: EobViewModel,
+    onDismiss: () -> Unit
+) {
+    val query by eobViewModel.medicalDictQuery.collectAsStateWithLifecycle()
+    val results by eobViewModel.medicalDictResults.collectAsStateWithLifecycle()
+
+    val closeDictionary = {
+        eobViewModel.clearMedicalDictSession()
+        onDismiss()
+    }
+
+    LaunchedEffect(visible) {
+        if (!visible) {
+            eobViewModel.clearMedicalDictSession()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            eobViewModel.clearMedicalDictSession()
+        }
+    }
+
+    MedicalDictionaryBottomSheet(
+        language = language,
+        visible = visible,
+        query = query,
+        results = results,
+        onDismiss = closeDictionary,
+        onQueryChange = eobViewModel::updateMedicalDictQuery
     )
 }
 

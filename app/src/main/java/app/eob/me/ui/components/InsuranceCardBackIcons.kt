@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
@@ -188,7 +189,8 @@ private val DxCrossFill = Color(0xFF0A2540)
 @Composable
 fun InsuranceCardDxReverseLookupIcon(
     language: AppLanguage,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showCaption: Boolean = true
 ) {
     Column(
         modifier = modifier,
@@ -343,16 +345,70 @@ fun InsuranceCardDxReverseLookupIcon(
                 }
             }
         }
-        Text(
-            text = EobStrings.t(language, "insuranceCardReverseDxProcessingCaption"),
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.6.sp,
-                fontSize = 9.sp
-            ),
-            color = DxNeonCyan,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 4.dp)
+        if (showCaption) {
+            Text(
+                text = EobStrings.t(language, "insuranceCardReverseDxProcessingCaption"),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.6.sp,
+                    fontSize = 9.sp
+                ),
+                color = DxNeonCyan,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun InsuranceCardMedicalDictionaryIcon(
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier.size(52.dp)) {
+        val width = size.width
+        val height = size.height
+        val bookLeft = width * 0.18f
+        val bookTop = height * 0.12f
+        val bookWidth = width * 0.44f
+        val bookHeight = height * 0.76f
+
+        drawRoundRect(
+            color = Color(0xFF1E88E5),
+            topLeft = Offset(bookLeft, bookTop),
+            size = Size(bookWidth, bookHeight),
+            cornerRadius = CornerRadius(width * 0.04f, width * 0.04f)
+        )
+        drawRoundRect(
+            color = Color(0xFF0D47A1),
+            topLeft = Offset(bookLeft + bookWidth * 0.08f, bookTop + bookHeight * 0.08f),
+            size = Size(bookWidth * 0.84f, bookHeight * 0.84f),
+            cornerRadius = CornerRadius(width * 0.03f, width * 0.03f)
+        )
+        repeat(4) { index ->
+            val lineY = bookTop + bookHeight * (0.22f + index * 0.14f)
+            drawLine(
+                color = Color.White.copy(alpha = 0.85f),
+                start = Offset(bookLeft + bookWidth * 0.18f, lineY),
+                end = Offset(bookLeft + bookWidth * 0.78f, lineY),
+                strokeWidth = width * 0.018f
+            )
+        }
+
+        val lensCenter = Offset(bookLeft + bookWidth * 0.82f, bookTop + bookHeight * 0.78f)
+        val lensRadius = width * 0.16f
+        drawCircle(
+            color = Color(0xFFFFF8E1),
+            radius = lensRadius,
+            center = lensCenter,
+            style = Stroke(width = width * 0.035f)
+        )
+        drawLine(
+            color = Color(0xFFFFF8E1),
+            start = Offset(lensCenter.x + lensRadius * 0.65f, lensCenter.y + lensRadius * 0.65f),
+            end = Offset(lensCenter.x + lensRadius * 1.35f, lensCenter.y + lensRadius * 1.35f),
+            strokeWidth = width * 0.035f,
+            cap = StrokeCap.Round
         )
     }
 }

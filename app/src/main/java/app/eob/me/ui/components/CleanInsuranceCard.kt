@@ -114,6 +114,7 @@ fun CleanInsuranceCard(
     onOpenSmartRxVault: () -> Unit = {},
     onOpenClinicalNotes: () -> Unit = {},
     onOpenReverseDxLookup: () -> Unit = {},
+    onOpenMedicalDictionary: () -> Unit = {},
     insuranceCardBackIconsBlurred: Boolean = false,
     blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
@@ -196,6 +197,7 @@ fun CleanInsuranceCard(
                     onOpenSmartRxVault = onOpenSmartRxVault,
                     onOpenClinicalNotes = onOpenClinicalNotes,
                     onOpenReverseDxLookup = onOpenReverseDxLookup,
+                    onOpenMedicalDictionary = onOpenMedicalDictionary,
                     insuranceCardBackIconsBlurred = insuranceCardBackIconsBlurred,
                     onFlip = { flipped = false },
                     modifier = Modifier.graphicsLayer { rotationY = 180f }
@@ -356,6 +358,7 @@ private fun InsuranceCardBackFace(
     onOpenSmartRxVault: () -> Unit,
     onOpenClinicalNotes: () -> Unit,
     onOpenReverseDxLookup: () -> Unit,
+    onOpenMedicalDictionary: () -> Unit,
     insuranceCardBackIconsBlurred: Boolean,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier
@@ -413,7 +416,8 @@ private fun InsuranceCardBackFace(
                     insuranceCardBackIconsBlurred = insuranceCardBackIconsBlurred,
                     onOpenSmartRxVault = onOpenSmartRxVault,
                     onOpenClinicalNotes = onOpenClinicalNotes,
-                    onOpenReverseDxLookup = onOpenReverseDxLookup
+                    onOpenReverseDxLookup = onOpenReverseDxLookup,
+                    onOpenMedicalDictionary = onOpenMedicalDictionary
                 )
                 InsuranceCardBackMode.Medications -> InsuranceCardMedicationsPanel(
                     language = language,
@@ -436,13 +440,14 @@ private fun InsuranceCardBackHub(
     insuranceCardBackIconsBlurred: Boolean,
     onOpenSmartRxVault: () -> Unit,
     onOpenClinicalNotes: () -> Unit,
-    onOpenReverseDxLookup: () -> Unit
+    onOpenReverseDxLookup: () -> Unit,
+    onOpenMedicalDictionary: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 0.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -454,34 +459,49 @@ private fun InsuranceCardBackHub(
             modifier = Modifier.fillMaxWidth()
         )
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 2.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            InsuranceCardBackLauncher(
+            CardQuickActionButton(
                 label = EobStrings.t(language, "insuranceCardMedicationsLauncher"),
                 contentDescription = EobStrings.t(language, "insuranceCardMedicationsLauncherDescription"),
                 iconsBlurred = insuranceCardBackIconsBlurred,
-                onClick = onOpenSmartRxVault
-            ) {
-                InsuranceCardPillBottleIcon()
-            }
-            InsuranceCardBackLauncher(
+                onClick = onOpenSmartRxVault,
+                labelColor = NotesSecondaryText,
+                icon = { InsuranceCardPillBottleIcon() }
+            )
+            CardQuickActionButton(
                 label = EobStrings.t(language, "insuranceCardNotepadLauncher"),
                 contentDescription = EobStrings.t(language, "insuranceCardNotepadLauncherDescription"),
                 iconsBlurred = insuranceCardBackIconsBlurred,
-                onClick = onOpenClinicalNotes
-            ) {
-                InsuranceCardNotepadIcon()
-            }
+                onClick = onOpenClinicalNotes,
+                labelColor = NotesSecondaryText,
+                icon = { InsuranceCardNotepadIcon() }
+            )
         }
-        InsuranceCardDxReverseLookupLauncher(
-            language = language,
-            iconsBlurred = insuranceCardBackIconsBlurred,
-            onClick = onOpenReverseDxLookup
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CardQuickActionButton(
+                label = EobStrings.t(language, "insuranceCardReverseDxLauncher"),
+                contentDescription = EobStrings.t(language, "insuranceCardReverseDxLauncherDescription"),
+                iconsBlurred = insuranceCardBackIconsBlurred,
+                onClick = onOpenReverseDxLookup,
+                labelColor = NotesSecondaryText,
+                icon = { InsuranceCardDxReverseLookupIcon(language = language, showCaption = false) }
+            )
+            CardQuickActionButton(
+                label = EobStrings.t(language, "insuranceCardMedicalDictionaryLauncher"),
+                contentDescription = EobStrings.t(language, "insuranceCardMedicalDictionaryLauncherDescription"),
+                iconsBlurred = insuranceCardBackIconsBlurred,
+                onClick = onOpenMedicalDictionary,
+                labelColor = NotesSecondaryText,
+                icon = { InsuranceCardMedicalDictionaryIcon() }
+            )
+        }
     }
 }
 

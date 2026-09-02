@@ -34,6 +34,7 @@ object EobmeFeatureGate {
     fun hasMedicationListReminder(tier: SubscriptionTier): Boolean = tier != SubscriptionTier.Free
     fun hasSmartNotepad(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
     fun hasDxCptReverseLookup(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
+    fun hasMedicalDictionary(tier: SubscriptionTier): Boolean = tier == SubscriptionTier.Gold
 
     // Universal Features
     fun hasCptTracker(): Boolean = true
@@ -44,5 +45,6 @@ object EobmeFeatureGate {
 enum class InsuranceCardPremiumFeature {
     MedicationListReminder,
     SmartNotepad,
-    DxCptReverseLookup
+    DxCptReverseLookup,
+    MedicalDictionary
 }

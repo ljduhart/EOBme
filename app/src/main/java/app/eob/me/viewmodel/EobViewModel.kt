@@ -97,6 +97,8 @@ import app.eob.me.data.SubscriptionTier
 import app.eob.me.data.SubscriptionUsageStore
 import app.eob.me.data.asCurrency
 import app.eob.me.data.repository.EobRepository
+import app.eob.me.data.repository.MedicalDictionaryRepository
+import app.eob.me.data.local.entity.MedicalDictionaryEntity
 import app.eob.me.network.InsuranceNewsRotation
 import app.eob.me.network.RetrofitClient
 import app.eob.me.network.RssNewsMapper
@@ -118,6 +120,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -236,6 +239,12 @@ class EobViewModel : ViewModel() {
     private var firebaseNews: List<NewsRelease> = emptyList()
     private var deletedNewsKeys: Set<String> = emptySet()
     private var newsRotationJob: Job? = null
+    private var medicalDictionaryRepository: MedicalDictionaryRepository? = null
+    private val _medicalDictQuery = MutableStateFlow("")
+    val medicalDictQuery: StateFlow<String> = _medicalDictQuery.asStateFlow()
+    private val _medicalDictResults = MutableStateFlow<List<MedicalDictionaryEntity>>(emptyList())
+    val medicalDictResults: StateFlow<List<MedicalDictionaryEntity>> = _medicalDictResults.asStateFlow()
+    private var medicalDictSearchJob: Job? = null
     private val _syncProfile = MutableStateFlow(UserProfile())
     private val _accountProfileSource = MutableStateFlow(UserProfile())
 
@@ -332,6 +341,36 @@ class EobViewModel : ViewModel() {
         refreshFirebaseStatus()
         fetchLiveInsuranceNews()
         startInsuranceNewsRotationClock()
+        initializeMedicalDictionarySearch(context)
+    }
+
+    private fun initializeMedicalDictionarySearch(context: Context) {
+        medicalDictionaryRepository = MedicalDictionaryRepository(context.applicationContext)
+        medicalDictSearchJob?.cancel()
+        medicalDictSearchJob = viewModelScope.launch {
+            _medicalDictQuery
+                .debounce(MEDICAL_DICT_SEARCH_DEBOUNCE_MS)
+                .flatMapLatest { query ->
+                    val repository = medicalDictionaryRepository
+                    if (repository == null || query.isBlank()) {
+                        flowOf(emptyList())
+                    } else {
+                        repository.searchTerms(query)
+                    }
+                }
+                .collect { results ->
+                    _medicalDictResults.value = results
+                }
+        }
+    }
+
+    fun updateMedicalDictQuery(value: String) {
+        _medicalDictQuery.value = value
+    }
+
+    fun clearMedicalDictSession() {
+        _medicalDictQuery.value = ""
+        _medicalDictResults.value = emptyList()
     }
 
     private fun startInsuranceNewsRotationClock() {
@@ -665,6 +704,8 @@ class EobViewModel : ViewModel() {
                 EobStrings.t(language, "paywallUnlockSmartNotepad")
             InsuranceCardPremiumFeature.DxCptReverseLookup ->
                 EobStrings.t(language, "paywallUnlockDxCptLookup")
+            InsuranceCardPremiumFeature.MedicalDictionary ->
+                EobStrings.t(language, "paywallUnlockMedicalDictionary")
         }
     }
 
@@ -2884,6 +2925,7 @@ class EobViewModel : ViewModel() {
 
     override fun onCleared() {
         newsRotationJob?.cancel()
+        medicalDictSearchJob?.cancel()
         eobListener?.remove()
         vaultReceiptListener?.remove()
         profileListener?.remove()
@@ -2895,6 +2937,7 @@ class EobViewModel : ViewModel() {
 
 private const val INSURANCE_CARD_NOTES_PERSIST_DEBOUNCE_MS = 400L
 private const val INSURANCE_CARD_NOTES_REMOTE_GUARD_MS = 1_200L
+private const val MEDICAL_DICT_SEARCH_DEBOUNCE_MS = 250L
 
 private fun NewsRelease.key(): String = "$company|$headline|$date"
 

@@ -112,6 +112,7 @@ fun HomeScreen(
     onOpenSmartRxVault: () -> Unit = {},
     onOpenClinicalNotes: () -> Unit = {},
     onOpenReverseDxLookup: () -> Unit = {},
+    onOpenMedicalDictionary: () -> Unit = {},
     insuranceCardBackIconsBlurred: Boolean = false,
     blockInsuranceCardBackNavigation: Boolean = false,
     modifier: Modifier = Modifier
@@ -184,6 +185,7 @@ fun HomeScreen(
                         onOpenSmartRxVault = onOpenSmartRxVault,
                         onOpenClinicalNotes = onOpenClinicalNotes,
                         onOpenReverseDxLookup = onOpenReverseDxLookup,
+                        onOpenMedicalDictionary = onOpenMedicalDictionary,
                         insuranceCardBackIconsBlurred = insuranceCardBackIconsBlurred,
                         blockInsuranceCardBackNavigation = blockInsuranceCardBackNavigation,
                         modifier = Modifier.fillMaxWidth(0.98f)

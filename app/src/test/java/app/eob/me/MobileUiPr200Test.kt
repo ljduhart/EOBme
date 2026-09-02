@@ -45,8 +45,8 @@ class MobileUiPr200Test {
         assertFalse(cardSource.contains("InsuranceCardDigitalNotepadPanel"))
         assertFalse(cardSource.contains("InsuranceCardBackMode.Notepad"))
         val hubBlock = cardSource.substringAfter("private fun InsuranceCardBackHub")
-            .substringBefore("private fun InsuranceCardBackLauncher")
-        assertEquals(2, hubBlock.split("InsuranceCardBackLauncher").size - 1)
+            .substringBefore("private fun InsuranceCardDxReverseLookupLauncher")
+        assertEquals(4, hubBlock.split("CardQuickActionButton").size - 1)
     }
 
     @Test
@@ -57,13 +57,21 @@ class MobileUiPr200Test {
         val openNotes = navSource.substringAfter("onOpenClinicalNotes = {")
             .substringBefore("onOpenReverseDxLookup = {")
         val openReverseDx = navSource.substringAfter("onOpenReverseDxLookup = {")
+            .substringBefore("onOpenMedicalDictionary = {")
+        val openMedicalDictionary = navSource.substringAfter("onOpenMedicalDictionary = {")
             .substringBefore("blockInsuranceCardBackNavigation")
         assertTrue(openVault.contains("clinicalNotesVisible = false"))
         assertTrue(openVault.contains("reverseDxLookupVisible = false"))
+        assertTrue(openVault.contains("medicalDictionaryVisible = false"))
         assertTrue(openNotes.contains("smartRxVaultVisible = false"))
         assertTrue(openNotes.contains("reverseDxLookupVisible = false"))
+        assertTrue(openNotes.contains("medicalDictionaryVisible = false"))
         assertTrue(openReverseDx.contains("smartRxVaultVisible = false"))
         assertTrue(openReverseDx.contains("clinicalNotesVisible = false"))
+        assertTrue(openReverseDx.contains("medicalDictionaryVisible = false"))
+        assertTrue(openMedicalDictionary.contains("smartRxVaultVisible = false"))
+        assertTrue(openMedicalDictionary.contains("clinicalNotesVisible = false"))
+        assertTrue(openMedicalDictionary.contains("reverseDxLookupVisible = false"))
     }
 
     @Test
