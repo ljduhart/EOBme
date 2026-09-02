@@ -30,7 +30,7 @@ abstract class MedicalDictionaryDatabase : RoomDatabase() {
                     DATABASE_NAME
                 )
                     .createFromAsset(ASSET_PATH)
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also { instance = it }
             }

@@ -183,7 +183,10 @@ data class HubUiState(
  * UI layers observe [eobRecords], [sortedEobRecords], [insuranceBriefings], and [uiState]; all
  * analytics and card state flow through ViewModel methods. Firestore sync goes through [EobRepository].
  */
-@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@OptIn(
+    kotlinx.coroutines.ExperimentalCoroutinesApi::class,
+    kotlinx.coroutines.FlowPreview::class
+)
 class EobViewModel : ViewModel() {
     companion object {
         const val TAX_VAULT_MAX_EXPORT_EOBS = 5
