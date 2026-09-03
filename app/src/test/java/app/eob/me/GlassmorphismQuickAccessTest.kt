@@ -33,6 +33,20 @@ class GlassmorphismQuickAccessTest {
     }
 
     @Test
+    fun quickAccessPreservesNavHostOverlayWiring() {
+        val navSource = readSource("navigation/EobNavHost.kt")
+        val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
+        assertTrue(cardSource.contains("GlassmorphismQuickAccessHub"))
+        assertTrue(cardSource.contains("modifier = Modifier.fillMaxWidth()"))
+        assertTrue(navSource.contains("blockInsuranceCardBackNavigation = smartRxVaultVisible ||"))
+        assertTrue(navSource.contains("medicalDictionaryVisible"))
+        assertTrue(navSource.contains("onOpenMedicalDictionary = {"))
+        assertTrue(navSource.contains("onOpenClinicalNotes = {"))
+        assertTrue(navSource.contains("onOpenSmartRxVault = {"))
+        assertTrue(navSource.contains("onOpenReverseDxLookup = {"))
+    }
+
+    @Test
     fun quickAccessGridDefinesFourTiles() {
         val source = readSource("ui/components/quickaccess/GlassmorphismQuickAccess.kt")
         assertEquals(4, source.split("icon = { Canvas").size - 1)

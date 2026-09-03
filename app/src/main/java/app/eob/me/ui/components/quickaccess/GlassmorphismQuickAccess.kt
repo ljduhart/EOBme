@@ -648,6 +648,7 @@ private fun DrawScope.drawCanvasLabel(
                 Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             }
         }
-        drawText(text, centerX, centerY, paint)
+        val baseline = centerY - (paint.fontMetrics.ascent + paint.fontMetrics.descent) / 2f
+        drawText(text, centerX, baseline, paint)
     }
 }

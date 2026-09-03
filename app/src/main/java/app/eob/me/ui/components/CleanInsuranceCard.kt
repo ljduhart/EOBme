@@ -445,6 +445,7 @@ private fun InsuranceCardBackHub(
     onOpenMedicalDictionary: () -> Unit
 ) {
     GlassmorphismQuickAccessHub(
+        modifier = Modifier.fillMaxWidth(),
         language = language,
         insuranceCardBackIconsBlurred = insuranceCardBackIconsBlurred,
         onOpenSmartRxVault = onOpenSmartRxVault,
