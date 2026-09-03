@@ -53,9 +53,11 @@ class MobileUiPr198Test {
     @Test
     fun smartRxVaultOriginatesFromInsuranceCardPillBottleQuickAccess() {
         val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
+        val quickAccessSource = readSource("ui/components/quickaccess/GlassmorphismQuickAccess.kt")
         val navSource = readSource("navigation/EobNavHost.kt")
-        assertTrue(cardSource.contains("InsuranceCardPillBottleIcon"))
-        assertTrue(cardSource.contains("onClick = onOpenSmartRxVault"))
+        assertTrue(cardSource.contains("GlassmorphismQuickAccessHub"))
+        assertTrue(quickAccessSource.contains("CanvasMedsIcon"))
+        assertTrue(quickAccessSource.contains("onOpenSmartRxVault"))
         assertTrue(navSource.contains("onOpenSmartRxVault"))
         assertFalse(navSource.contains("EobRoute.RxVault"))
     }

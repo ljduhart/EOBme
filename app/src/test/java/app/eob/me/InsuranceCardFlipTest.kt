@@ -36,7 +36,7 @@ class InsuranceCardFlipTest {
         assertTrue(source.contains("onOpenClinicalNotes"))
         val hubBlock = source.substringAfter("private fun InsuranceCardBackHub")
             .substringBefore("private fun InsuranceCardDxReverseLookupLauncher")
-        assertEquals(4, hubBlock.split("CardQuickActionButton").size - 1)
+        assertTrue(hubBlock.contains("GlassmorphismQuickAccessHub"))
     }
 
     @Test

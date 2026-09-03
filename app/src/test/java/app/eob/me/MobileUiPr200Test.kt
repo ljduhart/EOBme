@@ -41,12 +41,11 @@ class MobileUiPr200Test {
         assertTrue(navSource.contains("ClinicalNotesSessionOverlay"))
         assertTrue(navSource.contains("clinicalNotesEngaged"))
         assertTrue(cardSource.contains("onOpenClinicalNotes"))
-        assertTrue(cardSource.contains("onClick = onOpenClinicalNotes"))
         assertFalse(cardSource.contains("InsuranceCardDigitalNotepadPanel"))
         assertFalse(cardSource.contains("InsuranceCardBackMode.Notepad"))
         val hubBlock = cardSource.substringAfter("private fun InsuranceCardBackHub")
             .substringBefore("private fun InsuranceCardDxReverseLookupLauncher")
-        assertEquals(4, hubBlock.split("CardQuickActionButton").size - 1)
+        assertTrue(hubBlock.contains("GlassmorphismQuickAccessHub"))
     }
 
     @Test

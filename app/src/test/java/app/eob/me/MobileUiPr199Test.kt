@@ -9,8 +9,12 @@ class MobileUiPr199Test {
     @Test
     fun insuranceCardQuickAccessShowsOnlyPillAndNotepadIcons() {
         val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
-        assertTrue(cardSource.contains("InsuranceCardPillBottleIcon"))
-        assertTrue(cardSource.contains("InsuranceCardNotepadIcon"))
+        val quickAccessSource = readSource("ui/components/quickaccess/GlassmorphismQuickAccess.kt")
+        assertTrue(cardSource.contains("GlassmorphismQuickAccessHub"))
+        assertTrue(quickAccessSource.contains("CanvasMedsIcon"))
+        assertTrue(quickAccessSource.contains("CanvasNotepadIcon"))
+        assertTrue(quickAccessSource.contains("CanvasDxCptIcon"))
+        assertTrue(quickAccessSource.contains("CanvasDictionaryIcon"))
         assertFalse(cardSource.contains("insuranceCardMedicationsNotesLink"))
         assertFalse(cardSource.contains("TextButton(onClick = onOpenMedications)"))
     }

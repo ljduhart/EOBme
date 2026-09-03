@@ -8,9 +8,10 @@ class MedicalDictionaryArchitectureTest {
     @Test
     fun cleanInsuranceCardUsesSymmetricalQuickActionGrid() {
         val source = readSource("ui/components/CleanInsuranceCard.kt")
-        assertTrue(source.contains("CardQuickActionButton"))
-        assertTrue(source.contains("insuranceCardMedicalDictionaryLauncher"))
-        assertTrue(source.contains("Arrangement.SpaceEvenly"))
+        val quickAccessSource = readSource("ui/components/quickaccess/GlassmorphismQuickAccess.kt")
+        assertTrue(source.contains("GlassmorphismQuickAccessHub"))
+        assertTrue(quickAccessSource.contains("GlassQuickActionTile"))
+        assertTrue(quickAccessSource.contains("CanvasDictionaryIcon"))
         assertTrue(source.contains("onOpenMedicalDictionary"))
     }
 

@@ -74,6 +74,7 @@ import app.eob.me.ui.theme.EobInsuranceGradientEnd
 import app.eob.me.ui.theme.EobInsuranceGradientMid
 import app.eob.me.ui.theme.EobInsuranceGradientStart
 import app.eob.me.ui.theme.EobInsuranceNameAccent
+import app.eob.me.ui.components.quickaccess.GlassmorphismQuickAccessHub
 import app.eob.me.ui.theme.EobInsuranceSecondaryText
 
 private val CardBackgroundGradient = Brush.linearGradient(
@@ -443,66 +444,14 @@ private fun InsuranceCardBackHub(
     onOpenReverseDxLookup: () -> Unit,
     onOpenMedicalDictionary: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 0.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = EobStrings.t(language, "insuranceCardBackHubTitle"),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = NotesPrimaryText,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CardQuickActionButton(
-                label = EobStrings.t(language, "insuranceCardMedicationsLauncher"),
-                contentDescription = EobStrings.t(language, "insuranceCardMedicationsLauncherDescription"),
-                iconsBlurred = insuranceCardBackIconsBlurred,
-                onClick = onOpenSmartRxVault,
-                labelColor = NotesSecondaryText,
-                icon = { InsuranceCardPillBottleIcon() }
-            )
-            CardQuickActionButton(
-                label = EobStrings.t(language, "insuranceCardNotepadLauncher"),
-                contentDescription = EobStrings.t(language, "insuranceCardNotepadLauncherDescription"),
-                iconsBlurred = insuranceCardBackIconsBlurred,
-                onClick = onOpenClinicalNotes,
-                labelColor = NotesSecondaryText,
-                icon = { InsuranceCardNotepadIcon() }
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CardQuickActionButton(
-                label = EobStrings.t(language, "insuranceCardReverseDxLauncher"),
-                contentDescription = EobStrings.t(language, "insuranceCardReverseDxLauncherDescription"),
-                iconsBlurred = insuranceCardBackIconsBlurred,
-                onClick = onOpenReverseDxLookup,
-                labelColor = NotesSecondaryText,
-                icon = { InsuranceCardDxReverseLookupIcon(language = language, showCaption = false) }
-            )
-            CardQuickActionButton(
-                label = EobStrings.t(language, "insuranceCardMedicalDictionaryLauncher"),
-                contentDescription = EobStrings.t(language, "insuranceCardMedicalDictionaryLauncherDescription"),
-                iconsBlurred = insuranceCardBackIconsBlurred,
-                onClick = onOpenMedicalDictionary,
-                labelColor = NotesSecondaryText,
-                icon = { InsuranceCardMedicalDictionaryIcon() }
-            )
-        }
-    }
+    GlassmorphismQuickAccessHub(
+        language = language,
+        insuranceCardBackIconsBlurred = insuranceCardBackIconsBlurred,
+        onOpenSmartRxVault = onOpenSmartRxVault,
+        onOpenClinicalNotes = onOpenClinicalNotes,
+        onOpenReverseDxLookup = onOpenReverseDxLookup,
+        onOpenMedicalDictionary = onOpenMedicalDictionary
+    )
 }
 
 @Composable

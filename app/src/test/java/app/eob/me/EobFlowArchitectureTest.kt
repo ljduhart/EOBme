@@ -1144,10 +1144,11 @@ class EobFlowArchitectureTest {
         assertTrue(cardSource.contains("insuranceCardActiveMedicationsLabel"))
         assertTrue(cardSource.contains("onOpenClinicalNotes"))
         assertTrue(cardSource.contains("onOpenReverseDxLookup"))
-        assertTrue(cardSource.contains("InsuranceCardDxReverseLookupIcon"))
+        assertTrue(cardSource.contains("GlassmorphismQuickAccessHub"))
         assertFalse(cardSource.contains("InsuranceCardDigitalNotepadPanel"))
-        assertTrue(cardSource.contains("InsuranceCardPillBottleIcon"))
-        assertTrue(cardSource.contains("InsuranceCardNotepadIcon"))
+        val quickAccessSource = readSource("ui/components/quickaccess/GlassmorphismQuickAccess.kt")
+        assertTrue(quickAccessSource.contains("CanvasMedsIcon"))
+        assertTrue(quickAccessSource.contains("CanvasNotepadIcon"))
         assertFalse(
             "Insurance card front must not edit credential fields",
             cardSource.contains("onInsuranceNameChange")

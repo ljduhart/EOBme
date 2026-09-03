@@ -8,10 +8,12 @@ class MobileUiPr173Test {
     @Test
     fun insuranceCardBackShowsPillBottleAndNotepadLaunchers() {
         val cardSource = readSource("ui/components/CleanInsuranceCard.kt")
+        val quickAccessSource = readSource("ui/components/quickaccess/GlassmorphismQuickAccess.kt")
         val iconSource = readSource("ui/components/InsuranceCardBackIcons.kt")
         assertTrue(cardSource.contains("InsuranceCardBackHub"))
-        assertTrue(cardSource.contains("InsuranceCardPillBottleIcon"))
-        assertTrue(cardSource.contains("InsuranceCardNotepadIcon"))
+        assertTrue(cardSource.contains("GlassmorphismQuickAccessHub"))
+        assertTrue(quickAccessSource.contains("CanvasMedsIcon"))
+        assertTrue(quickAccessSource.contains("CanvasNotepadIcon"))
         assertTrue(cardSource.contains("InsuranceCardMedicationsPanel"))
         assertFalse(cardSource.contains("InsuranceCardDigitalNotepadPanel"))
         assertTrue(cardSource.contains("onOpenClinicalNotes"))
