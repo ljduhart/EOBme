@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -27,7 +28,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.eob.me.data.AppLanguage
 import app.eob.me.data.EobStrings
@@ -53,6 +54,13 @@ private val GlassPaneFill = Brush.verticalGradient(
         Color.White.copy(alpha = 0.20f),
         Color.White.copy(alpha = 0.11f),
         Color.White.copy(alpha = 0.16f)
+    )
+)
+private val GlassPaneFallbackFill = Brush.verticalGradient(
+    colors = listOf(
+        Color.White.copy(alpha = 0.10f),
+        Color.White.copy(alpha = 0.10f),
+        Color.White.copy(alpha = 0.10f)
     )
 )
 private val GlassPaneBorder = Brush.linearGradient(
@@ -73,6 +81,12 @@ private val AmberGlass = Color(0xFFF9A825)
 private val AmberGlassDeep = Color(0xFFE65100)
 private val SilverMetal = Color(0xFFE8EEF5)
 private val SilverMetalDark = Color(0xFF90A4AE)
+
+private fun supportsGlassBlurEffects(): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+private fun Modifier.optionalBlur(radius: Dp): Modifier =
+    if (supportsGlassBlurEffects()) blur(radius) else this
 
 @Composable
 fun GlassmorphismQuickAccessHub(
@@ -137,6 +151,7 @@ private fun GlassmorphicQuickAccessPane(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+    val blurSupported = remember { supportsGlassBlurEffects() }
     Box(
         modifier = modifier
             .clip(GlassPaneShape)
@@ -145,52 +160,64 @@ private fun GlassmorphicQuickAccessPane(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        renderEffect = android.graphics.RenderEffect
-                            .createBlurEffect(18f, 18f, android.graphics.Shader.TileMode.CLAMP)
-                            .asComposeRenderEffect()
+                .then(
+                    if (blurSupported) {
+                        Modifier.graphicsLayer {
+                            renderEffect = android.graphics.RenderEffect
+                                .createBlurEffect(18f, 18f, android.graphics.Shader.TileMode.CLAMP)
+                                .asComposeRenderEffect()
+                        }
+                    } else {
+                        Modifier
                     }
-                }
-                .background(GlassPaneFill)
+                )
+                .background(if (blurSupported) GlassPaneFill else GlassPaneFallbackFill)
         )
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .blur(28.dp)
+                .optionalBlur(28.dp)
         ) {
             val streakBrush = Brush.linearGradient(
-                colors = listOf(
-                    Color.Transparent,
-                    CyanGlow.copy(alpha = 0.22f),
-                    ElectricBlue.copy(alpha = 0.16f),
-                    Color(0xFF7C4DFF).copy(alpha = 0.12f),
-                    Color.Transparent
-                ),
+                colors = if (blurSupported) {
+                    listOf(
+                        Color.Transparent,
+                        CyanGlow.copy(alpha = 0.22f),
+                        ElectricBlue.copy(alpha = 0.16f),
+                        Color(0xFF7C4DFF).copy(alpha = 0.12f),
+                        Color.Transparent
+                    )
+                } else {
+                    listOf(
+                        Color.Transparent,
+                        CyanGlow.copy(alpha = 0.10f),
+                        Color.Transparent
+                    )
+                },
                 start = Offset(0f, size.height * 0.35f),
                 end = Offset(size.width, size.height * 0.65f)
             )
             drawRect(brush = streakBrush)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(CyanGlow.copy(alpha = 0.18f), Color.Transparent),
-                    center = Offset(size.width * 0.18f, size.height * 0.22f),
-                    radius = size.minDimension * 0.42f
-                ),
-                radius = size.minDimension * 0.42f,
-                center = Offset(size.width * 0.18f, size.height * 0.22f),
-                blendMode = BlendMode.Screen
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF7C4DFF).copy(alpha = 0.14f), Color.Transparent),
-                    center = Offset(size.width * 0.82f, size.height * 0.78f),
-                    radius = size.minDimension * 0.36f
-                ),
-                radius = size.minDimension * 0.36f,
-                center = Offset(size.width * 0.82f, size.height * 0.78f),
-                blendMode = BlendMode.Screen
-            )
+            if (blurSupported) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(CyanGlow.copy(alpha = 0.18f), Color.Transparent),
+                        center = Offset(size.width * 0.18f, size.height * 0.22f),
+                        radius = size.minDimension * 0.42f
+                    ),
+                    radius = size.minDimension * 0.42f,
+                    center = Offset(size.width * 0.18f, size.height * 0.22f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFF7C4DFF).copy(alpha = 0.14f), Color.Transparent),
+                        center = Offset(size.width * 0.82f, size.height * 0.78f),
+                        radius = size.minDimension * 0.36f
+                    ),
+                    radius = size.minDimension * 0.36f,
+                    center = Offset(size.width * 0.82f, size.height * 0.78f)
+                )
+            }
         }
         Column(
             modifier = Modifier
@@ -219,6 +246,7 @@ private fun GlassQuickActionTile(
     onClick: () -> Unit,
     icon: @Composable () -> Unit
 ) {
+    val blurSupported = remember { supportsGlassBlurEffects() }
     Column(
         modifier = Modifier
             .widthIn(min = 108.dp, max = 132.dp)
@@ -231,12 +259,18 @@ private fun GlassQuickActionTile(
             modifier = Modifier.size(76.dp),
             contentAlignment = Alignment.Center
         ) {
-            if (iconsBlurred) {
-                Box(modifier = Modifier.blur(18.dp)) {
-                    icon()
+            when {
+                iconsBlurred && blurSupported -> {
+                    Box(modifier = Modifier.optionalBlur(18.dp)) {
+                        icon()
+                    }
                 }
-            } else {
-                icon()
+                iconsBlurred -> {
+                    Box(modifier = Modifier.graphicsLayer { alpha = 0.42f }) {
+                        icon()
+                    }
+                }
+                else -> icon()
             }
         }
         Text(
@@ -295,13 +329,10 @@ fun CanvasMedsIcon(modifier: Modifier = Modifier) {
             cornerRadius = CornerRadius(width * 0.10f, width * 0.10f)
         )
         drawRoundRect(
-            brush = Brush.horizontalGradient(
-                colors = listOf(Color.White.copy(alpha = 0.42f), Color.Transparent, Color.Transparent)
-            ),
+            color = Color.White.copy(alpha = 0.24f),
             topLeft = Offset(bodyLeft + width * 0.03f, bodyTop),
             size = Size(width * 0.10f, bodyBottom - bodyTop),
-            cornerRadius = CornerRadius(width * 0.06f, width * 0.06f),
-            blendMode = BlendMode.Screen
+            cornerRadius = CornerRadius(width * 0.06f, width * 0.06f)
         )
 
         val labelTop = bodyTop + height * 0.10f
@@ -373,14 +404,7 @@ fun CanvasNotepadIcon(modifier: Modifier = Modifier) {
             val padHeight = height * 0.78f
             val alpha = 0.22f + index * 0.10f
             drawRoundRect(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = alpha + 0.10f),
-                        Color.White.copy(alpha = alpha)
-                    ),
-                    start = Offset(padLeft, padTop),
-                    end = Offset(padLeft + padWidth, padTop + padHeight)
-                ),
+                color = Color.White.copy(alpha = alpha + 0.08f),
                 topLeft = Offset(padLeft, padTop),
                 size = Size(padWidth, padHeight),
                 cornerRadius = CornerRadius(width * 0.04f, width * 0.04f)
@@ -417,21 +441,12 @@ fun CanvasNotepadIcon(modifier: Modifier = Modifier) {
         }
         drawPath(
             path = penPath,
-            brush = Brush.linearGradient(
-                colors = listOf(SilverMetalDark, SilverMetal, SilverMetalDark),
-                start = penTail,
-                end = penTip
-            )
+            color = SilverMetal
         )
         drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(CyanGlow, CyanGlow.copy(alpha = 0.25f), Color.Transparent),
-                center = penTip,
-                radius = width * 0.10f
-            ),
+            color = CyanGlow.copy(alpha = 0.35f),
             radius = width * 0.10f,
-            center = penTip,
-            blendMode = BlendMode.Screen
+            center = penTip
         )
         drawCircle(
             color = CyanGlow,
@@ -459,15 +474,7 @@ fun CanvasDxCptIcon(modifier: Modifier = Modifier) {
         }
         drawPath(
             path = facetPath,
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFF0D2B52).copy(alpha = 0.88f),
-                    Color(0xFF001A3F).copy(alpha = 0.72f),
-                    Color(0xFF00112A).copy(alpha = 0.92f)
-                ),
-                center = center,
-                radius = radius * 1.2f
-            )
+            color = Color(0xFF0D2B52).copy(alpha = 0.88f)
         )
         drawPath(
             path = facetPath,
@@ -485,16 +492,7 @@ fun CanvasDxCptIcon(modifier: Modifier = Modifier) {
         }
         drawPath(
             path = innerFacet,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    CyanGlow.copy(alpha = 0.18f),
-                    Color.Transparent,
-                    ElectricBlue.copy(alpha = 0.14f)
-                ),
-                start = Offset(center.x, center.y - radius * 0.55f),
-                end = Offset(center.x, center.y + radius * 0.48f)
-            ),
-            blendMode = BlendMode.Screen
+            color = CyanGlow.copy(alpha = 0.14f)
         )
 
         val nodeOffsets = listOf(
@@ -546,15 +544,7 @@ fun CanvasDictionaryIcon(modifier: Modifier = Modifier) {
         val bookHeight = height * 0.72f
 
         drawRoundRect(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.28f),
-                    Color.White.copy(alpha = 0.12f),
-                    Color.White.copy(alpha = 0.20f)
-                ),
-                start = Offset(bookLeft, bookTop),
-                end = Offset(bookLeft + bookWidth, bookTop + bookHeight)
-            ),
+            color = Color.White.copy(alpha = 0.20f),
             topLeft = Offset(bookLeft, bookTop),
             size = Size(bookWidth, bookHeight),
             cornerRadius = CornerRadius(width * 0.04f, width * 0.04f)
@@ -596,18 +586,12 @@ fun CanvasDictionaryIcon(modifier: Modifier = Modifier) {
         val lensCenter = Offset(bookLeft + bookWidth * 0.78f, bookTop + bookHeight * 0.72f)
         val lensRadius = width * 0.17f
         drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(Color.White.copy(alpha = 0.20f), Color.Transparent),
-                center = lensCenter,
-                radius = lensRadius
-            ),
+            color = Color.White.copy(alpha = 0.16f),
             radius = lensRadius,
             center = lensCenter
         )
         drawCircle(
-            brush = Brush.linearGradient(
-                colors = listOf(SilverMetal, SilverMetalDark, SilverMetal)
-            ),
+            color = SilverMetal,
             radius = lensRadius,
             center = lensCenter,
             style = Stroke(width = width * 0.030f)
