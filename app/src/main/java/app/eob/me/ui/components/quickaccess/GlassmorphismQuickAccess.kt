@@ -80,10 +80,18 @@ private val ElectricBlue = Color(0xFF4FC3F7)
 private val AmberGlass = Color(0xFFF9A825)
 private val AmberGlassDeep = Color(0xFFE65100)
 private val SilverMetal = Color(0xFFE8EEF5)
-private val SilverMetalDark = Color(0xFF90A4AE)
 
 private fun supportsGlassBlurEffects(): Boolean =
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+private fun createGlassRenderEffect(): androidx.compose.ui.graphics.RenderEffect? {
+    if (!supportsGlassBlurEffects()) return null
+    return runCatching {
+        android.graphics.RenderEffect
+            .createBlurEffect(18f, 18f, android.graphics.Shader.TileMode.CLAMP)
+            .asComposeRenderEffect()
+    }.getOrNull()
+}
 
 private fun Modifier.optionalBlur(radius: Dp): Modifier =
     if (supportsGlassBlurEffects()) blur(radius) else this
@@ -151,7 +159,8 @@ private fun GlassmorphicQuickAccessPane(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val blurSupported = remember { supportsGlassBlurEffects() }
+    val glassRenderEffect = remember { createGlassRenderEffect() }
+    val useAdvancedGlass = glassRenderEffect != null
     Box(
         modifier = modifier
             .clip(GlassPaneShape)
@@ -161,44 +170,32 @@ private fun GlassmorphicQuickAccessPane(
             modifier = Modifier
                 .fillMaxSize()
                 .then(
-                    if (blurSupported) {
-                        Modifier.graphicsLayer {
-                            renderEffect = android.graphics.RenderEffect
-                                .createBlurEffect(18f, 18f, android.graphics.Shader.TileMode.CLAMP)
-                                .asComposeRenderEffect()
-                        }
+                    if (glassRenderEffect != null) {
+                        Modifier.graphicsLayer { renderEffect = glassRenderEffect }
                     } else {
                         Modifier
                     }
                 )
-                .background(if (blurSupported) GlassPaneFill else GlassPaneFallbackFill)
+                .background(if (useAdvancedGlass) GlassPaneFill else GlassPaneFallbackFill)
         )
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .optionalBlur(28.dp)
-        ) {
-            val streakBrush = Brush.linearGradient(
-                colors = if (blurSupported) {
-                    listOf(
+        if (useAdvancedGlass) {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .optionalBlur(28.dp)
+            ) {
+                val streakBrush = Brush.linearGradient(
+                    colors = listOf(
                         Color.Transparent,
                         CyanGlow.copy(alpha = 0.22f),
                         ElectricBlue.copy(alpha = 0.16f),
                         Color(0xFF7C4DFF).copy(alpha = 0.12f),
                         Color.Transparent
-                    )
-                } else {
-                    listOf(
-                        Color.Transparent,
-                        CyanGlow.copy(alpha = 0.10f),
-                        Color.Transparent
-                    )
-                },
-                start = Offset(0f, size.height * 0.35f),
-                end = Offset(size.width, size.height * 0.65f)
-            )
-            drawRect(brush = streakBrush)
-            if (blurSupported) {
+                    ),
+                    start = Offset(0f, size.height * 0.35f),
+                    end = Offset(size.width, size.height * 0.65f)
+                )
+                drawRect(brush = streakBrush)
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(CyanGlow.copy(alpha = 0.18f), Color.Transparent),
@@ -217,6 +214,19 @@ private fun GlassmorphicQuickAccessPane(
                     radius = size.minDimension * 0.36f,
                     center = Offset(size.width * 0.82f, size.height * 0.78f)
                 )
+            }
+        } else {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val streakBrush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        CyanGlow.copy(alpha = 0.10f),
+                        Color.Transparent
+                    ),
+                    start = Offset(0f, size.height * 0.35f),
+                    end = Offset(size.width, size.height * 0.65f)
+                )
+                drawRect(brush = streakBrush)
             }
         }
         Column(

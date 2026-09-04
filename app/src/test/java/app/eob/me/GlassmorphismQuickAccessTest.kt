@@ -18,6 +18,8 @@ class GlassmorphismQuickAccessTest {
         assertTrue(source.contains("supportsGlassBlurEffects"))
         assertTrue(source.contains("VERSION_CODES.S"))
         assertTrue(source.contains("optionalBlur"))
+        assertTrue(source.contains("createGlassRenderEffect"))
+        assertTrue(source.contains("runCatching"))
         assertFalse(source.contains("BlendMode.Screen"))
         assertFalse(source.contains("AsyncImage"))
         assertFalse(source.contains("coil"))
@@ -59,7 +61,7 @@ class GlassmorphismQuickAccessTest {
         val source = readSource("ui/components/quickaccess/GlassmorphismQuickAccess.kt")
         assertTrue(source.contains("GlassPaneFallbackFill"))
         assertTrue(source.contains("Color.White.copy(alpha = 0.10f)"))
-        assertTrue(source.contains("if (blurSupported) GlassPaneFill else GlassPaneFallbackFill"))
+        assertTrue(source.contains("if (useAdvancedGlass) GlassPaneFill else GlassPaneFallbackFill"))
     }
 
     @Test
